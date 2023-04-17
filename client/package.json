@@ -1,0 +1,82 @@
+{
+  "name": "tileserver-rs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "npm run lint:eslint && npm run lint:prettier && npm run lint:css",
+    "lintfix": "npm run lint:eslint:fix && npm run lint:prettier:fix && npm run lint:css:fix",
+    "lint:js": "npm run lint:eslint && npm run lint:prettier",
+    "lint:eslint": "eslint \"{,!(node_modules|.nuxt|dist|static)/**/}*.{js,ts,vue}\" --ignore-path .gitignore",
+    "lint:eslint:fix": "eslint --fix \"{,!(node_modules|.nuxt|dist|static)/**/}*.{js,ts,vue}\" --ignore-path .gitignore",
+    "lint:prettier": "prettier --check \"{,!(node_modules|.nuxt|dist|static)/**/}*.{js,ts,vue}\" --ignore-path .gitignore",
+    "lint:prettier:fix": "prettier --write \"{,!(node_modules|.nuxt|dist|static)/**/}*.{js,ts,vue}\" --ignore-path .gitignore",
+    "lint:css": "stylelint '**/*.{css,scss,sass,vue}' --ignore-path .gitignore",
+    "lint:css:fix": "stylelint --fix '**/*.{css,scss,sass,vue}' --ignore-path .gitignore",
+    "release": "shipjs prepare",
+    "release:dry": "shipjs prepare --dry-run",
+    "release:auto": "shipjs prepare --yes",
+    "prepare": "cd .. && husky install client/.husky"
+  },
+  "dependencies": {
+    "maplibre-gl": "^2.4.0",
+    "maplibre-gl-inspect": "^0.0.6"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.6.1",
+    "@commitlint/config-conventional": "^17.6.1",
+    "@deck.gl/layers": "^8.9.7",
+    "@deck.gl/mapbox": "^8.9.7",
+    "@kevinmarrec/nuxt-pwa": "^0.17.0",
+    "@nuxtjs/plausible": "^0.2.0",
+    "@types/d3-dsv": "^3.0.1",
+    "@types/geojson": "^7946.0.10",
+    "@types/uuid": "^9.0.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.0",
+    "@typescript-eslint/parser": "^5.59.0",
+    "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
+    "@vueuse/core": "^10.0.2",
+    "@vueuse/nuxt": "^10.0.2",
+    "@windicss/plugin-animations": "^1.0.9",
+    "@windicss/plugin-scrollbar": "^1.2.3",
+    "eslint": "^8.38.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-jsdoc": "^41.1.2",
+    "eslint-plugin-nuxt": "^4.0.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-security": "^1.7.1",
+    "eslint-plugin-vue": "^9.11.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.1",
+    "nuxt": "^3.4.1",
+    "nuxt-windicss": "^2.6.1",
+    "prettier": "^2.8.7",
+    "sass": "^1.62.0",
+    "shipjs": "^0.26.3",
+    "stylelint": "^15.5.0",
+    "stylelint-config-recommended-vue": "^1.4.0",
+    "stylelint-prettier": "^3.0.0",
+    "typescript": "^5.0.4"
+  },
+  "repository": {
+    "url": "git+https://github.com/vinayakkulkarni/tileserver-rs.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "Vinayak Kulkarni",
+    "email": "inbox.vinayak@gmail.com",
+    "url": "https://vinayakkulkarni.dev"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "bugs": {
+    "url": "https://github.com/vinayakkulkarni/tileserver-rs/issues"
+  },
+  "homepage": "https://github.com/vinayakkulkarni/tileserver-rs#readme"
+}
