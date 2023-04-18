@@ -1,0 +1,34 @@
+name: "The Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}-1
+  cancel-in-progress: true
+
+jobs:
+  extract-branch:
+    name: Fetch branch
+    runs-on: ubuntu-latest
+    outputs:
+      current_branch: ${{ steps.get-branch.outputs.current_branch }}
+    steps:
+      - name: Extract branch name 🕊
+        id: get-branch
+        run: echo "current_branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+  ci-node:
+    name: CI (Node)
+    needs:
+      - extract-branch
+    uses: ./.github/workflows/ci-node.yml
+  ci-rust:
+    name: CI (Rust)
+    needs:
+      - extract-branch
+    uses: ./.github/workflows/ci-rust.yml

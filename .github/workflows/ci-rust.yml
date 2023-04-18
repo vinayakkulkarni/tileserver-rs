@@ -1,0 +1,72 @@
+name: 'Continuous Integration (Rust)'
+
+on:
+  workflow_call:
+
+env:
+  CI: 1
+  CARGO_INCREMENTAL: 0
+  RUST_LOG: 'debug'
+
+jobs:
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: './server/'
+    env:
+      RUST_LOG: '0'
+    steps:
+      - name: Check out repository ✨ (non dependabot)
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+      - name: Check out repository 🎉 (dependabot)
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: './server/'
+    steps:
+      - name: Check out repository ✨ (non dependabot)
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+      - name: Check out repository 🎉 (dependabot)
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout submodules
+        shell: bash
+        run: |
+          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+          git submodule sync --recursive
+          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+      - name: Cache
+        uses: actions/cache@v3.3.1
+        with:
+          path: |
+            ~/.cargo/
+            target
+            Cargo.lock
+          key: cargo-dev-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-dev-
+      - name: Run cargo check for all targets
+        run: cargo check --color always --all --all-targets

@@ -1,4 +1,3 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 import {
   app,
   css,
@@ -8,7 +7,7 @@ import {
   runtimeConfig,
   ssr,
   typescript,
-} from "./config";
+} from './config';
 
 export default defineNuxtConfig({
   app,

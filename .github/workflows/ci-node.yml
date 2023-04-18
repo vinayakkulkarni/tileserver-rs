@@ -1,0 +1,47 @@
+name: 'Continuous Integration (Node)'
+
+on:
+  workflow_call:
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: './client/'
+    steps:
+      - name: Check out repository ✨ (non dependabot)
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+
+      - name: Check out repository 🎉 (dependabot)
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup node env 📦
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          check-latest: true
+          cache: 'npm'
+
+      - name: Install dependencies 🚀
+        run: npm ci --prefer-offline --no-audit --omit=optional
+
+      - name: Run linter(s) 👀
+        uses: wearerequired/lint-action@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          continue_on_error: false
+          git_name: github-actions[bot]
+          git_email: github-actions[bot]@users.noreply.github.com
+          auto_fix: false
+          prettier: true
+          prettier_extensions: ts,js,cjs,mjs,json

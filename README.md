@@ -1,26 +1,22 @@
-<img src="./.github/assets/tileserver-rs.png" width="512" height="512" align="center" alt="tileserver-rs logo" />
+# tileserver-rs 🦀
 
-# TileServer
-
-[![CI](https://img.shields.io/github/actions/workflow/status/vinayakkulkarni/tileserver-rs/ci.yml?logo=github-actions&branch=main)](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/ci.yml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/vinayakkulkarni/tileserver-rs/codeql.yml?logo=github-actions&branch=main)](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/codeql.yml)
-[![DeepScan grade](https://deepscan.io/api/teams/9055/projects/18331/branches/446995/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=9055&pid=18331&bid=446995)
-[![Snyk Vulnerabilities for GitHub Repo](https://img.shields.io/snyk/vulnerabilities/github/vinayakkulkarni/tileserver-rs)](https://snyk.io/test/github/vinayakkulkarni/tileserver-rs)
+[![pipeline](https://img.shields.io/github/actions/workflow/status/vinayakkulkarni/tileserver-rs/pipeline.yml?logo=github-actions&branch=main)](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/pipeline.yml)
 [![GitHub contributors](https://img.shields.io/github/contributors/vinayakkulkarni/tileserver-rs?logo=github)](https://github.com/vinayakkulkarni/tileserver-rs/graphs/contributors)
 
 [![Crates.io](https://img.shields.io/crates/v/tileserver-rs?logo=rust)](https://crates.io/tileserver-rs)
 
+<img src="./.github/assets/tileserver-rs.png" width="512" height="512" align="center" alt="tileserver-rs logo" />
+
 ## Features
 
 - Supports serving vector tiles using `.mbtiles` | `.pmtiles` as source
-- Built using [Actix](https://actix.rs/) & [Rust](https://www.rust-lang.org/)
+- Built using [Axum](https://github.com/tokio-rs/axum) & [Nuxt 3](https://nuxt.com/)
 - Vector maps with GL styles
 - Map Tile Server for consumption in OpenLayers, mapbox-gl-js, maplibre-gl-js and more.
--
 
 ## Table of Contents
 
-- [TileServer](#tileserver)
+- [tileserver-rs 🦀](#tileserver-rs-)
   - [Features](#features)
   - [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
@@ -28,7 +24,7 @@
     - [Docker](#docker)
   - [Contributing](#contributing)
   - [Author](#author)
-    - [Special thanks to](#special-thanks-to)
+    - [Spepipelineal thanks to](#spepipelineal-thanks-to)
 
 ## Requirements
 
@@ -40,7 +36,7 @@
 ### Docker
 
 ```sh
-docker run --rm -it -v /your/local/config/path:/data -p 8080:8080 vinayakkulkarin/tileserver-rs
+docker run --rm -it -v /your/local/config/path:/data -p 8080:8080 vinayakkulkarni/tileserver-rs
 ```
 
 ## Contributing
@@ -64,6 +60,6 @@ Authored and maintained by Vinayak Kulkarni with help from contributors ([list](
 
 > [vinayakkulkarni.dev](https://vinayakkulkarni.dev) · GitHub [@vinayakkulkarni](https://github.com/vinayakkulkarni) · Twitter [@\_vinayak_k](https://twitter.com/_vinayak_k)
 
-### Special thanks to
+### Spepipelineal thanks to
 
 - [tileserver-gl](https://github.com/maptiler/tileserver-gl)

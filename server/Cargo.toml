@@ -19,3 +19,5 @@ tower-http = { version = "0.4.0", features = ["full"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1.0.152", features = ["derive"] }
+serde_json = { version = "1" }
+confy = { version = "0.3" }

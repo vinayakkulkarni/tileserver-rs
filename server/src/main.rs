@@ -1,11 +1,12 @@
 use axum::{
+    extract,
     http::{
         header::{ACCEPT, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
         HeaderValue, Method, StatusCode,
     },
     middleware,
     routing::get,
-    Router, Server,
+    Json, Router, Server,
 };
 use std::{net::SocketAddr, time::Duration};
 use tower_http::{
@@ -20,9 +21,21 @@ use tracing_subscriber::EnvFilter;
 mod cache_control;
 
 // mod drivers;
-// mod routes;
 
-// mod structs;
+mod structs;
+use structs::config::Config;
+use structs::data::Data;
+use structs::style::Style;
+
+impl ::std::default::Default for Config {
+    fn default() -> Self {
+        Self {
+            options: 0,
+            styles: "",
+            data: "",
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,12 +44,12 @@ async fn main() -> anyhow::Result<()> {
         .compact()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-
+    let cfg = confy::load("my-app-name")?;
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     let router = Router::new()
+        .nest("/", api_handler())
         .merge(static_file_handler())
-        .nest("/api", api_handler())
         .layer(
             CorsLayer::new()
                 .allow_headers([ACCEPT, CONTENT_TYPE])
@@ -50,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .layer(SetResponseHeaderLayer::if_not_present(
             CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static("default-src 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none';"),
+            HeaderValue::from_static("default-src 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"),
         ))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
@@ -77,5 +90,48 @@ fn static_file_handler() -> Router {
 }
 
 fn api_handler() -> Router {
-    Router::new().route("/health", get(|| async { (StatusCode::OK, "OK") }))
+    Router::new()
+        .route("/health", get(health))
+        .route("/styles.json", get(styles_json))
+        .route("/data.json", get(data_json))
+}
+
+async fn health() -> (StatusCode, &'static str) {
+    (StatusCode::OK, "OK")
+}
+
+async fn styles_json() -> anyhow::Result<Json<Vec<Style>>, StatusCode> {
+    let mut styles: Vec<Style> = Vec::new();
+    let style = Style {
+        id: String::from("osm-bright"),
+        version: 8,
+        name: String::from("osm-bright"),
+        url: String::from("http://localhost:3000/styles/osm-bright/style.json"),
+    };
+    styles.push(style);
+    Ok(Json(styles))
+}
+
+async fn data_json() -> anyhow::Result<Json<Vec<Data>>, StatusCode> {
+    let mut data: Vec<Data> = Vec::new();
+    let item = Data {
+        tiles: vec![String::from(
+            "http://[::]:8080/data/openmaptiles/{z}/{x}/{y}.pbf",
+        )],
+        name: String::from("OpenMapTiles"),
+        format: String::from("pbf"),
+        basename: String::from("planet.mbtiles"),
+        id: String::from("openmaptiles"),
+        attribution: String::from( "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"),
+        bounds: vec![-180.0, -85.0511, 180.0, 85.0511],
+        center: vec![-12.2168, 28.6135],
+        description: String::from("A tileset showcasing all layers in OpenMapTiles. https://openmaptiles.org"),
+        maxzoom: 14,
+        minzoom: 0,
+        mask_level: String::from("8"),
+        tilejson: String::from("2.0.0"),
+        version: String::from("3.11"),
+    };
+    data.push(item);
+    Ok(Json(data))
 }
