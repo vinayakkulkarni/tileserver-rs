@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: './client/'
+        working-directory: 'client'
     steps:
       - name: Check out repository ✨ (non dependabot)
         if: ${{ github.actor != 'dependabot[bot]' }}
@@ -44,5 +44,7 @@ jobs:
           git_name: github-actions[bot]
           git_email: github-actions[bot]@users.noreply.github.com
           auto_fix: false
+          eslint: true
+          eslint_extensions: js,cjs,ts,vue
           prettier: true
-          prettier_extensions: ts,js,cjs,mjs,json
+          prettier_extensions: js,cjs,ts,json,vue
