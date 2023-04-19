@@ -1,9 +1,6 @@
 # tileserver-rs 🦀
 
-[![pipeline](https://img.shields.io/github/actions/workflow/status/vinayakkulkarni/tileserver-rs/pipeline.yml?logo=github-actions&branch=main)](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/pipeline.yml)
-[![GitHub contributors](https://img.shields.io/github/contributors/vinayakkulkarni/tileserver-rs?logo=github)](https://github.com/vinayakkulkarni/tileserver-rs/graphs/contributors)
-
-[![Crates.io](https://img.shields.io/crates/v/tileserver-rs?logo=rust)](https://crates.io/tileserver-rs)
+[![The Pipeline](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/pipeline.yml/badge.svg)](https://github.com/vinayakkulkarni/tileserver-rs/actions/workflows/pipeline.yml)
 
 <img src="./.github/assets/tileserver-rs.png" width="512" height="512" align="center" alt="tileserver-rs logo" />
 
