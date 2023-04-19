@@ -15,15 +15,8 @@ jobs:
       run:
         working-directory: 'client'
     steps:
-      - name: Check out repository ✨ (non dependabot)
-        if: ${{ github.actor != 'dependabot[bot]' }}
+      - name: Checkout 🛎
         uses: actions/checkout@v3
-
-      - name: Check out repository 🎉 (dependabot)
-        if: ${{ github.actor == 'dependabot[bot]' }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node env 📦
         uses: actions/setup-node@v3
