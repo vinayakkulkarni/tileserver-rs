@@ -1,4 +1,5 @@
 use axum::{
+    extract::Path,
     http::{
         header::{ACCEPT, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
         HeaderValue, Method, StatusCode,
@@ -18,6 +19,7 @@ use tower_http::{
 use tracing_subscriber::EnvFilter;
 
 mod cache_control;
+mod cli;
 
 mod structs;
 use structs::data::Data;
@@ -30,8 +32,6 @@ async fn main() -> anyhow::Result<()> {
         .compact()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-
     let router = Router::new()
         .nest("/", api_handler())
         .merge(static_file_handler())
@@ -52,9 +52,8 @@ async fn main() -> anyhow::Result<()> {
         ))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
-
-    tracing::debug!("listening on {}", addr);
-
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    tracing::debug!("Listening on ⌚️ {}", addr);
     Server::bind(&addr)
         .serve(router.into_make_service())
         .await?;
@@ -76,16 +75,28 @@ fn static_file_handler() -> Router {
 
 fn api_handler() -> Router {
     Router::new()
-        .route("/health", get(health))
-        .route("/styles.json", get(styles_json))
-        .route("/data.json", get(data_json))
+        .route("/health", get(get_health))
+        .route("/styles.json", get(get_styles))
+        .route("/styles/:style.json", get(get_style))
+        .route("/data.json", get(get_all_data))
+        .route("/data/:data.json", get(get_data))
 }
 
-async fn health() -> (StatusCode, &'static str) {
+async fn get_health() -> (StatusCode, &'static str) {
     (StatusCode::OK, "OK")
 }
 
-async fn styles_json() -> anyhow::Result<Json<Vec<Style>>, StatusCode> {
+async fn get_style(Path(style): Path<String>) -> anyhow::Result<Json<Style>, StatusCode> {
+    let s = Style {
+        id: style,
+        version: 8,
+        name: String::from("osm-bright"),
+        url: String::from("http://localhost:3000/styles/osm-bright/style.json"),
+    };
+    Ok(Json(s))
+}
+
+async fn get_styles() -> anyhow::Result<Json<Vec<Style>>, StatusCode> {
     let mut styles: Vec<Style> = Vec::new();
     let style = Style {
         id: String::from("osm-bright"),
@@ -97,7 +108,7 @@ async fn styles_json() -> anyhow::Result<Json<Vec<Style>>, StatusCode> {
     Ok(Json(styles))
 }
 
-async fn data_json() -> anyhow::Result<Json<Vec<Data>>, StatusCode> {
+async fn get_all_data() -> anyhow::Result<Json<Vec<Data>>, StatusCode> {
     let mut data: Vec<Data> = Vec::new();
     let item = Data {
         tiles: vec![String::from(
@@ -119,4 +130,26 @@ async fn data_json() -> anyhow::Result<Json<Vec<Data>>, StatusCode> {
     };
     data.push(item);
     Ok(Json(data))
+}
+
+async fn get_data(Path(data): Path<String>) -> anyhow::Result<Json<Data>, StatusCode> {
+    let item = Data {
+        tiles: vec![String::from(
+            "http://[::]:8080/data/openmaptiles/{z}/{x}/{y}.pbf",
+        )],
+        name: String::from("OpenMapTiles"),
+        format: String::from("pbf"),
+        basename: String::from("planet.mbtiles"),
+        id: data,
+        attribution: String::from( "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"),
+        bounds: vec![-180.0, -85.0511, 180.0, 85.0511],
+        center: vec![-12.2168, 28.6135],
+        description: String::from("A tileset showcasing all layers in OpenMapTiles. https://openmaptiles.org"),
+        maxzoom: 14,
+        minzoom: 0,
+        mask_level: String::from("8"),
+        tilejson: String::from("2.0.0"),
+        version: String::from("3.11"),
+    };
+    Ok(Json(item))
 }

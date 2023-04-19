@@ -1,8 +1,7 @@
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Config {
+pub struct Root {
     pub options: Options,
     pub styles: Styles,
     pub data: Data,
@@ -11,44 +10,64 @@ pub struct Config {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Options {
     pub paths: Paths,
-    pub front_page: bool,
+    pub domains: Vec<String>,
+    pub format_quality: FormatQuality,
+    pub max_scale_factor: i64,
+    pub max_size: i64,
+    pub pbf_alias: String,
+    pub serve_all_fonts: bool,
+    pub serve_all_styles: bool,
+    pub serve_static_maps: bool,
+    pub allow_remote_marker_icons: bool,
+    pub tile_margin: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Paths {
     pub root: String,
     pub fonts: String,
+    pub sprites: String,
+    pub icons: String,
     pub styles: String,
     pub mbtiles: String,
-    pub pmtiles: String,
-    pub sprites: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FormatQuality {
+    pub jpeg: i64,
+    pub webp: i64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Styles {
-    pub positron: Positron,
+    pub basic: Basic,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Positron {
+pub struct Basic {
     pub style: String,
-    #[serde(rename = "serve_data")]
-    pub serve_data: bool,
     pub tilejson: Tilejson,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tilejson {
+    #[serde(rename = "type")]
+    pub type_field: String,
+    pub bounds: Vec<f64>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tilejson2 {
     pub format: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Data {
-    pub openmaptiles: Openmaptiles,
+    #[serde(rename = "zurich-vector")]
+    pub zurich_vector: ZurichVector,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Openmaptiles {
+pub struct ZurichVector {
     pub mbtiles: String,
-    pub pmtiles: String,
 }
