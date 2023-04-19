@@ -12,9 +12,6 @@ jobs:
   fmt:
     name: fmt
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: './server/'
     env:
       RUST_LOG: '0'
     steps:
@@ -36,9 +33,6 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: './server/'
     steps:
       - name: Check out repository ✨ (non dependabot)
         if: ${{ github.actor != 'dependabot[bot]' }}

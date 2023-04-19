@@ -3,21 +3,22 @@ name = "tileserver-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Vinayak Kulkarni <inbox.vinayak@gmail.com>"]
-description = "Tileserver for serving vector tiles (& raster tiles) from mbtiles"
+description = "Tileserver for serving vector maps from data source(s)"
 license-file = "LICENSE"
 readme = "README.md"
 repository = "https://github.com/vinayakkulkarni/tileserver-rs"
 keywords = ["pmtiles", "mbtiles", "gis", "vector-tiles", "tileserver"]
 
 [dependencies]
-axum = { version = "0.6.15" }
 anyhow = { version = "1.0" }
+axum = { version = "0.6" }
+clap = { version = "3", features = ["derive"] }
+confy = { version = "0.5" }
 dotenvy = { version = "0.15" }
 pmtiles = { version = "0.2.1" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1" }
 tokio = { version = "1.0", features = ["full"] }
 tower-http = { version = "0.4.0", features = ["full"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-serde = { version = "1.0.152", features = ["derive"] }
-serde_json = { version = "1" }
-confy = { version = "0.3" }

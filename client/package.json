@@ -19,16 +19,13 @@
     "lint:css:fix": "stylelint --fix '**/*.{css,scss,sass,vue}' --ignore-path .gitignore",
     "release": "shipjs prepare",
     "release:dry": "shipjs prepare --dry-run",
-    "release:auto": "shipjs prepare --yes",
-    "prepare": "cd .. && husky install client/.husky"
+    "release:auto": "shipjs prepare --yes"
   },
   "dependencies": {
     "maplibre-gl": "^2.4.0",
     "maplibre-gl-inspect": "^0.0.6"
   },
   "devDependencies": {
-    "@commitlint/cli": "^17.6.1",
-    "@commitlint/config-conventional": "^17.6.1",
     "@deck.gl/layers": "^8.9.7",
     "@deck.gl/mapbox": "^8.9.7",
     "@kevinmarrec/nuxt-pwa": "^0.17.0",
@@ -50,8 +47,6 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-security": "^1.7.1",
     "eslint-plugin-vue": "^9.11.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^13.2.1",
     "nuxt": "^3.4.1",
     "nuxt-windicss": "^2.6.1",
     "prettier": "^2.8.7",

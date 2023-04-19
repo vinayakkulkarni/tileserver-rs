@@ -23,7 +23,6 @@ mod structs;
 use structs::data::Data;
 use structs::style::Style;
 
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
@@ -66,11 +65,11 @@ async fn main() -> anyhow::Result<()> {
 fn static_file_handler() -> Router {
     // Static assets served from this router will be cached.
     Router::new()
-        .nest_service("/_nuxt", ServeDir::new("../client/dist/_nuxt"))
+        .nest_service("/_nuxt", ServeDir::new("./client/dist/_nuxt"))
         .nest_service(
             "/",
-            ServeDir::new("../client/dist/")
-                .not_found_service(ServeFile::new("../client/dist/404.html")),
+            ServeDir::new("./client/dist/")
+                .not_found_service(ServeFile::new("./client/dist/404.html")),
         )
         .layer(middleware::from_fn(cache_control::set_cache_header))
 }
