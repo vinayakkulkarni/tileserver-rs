@@ -38,6 +38,8 @@ jobs:
           git_email: github-actions[bot]@users.noreply.github.com
           auto_fix: false
           eslint: true
+          eslint_dir: client
           eslint_extensions: js,cjs,ts,vue
           prettier: true
+          prettier_dir: client
           prettier_extensions: js,cjs,ts,json,vue
