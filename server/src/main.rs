@@ -1,5 +1,4 @@
 use axum::{
-    extract,
     http::{
         header::{ACCEPT, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
         HeaderValue, Method, StatusCode,
@@ -20,22 +19,10 @@ use tracing_subscriber::EnvFilter;
 
 mod cache_control;
 
-// mod drivers;
-
 mod structs;
-use structs::config::Config;
 use structs::data::Data;
 use structs::style::Style;
 
-impl ::std::default::Default for Config {
-    fn default() -> Self {
-        Self {
-            options: 0,
-            styles: "",
-            data: "",
-        }
-    }
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,7 +31,6 @@ async fn main() -> anyhow::Result<()> {
         .compact()
         .with_env_filter(EnvFilter::from_default_env())
         .init();
-    let cfg = confy::load("my-app-name")?;
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
 
     let router = Router::new()
