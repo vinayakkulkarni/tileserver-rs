@@ -50,6 +50,6 @@ const useMapStyle = async () => {
   }
 
   return { style };
-}
+};
 
 export { useMapStyle };

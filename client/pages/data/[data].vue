@@ -38,6 +38,7 @@
 
       /**
        * Add Scale, Geolocate & Navigate controls to the map
+       *
        * @returns {void}
        */
       const addControls = (): void => {
