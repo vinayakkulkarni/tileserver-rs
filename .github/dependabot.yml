@@ -16,7 +16,6 @@ updates:
       include: scope
   # Fetch and update latest `cargo` packages
   - package-ecosystem: cargo
-    versioning-strategy: increase
     directory: '/'
     schedule:
       interval: daily
