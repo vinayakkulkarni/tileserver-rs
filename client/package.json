@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@deck.gl/layers": "^8.9.21",
-    "@deck.gl/mapbox": "^8.9.20",
+    "@deck.gl/mapbox": "^8.9.21",
     "@kevinmarrec/nuxt-pwa": "^0.17.0",
     "@nuxtjs/plausible": "^0.2.1",
     "@types/d3-dsv": "^3.0.1",
