@@ -41,7 +41,7 @@
     "@windicss/plugin-animations": "^1.0.9",
     "@windicss/plugin-scrollbar": "^1.2.3",
     "eslint": "^8.47.0",
-    "eslint-config-prettier": "^8.10.0",
+    "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-jsdoc": "^46.5.0",
     "eslint-plugin-nuxt": "^4.0.0",
     "eslint-plugin-prettier": "^4.2.1",
