@@ -11,7 +11,7 @@ keywords = ["pmtiles", "mbtiles", "gis", "vector-tiles", "tileserver"]
 
 [dependencies]
 anyhow = { version = "1.0" }
-axum = { version = "0.6" }
+axum = { version = "0.7" }
 clap = { version = "4", features = ["derive"] }
 confy = { version = "0.5" }
 dotenvy = { version = "0.15" }
