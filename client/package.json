@@ -34,7 +34,7 @@
     "@types/geojson": "^7946.0.13",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/parser": "^7.6.0",
     "@vinayakkulkarni/prettier-config-vue": "^1.0.0",
     "@vueuse/core": "^10.7.2",
     "@vueuse/nuxt": "^10.6.1",
