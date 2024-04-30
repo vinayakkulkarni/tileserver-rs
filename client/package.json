@@ -26,7 +26,7 @@
     "maplibre-gl-inspect": "^0.0.6"
   },
   "devDependencies": {
-    "@deck.gl/layers": "^8.9.32",
+    "@deck.gl/layers": "^9.0.12",
     "@deck.gl/mapbox": "^8.9.32",
     "@kevinmarrec/nuxt-pwa": "^0.17.0",
     "@nuxtjs/plausible": "^0.2.3",
