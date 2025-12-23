@@ -1,6 +1,17 @@
 export default defineNuxtConfig({
   extends: ['docus'],
 
+  modules: [
+    [
+      '@nuxtjs/plausible',
+      {
+        domain: 'docs.tileserver.app',
+        apiHost: 'https://analytics.geoql.in',
+        autoOutboundTracking: true,
+      },
+    ],
+  ],
+
   site: {
     name: 'Tileserver RS',
     description: 'High-performance vector tile server built in Rust',
