@@ -24,6 +24,10 @@
     "oxlint": "^1.0.0",
     "typescript": "^5.9.3"
   },
+  "overrides": {
+    "@tiptap/core": "3.14.0",
+    "@tiptap/pm": "3.14.0"
+  },
   "author": {
     "name": "Vinayak Kulkarni",
     "email": "inbox.vinayak@gmail.com",
