@@ -6,10 +6,10 @@
   "workspaces": ["apps/*"],
   "scripts": {
     "dev:client": "bun run --filter @tileserver-rs/client dev",
-    "dev:docs": "bun run --filter @tileserver-rs/docs dev",
+    "dev:docs": "cd docs && bun run dev",
     "build:client": "bun run --filter @tileserver-rs/client build",
-    "build:docs": "bun run --filter @tileserver-rs/docs build",
-    "lint": "bun run --filter '*' lint",
+    "build:docs": "cd docs && bun run build",
+    "lint": "bun run --filter @tileserver-rs/client lint",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -56,8 +56,10 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - name: Install docs dependencies
+        working-directory: docs
+        run: bun install
 
       - name: Build docs
-        run: bun run --filter @tileserver-rs/docs build
+        working-directory: docs
+        run: bun run build
