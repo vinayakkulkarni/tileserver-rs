@@ -1,0 +1,33 @@
+# Production configuration for tileserver-rs
+# Use with: docker compose -f compose.yml -f compose.prod.yml up -d
+
+services:
+  tileserver:
+    # Use pre-built image in production
+    image: ghcr.io/vinayakkulkarni/tileserver-rs:latest
+    build: !reset null
+
+    # Expose on standard ports
+    ports:
+      - "${HOST:-0.0.0.0}:${PORT:-8080}:8080"
+
+    # Production volumes
+    volumes:
+      - app_tiles_volume:/data:ro
+      - ./config.toml:/app/config.toml:ro
+
+    # Production environment
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - HOST=0.0.0.0
+      - PORT=8080
+
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 256M

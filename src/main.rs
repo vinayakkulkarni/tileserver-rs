@@ -1,155 +1,204 @@
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     http::{
-        header::{ACCEPT, CONTENT_SECURITY_POLICY, CONTENT_TYPE},
-        HeaderValue, Method, StatusCode,
+        header::{ACCEPT, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE},
+        HeaderMap, HeaderValue, Method, StatusCode,
     },
     middleware,
+    response::{IntoResponse, Response},
     routing::get,
-    Json, Router, Server,
+    Json, Router,
 };
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tokio::net::TcpListener;
 use tower_http::{
     compression::CompressionLayer,
     cors::CorsLayer,
     services::{ServeDir, ServeFile},
-    set_header::SetResponseHeaderLayer,
     trace::TraceLayer,
 };
 use tracing_subscriber::EnvFilter;
 
 mod cache_control;
 mod cli;
+mod config;
+mod error;
+mod sources;
 
-mod structs;
-use structs::data::Data;
-use structs::style::Style;
+use cli::Cli;
+use config::Config;
+use error::TileServerError;
+use sources::{SourceManager, TileJson};
+
+/// Application state shared across handlers
+#[derive(Clone)]
+pub struct AppState {
+    pub sources: Arc<SourceManager>,
+    pub base_url: String,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
-    tracing_subscriber::fmt()
-        .compact()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-    let router = Router::new()
-        .nest("/", api_handler())
-        .merge(static_file_handler())
-        .layer(
-            CorsLayer::new()
-                .allow_headers([ACCEPT, CONTENT_TYPE])
-                .max_age(Duration::from_secs(86400)) // 1 day
-                .allow_origin(
-                    std::env::var("CORS_ORIGIN")
-                        .unwrap_or_else(|_| "*".to_string())
-                        .parse::<HeaderValue>()?,
-                )
-                .allow_methods(vec![Method::GET, Method::OPTIONS, Method::HEAD]),
+
+    // Parse CLI arguments
+    let cli = Cli::parse_args();
+
+    // Initialize tracing
+    let filter = if cli.verbose {
+        EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
+    } else {
+        EnvFilter::from_default_env()
+    };
+
+    tracing_subscriber::fmt().compact().with_env_filter(filter).init();
+
+    // Load configuration
+    let mut config = Config::load(cli.config)?;
+
+    // Override with CLI arguments
+    if let Some(host) = cli.host {
+        config.server.host = host;
+    }
+    if let Some(port) = cli.port {
+        config.server.port = port;
+    }
+
+    // Load tile sources
+    let sources = SourceManager::from_configs(&config.sources).await?;
+    tracing::info!("Loaded {} tile source(s)", sources.len());
+
+    // Build base URL
+    let base_url = format!("http://{}:{}", config.server.host, config.server.port);
+
+    let state = AppState {
+        sources: Arc::new(sources),
+        base_url,
+    };
+
+    // Build CORS layer
+    let cors = CorsLayer::new()
+        .allow_headers([ACCEPT, CONTENT_TYPE])
+        .max_age(Duration::from_secs(86400))
+        .allow_origin(
+            config
+                .server
+                .cors_origins
+                .first()
+                .unwrap_or(&"*".to_string())
+                .parse::<HeaderValue>()?,
         )
-        .layer(SetResponseHeaderLayer::if_not_present(
-            CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static("default-src 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"),
-        ))
+        .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
+
+    // Build router
+    let router = Router::new()
+        .nest("/", api_router(state.clone()))
+        .merge(static_file_handler())
+        .layer(cors)
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    tracing::debug!("Listening on ⌚️ {}", addr);
-    Server::bind(&addr)
-        .serve(router.into_make_service())
-        .await?;
+
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
+    tracing::info!("Starting tileserver on http://{}", addr);
+
+    let listener = TcpListener::bind(addr).await?;
+    axum::serve(listener, router).await?;
 
     Ok(())
 }
 
 fn static_file_handler() -> Router {
-    // Static assets served from this router will be cached.
     Router::new()
-        .nest_service("/_nuxt", ServeDir::new("./client/dist/_nuxt"))
+        .nest_service("/_nuxt", ServeDir::new("./apps/client/dist/_nuxt"))
         .nest_service(
             "/",
-            ServeDir::new("./client/dist/")
-                .not_found_service(ServeFile::new("./client/dist/404.html")),
+            ServeDir::new("./apps/client/dist/")
+                .not_found_service(ServeFile::new("./apps/client/dist/index.html")),
         )
         .layer(middleware::from_fn(cache_control::set_cache_header))
 }
 
-fn api_handler() -> Router {
+fn api_router(state: AppState) -> Router {
     Router::new()
-        .route("/health", get(get_health))
-        .route("/styles.json", get(get_styles))
-        .route("/styles/:style.json", get(get_style))
-        .route("/data.json", get(get_all_data))
-        .route("/data/:data.json", get(get_data))
+        .route("/health", get(health_check))
+        .route("/data.json", get(get_all_sources))
+        .route("/data/{source}.json", get(get_source_tilejson))
+        .route("/data/{source}/{z}/{x}/{y}.{format}", get(get_tile))
+        .with_state(state)
 }
 
-async fn get_health() -> (StatusCode, &'static str) {
+/// Health check endpoint
+async fn health_check() -> (StatusCode, &'static str) {
     (StatusCode::OK, "OK")
 }
 
-async fn get_style(Path(style): Path<String>) -> anyhow::Result<Json<Style>, StatusCode> {
-    let s = Style {
-        id: style,
-        version: 8,
-        name: String::from("osm-bright"),
-        url: String::from("http://localhost:3000/styles/osm-bright/style.json"),
-    };
-    Ok(Json(s))
+/// Get all available tile sources
+async fn get_all_sources(State(state): State<AppState>) -> Json<Vec<TileJson>> {
+    let sources: Vec<TileJson> = state
+        .sources
+        .all_metadata()
+        .iter()
+        .map(|m| m.to_tilejson(&state.base_url))
+        .collect();
+
+    Json(sources)
 }
 
-async fn get_styles() -> anyhow::Result<Json<Vec<Style>>, StatusCode> {
-    let mut styles: Vec<Style> = Vec::new();
-    let style = Style {
-        id: String::from("osm-bright"),
-        version: 8,
-        name: String::from("osm-bright"),
-        url: String::from("http://localhost:3000/styles/osm-bright/style.json"),
-    };
-    styles.push(style);
-    Ok(Json(styles))
+/// Get TileJSON for a specific source
+async fn get_source_tilejson(
+    State(state): State<AppState>,
+    Path(source): Path<String>,
+) -> Result<Json<TileJson>, TileServerError> {
+    let source_ref = state
+        .sources
+        .get(&source)
+        .ok_or_else(|| TileServerError::SourceNotFound(source.clone()))?;
+
+    let tilejson = source_ref.metadata().to_tilejson(&state.base_url);
+    Ok(Json(tilejson))
 }
 
-async fn get_all_data() -> anyhow::Result<Json<Vec<Data>>, StatusCode> {
-    let mut data: Vec<Data> = Vec::new();
-    let item = Data {
-        tiles: vec![String::from(
-            "http://[::]:8080/data/openmaptiles/{z}/{x}/{y}.pbf",
-        )],
-        name: String::from("OpenMapTiles"),
-        format: String::from("pbf"),
-        basename: String::from("planet.mbtiles"),
-        id: String::from("openmaptiles"),
-        attribution: String::from( "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"),
-        bounds: vec![-180.0, -85.0511, 180.0, 85.0511],
-        center: vec![-12.2168, 28.6135],
-        description: String::from("A tileset showcasing all layers in OpenMapTiles. https://openmaptiles.org"),
-        maxzoom: 14,
-        minzoom: 0,
-        mask_level: String::from("8"),
-        tilejson: String::from("2.0.0"),
-        version: String::from("3.11"),
-    };
-    data.push(item);
-    Ok(Json(data))
+/// Tile request parameters
+#[derive(serde::Deserialize)]
+struct TileParams {
+    source: String,
+    z: u8,
+    x: u32,
+    y: u32,
+    #[allow(dead_code)]
+    format: String,
 }
 
-async fn get_data(Path(data): Path<String>) -> anyhow::Result<Json<Data>, StatusCode> {
-    let item = Data {
-        tiles: vec![String::from(
-            "http://[::]:8080/data/openmaptiles/{z}/{x}/{y}.pbf",
-        )],
-        name: String::from("OpenMapTiles"),
-        format: String::from("pbf"),
-        basename: String::from("planet.mbtiles"),
-        id: data,
-        attribution: String::from( "<a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"),
-        bounds: vec![-180.0, -85.0511, 180.0, 85.0511],
-        center: vec![-12.2168, 28.6135],
-        description: String::from("A tileset showcasing all layers in OpenMapTiles. https://openmaptiles.org"),
-        maxzoom: 14,
-        minzoom: 0,
-        mask_level: String::from("8"),
-        tilejson: String::from("2.0.0"),
-        version: String::from("3.11"),
-    };
-    Ok(Json(item))
+/// Get a tile from a source
+async fn get_tile(
+    State(state): State<AppState>,
+    Path(params): Path<TileParams>,
+) -> Result<Response, TileServerError> {
+    let source = state
+        .sources
+        .get(&params.source)
+        .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+
+    let tile = source
+        .get_tile(params.z, params.x, params.y)
+        .await?
+        .ok_or(TileServerError::TileNotFound {
+            z: params.z,
+            x: params.x,
+            y: params.y,
+        })?;
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(tile.format.content_type()),
+    );
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+    // Add content-encoding if tile is compressed
+    if let Some(encoding) = tile.compression.content_encoding() {
+        headers.insert(CONTENT_ENCODING, HeaderValue::from_static(encoding));
+    }
+
+    Ok((headers, tile.data).into_response())
 }

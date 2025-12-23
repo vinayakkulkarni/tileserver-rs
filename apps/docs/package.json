@@ -1,0 +1,32 @@
+{
+  "name": "@tileserver-rs/docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0",
+    "docus": "^5.4.1",
+    "nuxt": "^4.2.2",
+    "zod": "^4.2.1",
+    "zod-to-json-schema": "^3.25.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vue": "^3.5.26"
+  },
+  "author": {
+    "name": "Vinayak Kulkarni",
+    "email": "inbox.vinayak@gmail.com",
+    "url": "https://vinayakkulkarni.dev"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

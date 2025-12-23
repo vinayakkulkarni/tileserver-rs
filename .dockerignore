@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Build outputs
+target/
+.output/
+.nuxt/
+dist/
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local config
+.env
+.env.*
+!.env.example
+
+# Documentation builds
+apps/docs/.output/
+apps/docs/.nuxt/
+
+# Test data
+data/
+*.pmtiles
+*.mbtiles
+
+# OS files
+.DS_Store
+Thumbs.db

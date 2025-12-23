@@ -1,14 +1,29 @@
+use clap::Parser;
 use std::path::PathBuf;
 
-use clap::Parser;
+#[derive(Parser, Debug)]
+#[command(name = "tileserver-rs")]
+#[command(author, version, about = "A high-performance tile server for PMTiles and MBTiles", long_about = None)]
+pub struct Cli {
+    /// Path to configuration file
+    #[arg(short, long, value_name = "FILE", env = "TILESERVER_CONFIG")]
+    pub config: Option<PathBuf>,
 
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// Optional name to operate on
-    name: Option<String>,
+    /// Host to bind to
+    #[arg(long, env = "TILESERVER_HOST")]
+    pub host: Option<String>,
 
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
-    config: Option<PathBuf>,
+    /// Port to bind to
+    #[arg(short, long, env = "TILESERVER_PORT")]
+    pub port: Option<u16>,
+
+    /// Enable verbose logging
+    #[arg(short, long)]
+    pub verbose: bool,
+}
+
+impl Cli {
+    pub fn parse_args() -> Self {
+        Self::parse()
+    }
 }

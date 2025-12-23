@@ -142,6 +142,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# bun
+bun.lockb
+
 # Nuxt 3
 .nitro
 .output

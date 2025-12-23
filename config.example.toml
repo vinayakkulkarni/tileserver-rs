@@ -1,0 +1,41 @@
+# Tileserver-RS Configuration Example
+# Copy this file to config.toml and customize for your setup
+
+[server]
+# Host to bind to (use 0.0.0.0 to listen on all interfaces)
+host = "0.0.0.0"
+# Port to listen on
+port = 8080
+# Allowed CORS origins (use ["*"] for all origins)
+cors_origins = ["*"]
+
+# Tile sources - PMTiles and MBTiles files
+# You can add multiple sources, each with a unique ID
+
+# Example: Local PMTiles file
+# [[sources]]
+# id = "osm"
+# type = "pmtiles"
+# path = "/data/osm.pmtiles"
+# name = "OpenStreetMap"
+# attribution = "<a href=\"https://www.openstreetmap.org/copyright\">© OpenStreetMap</a>"
+
+# Example: Remote PMTiles file (requires http feature)
+# [[sources]]
+# id = "protomaps"
+# type = "pmtiles"
+# path = "https://example.com/tiles.pmtiles"
+# name = "Protomaps Tiles"
+
+# Example: Local MBTiles file
+# [[sources]]
+# id = "terrain"
+# type = "mbtiles"
+# path = "/data/terrain.mbtiles"
+# name = "Terrain RGB"
+
+# Map styles
+# [[styles]]
+# id = "osm-bright"
+# path = "/data/styles/osm-bright/style.json"
+# name = "OSM Bright"

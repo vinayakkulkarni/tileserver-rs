@@ -10,57 +10,84 @@ env:
 
 jobs:
   fmt:
-    name: fmt
+    name: Format
     runs-on: ubuntu-latest
     env:
       RUST_LOG: '0'
     steps:
-      - name: Check out repository ✨ (non dependabot)
-        if: ${{ github.actor != 'dependabot[bot]' }}
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Check out repository 🎉 (dependabot)
-        if: ${{ github.actor == 'dependabot[bot]' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           components: rustfmt
-      - name: Run cargo fmt
+
+      - name: Check formatting
         run: cargo fmt --all -- --check
-  check:
-    name: check
+
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository ✨ (non dependabot)
-        if: ${{ github.actor != 'dependabot[bot]' }}
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Check out repository 🎉 (dependabot)
-        if: ${{ github.actor == 'dependabot[bot]' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Checkout submodules
-        shell: bash
-        run: |
-          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-          git submodule sync --recursive
-          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-      - name: Cache
-        uses: actions/cache@v4.0.0
-        with:
-          path: |
-            ~/.cargo/
-            target
-            Cargo.lock
-          key: cargo-dev-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-dev-
-      - name: Run cargo check for all targets
-        run: cargo check --color always --all --all-targets
+          components: clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run cargo check
+        run: cargo check --all --all-targets
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --all
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release

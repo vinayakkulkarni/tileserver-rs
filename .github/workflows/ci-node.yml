@@ -8,38 +8,56 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: ci
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: 'client'
     steps:
-      - name: Checkout 🛎
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup node env 📦
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: 'package.json'
-          check-latest: true
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
+          bun-version: latest
 
-      - name: Install dependencies 🚀
-        run: npm ci --prefer-offline --no-audit --omit=optional
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Run linter(s) 👀
-        uses: wearerequired/lint-action@v2
+      - name: Lint client
+        run: bun run --filter @tileserver-rs/client lint
+
+  build-client:
+    name: Build Client
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          continue_on_error: false
-          git_name: github-actions[bot]
-          git_email: github-actions[bot]@users.noreply.github.com
-          auto_fix: false
-          eslint: true
-          eslint_dir: client
-          eslint_extensions: js,cjs,ts,vue
-          prettier: true
-          prettier_dir: client
-          prettier_extensions: js,cjs,ts,json,vue
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build client
+        run: bun run --filter @tileserver-rs/client build
+
+  build-docs:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build docs
+        run: bun run --filter @tileserver-rs/docs build

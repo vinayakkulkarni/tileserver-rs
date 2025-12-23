@@ -1,0 +1,16 @@
+# Base Docker Compose configuration for tileserver-rs
+# Local Development: Runs tileserver only (for dev with hot reload)
+# Production: Use with compose.prod.yml for optimized deployment
+
+include:
+  - path: ./compose/tileserver.yml
+
+networks:
+  app-network:
+    driver: bridge
+    name: ${COMPOSE_PROJECT_NAME:-tileserver_rs}_network
+
+volumes:
+  app_tiles_volume:
+    driver: local
+    name: ${COMPOSE_PROJECT_NAME:-tileserver_rs}_tiles
