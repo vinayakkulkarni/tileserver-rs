@@ -18,8 +18,8 @@
         "@geoql/v-maplibre": "^1.1.3",
         "@maplibre/maplibre-gl-inspect": "^1.8.2",
         "@nuxtjs/color-mode": "^4.0.0",
-        "@tanstack/query-db-collection": "^1.0.11",
-        "@tanstack/vue-db": "^0.0.91",
+        "@tanstack/query-db-collection": "^1.0.12",
+        "@tanstack/vue-db": "^0.0.92",
         "@tanstack/vue-query": "^5.92.1",
         "@vueuse/core": "^14.1.0",
         "@vueuse/nuxt": "^14.1.0",
@@ -606,7 +606,7 @@
 
     "@tailwindcss/postcss": ["@tailwindcss/postcss@4.1.18", "", { "dependencies": { "@alloc/quick-lru": "^5.2.0", "@tailwindcss/node": "4.1.18", "@tailwindcss/oxide": "4.1.18", "postcss": "^8.4.41", "tailwindcss": "4.1.18" } }, "sha512-Ce0GFnzAOuPyfV5SxjXGn0CubwGcuDB0zcdaPuCSzAa/2vII24JTkH+I6jcbXLb1ctjZMZZI6OjDaLPJQL1S0g=="],
 
-    "@tanstack/db": ["@tanstack/db@0.5.15", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@tanstack/db-ivm": "0.1.14", "@tanstack/pacer-lite": "^0.1.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-S7smbPX/lUY1Hk3kVRDZVq9D1sIo5fldA08zhzMys4kgVsqMrfAG86WyluousdD2XBqutpJbtX+Ya8AtXLlL4w=="],
+    "@tanstack/db": ["@tanstack/db@0.5.16", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@tanstack/db-ivm": "0.1.14", "@tanstack/pacer-lite": "^0.1.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-V4oCsGlighwgKGWldw1umaXaVYiDR0sK/1fCWictrx2lqxqmBMUEfmNtWnt0CFJXEbyRA/LF8TyFn1ooXtyZ3w=="],
 
     "@tanstack/db-ivm": ["@tanstack/db-ivm@0.1.14", "", { "dependencies": { "fractional-indexing": "^3.2.0", "sorted-btree": "^1.8.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-GluhFsd/Z1E/MZTf60l9dZpKNpmdxtV4izPRnj1RK6TYrhC9LMndN+ywk1VDFBrjtBq/CTShz4CilECLwVlTGg=="],
 
@@ -616,11 +616,11 @@
 
     "@tanstack/query-core": ["@tanstack/query-core@5.90.12", "", {}, "sha512-T1/8t5DhV/SisWjDnaiU2drl6ySvsHj1bHBCWNXd+/T+Hh1cf6JodyEYMd5sgwm+b/mETT4EV3H+zCVczCU5hg=="],
 
-    "@tanstack/query-db-collection": ["@tanstack/query-db-collection@1.0.11", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@tanstack/db": "0.5.15" }, "peerDependencies": { "@tanstack/query-core": "^5.0.0", "typescript": ">=4.7" } }, "sha512-98QUZ+1xKSCx3eLPIcdrvHegj0eOPGt41fufOKlgVWkDbLqc94aO0G6zWgh79m64JFPNzQqyL/ALt0GqDhtDng=="],
+    "@tanstack/query-db-collection": ["@tanstack/query-db-collection@1.0.12", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "@tanstack/db": "0.5.16" }, "peerDependencies": { "@tanstack/query-core": "^5.0.0", "typescript": ">=4.7" } }, "sha512-kwE9lfGhbnRbRHut1k4yrshoTSDNqP/uY7Brr0l1HbOJZuW7V8Q1zQ1GN4TMAtsLohKaSsL/XDxZULCi6MGngg=="],
 
     "@tanstack/virtual-core": ["@tanstack/virtual-core@3.13.13", "", {}, "sha512-uQFoSdKKf5S8k51W5t7b2qpfkyIbdHMzAn+AMQvHPxKUPeo1SsGaA4JRISQT87jm28b7z8OEqPcg1IOZagQHcA=="],
 
-    "@tanstack/vue-db": ["@tanstack/vue-db@0.0.91", "", { "dependencies": { "@tanstack/db": "0.5.15" }, "peerDependencies": { "vue": ">=3.3.0" } }, "sha512-g3P1dqHVOo+9Bth2G9WxXFJT5Cuw8kKOyQOp7VZ6N3EHja8E2PspKo1xi1ubxiXoZL50pmuQQXMPD0lQ5uJwDw=="],
+    "@tanstack/vue-db": ["@tanstack/vue-db@0.0.92", "", { "dependencies": { "@tanstack/db": "0.5.16" }, "peerDependencies": { "vue": ">=3.3.0" } }, "sha512-L9FhGcQ1jGHQD9m89PQd9UpqhbkMHj5Qp6qvDQyql2KRpb+rPsAmCYTixjJbeJK4TdZhvgpyrcn6cThhtkxHtg=="],
 
     "@tanstack/vue-query": ["@tanstack/vue-query@5.92.1", "", { "dependencies": { "@tanstack/match-sorter-utils": "^8.19.4", "@tanstack/query-core": "5.90.12", "@vue/devtools-api": "^6.6.3", "vue-demi": "^0.14.10" }, "peerDependencies": { "@vue/composition-api": "^1.1.2", "vue": "^2.6.0 || ^3.3.0" }, "optionalPeers": ["@vue/composition-api"] }, "sha512-m672jBiwK6sv1HHFF7Q3XsLUVKejzjEAMDqhFgLXIVtmwSayUo0WnhNQmlBlcHRKCR/Lw5jmIh6iu08ZXBh4ag=="],
 
