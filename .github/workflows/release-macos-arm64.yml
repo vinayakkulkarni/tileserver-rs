@@ -14,7 +14,7 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
-  BUN_VERSION: '1.1.42'
+  BUN_VERSION: '1.3.5'
 
 jobs:
   build:
