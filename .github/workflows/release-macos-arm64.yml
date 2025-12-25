@@ -61,7 +61,7 @@ jobs:
           shasum -a 256 tileserver-rs-macos-arm64.tar.gz > tileserver-rs-macos-arm64.tar.gz.sha256
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tileserver-rs-macos-arm64
           path: |
