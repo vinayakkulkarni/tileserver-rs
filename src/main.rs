@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{
         header::{ACCEPT, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE},
         HeaderMap, HeaderValue, Method, StatusCode, Uri,
@@ -18,12 +18,14 @@ mod cache_control;
 mod cli;
 mod config;
 mod error;
+mod render;
 mod sources;
 mod styles;
 
 use cli::Cli;
 use config::Config;
 use error::TileServerError;
+use render::{BrowserPool, ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
 use sources::{SourceManager, TileJson};
 use styles::{StyleInfo, StyleManager};
 
@@ -37,6 +39,7 @@ struct Assets;
 pub struct AppState {
     pub sources: Arc<SourceManager>,
     pub styles: Arc<StyleManager>,
+    pub browser_pool: Option<Arc<BrowserPool>>,
     pub base_url: String,
     pub ui_enabled: bool,
 }
@@ -81,12 +84,29 @@ async fn main() -> anyhow::Result<()> {
     let styles = StyleManager::from_configs(&config.styles)?;
     tracing::info!("Loaded {} style(s)", styles.len());
 
+    // Initialize browser pool for rendering (if enabled)
+    let browser_pool = if !styles.is_empty() {
+        match BrowserPool::new(4).await {
+            Ok(pool) => {
+                tracing::info!("Browser pool initialized for rendering");
+                Some(Arc::new(pool))
+            }
+            Err(e) => {
+                tracing::warn!("Failed to initialize browser pool: {}. Rendering disabled.", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     // Build base URL
     let base_url = format!("http://{}:{}", config.server.host, config.server.port);
 
     let state = AppState {
         sources: Arc::new(sources),
         styles: Arc::new(styles),
+        browser_pool,
         base_url,
         ui_enabled,
     };
@@ -167,6 +187,8 @@ fn api_router(state: AppState) -> Router {
         .route("/health", get(health_check))
         .route("/styles.json", get(get_all_styles))
         .route("/styles/{style}/style.json", get(get_style_json))
+        .route("/styles/{style}/{z}/{x}/{y_fmt}", get(get_raster_tile))
+        .route("/styles/{style}/static/{static_type}/{size_fmt}", get(get_static_image))
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
@@ -280,4 +302,189 @@ async fn get_tile(
     }
 
     Ok((headers, tile.data).into_response())
+}
+
+/// Raster tile request parameters
+#[derive(serde::Deserialize)]
+struct RasterTileParams {
+    style: String,
+    z: u8,
+    x: u32,
+    y_fmt: String, // e.g., "123.png" or "123@2x.webp"
+}
+
+impl RasterTileParams {
+    /// Parse y, scale, and format from "123@2x.png" style string
+    fn parse(&self) -> Option<(u32, u8, ImageFormat)> {
+        // Split extension first: "123@2x" and "png"
+        let (y_and_scale, format_str) = self.y_fmt.rsplit_once('.')?;
+
+        let format = ImageFormat::from_str(format_str)?;
+
+        // Check for scale: "123@2x" or just "123"
+        if let Some((y_str, scale_str)) = y_and_scale.split_once('@') {
+            let y = y_str.parse().ok()?;
+            // Parse scale like "2x" -> 2
+            let scale = scale_str.strip_suffix('x')?.parse().ok()?;
+            // Validate scale range (1-9)
+            if (1..=9).contains(&scale) {
+                Some((y, scale, format))
+            } else {
+                None
+            }
+        } else {
+            // No scale, default to 1
+            let y = y_and_scale.parse().ok()?;
+            Some((y, 1, format))
+        }
+    }
+}
+
+/// Get a raster tile (rendered from style)
+/// Route: GET /styles/{style}/{z}/{x}/{y}[@{scale}x].{format}
+async fn get_raster_tile(
+    State(state): State<AppState>,
+    Path(params): Path<RasterTileParams>,
+) -> Result<Response, TileServerError> {
+    // Check if rendering is available
+    let browser_pool = state
+        .browser_pool
+        .as_ref()
+        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+
+    // Parse parameters
+    let (y, scale, format) = params
+        .parse()
+        .ok_or(TileServerError::InvalidTileRequest)?;
+
+    // Get style
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+
+    // Create render options
+    let options = RenderOptions::for_tile(
+        params.style.clone(),
+        style.style_json.to_string(),
+        params.z,
+        params.x,
+        y,
+        scale,
+        format,
+    );
+
+    // Acquire permit and render
+    let _permit = browser_pool.acquire_permit().await?;
+    let renderer = Renderer::new(browser_pool.browser());
+    let image_data = renderer.render(options).await?;
+
+    // Build response
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(format.content_type()),
+    );
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+    Ok((headers, image_data).into_response())
+}
+
+/// Static image request parameters
+#[derive(serde::Deserialize)]
+struct StaticImageParams {
+    style: String,
+    static_type: String,  // e.g., "-122.4,37.8,12" or "auto"
+    size_fmt: String,      // e.g., "800x600.png" or "800x600@2x.webp"
+}
+
+impl StaticImageParams {
+    /// Parse size, scale, and format from "800x600@2x.png" style string
+    fn parse(&self) -> Option<(u32, u32, u8, ImageFormat)> {
+        // Split extension: "800x600@2x" and "png"
+        let (size_and_scale, format_str) = self.size_fmt.rsplit_once('.')?;
+
+        let format = ImageFormat::from_str(format_str)?;
+
+        // Check for scale: "800x600@2x" or just "800x600"
+        let (size_str, scale) = if let Some((size, scale_str)) = size_and_scale.split_once('@') {
+            let scale = scale_str.strip_suffix('x')?.parse().ok()?;
+            if !(1..=9).contains(&scale) {
+                return None;
+            }
+            (size, scale)
+        } else {
+            (size_and_scale, 1)
+        };
+
+        // Parse width and height: "800x600"
+        let (width_str, height_str) = size_str.split_once('x')?;
+        let width = width_str.parse().ok()?;
+        let height = height_str.parse().ok()?;
+
+        Some((width, height, scale, format))
+    }
+}
+
+/// Get a static image
+/// Route: GET /styles/{style}/static/{static_type}/{width}x{height}[@{scale}x].{format}
+async fn get_static_image(
+    State(state): State<AppState>,
+    Path(params): Path<StaticImageParams>,
+    Query(query): Query<StaticQueryParams>,
+) -> Result<Response, TileServerError> {
+    // Check if rendering is available
+    let browser_pool = state
+        .browser_pool
+        .as_ref()
+        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+
+    // Parse parameters
+    let (width, height, scale, format) = params
+        .parse()
+        .ok_or_else(|| {
+            TileServerError::RenderError(format!("Invalid size format: {}", params.size_fmt))
+        })?;
+
+    // Parse static type
+    let static_type = StaticType::from_str(&params.static_type)
+        .map_err(TileServerError::RenderError)?;
+
+    // Get style
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+
+    // Create render options
+    let options = RenderOptions::for_static(
+        params.style.clone(),
+        style.style_json.to_string(),
+        static_type,
+        width,
+        height,
+        scale,
+        format,
+        query,
+    )
+    .map_err(TileServerError::RenderError)?;
+
+    // Acquire permit and render
+    let _permit = browser_pool.acquire_permit().await?;
+    let renderer = Renderer::new(browser_pool.browser());
+    let image_data = renderer.render(options).await?;
+
+    // Build response
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(format.content_type()),
+    );
+    // Cache static images for 1 hour
+    headers.insert(
+        CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=3600"),
+    );
+
+    Ok((headers, image_data).into_response())
 }

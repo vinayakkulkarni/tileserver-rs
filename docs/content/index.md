@@ -1,7 +1,7 @@
 ---
 seo:
   title: Tileserver RS - High-performance Vector Tile Server
-  description: High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with ease using Axum and MapLibre GL JS.
+  description: High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with raster rendering and static map images.
 ---
 
 ::u-page-hero
@@ -9,7 +9,7 @@ seo:
 Tileserver RS
 
 #description
-High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with ease.
+High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with raster rendering and embeddable static map images.
 
 #links
   :::u-button
@@ -96,12 +96,34 @@ Features
 
   :::u-page-feature
   ---
+  icon: i-lucide-image
+  ---
+  #title
+  Raster Rendering
+
+  #description
+  Generate PNG/JPEG/WebP tiles from vector styles using headless Chrome.
+  :::
+
+  :::u-page-feature
+  ---
+  icon: i-lucide-camera
+  ---
+  #title
+  Static Map Images
+
+  #description
+  Create embeddable map screenshots like Mapbox/Maptiler static API.
+  :::
+
+  :::u-page-feature
+  ---
   icon: i-simple-icons-docker
   ---
   #title
   Docker Ready
 
   #description
-  Easy deployment with Docker Compose v2 and multi-stage builds.
+  Easy deployment with Docker Compose v2 (includes Chromium).
   :::
 ::

@@ -10,14 +10,16 @@
   const route = useRoute('styles-style');
   const styleId = computed(() => route.params.style);
   const isRaster = computed(() => 'raster' in route.query);
+  const isScreenshot = computed(() => 'screenshot' in route.query);
 
   const { mapOptions, isLoading } = useStyleViewer(styleId, isRaster);
 </script>
 
 <template>
   <div class="relative h-dvh w-full">
-    <!-- Floating back button -->
+    <!-- Floating back button (hidden for screenshots) -->
     <NuxtLink
+      v-if="!isScreenshot"
       to="/"
       class="
         absolute top-4 left-4 z-10 flex items-center gap-2 rounded-lg border
@@ -58,9 +60,9 @@
     >
       <ClientOnly>
         <VMap :options="mapOptions" :support-pmtiles="false" class="size-full">
-          <VControlScale position="bottom-left" />
-          <VControlNavigation position="bottom-right" />
-          <VControlGeolocate position="bottom-right" />
+          <VControlScale v-if="!isScreenshot" position="bottom-left" />
+          <VControlNavigation v-if="!isScreenshot" position="bottom-right" />
+          <VControlGeolocate v-if="!isScreenshot" position="bottom-right" />
         </VMap>
       </ClientOnly>
     </div>

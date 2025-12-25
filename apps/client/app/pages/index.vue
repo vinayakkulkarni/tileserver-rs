@@ -39,6 +39,16 @@
       path: '/styles/{style}/style.json',
       description: 'MapLibre style spec',
     },
+    {
+      method: 'GET',
+      path: '/styles/{style}/{z}/{x}/{y}[@{scale}x].{format}',
+      description: 'Raster tiles (PNG/JPEG/WebP)',
+    },
+    {
+      method: 'GET',
+      path: '/styles/{style}/static/{type}/{size}[@{scale}x].{format}',
+      description: 'Static map images',
+    },
     { method: 'GET', path: '/health', description: 'Health check' },
   ];
 </script>
@@ -129,12 +139,14 @@
             <CardContent class="flex items-center justify-between p-5">
               <div class="flex items-center gap-4">
                 <div
-                  class="
-                    relative flex size-14 items-center justify-center
-                    overflow-hidden rounded-lg bg-muted
-                  "
+                  class="relative size-14 overflow-hidden rounded-lg bg-muted"
                 >
-                  <Map class="size-6 text-muted-foreground" />
+                  <img
+                    :src="`/styles/${style.id}/static/0,0,1/112x112.png`"
+                    :alt="`${style.name} preview`"
+                    class="size-full object-cover"
+                    loading="lazy"
+                  />
                 </div>
                 <div class="space-y-1">
                   <CardTitle class="text-base">

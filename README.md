@@ -11,9 +11,11 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - **PMTiles Support** - Serve tiles from local and remote PMTiles archives
 - **MBTiles Support** - Serve tiles from SQLite-based MBTiles files
+- **Raster Tile Rendering** - Generate PNG/JPEG/WebP tiles from vector styles
+- **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler)
 - **TileJSON 3.0** - Full TileJSON metadata API
 - **MapLibre GL JS** - Built-in map viewer and data inspector
-- **Docker Ready** - Easy deployment with Docker Compose v2
+- **Docker Ready** - Easy deployment with Docker Compose v2 (includes Chromium)
 - **Fast** - Built in Rust with Axum for maximum performance
 
 ## Tech Stack
@@ -41,7 +43,11 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - [Rust 1.75+](https://www.rust-lang.org/)
 - [Bun 1.0+](https://bun.sh/)
-- (Optional) [Docker](https://www.docker.com/)
+- **Chrome/Chromium** - Required for raster tile rendering and static image generation
+  - macOS: `brew install --cask chromium`
+  - Linux: `apt-get install chromium` or `dnf install chromium`
+  - Windows: Download from [chromium.org](https://www.chromium.org/getting-involved/download-chromium/)
+- (Optional) [Docker](https://www.docker.com/) - Chromium is pre-installed in the Docker image
 
 ## Quick Start
 
@@ -137,12 +143,46 @@ See [config.example.toml](./config.example.toml) for a complete example.
 
 ## API Endpoints
 
+### Data Endpoints (Vector Tiles)
+
 | Endpoint | Description |
 |----------|-------------|
 | `GET /health` | Health check |
 | `GET /data.json` | List all tile sources |
 | `GET /data/{source}.json` | TileJSON for a source |
-| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a tile |
+| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile (`.pbf`, `.mvt`) |
+
+### Style Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /styles.json` | List all styles |
+| `GET /styles/{style}/style.json` | Get MapLibre GL style JSON |
+
+### Rendering Endpoints (Requires Chromium)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /styles/{style}/{z}/{x}/{y}[@{scale}x].{format}` | Raster tile (PNG/JPEG/WebP) |
+| `GET /styles/{style}/static/{type}/{size}[@{scale}x].{format}` | Static map image |
+
+**Raster Tile Examples:**
+```
+/styles/protomaps-light/14/8192/5461.png          # 512x512 PNG @ 1x
+/styles/protomaps-light/14/8192/5461@2x.webp      # 512x512 WebP @ 2x (retina)
+```
+
+**Static Image Types:**
+- **Center**: `{lon},{lat},{zoom}[@{bearing}[,{pitch}]]`
+  ```
+  /styles/protomaps-light/static/-122.4,37.8,12/800x600.png
+  /styles/protomaps-light/static/-122.4,37.8,12@45,60/800x600@2x.webp
+  ```
+- **Bounding Box**: `{minx},{miny},{maxx},{maxy}`
+  ```
+  /styles/protomaps-light/static/-123,37,-122,38/1024x768.jpeg
+  ```
+- **Auto-fit**: `auto` (with `?path=` or `?marker=` query params)
 
 ## Development
 
@@ -176,12 +216,17 @@ tileserver-rs/
 │   ├── main.rs          # Entry point, routes
 │   ├── config.rs        # Configuration
 │   ├── error.rs         # Error types
-│   └── sources/         # Tile source implementations
+│   ├── render/          # Chromium-based rendering (NEW!)
+│   │   ├── pool.rs      # Browser pool management
+│   │   ├── renderer.rs  # MapLibre GL rendering engine
+│   │   └── types.rs     # Rendering types & options
+│   ├── sources/         # Tile source implementations
+│   └── styles/          # Style management
 ├── compose/             # Docker Compose modules
 ├── compose.yml          # Base compose config
 ├── compose.override.yml # Development overrides
 ├── compose.prod.yml     # Production config
-├── Dockerfile           # Multi-stage Docker build
+├── Dockerfile           # Multi-stage Docker build (includes Chromium)
 └── config.example.toml  # Example configuration
 ```
 

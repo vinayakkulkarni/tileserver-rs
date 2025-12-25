@@ -36,11 +36,27 @@ RUN bun run --filter @tileserver-rs/client build
 # Stage 3: Runtime
 FROM debian:bookworm-slim AS runtime
 
-# Install required runtime dependencies
+# Install required runtime dependencies including Chromium for rendering
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
+    chromium \
+    chromium-sandbox \
+    fonts-liberation \
+    libnss3 \
+    libxss1 \
+    libxtst6 \
+    libgbm1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
+
+# Set Chromium path for chromiumoxide
+ENV CHROME_BIN=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV CHROMIUM_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
