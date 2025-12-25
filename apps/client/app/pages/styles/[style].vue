@@ -15,7 +15,7 @@
 </script>
 
 <template>
-  <div class="relative size-full">
+  <div class="relative h-dvh w-full">
     <!-- Floating back button -->
     <NuxtLink
       to="/"
@@ -51,13 +51,18 @@
       </span>
     </div>
 
-    <!-- Full-screen Map -->
-    <ClientOnly>
-      <VMap :options="mapOptions" class="size-full">
-        <VControlScale position="bottom-left" />
-        <VControlNavigation position="bottom-right" />
-        <VControlGeolocate position="bottom-right" />
-      </VMap>
-    </ClientOnly>
+    <!-- Map - VMap wrapped in ClientOnly -->
+    <div
+      v-if="!isLoading && mapOptions"
+      class="absolute inset-0 size-full overflow-hidden"
+    >
+      <ClientOnly>
+        <VMap :options="mapOptions" :support-pmtiles="false" class="size-full">
+          <VControlScale position="bottom-left" />
+          <VControlNavigation position="bottom-right" />
+          <VControlGeolocate position="bottom-right" />
+        </VMap>
+      </ClientOnly>
+    </div>
   </div>
 </template>

@@ -23,9 +23,10 @@ export function useDataInspector(dataId: Ref<string>) {
   }));
 
   // VMap requires full MapOptions with container
+  // IMPORTANT: Use toRaw to unwrap reactive style object for MapLibre
   const mapOptions = computed<MapOptions>(() => ({
     container: containerId,
-    style: style.value,
+    style: toRaw(style.value) as StyleSpecification,
     center: [0, 0],
     zoom: 1,
     hash: true,

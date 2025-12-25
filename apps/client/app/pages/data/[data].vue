@@ -5,21 +5,16 @@
     VControlScale,
     VControlGeolocate,
   } from '@geoql/v-maplibre';
-  import type { Map as MapLibreMap } from 'maplibre-gl';
   import { ArrowLeft, Layers } from 'lucide-vue-next';
 
   const route = useRoute('data-data');
   const dataId = computed(() => route.params.data);
 
   const { mapOptions, onMapLoaded } = useDataInspector(dataId);
-
-  function handleMapLoaded(map: MapLibreMap) {
-    onMapLoaded(map);
-  }
 </script>
 
 <template>
-  <div class="relative size-full">
+  <div class="relative h-dvh w-full">
     <!-- Floating back button -->
     <NuxtLink
       to="/"
@@ -39,7 +34,12 @@
 
     <!-- Full-screen Map -->
     <ClientOnly>
-      <VMap :options="mapOptions" class="size-full" @loaded="handleMapLoaded">
+      <VMap
+        :options="mapOptions"
+        :support-pmtiles="false"
+        class="size-full"
+        @loaded="onMapLoaded"
+      >
         <VControlScale position="bottom-left" />
         <VControlNavigation position="bottom-right" />
         <VControlGeolocate position="bottom-right" />

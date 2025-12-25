@@ -13,16 +13,22 @@ export function useStyleViewer(
   const { style, isLoading } = useMapStyle(styleId, isRaster);
 
   // Generate unique container ID for each instance
-  const containerId = `map-style-${Math.random().toString(36).substring(2, 11)}`;
+  const containerId = `map-${Math.random().toString(36).substring(2, 11)}`;
 
-  // VMap requires full MapOptions with container
-  const mapOptions = computed<MapOptions>(() => ({
-    container: containerId,
-    style: style.value as StyleSpecification,
-    center: [0, 0],
-    zoom: 1,
-    hash: true,
-  }));
+  // IMPORTANT: Use toRaw to unwrap reactive style object for MapLibre
+  // Only provide mapOptions when style is loaded
+  const mapOptions = computed<MapOptions | null>(() => {
+    if (!style.value) return null;
+
+    return {
+      container: containerId,
+      style: toRaw(style.value) as StyleSpecification,
+      center: [0, 0] as [number, number],
+      zoom: 1,
+      hash: true,
+      interactive: true,
+    };
+  });
 
   return { mapOptions, isLoading };
 }
