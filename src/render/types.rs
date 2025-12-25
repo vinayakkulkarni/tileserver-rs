@@ -212,6 +212,7 @@ impl RenderOptions {
     }
 
     /// Create options for a static image
+    #[allow(clippy::too_many_arguments)]
     pub fn for_static(
         style_id: String,
         style_json: String,
