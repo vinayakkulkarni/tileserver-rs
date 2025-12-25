@@ -11,23 +11,23 @@ repository = "https://github.com/vinayakkulkarni/tileserver-rs"
 keywords = ["pmtiles", "mbtiles", "gis", "vector-tiles", "tileserver"]
 
 [dependencies]
-anyhow = "1.0"
-async-trait = "0.1"
-axum = "0.8"
-bytes = "1"
-clap = { version = "4", features = ["derive", "env"] }
-dotenvy = "0.15"
-mime_guess = "2"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
-rust-embed = { version = "8", features = ["axum"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-tokio = { version = "1.42", features = ["full"] }
-toml = "0.8"
-tower-http = { version = "0.6", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0.100"
+async-trait = "0.1.89"
+axum = "0.8.8"
+bytes = "1.11"
+clap = { version = "4.5", features = ["derive", "env"] }
+dotenvy = "0.15.7"
+mime_guess = "2.0.5"
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"], optional = true }
+rust-embed = { version = "8.9", features = ["axum"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.147"
+thiserror = "2.0.17"
+tokio = { version = "1.48", features = ["full"] }
+toml = "0.8.23"
+tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
 # Tile format support - commented out until API integration is complete
 # mbtiles = { version = "0.13", default-features = false }

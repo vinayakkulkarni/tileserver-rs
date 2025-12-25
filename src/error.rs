@@ -15,6 +15,9 @@ pub enum TileServerError {
     #[error("Invalid tile coordinates: z={z}, x={x}, y={y}")]
     InvalidCoordinates { z: u8, x: u32, y: u32 },
 
+    #[error("Invalid tile request format")]
+    InvalidTileRequest,
+
     #[error("Style not found: {0}")]
     StyleNotFound(String),
 
@@ -39,6 +42,7 @@ impl IntoResponse for TileServerError {
             TileServerError::InvalidCoordinates { .. } => {
                 (StatusCode::BAD_REQUEST, self.to_string())
             }
+            TileServerError::InvalidTileRequest => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::StyleNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
             TileServerError::FileError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "File read error".to_string())

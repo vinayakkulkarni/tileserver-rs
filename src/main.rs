@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     // Build router
-    let mut router = Router::new().nest("/", api_router(state.clone()));
+    let mut router = Router::new().merge(api_router(state.clone()));
 
     // Add embedded SPA if UI is enabled
     if ui_enabled {
@@ -155,8 +155,8 @@ fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/data.json", get(get_all_sources))
-        .route("/data/{source}.json", get(get_source_tilejson))
-        .route("/data/{source}/{z}/{x}/{y}.{format}", get(get_tile))
+        .route("/data/{source}", get(get_source_tilejson))
+        .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
         .with_state(state)
 }
 
@@ -182,24 +182,34 @@ async fn get_source_tilejson(
     State(state): State<AppState>,
     Path(source): Path<String>,
 ) -> Result<Json<TileJson>, TileServerError> {
+    // Strip .json extension if present
+    let source_id = source.strip_suffix(".json").unwrap_or(&source);
+
     let source_ref = state
         .sources
-        .get(&source)
-        .ok_or_else(|| TileServerError::SourceNotFound(source.clone()))?;
+        .get(source_id)
+        .ok_or_else(|| TileServerError::SourceNotFound(source_id.to_string()))?;
 
     let tilejson = source_ref.metadata().to_tilejson(&state.base_url);
     Ok(Json(tilejson))
 }
 
-/// Tile request parameters
+/// Tile request parameters (raw from URL)
 #[derive(serde::Deserialize)]
 struct TileParams {
     source: String,
     z: u8,
     x: u32,
-    y: u32,
-    #[allow(dead_code)]
-    format: String,
+    y_fmt: String, // e.g., "123.pbf" or "123.mvt"
+}
+
+impl TileParams {
+    /// Parse y coordinate and format from "123.pbf" style string
+    fn parse_y_and_format(&self) -> Option<(u32, &str)> {
+        let (y_str, format) = self.y_fmt.rsplit_once('.')?;
+        let y = y_str.parse().ok()?;
+        Some((y, format))
+    }
 }
 
 /// Get a tile from a source
@@ -207,18 +217,22 @@ async fn get_tile(
     State(state): State<AppState>,
     Path(params): Path<TileParams>,
 ) -> Result<Response, TileServerError> {
+    let (y, _format) = params
+        .parse_y_and_format()
+        .ok_or(TileServerError::InvalidTileRequest)?;
+
     let source = state
         .sources
         .get(&params.source)
         .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
 
     let tile = source
-        .get_tile(params.z, params.x, params.y)
+        .get_tile(params.z, params.x, y)
         .await?
         .ok_or(TileServerError::TileNotFound {
             z: params.z,
             x: params.x,
-            y: params.y,
+            y,
         })?;
 
     let mut headers = HeaderMap::new();
