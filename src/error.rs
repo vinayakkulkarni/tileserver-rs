@@ -44,18 +44,20 @@ impl IntoResponse for TileServerError {
             }
             TileServerError::InvalidTileRequest => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::StyleNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::FileError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "File read error".to_string())
-            }
+            TileServerError::FileError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "File read error".to_string(),
+            ),
             TileServerError::MetadataError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::ConfigError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
-            TileServerError::Internal(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-            }
+            TileServerError::Internal(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            ),
         };
 
         (status, message).into_response()

@@ -41,12 +41,11 @@ impl HttpPmTilesSource {
             })?;
 
         // Create async reader with cached URL
-        let reader: HttpReader =
-            AsyncPmTilesReader::new_with_cached_url(cache, client, url)
-                .await
-                .map_err(|e| {
-                    TileServerError::MetadataError(format!("Failed to read PMTiles header: {}", e))
-                })?;
+        let reader: HttpReader = AsyncPmTilesReader::new_with_cached_url(cache, client, url)
+            .await
+            .map_err(|e| {
+                TileServerError::MetadataError(format!("Failed to read PMTiles header: {}", e))
+            })?;
 
         let header = reader.get_header();
 

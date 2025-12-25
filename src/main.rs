@@ -57,7 +57,10 @@ async fn main() -> anyhow::Result<()> {
         EnvFilter::from_default_env()
     };
 
-    tracing_subscriber::fmt().compact().with_env_filter(filter).init();
+    tracing_subscriber::fmt()
+        .compact()
+        .with_env_filter(filter)
+        .init();
 
     // Load configuration
     let mut config = Config::load(cli.config)?;
@@ -254,14 +257,15 @@ async fn get_tile(
         .get(&params.source)
         .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
 
-    let tile = source
-        .get_tile(params.z, params.x, y)
-        .await?
-        .ok_or(TileServerError::TileNotFound {
-            z: params.z,
-            x: params.x,
-            y,
-        })?;
+    let tile =
+        source
+            .get_tile(params.z, params.x, y)
+            .await?
+            .ok_or(TileServerError::TileNotFound {
+                z: params.z,
+                x: params.x,
+                y,
+            })?;
 
     let mut headers = HeaderMap::new();
     headers.insert(
