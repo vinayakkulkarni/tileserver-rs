@@ -7,6 +7,8 @@ pub struct Config {
     #[serde(default)]
     pub server: ServerConfig,
     #[serde(default)]
+    pub telemetry: TelemetryConfig,
+    #[serde(default)]
     pub sources: Vec<SourceConfig>,
     #[serde(default)]
     pub styles: Vec<StyleConfig>,
@@ -37,6 +39,46 @@ impl Default for ServerConfig {
             host: default_host(),
             port: default_port(),
             cors_origins: vec!["*".to_string()],
+        }
+    }
+}
+
+/// OpenTelemetry configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TelemetryConfig {
+    /// Enable OpenTelemetry tracing
+    #[serde(default)]
+    pub enabled: bool,
+    /// OTLP endpoint (e.g., "http://localhost:4317")
+    #[serde(default = "default_otlp_endpoint")]
+    pub endpoint: String,
+    /// Service name for traces
+    #[serde(default = "default_service_name")]
+    pub service_name: String,
+    /// Sampling rate (0.0 to 1.0, where 1.0 = 100% of traces)
+    #[serde(default = "default_sample_rate")]
+    pub sample_rate: f64,
+}
+
+fn default_otlp_endpoint() -> String {
+    "http://localhost:4317".to_string()
+}
+
+fn default_service_name() -> String {
+    "tileserver-rs".to_string()
+}
+
+fn default_sample_rate() -> f64 {
+    1.0
+}
+
+impl Default for TelemetryConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            endpoint: default_otlp_endpoint(),
+            service_name: default_service_name(),
+            sample_rate: default_sample_rate(),
         }
     }
 }

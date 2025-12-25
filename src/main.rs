@@ -12,7 +12,7 @@ use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 mod cache_control;
 mod cli;
@@ -21,6 +21,7 @@ mod error;
 mod render;
 mod sources;
 mod styles;
+mod telemetry;
 
 use cli::Cli;
 use config::Config;
@@ -53,20 +54,26 @@ async fn main() -> anyhow::Result<()> {
     let ui_enabled = cli.ui_enabled();
     let verbose = cli.verbose;
 
-    // Initialize tracing
+    // Load configuration early to get telemetry settings
+    let mut config = Config::load(cli.config)?;
+
+    // Initialize tracing with OpenTelemetry
     let filter = if verbose {
         EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
     } else {
         EnvFilter::from_default_env()
     };
 
-    tracing_subscriber::fmt()
-        .compact()
-        .with_env_filter(filter)
-        .init();
+    let fmt_layer = tracing_subscriber::fmt::layer().compact();
 
-    // Load configuration
-    let mut config = Config::load(cli.config)?;
+    let registry = tracing_subscriber::registry().with(filter).with(fmt_layer);
+
+    // Add OpenTelemetry layer if enabled
+    if let Some(otel_layer) = telemetry::init_telemetry(&config.telemetry) {
+        registry.with(otel_layer).init();
+    } else {
+        registry.init();
+    }
 
     // Override with CLI arguments
     if let Some(host) = cli.host {
@@ -151,9 +158,43 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Starting tileserver on http://{}", addr);
 
     let listener = TcpListener::bind(addr).await?;
-    axum::serve(listener, router).await?;
+
+    // Run the server with graceful shutdown
+    axum::serve(listener, router)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
+
+    // Shutdown OpenTelemetry
+    telemetry::shutdown_telemetry();
 
     Ok(())
+}
+
+/// Signal handler for graceful shutdown
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("Shutdown signal received, starting graceful shutdown");
 }
 
 /// Serve embedded SPA assets

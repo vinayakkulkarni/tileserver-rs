@@ -9,6 +9,17 @@ port = 8080
 # Allowed CORS origins (use ["*"] for all origins)
 cors_origins = ["*"]
 
+# OpenTelemetry configuration
+[telemetry]
+# Enable OpenTelemetry tracing (default: false)
+enabled = false
+# OTLP endpoint for exporting traces (gRPC)
+endpoint = "http://localhost:4317"
+# Service name for traces
+service_name = "tileserver-rs"
+# Sampling rate (0.0 to 1.0, where 1.0 = 100% of traces)
+sample_rate = 1.0
+
 # Tile sources - PMTiles and MBTiles files
 # You can add multiple sources, each with a unique ID
 

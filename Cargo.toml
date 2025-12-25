@@ -33,6 +33,13 @@ tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", 
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
+# OpenTelemetry
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["tonic", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.27"
+tracing-opentelemetry = "0.28"
+
 # Optional MBTiles support (requires SQLite)
 # mbtiles = { version = "0.13", default-features = false }
 # sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
