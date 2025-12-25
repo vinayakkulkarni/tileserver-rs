@@ -35,16 +35,18 @@ tileserver-rs is distributed as a **single self-contained binary**, similar to [
 
 ## Build Process
 
-### 1. Build Nuxt SPA
+### 1. Generate Nuxt Static SPA
 
-The frontend is built as a client-side SPA (SSR disabled):
+The frontend is generated as a static SPA (`ssr: false` in nuxt.config.ts):
 
 ```bash
 bun install --frozen-lockfile
-bun run --filter @tileserver-rs/client build
+bun run --filter @tileserver-rs/client generate
 ```
 
-Output: `apps/client/.output/public/` (static files)
+Output: `apps/client/.output/public/` (static HTML + JS bundles)
+
+See: [Nuxt Static Hosting](https://nuxt.com/docs/getting-started/deployment#static-hosting)
 
 ### 2. Build Rust Binary
 

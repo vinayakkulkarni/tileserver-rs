@@ -41,8 +41,8 @@ jobs:
       - name: Install Node dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Nuxt client (SPA)
-        run: bun run --filter @tileserver-rs/client build
+      - name: Generate Nuxt static SPA
+        run: bun run --filter @tileserver-rs/client generate
 
       - name: Build Rust binary with embedded SPA
         run: cargo build --release --target aarch64-apple-darwin
