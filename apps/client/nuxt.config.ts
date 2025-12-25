@@ -8,6 +8,9 @@ export default defineNuxtConfig({
 
   devtools: { enabled: true },
 
+  // SPA mode - embedded in Rust binary
+  ssr: false,
+
   app: {
     head: {
       htmlAttrs: { lang: 'en' },

@@ -2,21 +2,16 @@ use axum::{
     extract::{Path, State},
     http::{
         header::{ACCEPT, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE},
-        HeaderMap, HeaderValue, Method, StatusCode,
+        HeaderMap, HeaderValue, Method, StatusCode, Uri,
     },
-    middleware,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::get,
     Json, Router,
 };
+use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::CorsLayer,
-    services::{ServeDir, ServeFile},
-    trace::TraceLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::EnvFilter;
 
 mod cache_control;
@@ -30,11 +25,17 @@ use config::Config;
 use error::TileServerError;
 use sources::{SourceManager, TileJson};
 
+/// Embedded SPA assets (built from apps/client)
+#[derive(Embed)]
+#[folder = "apps/client/.output/public"]
+struct Assets;
+
 /// Application state shared across handlers
 #[derive(Clone)]
 pub struct AppState {
     pub sources: Arc<SourceManager>,
     pub base_url: String,
+    pub ui_enabled: bool,
 }
 
 #[tokio::main]
@@ -43,9 +44,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Parse CLI arguments
     let cli = Cli::parse_args();
+    let ui_enabled = cli.ui_enabled();
+    let verbose = cli.verbose;
 
     // Initialize tracing
-    let filter = if cli.verbose {
+    let filter = if verbose {
         EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
     } else {
         EnvFilter::from_default_env()
@@ -74,7 +77,14 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         sources: Arc::new(sources),
         base_url,
+        ui_enabled,
     };
+
+    if ui_enabled {
+        tracing::info!("Web UI enabled at /");
+    } else {
+        tracing::info!("Web UI disabled (use --ui to enable)");
+    }
 
     // Build CORS layer
     let cors = CorsLayer::new()
@@ -91,9 +101,14 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     // Build router
-    let router = Router::new()
-        .nest("/", api_router(state.clone()))
-        .merge(static_file_handler())
+    let mut router = Router::new().nest("/", api_router(state.clone()));
+
+    // Add embedded SPA if UI is enabled
+    if ui_enabled {
+        router = router.fallback(serve_spa);
+    }
+
+    let router = router
         .layer(cors)
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http());
@@ -107,15 +122,33 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn static_file_handler() -> Router {
-    Router::new()
-        .nest_service("/_nuxt", ServeDir::new("./apps/client/dist/_nuxt"))
-        .nest_service(
-            "/",
-            ServeDir::new("./apps/client/dist/")
-                .not_found_service(ServeFile::new("./apps/client/dist/index.html")),
-        )
-        .layer(middleware::from_fn(cache_control::set_cache_header))
+/// Serve embedded SPA assets
+async fn serve_spa(uri: Uri) -> impl IntoResponse {
+    let path = uri.path().trim_start_matches('/');
+
+    // Try to serve the exact file
+    if let Some(content) = Assets::get(path) {
+        let mime = mime_guess::from_path(path).first_or_octet_stream();
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_str(mime.as_ref()).unwrap());
+
+        // Cache static assets (hashed files) for 1 year
+        if path.starts_with("_nuxt/") {
+            headers.insert(
+                CACHE_CONTROL,
+                HeaderValue::from_static("public, max-age=31536000, immutable"),
+            );
+        }
+
+        return (headers, content.data.to_vec()).into_response();
+    }
+
+    // For SPA routing, serve index.html for non-file paths
+    if let Some(index) = Assets::get("index.html") {
+        return Html(index.data.to_vec()).into_response();
+    }
+
+    (StatusCode::NOT_FOUND, "Not Found").into_response()
 }
 
 fn api_router(state: AppState) -> Router {
