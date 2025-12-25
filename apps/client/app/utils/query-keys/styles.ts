@@ -12,4 +12,4 @@ export const MAP_STYLES_QUERY_KEYS = {
     [...MAP_STYLES_QUERY_KEYS.details(), styleId] as const,
   style: (styleId: string) =>
     [...MAP_STYLES_QUERY_KEYS.all, 'style', styleId] as const,
-} as const
+} as const;

@@ -18,7 +18,8 @@ bytes = "1.11"
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 mime_guess = "2.0.5"
-reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"], optional = true }
+pmtiles = { version = "0.18.2", default-features = false, features = ["http-async", "tilejson"] }
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"] }
 rust-embed = { version = "8.9", features = ["axum"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.147"
@@ -29,9 +30,8 @@ tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", 
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
-# Tile format support - commented out until API integration is complete
+# Optional MBTiles support (requires SQLite)
 # mbtiles = { version = "0.13", default-features = false }
-# pmtiles = { version = "0.11", features = ["mmap-async-tokio"] }
 # sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
 
 # Optional S3 support
@@ -40,9 +40,7 @@ tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
 [features]
 default = []
-http = ["reqwest"]
 # s3 = ["aws-config", "aws-sdk-s3"]
-# full = ["http", "s3"]
 
 [profile.release]
 lto = true

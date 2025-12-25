@@ -10,4 +10,4 @@ export const DATA_SOURCES_QUERY_KEYS = {
   details: () => [...DATA_SOURCES_QUERY_KEYS.all, 'detail'] as const,
   detail: (sourceId: string) =>
     [...DATA_SOURCES_QUERY_KEYS.details(), sourceId] as const,
-} as const
+} as const;

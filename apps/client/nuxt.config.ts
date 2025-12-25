@@ -6,10 +6,10 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
   ],
 
-  devtools: { enabled: true },
-
   // SPA mode - embedded in Rust binary
   ssr: false,
+
+  devtools: { enabled: false },
 
   app: {
     head: {
@@ -38,7 +38,7 @@ export default defineNuxtConfig({
     '~/assets/css/tailwind.css',
     'maplibre-gl/dist/maplibre-gl.css',
     '@geoql/v-maplibre/dist/v-maplibre.css',
-    '@maplibre/maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
+    'maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
   ],
 
   colorMode: {
@@ -57,6 +57,14 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: '2024-12-23',
+
+  nitro: {
+    preset: 'static',
+    prerender: {
+      crawlLinks: true,
+      routes: ['/'],
+    },
+  },
 
   vite: {
     optimizeDeps: {
@@ -82,4 +90,4 @@ export default defineNuxtConfig({
     prefix: '',
     componentDir: '@/components/ui',
   },
-})
+});

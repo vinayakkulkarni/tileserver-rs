@@ -16,14 +16,14 @@ export default defineNuxtPlugin({
   setup() {
     // Only run on client
     if (!import.meta.client) {
-      return
+      return;
     }
 
     // Dev logging
     if (import.meta.dev) {
       console.log(
         '[TanStack DB] Plugin loaded - collections use function-based composables',
-      )
+      );
     }
 
     return {
@@ -35,7 +35,7 @@ export default defineNuxtPlugin({
           if (import.meta.dev) {
             console.log(
               '[TanStack DB] tanstackDbCleanup called - no-op with function-based pattern',
-            )
+            );
           }
         },
 
@@ -46,10 +46,10 @@ export default defineNuxtPlugin({
           if (import.meta.dev) {
             console.log(
               '[TanStack DB] tanstackDbReinit called - no-op with function-based pattern',
-            )
+            );
           }
         },
       },
-    }
+    };
   },
-})
+});

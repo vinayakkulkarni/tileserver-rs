@@ -11,4 +11,4 @@ export default {
   tabWidth: 2,
   vueIndentScriptAndStyle: true,
   endOfLine: 'lf',
-}
+};

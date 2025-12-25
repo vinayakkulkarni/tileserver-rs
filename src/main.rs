@@ -19,11 +19,13 @@ mod cli;
 mod config;
 mod error;
 mod sources;
+mod styles;
 
 use cli::Cli;
 use config::Config;
 use error::TileServerError;
 use sources::{SourceManager, TileJson};
+use styles::{StyleInfo, StyleManager};
 
 /// Embedded SPA assets (built from apps/client)
 #[derive(Embed)]
@@ -34,6 +36,7 @@ struct Assets;
 #[derive(Clone)]
 pub struct AppState {
     pub sources: Arc<SourceManager>,
+    pub styles: Arc<StyleManager>,
     pub base_url: String,
     pub ui_enabled: bool,
 }
@@ -71,11 +74,16 @@ async fn main() -> anyhow::Result<()> {
     let sources = SourceManager::from_configs(&config.sources).await?;
     tracing::info!("Loaded {} tile source(s)", sources.len());
 
+    // Load styles
+    let styles = StyleManager::from_configs(&config.styles)?;
+    tracing::info!("Loaded {} style(s)", styles.len());
+
     // Build base URL
     let base_url = format!("http://{}:{}", config.server.host, config.server.port);
 
     let state = AppState {
         sources: Arc::new(sources),
+        styles: Arc::new(styles),
         base_url,
         ui_enabled,
     };
@@ -154,6 +162,8 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
 fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
+        .route("/styles.json", get(get_all_styles))
+        .route("/styles/{style}/style.json", get(get_style_json))
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
@@ -163,6 +173,24 @@ fn api_router(state: AppState) -> Router {
 /// Health check endpoint
 async fn health_check() -> (StatusCode, &'static str) {
     (StatusCode::OK, "OK")
+}
+
+/// Get all available styles
+async fn get_all_styles(State(state): State<AppState>) -> Json<Vec<StyleInfo>> {
+    Json(state.styles.all_infos(&state.base_url))
+}
+
+/// Get style.json for a specific style
+async fn get_style_json(
+    State(state): State<AppState>,
+    Path(style_id): Path<String>,
+) -> Result<Json<serde_json::Value>, TileServerError> {
+    let style = state
+        .styles
+        .get(&style_id)
+        .ok_or_else(|| TileServerError::StyleNotFound(style_id))?;
+
+    Ok(Json(style.style_json.clone()))
 }
 
 /// Get all available tile sources

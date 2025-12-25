@@ -5,9 +5,9 @@
  * Used by composables and TanStack DB collections.
  */
 
-import type { StyleSpecification } from 'maplibre-gl'
-import type { Style, TileJSON } from '~/types'
-import { MAP_STYLES_QUERY_KEYS } from '~/utils/query-keys'
+import type { StyleSpecification } from 'maplibre-gl';
+import type { Style, TileJSON } from '~/types';
+import { MAP_STYLES_QUERY_KEYS } from '~/utils/query-keys';
 
 // ============================================================================
 // DEFAULT STYLE
@@ -27,27 +27,27 @@ export const defaultStyle: StyleSpecification = {
       },
     },
   ],
-}
+};
 
 // ============================================================================
 // FETCH FUNCTIONS
 // ============================================================================
 
 export async function fetchStyles(): Promise<Style[]> {
-  const result = await $fetch<Style[]>('/styles.json')
-  return result ?? []
+  const result = await $fetch<Style[]>('/styles.json');
+  return result ?? [];
 }
 
 export async function fetchVectorStyle(id: string): Promise<StyleSpecification> {
-  const styleSpec = await $fetch<StyleSpecification>(`/styles/${id}/style.json`)
-  return styleSpec ?? defaultStyle
+  const styleSpec = await $fetch<StyleSpecification>(`/styles/${id}/style.json`);
+  return styleSpec ?? defaultStyle;
 }
 
 export async function fetchRasterStyle(id: string): Promise<StyleSpecification> {
-  const tileJSON = await $fetch<TileJSON>(`/styles/${id}.json`)
+  const tileJSON = await $fetch<TileJSON>(`/styles/${id}.json`);
 
   if (!tileJSON) {
-    return defaultStyle
+    return defaultStyle;
   }
 
   return {
@@ -69,7 +69,7 @@ export async function fetchRasterStyle(id: string): Promise<StyleSpecification> 
         maxzoom: tileJSON.maxzoom,
       },
     ],
-  }
+  };
 }
 
 // ============================================================================
@@ -81,7 +81,7 @@ export function stylesQueryOptions() {
     queryKey: MAP_STYLES_QUERY_KEYS.all,
     queryFn: fetchStyles,
     staleTime: 30 * 1000,
-  }
+  };
 }
 
 export function styleQueryOptions(id: string, isRaster: boolean = false) {
@@ -90,5 +90,5 @@ export function styleQueryOptions(id: string, isRaster: boolean = false) {
     queryFn: (): Promise<StyleSpecification> =>
       isRaster ? fetchRasterStyle(id) : fetchVectorStyle(id),
     staleTime: 60 * 1000,
-  }
+  };
 }

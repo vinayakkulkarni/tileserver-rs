@@ -109,6 +109,8 @@ pub struct TileMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TileJson {
     pub tilejson: String,
+    /// Source identifier (used by frontend to navigate)
+    pub id: String,
     pub tiles: Vec<String>,
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -137,6 +139,7 @@ impl TileMetadata {
 
         TileJson {
             tilejson: "3.0.0".to_string(),
+            id: self.id.clone(),
             tiles: vec![tile_url],
             name: self.name.clone(),
             description: self.description.clone(),

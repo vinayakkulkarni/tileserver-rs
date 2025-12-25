@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
 use crate::sources::mbtiles::MbTilesSource;
-use crate::sources::pmtiles::PmTilesSource;
+use crate::sources::pmtiles::http::HttpPmTilesSource;
 use crate::sources::{TileMetadata, TileSource};
 
 /// Manages all tile sources
@@ -45,25 +45,27 @@ impl SourceManager {
             SourceType::PMTiles => {
                 // Check if it's a URL or local file
                 if config.path.starts_with("http://") || config.path.starts_with("https://") {
-                    #[cfg(feature = "http")]
-                    {
-                        use crate::sources::pmtiles::http::HttpPmTilesSource;
-                        let client = reqwest::Client::new();
-                        Arc::new(HttpPmTilesSource::from_url(config, client).await?)
-                    }
-                    #[cfg(not(feature = "http"))]
-                    {
-                        return Err(TileServerError::ConfigError(
-                            "HTTP support not enabled. Compile with --features http".to_string(),
-                        ));
-                    }
+                    let client = reqwest::Client::builder()
+                        .user_agent("tileserver-rs/0.1.0")
+                        .build()
+                        .map_err(|e| {
+                            TileServerError::ConfigError(format!(
+                                "Failed to create HTTP client: {}",
+                                e
+                            ))
+                        })?;
+                    Arc::new(HttpPmTilesSource::from_url(config, client).await?)
                 } else if config.path.starts_with("s3://") {
                     // S3 support placeholder - would require aws-sdk-s3
                     return Err(TileServerError::ConfigError(
                         "S3 PMTiles support not yet implemented".to_string(),
                     ));
                 } else {
-                    Arc::new(PmTilesSource::from_file(config).await?)
+                    // Local PMTiles files not yet supported (requires mmap feature)
+                    return Err(TileServerError::ConfigError(format!(
+                        "Local PMTiles files not supported yet. Use HTTP URL instead. Path: {}",
+                        config.path
+                    )));
                 }
             }
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),

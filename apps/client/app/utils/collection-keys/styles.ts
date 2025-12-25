@@ -4,4 +4,4 @@
  */
 export const MAP_STYLES_COLLECTION_KEYS = {
   id: 'map-styles',
-} as const
+} as const;

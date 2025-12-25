@@ -38,8 +38,14 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  html,
+  body,
+  #__nuxt {
+    @apply h-full m-0 p-0;
+  }
+
   body {
-    @apply bg-background text-foreground min-h-screen;
+    @apply bg-background text-foreground;
   }
 
   canvas {

@@ -1,228 +1,314 @@
 <script setup lang="ts">
-  import { useLiveQuery } from '@tanstack/vue-db'
-  import type { Style } from '~/types'
   import {
-    useDataSourcesCollection,
-    useMapStylesCollection,
-  } from '~/utils/collections'
+    Database,
+    ExternalLink,
+    FileJson,
+    Globe,
+    Layers,
+    Map,
+    Moon,
+    Palette,
+    Sun,
+  } from 'lucide-vue-next';
 
-  const router = useRouter()
+  const { isDark, toggle: toggleColorMode } = useThemeToggle();
+  const {
+    dataSources,
+    styles,
+    isLoadingData,
+    isLoadingStyles,
+    hasStyles,
+    hasData,
+  } = useTileserverData();
 
-  const { dataSourcesCollection } = useDataSourcesCollection()
-  const { mapStylesCollection } = useMapStylesCollection()
-
-  const { data: dataSources, isLoading: isLoadingData } = useLiveQuery(
-    dataSourcesCollection,
-  )
-  const { data: styles, isLoading: isLoadingStyles } =
-    useLiveQuery(mapStylesCollection)
-
-  function navigateToService(type: string, style: Style) {
-    if (type === 'gl-style') {
-      router.push(`/styles/${style.id}/style.json`)
-    } else if (type === 'tilejson') {
-      router.push(`/styles/${style.id}.json`)
-    } else if (type === 'wmts') {
-      router.push(`/styles/${style.id}/wmts.xml`)
-    }
-  }
+  const apiEndpoints = [
+    { method: 'GET', path: '/data.json', description: 'List all data sources' },
+    {
+      method: 'GET',
+      path: '/data/{source}.json',
+      description: 'TileJSON for a source',
+    },
+    {
+      method: 'GET',
+      path: '/data/{source}/{z}/{x}/{y}.pbf',
+      description: 'Vector tiles',
+    },
+    { method: 'GET', path: '/styles.json', description: 'List all styles' },
+    {
+      method: 'GET',
+      path: '/styles/{style}/style.json',
+      description: 'MapLibre style spec',
+    },
+    { method: 'GET', path: '/health', description: 'Health check' },
+  ];
 </script>
 
 <template>
-  <main
-    class="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800"
-  >
-    <div class="container mx-auto px-4 py-16">
-      <!-- Header -->
-      <header class="text-center mb-16">
-        <h1 class="text-5xl font-light text-slate-800 dark:text-slate-100 mb-4">
-          Tileserver RS
-        </h1>
-        <p class="text-2xl font-light text-slate-600 dark:text-slate-400">
-          Vector maps with GL styles
-        </p>
-      </header>
-
-      <!-- Styles Section -->
-      <section class="mb-16">
-        <div
-          class="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto"
-        >
+  <div class="min-h-screen bg-background">
+    <!-- Header -->
+    <header
+      class="
+        sticky top-0 z-50 border-b border-border/40 bg-background/95
+        backdrop-blur-sm
+        supports-backdrop-filter:bg-background/60
+      "
+    >
+      <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+        <div class="flex items-center gap-3">
           <div
-            class="px-8 py-4 border-b border-slate-200 dark:border-slate-700"
+            class="
+              flex size-10 items-center justify-center rounded-xl bg-primary
+              shadow-lg shadow-primary/25
+            "
           >
-            <h2
-              class="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide"
-            >
-              Styles
-            </h2>
+            <Globe class="size-5 text-primary-foreground" />
           </div>
-
-          <div
-            v-if="isLoadingStyles"
-            class="p-8 text-center text-slate-500 dark:text-slate-400"
-          >
-            Loading styles...
-          </div>
-
-          <div
-            v-else-if="!styles || styles.length === 0"
-            class="p-8 text-center text-slate-500 dark:text-slate-400"
-          >
-            No styles available
-          </div>
-
-          <div
-            v-for="(style, idx) in styles"
-            :key="style.id"
-            class="p-8 border-b last:border-b-0 border-slate-100 dark:border-slate-700"
-            :class="{ 'bg-slate-50 dark:bg-slate-800/50': idx % 2 === 0 }"
-          >
-            <div class="flex items-center justify-between gap-6">
-              <div class="flex items-center gap-6">
-                <img
-                  :src="`/styles/${style.id}/0/0/0.png`"
-                  :alt="`${style.name} preview`"
-                  class="size-32 object-cover rounded-lg border border-slate-200 dark:border-slate-600 shadow"
-                />
-                <div class="space-y-2">
-                  <h3
-                    class="text-lg font-bold text-slate-800 dark:text-slate-100"
-                  >
-                    {{ style.name }}
-                  </h3>
-                  <p class="text-sm text-slate-500 dark:text-slate-400">
-                    identifier: {{ style.id }}
-                  </p>
-                  <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500 dark:text-slate-400"
-                      >services:</span
-                    >
-                    <button
-                      type="button"
-                      class="text-blue-600 dark:text-blue-400 hover:underline"
-                      @click="navigateToService('gl-style', style)"
-                    >
-                      GL Style
-                    </button>
-                    <span class="text-slate-300 dark:text-slate-600">|</span>
-                    <button
-                      type="button"
-                      class="text-blue-600 dark:text-blue-400 hover:underline"
-                      @click="navigateToService('tilejson', style)"
-                    >
-                      TileJSON
-                    </button>
-                    <span class="text-slate-300 dark:text-slate-600">|</span>
-                    <button
-                      type="button"
-                      class="text-blue-600 dark:text-blue-400 hover:underline"
-                      @click="navigateToService('wmts', style)"
-                    >
-                      WMTS
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <NuxtLink
-                :to="`/styles/${style.id}/#2/0.00000/0.00000`"
-                class="inline-flex items-center rounded-lg bg-blue-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                Viewer
-              </NuxtLink>
-            </div>
+          <div>
+            <h1 class="text-xl font-semibold tracking-tight">
+              Tileserver RS
+            </h1>
+            <p class="text-xs text-muted-foreground">
+              High-performance vector tile server
+            </p>
           </div>
         </div>
-      </section>
 
-      <!-- Data Section -->
-      <section>
+        <Button variant="ghost" size="icon" @click="toggleColorMode">
+          <Sun v-if="isDark" class="size-5" />
+          <Moon v-else class="size-5" />
+          <span class="sr-only">Toggle theme</span>
+        </Button>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl space-y-8 px-6 py-8">
+      <!-- Styles Section -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-2">
+          <Palette class="size-5 text-primary" />
+          <h2 class="text-lg font-semibold">
+            Map Styles
+          </h2>
+        </div>
+
         <div
-          class="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden max-w-4xl mx-auto"
+          v-if="isLoadingStyles"
+          class="flex items-center justify-center py-8"
         >
           <div
-            class="px-8 py-4 border-b border-slate-200 dark:border-slate-700"
-          >
-            <h2
-              class="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide"
-            >
-              Data
-            </h2>
-          </div>
+            class="
+              size-6 animate-spin rounded-full border-2 border-muted
+              border-t-primary
+            "
+          ></div>
+        </div>
 
-          <div
-            v-if="isLoadingData"
-            class="p-8 text-center text-slate-500 dark:text-slate-400"
+        <Card v-else-if="!hasStyles" class="border-dashed">
+          <CardContent
+            class="flex flex-col items-center justify-center py-8 text-center"
           >
-            Loading data sources...
-          </div>
+            <Palette class="mb-3 size-10 text-muted-foreground/50" />
+            <CardTitle class="text-base">
+              No styles configured
+            </CardTitle>
+            <CardDescription class="mt-1">
+              Add styles to your config.toml to enable styled map views
+            </CardDescription>
+          </CardContent>
+        </Card>
 
-          <div
-            v-else-if="!dataSources || dataSources.length === 0"
-            class="p-8 text-center text-slate-500 dark:text-slate-400"
+        <div v-else class="grid gap-4">
+          <Card
+            v-for="style in styles"
+            :key="style.id"
+            class="
+              group overflow-hidden transition-all
+              hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5
+            "
           >
-            No data sources available
-          </div>
-
-          <div
-            v-for="(source, idx) in dataSources"
-            :key="source.id"
-            class="p-8 border-b last:border-b-0 border-slate-100 dark:border-slate-700"
-            :class="{ 'bg-slate-50 dark:bg-slate-800/50': idx % 2 === 0 }"
-          >
-            <div class="flex items-center justify-between gap-6">
-              <div class="flex items-center gap-6">
+            <CardContent class="flex items-center justify-between p-5">
+              <div class="flex items-center gap-4">
                 <div
-                  class="size-32 rounded-lg border border-slate-200 dark:border-slate-600 shadow bg-linear-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center"
+                  class="
+                    relative flex size-14 items-center justify-center
+                    overflow-hidden rounded-lg bg-muted
+                  "
                 >
-                  <svg
-                    class="size-12 text-blue-500 dark:text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                    />
-                  </svg>
+                  <Map class="size-6 text-muted-foreground" />
                 </div>
-                <div class="space-y-2">
-                  <h3
-                    class="text-lg font-bold text-slate-800 dark:text-slate-100"
-                  >
-                    {{ source.name || source.id }}
-                  </h3>
-                  <p class="text-sm text-slate-500 dark:text-slate-400">
-                    identifier: {{ source.id }} | type: vector data
-                  </p>
-                  <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500 dark:text-slate-400"
-                      >services:</span
-                    >
+                <div class="space-y-1">
+                  <CardTitle class="text-base">
+                    {{ style.name }}
+                  </CardTitle>
+                  <div class="flex items-center gap-2">
+                    <Badge variant="secondary" class="font-mono text-xs">
+                      {{ style.id }}
+                    </Badge>
                     <NuxtLink
-                      :to="`/data/${source.id}.json`"
-                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                      :to="`/styles/${style.id}/style.json`"
+                      class="
+                        flex items-center gap-1 text-xs text-muted-foreground
+                        transition-colors
+                        hover:text-primary
+                      "
                     >
-                      TileJSON
+                      <FileJson class="size-3" />
+                      style.json
                     </NuxtLink>
                   </div>
                 </div>
               </div>
-
-              <NuxtLink
-                :to="`/data/${source.id}/#2/0.00000/0.00000`"
-                class="inline-flex items-center rounded-lg bg-blue-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                Inspect
-              </NuxtLink>
-            </div>
-          </div>
+              <Button as-child>
+                <NuxtLink :to="`/styles/${style.id}/#2/0/0`">
+                  <Map class="size-4" />
+                  View Map
+                </NuxtLink>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
-    </div>
-  </main>
+
+      <Separator />
+
+      <!-- Data Sources Section -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-2">
+          <Database class="size-5 text-primary" />
+          <h2 class="text-lg font-semibold">
+            Data Sources
+          </h2>
+        </div>
+
+        <div v-if="isLoadingData" class="flex items-center justify-center py-8">
+          <div
+            class="
+              size-6 animate-spin rounded-full border-2 border-muted
+              border-t-primary
+            "
+          ></div>
+        </div>
+
+        <Card v-else-if="!hasData" class="border-dashed">
+          <CardContent
+            class="flex flex-col items-center justify-center py-8 text-center"
+          >
+            <Database class="mb-3 size-10 text-muted-foreground/50" />
+            <CardTitle class="text-base">
+              No data sources available
+            </CardTitle>
+            <CardDescription class="mt-1">
+              Configure PMTiles or MBTiles sources in your config.toml
+            </CardDescription>
+          </CardContent>
+        </Card>
+
+        <div v-else class="grid gap-4">
+          <Card
+            v-for="source in dataSources"
+            :key="source.id"
+            class="
+              group overflow-hidden transition-all
+              hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5
+            "
+          >
+            <CardContent class="flex items-center justify-between p-5">
+              <div class="flex items-center gap-4">
+                <div
+                  class="
+                    flex size-14 items-center justify-center rounded-lg bg-muted
+                  "
+                >
+                  <Layers class="size-6 text-muted-foreground" />
+                </div>
+                <div class="space-y-1">
+                  <CardTitle class="text-base">
+                    {{ source.name || source.id }}
+                  </CardTitle>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" class="font-mono text-xs">
+                      {{ source.id }}
+                    </Badge>
+                    <Badge variant="outline" class="text-xs">
+                      z{{ source.minzoom }}-{{ source.maxzoom }}
+                    </Badge>
+                    <NuxtLink
+                      :to="`/data/${source.id}.json`"
+                      class="
+                        flex items-center gap-1 text-xs text-muted-foreground
+                        transition-colors
+                        hover:text-primary
+                      "
+                    >
+                      <FileJson class="size-3" />
+                      tilejson
+                    </NuxtLink>
+                  </div>
+                </div>
+              </div>
+              <Button as-child variant="secondary">
+                <NuxtLink :to="`/data/${source.id}/#2/0/0`">
+                  <Layers class="size-4" />
+                  Inspect
+                </NuxtLink>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <Separator />
+
+      <!-- API Endpoints Section -->
+      <section class="space-y-4">
+        <div class="flex items-center gap-2">
+          <ExternalLink class="size-5 text-muted-foreground" />
+          <h2 class="text-lg font-semibold">
+            API Endpoints
+          </h2>
+        </div>
+
+        <Card>
+          <CardContent class="divide-y divide-border p-0">
+            <div
+              v-for="(endpoint, index) in apiEndpoints"
+              :key="index"
+              class="
+                flex items-center justify-between px-5 py-3 transition-colors
+                hover:bg-muted/50
+              "
+            >
+              <div class="flex items-center gap-3">
+                <Badge
+                  variant="outline"
+                  class="
+                    font-mono text-xs text-emerald-600
+                    dark:text-emerald-400
+                  "
+                >
+                  {{ endpoint.method }}
+                </Badge>
+                <code
+                  class="text-sm text-foreground"
+                  v-text="endpoint.path"
+                ></code>
+              </div>
+              <span class="text-xs text-muted-foreground">
+                {{ endpoint.description }}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-border/40">
+      <div class="mx-auto max-w-5xl p-6">
+        <p class="text-center text-sm text-muted-foreground">
+          Tileserver RS — Built with Rust + Axum + MapLibre GL JS
+        </p>
+      </div>
+    </footer>
+  </div>
 </template>

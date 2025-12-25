@@ -5,16 +5,16 @@
  * Vue Query plugin and TanStack DB collections.
  */
 
-import type { QueryClient } from '@tanstack/vue-query'
+import type { QueryClient } from '@tanstack/vue-query';
 
-let queryClient: QueryClient | null = null
+let queryClient: QueryClient | null = null;
 
 /**
  * Set the QueryClient instance for use by collections.
  * Called by the vue-query plugin during initialization.
  */
 export function setQueryClient(client: QueryClient): void {
-  queryClient = client
+  queryClient = client;
 }
 
 /**
@@ -22,5 +22,5 @@ export function setQueryClient(client: QueryClient): void {
  * Returns null if not yet initialized.
  */
 export function getQueryClient(): QueryClient | null {
-  return queryClient
+  return queryClient;
 }

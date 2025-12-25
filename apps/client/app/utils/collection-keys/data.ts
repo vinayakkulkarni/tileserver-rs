@@ -4,4 +4,4 @@
  */
 export const DATA_SOURCES_COLLECTION_KEYS = {
   id: 'data-sources',
-} as const
+} as const;

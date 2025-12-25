@@ -13,13 +13,13 @@
  * ```
  */
 
-import { createCollection } from '@tanstack/vue-db'
-import { queryCollectionOptions } from '@tanstack/query-db-collection'
-import { useQueryClient } from '@tanstack/vue-query'
-import type { Data } from '~/types'
-import { DATA_SOURCES_QUERY_KEYS } from '~/utils/query-keys'
-import { DATA_SOURCES_COLLECTION_KEYS } from '~/utils/collection-keys'
-import { fetchDataSources } from '~/utils/api/data'
+import { createCollection } from '@tanstack/vue-db';
+import { queryCollectionOptions } from '@tanstack/query-db-collection';
+import { useQueryClient } from '@tanstack/vue-query';
+import type { Data } from '~/types';
+import { DATA_SOURCES_QUERY_KEYS } from '~/utils/query-keys';
+import { DATA_SOURCES_COLLECTION_KEYS } from '~/utils/collection-keys';
+import { fetchDataSources } from '~/utils/api/data';
 
 // ============================================================================
 // COLLECTION FACTORY
@@ -37,14 +37,14 @@ function createDataSourcesCollection(
       queryFn: fetchDataSources,
       staleTime: 30 * 1000,
     }),
-  )
+  );
 }
 
 // ============================================================================
 // COLLECTION CACHE (Singleton)
 // ============================================================================
 
-let cachedDataSourcesCollection: ReturnType<typeof createDataSourcesCollection> | null = null
+let cachedDataSourcesCollection: ReturnType<typeof createDataSourcesCollection> | null = null;
 
 /**
  * Get or create the data sources collection.
@@ -54,11 +54,11 @@ function getOrCreateCollection(
   queryClient: ReturnType<typeof useQueryClient>,
 ) {
   if (cachedDataSourcesCollection) {
-    return cachedDataSourcesCollection
+    return cachedDataSourcesCollection;
   }
 
-  cachedDataSourcesCollection = createDataSourcesCollection(queryClient)
-  return cachedDataSourcesCollection
+  cachedDataSourcesCollection = createDataSourcesCollection(queryClient);
+  return cachedDataSourcesCollection;
 }
 
 // ============================================================================
@@ -75,13 +75,13 @@ function getOrCreateCollection(
  * @returns Object containing the data sources collection
  */
 export function useDataSourcesCollection() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   // Use cached collection (singleton)
-  const dataSourcesCollection = getOrCreateCollection(queryClient)
+  const dataSourcesCollection = getOrCreateCollection(queryClient);
 
   return {
     dataSourcesCollection,
     queryKeys: DATA_SOURCES_QUERY_KEYS,
-  }
+  };
 }
