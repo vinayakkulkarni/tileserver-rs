@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use bytes::Bytes;
 use pmtiles::{
     AsyncPmTilesReader, Compression as PmCompression, HashMapCache, HttpBackend, TileCoord,
     TileType,
@@ -137,7 +136,7 @@ impl TileSource for HttpPmTilesSource {
         // Get tile from PMTiles over HTTP
         match reader.get_tile(coord).await {
             Ok(Some(tile_data)) => Ok(Some(TileData {
-                data: Bytes::from(tile_data),
+                data: tile_data,
                 format: self.metadata.format,
                 compression: self.tile_compression,
             })),

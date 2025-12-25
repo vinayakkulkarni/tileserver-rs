@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Main configuration for the tileserver
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub server: ServerConfig,
@@ -10,16 +10,6 @@ pub struct Config {
     pub sources: Vec<SourceConfig>,
     #[serde(default)]
     pub styles: Vec<StyleConfig>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            sources: Vec::new(),
-            styles: Vec::new(),
-        }
-    }
 }
 
 /// Server configuration

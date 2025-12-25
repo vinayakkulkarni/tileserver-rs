@@ -10,7 +10,7 @@ env:
 
 jobs:
   fmt:
-    name: Format
+    name: CI (Rust) | Format
     runs-on: ubuntu-latest
     env:
       RUST_LOG: '0'
@@ -27,7 +27,7 @@ jobs:
         run: cargo fmt --all -- --check
 
   clippy:
-    name: Clippy
+    name: CI (Rust) | Clippy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -45,7 +45,7 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   check:
-    name: Check
+    name: CI (Rust) | Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -61,7 +61,7 @@ jobs:
         run: cargo check --all --all-targets
 
   test:
-    name: Test
+    name: CI (Rust) | Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -77,7 +77,7 @@ jobs:
         run: cargo test --all
 
   build:
-    name: Build
+    name: CI (Rust) | Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

@@ -8,8 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  lint-client:
+    name: CI (Client) [Node] | Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,8 +26,28 @@ jobs:
       - name: Lint client
         run: bun run --filter @tileserver-rs/client lint
 
+  lint-docs:
+    name: CI (Docs) [Node] | Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install docs dependencies
+        working-directory: docs
+        run: bun install
+
+      - name: Lint docs
+        working-directory: docs
+        run: bun run lint
+
   build-client:
-    name: Build Client
+    name: CI (Client) [Node] | Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -45,7 +65,7 @@ jobs:
         run: bun run --filter @tileserver-rs/client build
 
   build-docs:
-    name: Build Docs
+    name: CI (Docs) [Node] | Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
