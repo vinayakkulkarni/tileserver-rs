@@ -92,7 +92,10 @@ async fn main() -> anyhow::Result<()> {
                 Some(Arc::new(pool))
             }
             Err(e) => {
-                tracing::warn!("Failed to initialize browser pool: {}. Rendering disabled.", e);
+                tracing::warn!(
+                    "Failed to initialize browser pool: {}. Rendering disabled.",
+                    e
+                );
                 None
             }
         }
@@ -188,7 +191,10 @@ fn api_router(state: AppState) -> Router {
         .route("/styles.json", get(get_all_styles))
         .route("/styles/{style}/style.json", get(get_style_json))
         .route("/styles/{style}/{z}/{x}/{y_fmt}", get(get_raster_tile))
-        .route("/styles/{style}/static/{static_type}/{size_fmt}", get(get_static_image))
+        .route(
+            "/styles/{style}/static/{static_type}/{size_fmt}",
+            get(get_static_image),
+        )
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
@@ -353,9 +359,7 @@ async fn get_raster_tile(
         .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
 
     // Parse parameters
-    let (y, scale, format) = params
-        .parse()
-        .ok_or(TileServerError::InvalidTileRequest)?;
+    let (y, scale, format) = params.parse().ok_or(TileServerError::InvalidTileRequest)?;
 
     // Get style
     let style = state
@@ -394,8 +398,8 @@ async fn get_raster_tile(
 #[derive(serde::Deserialize)]
 struct StaticImageParams {
     style: String,
-    static_type: String,  // e.g., "-122.4,37.8,12" or "auto"
-    size_fmt: String,      // e.g., "800x600.png" or "800x600@2x.webp"
+    static_type: String, // e.g., "-122.4,37.8,12" or "auto"
+    size_fmt: String,    // e.g., "800x600.png" or "800x600@2x.webp"
 }
 
 impl StaticImageParams {
@@ -440,15 +444,13 @@ async fn get_static_image(
         .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
 
     // Parse parameters
-    let (width, height, scale, format) = params
-        .parse()
-        .ok_or_else(|| {
-            TileServerError::RenderError(format!("Invalid size format: {}", params.size_fmt))
-        })?;
+    let (width, height, scale, format) = params.parse().ok_or_else(|| {
+        TileServerError::RenderError(format!("Invalid size format: {}", params.size_fmt))
+    })?;
 
     // Parse static type
-    let static_type = StaticType::from_str(&params.static_type)
-        .map_err(TileServerError::RenderError)?;
+    let static_type =
+        StaticType::from_str(&params.static_type).map_err(TileServerError::RenderError)?;
 
     // Get style
     let style = state

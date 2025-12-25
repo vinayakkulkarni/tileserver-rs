@@ -1,5 +1,7 @@
 use chromiumoxide::browser::Browser;
-use chromiumoxide::cdp::browser_protocol::page::{CaptureScreenshotFormat, CaptureScreenshotParams};
+use chromiumoxide::cdp::browser_protocol::page::{
+    CaptureScreenshotFormat, CaptureScreenshotParams,
+};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -41,11 +43,10 @@ impl Renderer {
         tracing::debug!("Navigating to: {}", url);
 
         // Create a new page
-        let page = self
-            .browser
-            .new_page(&url)
-            .await
-            .map_err(|e| TileServerError::RenderError(format!("Failed to create page: {}", e)))?;
+        let page =
+            self.browser.new_page(&url).await.map_err(|e| {
+                TileServerError::RenderError(format!("Failed to create page: {}", e))
+            })?;
 
         // Set viewport using emulation (chromiumoxide 0.8 API)
         use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
@@ -57,7 +58,9 @@ impl Renderer {
                 .device_scale_factor(options.scale as f64)
                 .mobile(false)
                 .build()
-                .map_err(|e| TileServerError::RenderError(format!("Failed to build viewport params: {}", e)))?
+                .map_err(|e| {
+                    TileServerError::RenderError(format!("Failed to build viewport params: {}", e))
+                })?,
         )
         .await
         .map_err(|e| TileServerError::RenderError(format!("Failed to set viewport: {}", e)))?;
@@ -81,10 +84,9 @@ impl Renderer {
             params.quality = Some(90);
         }
 
-        let screenshot = page
-            .screenshot(params)
-            .await
-            .map_err(|e| TileServerError::RenderError(format!("Failed to capture screenshot: {}", e)))?;
+        let screenshot = page.screenshot(params).await.map_err(|e| {
+            TileServerError::RenderError(format!("Failed to capture screenshot: {}", e))
+        })?;
 
         // Close the page
         let _ = page.close().await;

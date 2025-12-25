@@ -91,11 +91,7 @@ impl StaticType {
             let (bearing, pitch) = if zoom_parts.len() > 1 {
                 // Parse bearing and optional pitch from "@45,60"
                 let bearing_pitch: Vec<&str> = zoom_parts[1].split(',').collect();
-                let bearing = Some(
-                    bearing_pitch[0]
-                        .parse()
-                        .map_err(|_| "Invalid bearing")?,
-                );
+                let bearing = Some(bearing_pitch[0].parse().map_err(|_| "Invalid bearing")?);
                 let pitch = if bearing_pitch.len() > 1 {
                     Some(bearing_pitch[1].parse().map_err(|_| "Invalid pitch")?)
                 } else {
@@ -188,7 +184,9 @@ impl RenderOptions {
         // Calculate center of tile
         let n = 2_f64.powi(z as i32);
         let lon = (x as f64) / n * 360.0 - 180.0;
-        let lat_rad = ((1.0 - 2.0 * (y as f64) / n) * std::f64::consts::PI).sinh().atan();
+        let lat_rad = ((1.0 - 2.0 * (y as f64) / n) * std::f64::consts::PI)
+            .sinh()
+            .atan();
         let lat = lat_rad.to_degrees();
 
         // Tile size is 512px at scale 1
@@ -230,13 +228,7 @@ impl RenderOptions {
                 zoom,
                 bearing,
                 pitch,
-            } => (
-                lon,
-                lat,
-                zoom,
-                bearing.unwrap_or(0.0),
-                pitch.unwrap_or(0.0),
-            ),
+            } => (lon, lat, zoom, bearing.unwrap_or(0.0), pitch.unwrap_or(0.0)),
             StaticType::BoundingBox {
                 min_lon,
                 min_lat,
