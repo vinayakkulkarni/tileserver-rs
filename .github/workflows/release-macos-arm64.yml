@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -33,10 +35,34 @@ jobs:
         with:
           targets: aarch64-apple-darwin
 
+      - name: Install build dependencies
+        run: |
+          brew install cmake ninja ccache
+
+      - name: Cache MapLibre Native build
+        uses: actions/cache@v4
+        with:
+          path: |
+            maplibre-native-sys/vendor/maplibre-native/build-macos-metal
+          key: maplibre-native-macos-arm64-${{ hashFiles('maplibre-native-sys/vendor/maplibre-native/.git/HEAD') }}
+          restore-keys: |
+            maplibre-native-macos-arm64-
+
+      - name: Build MapLibre Native
+        run: |
+          cd maplibre-native-sys/vendor/maplibre-native
+          if [ ! -f "build-macos-metal/libmbgl-core.a" ]; then
+            echo "Building MapLibre Native..."
+            cmake --preset macos-metal
+            cmake --build build-macos-metal --target mbgl-core mlt-cpp -j$(sysctl -n hw.ncpu)
+          else
+            echo "Using cached MapLibre Native build"
+          fi
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          key: macos-arm64
+          key: macos-arm64-native
 
       - name: Install Node dependencies
         run: bun install --frozen-lockfile
@@ -61,7 +87,7 @@ jobs:
           shasum -a 256 tileserver-rs-macos-arm64.tar.gz > tileserver-rs-macos-arm64.tar.gz.sha256
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: tileserver-rs-macos-arm64
           path: |

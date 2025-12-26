@@ -99,10 +99,10 @@ Features
   icon: i-lucide-image
   ---
   #title
-  Raster Rendering
+  Native Raster Rendering
 
   #description
-  Generate PNG/JPEG/WebP tiles from vector styles using headless Chrome.
+  Generate PNG/JPEG/WebP tiles from vector styles using MapLibre Native (~100ms/tile).
   :::
 
   :::u-page-feature
@@ -124,6 +124,6 @@ Features
   Docker Ready
 
   #description
-  Easy deployment with Docker Compose v2 (includes Chromium).
+  Easy deployment with Docker Compose v2.
   :::
 ::

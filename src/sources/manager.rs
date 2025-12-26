@@ -5,6 +5,7 @@ use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
 use crate::sources::mbtiles::MbTilesSource;
 use crate::sources::pmtiles::http::HttpPmTilesSource;
+use crate::sources::pmtiles::local::LocalPmTilesSource;
 use crate::sources::{TileMetadata, TileSource};
 
 /// Manages all tile sources
@@ -61,11 +62,8 @@ impl SourceManager {
                         "S3 PMTiles support not yet implemented".to_string(),
                     ));
                 } else {
-                    // Local PMTiles files not yet supported (requires mmap feature)
-                    return Err(TileServerError::ConfigError(format!(
-                        "Local PMTiles files not supported yet. Use HTTP URL instead. Path: {}",
-                        config.path
-                    )));
+                    // Local PMTiles file using memory-mapped I/O
+                    Arc::new(LocalPmTilesSource::from_file(config).await?)
                 }
             }
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),

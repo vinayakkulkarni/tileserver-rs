@@ -10,18 +10,22 @@ readme = "README.md"
 repository = "https://github.com/vinayakkulkarni/tileserver-rs"
 keywords = ["pmtiles", "mbtiles", "gis", "vector-tiles", "tileserver"]
 
+[workspace]
+members = [".", "maplibre-native-sys"]
+
 [dependencies]
+# MapLibre Native bindings for server-side rendering
+maplibre-native-sys = { path = "maplibre-native-sys" }
 anyhow = "1.0.100"
 async-trait = "0.1.89"
 axum = "0.8.8"
 bytes = "1.11"
-chromiumoxide = { version = "0.8", default-features = false, features = ["tokio-runtime"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 futures = "0.3"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 mime_guess = "2.0.5"
-pmtiles = { version = "0.18.2", default-features = false, features = ["http-async", "tilejson"] }
+pmtiles = { version = "0.18.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"] }
 rust-embed = { version = "8.9", features = ["axum"] }
 serde = { version = "1.0.228", features = ["derive"] }

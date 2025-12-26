@@ -4,6 +4,7 @@
     ExternalLink,
     FileJson,
     Globe,
+    Image,
     Layers,
     Map,
     Moon,
@@ -167,15 +168,51 @@
                       <FileJson class="size-3" />
                       style.json
                     </NuxtLink>
+                    <span class="text-muted-foreground/50">|</span>
+                    <NuxtLink
+                      :to="`/styles/${style.id}.json`"
+                      class="
+                        flex items-center gap-1 text-xs text-muted-foreground
+                        transition-colors
+                        hover:text-primary
+                      "
+                    >
+                      <FileJson class="size-3" />
+                      tilejson
+                    </NuxtLink>
                   </div>
                 </div>
               </div>
-              <Button as-child>
-                <NuxtLink :to="`/styles/${style.id}/#2/0/0`">
-                  <Map class="size-4" />
-                  View Map
-                </NuxtLink>
-              </Button>
+              <div class="flex flex-col items-end gap-2">
+                <Button as-child>
+                  <NuxtLink :to="`/styles/${style.id}/#2/0/0`">
+                    <Map class="size-4" />
+                    Viewer
+                  </NuxtLink>
+                </Button>
+                <div class="flex items-center gap-3">
+                  <NuxtLink
+                    :to="`/styles/${style.id}/?raster#2/0/0`"
+                    class="
+                      text-xs text-muted-foreground transition-colors
+                      hover:text-primary
+                    "
+                  >
+                    <Image class="mr-1 inline size-3" />
+                    Raster
+                  </NuxtLink>
+                  <NuxtLink
+                    :to="`/styles/${style.id}/#2/0/0`"
+                    class="
+                      text-xs text-muted-foreground transition-colors
+                      hover:text-primary
+                    "
+                  >
+                    <Layers class="mr-1 inline size-3" />
+                    Vector
+                  </NuxtLink>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

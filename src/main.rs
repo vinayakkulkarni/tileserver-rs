@@ -26,7 +26,7 @@ mod telemetry;
 use cli::Cli;
 use config::Config;
 use error::TileServerError;
-use render::{BrowserPool, ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
+use render::{ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
 use sources::{SourceManager, TileJson};
 use styles::{StyleInfo, StyleManager};
 
@@ -40,7 +40,7 @@ struct Assets;
 pub struct AppState {
     pub sources: Arc<SourceManager>,
     pub styles: Arc<StyleManager>,
-    pub browser_pool: Option<Arc<BrowserPool>>,
+    pub renderer: Option<Arc<Renderer>>,
     pub base_url: String,
     pub ui_enabled: bool,
 }
@@ -91,18 +91,15 @@ async fn main() -> anyhow::Result<()> {
     let styles = StyleManager::from_configs(&config.styles)?;
     tracing::info!("Loaded {} style(s)", styles.len());
 
-    // Initialize browser pool for rendering (if enabled)
-    let browser_pool = if !styles.is_empty() {
-        match BrowserPool::new(4).await {
-            Ok(pool) => {
-                tracing::info!("Browser pool initialized for rendering");
-                Some(Arc::new(pool))
+    // Initialize native renderer for rendering (if styles are configured)
+    let renderer = if !styles.is_empty() {
+        match Renderer::new() {
+            Ok(r) => {
+                tracing::info!("Native MapLibre renderer initialized");
+                Some(Arc::new(r))
             }
             Err(e) => {
-                tracing::warn!(
-                    "Failed to initialize browser pool: {}. Rendering disabled.",
-                    e
-                );
+                tracing::warn!("Failed to initialize renderer: {}. Rendering disabled.", e);
                 None
             }
         }
@@ -111,12 +108,18 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build base URL
-    let base_url = format!("http://{}:{}", config.server.host, config.server.port);
+    // Convert 0.0.0.0 to localhost for a valid fetchable URL
+    let host_for_url = if config.server.host == "0.0.0.0" {
+        "localhost"
+    } else {
+        &config.server.host
+    };
+    let base_url = format!("http://{}:{}", host_for_url, config.server.port);
 
     let state = AppState {
         sources: Arc::new(sources),
         styles: Arc::new(styles),
-        browser_pool,
+        renderer,
         base_url,
         ui_enabled,
     };
@@ -230,6 +233,7 @@ fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .route("/styles.json", get(get_all_styles))
+        .route("/styles/{style_json}", get(get_style_tilejson))
         .route("/styles/{style}/style.json", get(get_style_json))
         .route("/styles/{style}/{z}/{x}/{y_fmt}", get(get_raster_tile))
         .route(
@@ -263,6 +267,50 @@ async fn get_style_json(
         .ok_or_else(|| TileServerError::StyleNotFound(style_id))?;
 
     Ok(Json(style.style_json.clone()))
+}
+
+/// TileJSON response for raster style tiles
+#[derive(serde::Serialize)]
+struct RasterTileJson {
+    tilejson: &'static str,
+    name: String,
+    tiles: Vec<String>,
+    minzoom: u8,
+    maxzoom: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    attribution: Option<String>,
+}
+
+/// Get TileJSON for raster tiles of a style
+/// Route: GET /styles/{style}.json
+async fn get_style_tilejson(
+    State(state): State<AppState>,
+    Path(style_json): Path<String>,
+) -> Result<Json<RasterTileJson>, TileServerError> {
+    // Only handle requests ending with .json
+    let style_id = style_json
+        .strip_suffix(".json")
+        .ok_or_else(|| TileServerError::StyleNotFound(style_json.clone()))?;
+
+    let style = state
+        .styles
+        .get(style_id)
+        .ok_or_else(|| TileServerError::StyleNotFound(style_id.to_string()))?;
+
+    // Build raster tile URL template
+    let tile_url = format!(
+        "{}/styles/{}/{{z}}/{{x}}/{{y}}.png",
+        state.base_url, style_id
+    );
+
+    Ok(Json(RasterTileJson {
+        tilejson: "3.0.0",
+        name: style.name.clone(),
+        tiles: vec![tile_url],
+        minzoom: 0,
+        maxzoom: 22,
+        attribution: None,
+    }))
 }
 
 /// Get all available tile sources
@@ -394,8 +442,8 @@ async fn get_raster_tile(
     Path(params): Path<RasterTileParams>,
 ) -> Result<Response, TileServerError> {
     // Check if rendering is available
-    let browser_pool = state
-        .browser_pool
+    let renderer = state
+        .renderer
         .as_ref()
         .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
 
@@ -408,21 +456,21 @@ async fn get_raster_tile(
         .get(&params.style)
         .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
 
-    // Create render options
-    let options = RenderOptions::for_tile(
-        params.style.clone(),
-        style.style_json.to_string(),
-        params.z,
-        params.x,
-        y,
-        scale,
-        format,
-    );
+    // Rewrite style to inline tile URLs for native rendering
+    let rewritten_style =
+        styles::rewrite_style_for_native(&style.style_json, &state.base_url, &state.sources);
 
-    // Acquire permit and render
-    let _permit = browser_pool.acquire_permit().await?;
-    let renderer = Renderer::new(browser_pool.browser());
-    let image_data = renderer.render(options).await?;
+    // Render the tile
+    let image_data = renderer
+        .render_tile(
+            &rewritten_style.to_string(),
+            params.z,
+            params.x,
+            y,
+            scale,
+            format,
+        )
+        .await?;
 
     // Build response
     let mut headers = HeaderMap::new();
@@ -479,8 +527,8 @@ async fn get_static_image(
     Query(query): Query<StaticQueryParams>,
 ) -> Result<Response, TileServerError> {
     // Check if rendering is available
-    let browser_pool = state
-        .browser_pool
+    let renderer = state
+        .renderer
         .as_ref()
         .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
 
@@ -499,10 +547,14 @@ async fn get_static_image(
         .get(&params.style)
         .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
 
+    // Rewrite style to inline tile URLs for native rendering
+    let rewritten_style =
+        styles::rewrite_style_for_native(&style.style_json, &state.base_url, &state.sources);
+
     // Create render options
     let options = RenderOptions::for_static(
         params.style.clone(),
-        style.style_json.to_string(),
+        rewritten_style.to_string(),
         static_type,
         width,
         height,
@@ -512,10 +564,8 @@ async fn get_static_image(
     )
     .map_err(TileServerError::RenderError)?;
 
-    // Acquire permit and render
-    let _permit = browser_pool.acquire_permit().await?;
-    let renderer = Renderer::new(browser_pool.browser());
-    let image_data = renderer.render(options).await?;
+    // Render static image
+    let image_data = renderer.render_static(options).await?;
 
     // Build response
     let mut headers = HeaderMap::new();

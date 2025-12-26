@@ -11,16 +11,18 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - **PMTiles Support** - Serve tiles from local and remote PMTiles archives
 - **MBTiles Support** - Serve tiles from SQLite-based MBTiles files
-- **Raster Tile Rendering** - Generate PNG/JPEG/WebP tiles from vector styles
-- **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler)
+- **Native Raster Rendering** - Generate PNG/JPEG/WebP tiles using MapLibre Native (C++ FFI)
+- **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler Static API)
+- **High Performance** - ~100ms per tile (warm cache), ~800ms cold cache
 - **TileJSON 3.0** - Full TileJSON metadata API
 - **MapLibre GL JS** - Built-in map viewer and data inspector
-- **Docker Ready** - Easy deployment with Docker Compose v2 (includes Chromium)
+- **Docker Ready** - Easy deployment with Docker Compose v2
 - **Fast** - Built in Rust with Axum for maximum performance
 
 ## Tech Stack
 
 - **Backend**: Rust 1.75+, Axum 0.8, Tokio
+- **Native Rendering**: MapLibre Native (C++) via FFI bindings
 - **Frontend**: Nuxt 4, Vue 3.5, Tailwind CSS v4, shadcn-vue
 - **Tooling**: Bun workspaces, Docker multi-stage builds
 
@@ -43,11 +45,35 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - [Rust 1.75+](https://www.rust-lang.org/)
 - [Bun 1.0+](https://bun.sh/)
-- **Chrome/Chromium** - Required for raster tile rendering and static image generation
-  - macOS: `brew install --cask chromium`
-  - Linux: `apt-get install chromium` or `dnf install chromium`
-  - Windows: Download from [chromium.org](https://www.chromium.org/getting-involved/download-chromium/)
-- (Optional) [Docker](https://www.docker.com/) - Chromium is pre-installed in the Docker image
+- (Optional) [Docker](https://www.docker.com/)
+
+### For Native Rendering (Optional)
+
+Native raster tile rendering requires building MapLibre Native. If you don't need raster tiles, the server runs without it (stub implementation returns placeholder images).
+
+**macOS (Apple Silicon/Intel):**
+```bash
+# Install build dependencies
+brew install ninja ccache libuv glfw bazelisk cmake
+
+# Build MapLibre Native
+cd maplibre-native-sys/vendor/maplibre-native
+git submodule update --init --recursive
+cmake --preset macos-metal
+cmake --build build-macos-metal --target mbgl-core mlt-cpp -j8
+```
+
+**Linux:**
+```bash
+# Install build dependencies (Ubuntu/Debian)
+apt-get install ninja-build ccache libuv1-dev libglfw3-dev cmake
+
+# Build MapLibre Native
+cd maplibre-native-sys/vendor/maplibre-native
+git submodule update --init --recursive
+cmake --preset linux
+cmake --build build-linux --target mbgl-core mlt-cpp -j8
+```
 
 ## Quick Start
 
@@ -159,7 +185,7 @@ See [config.example.toml](./config.example.toml) for a complete example.
 | `GET /styles.json` | List all styles |
 | `GET /styles/{style}/style.json` | Get MapLibre GL style JSON |
 
-### Rendering Endpoints (Requires Chromium)
+### Rendering Endpoints (Native MapLibre)
 
 | Endpoint | Description |
 |----------|-------------|
@@ -169,8 +195,13 @@ See [config.example.toml](./config.example.toml) for a complete example.
 **Raster Tile Examples:**
 ```
 /styles/protomaps-light/14/8192/5461.png          # 512x512 PNG @ 1x
-/styles/protomaps-light/14/8192/5461@2x.webp      # 512x512 WebP @ 2x (retina)
+/styles/protomaps-light/14/8192/5461@2x.webp      # 1024x1024 WebP @ 2x (retina)
 ```
+
+**Performance:**
+- Warm cache: ~100ms per tile
+- Cold cache: ~700-800ms per tile (includes tile fetching)
+- Static images: ~3s for 800x600
 
 **Static Image Types:**
 - **Center**: `{lon},{lat},{zoom}[@{bearing}[,{pitch}]]`
@@ -210,24 +241,32 @@ bun run build:client
 ```
 tileserver-rs/
 ├── apps/
-│   ├── client/          # Nuxt 4 frontend
-│   └── docs/            # Documentation site
-├── src/                 # Rust backend
-│   ├── main.rs          # Entry point, routes
-│   ├── config.rs        # Configuration
-│   ├── error.rs         # Error types
-│   ├── render/          # Chromium-based rendering (NEW!)
-│   │   ├── pool.rs      # Browser pool management
-│   │   ├── renderer.rs  # MapLibre GL rendering engine
-│   │   └── types.rs     # Rendering types & options
-│   ├── sources/         # Tile source implementations
-│   └── styles/          # Style management
-├── compose/             # Docker Compose modules
-├── compose.yml          # Base compose config
-├── compose.override.yml # Development overrides
-├── compose.prod.yml     # Production config
-├── Dockerfile           # Multi-stage Docker build (includes Chromium)
-└── config.example.toml  # Example configuration
+│   ├── client/              # Nuxt 4 frontend
+│   └── docs/                # Documentation site
+├── maplibre-native-sys/     # FFI bindings to MapLibre Native (C++)
+│   ├── cpp/                 # C/C++ wrapper code
+│   │   ├── maplibre_c.h     # C API header
+│   │   └── maplibre_c.cpp   # C++ implementation
+│   ├── src/lib.rs           # Rust FFI bindings
+│   ├── build.rs             # Build script
+│   └── vendor/maplibre-native/  # MapLibre Native source (submodule)
+├── src/                     # Rust backend
+│   ├── main.rs              # Entry point, routes
+│   ├── config.rs            # Configuration
+│   ├── error.rs             # Error types
+│   ├── render/              # Native MapLibre rendering
+│   │   ├── pool.rs          # Renderer pool (per scale factor)
+│   │   ├── renderer.rs      # High-level render API
+│   │   ├── native.rs        # Safe Rust wrappers around FFI
+│   │   └── types.rs         # RenderOptions, ImageFormat, etc.
+│   ├── sources/             # Tile source implementations
+│   └── styles/              # Style management + rewriting
+├── compose/                 # Docker Compose modules
+├── compose.yml              # Base compose config
+├── compose.override.yml     # Development overrides
+├── compose.prod.yml         # Production config
+├── Dockerfile               # Multi-stage Docker build
+└── config.example.toml      # Example configuration
 ```
 
 ## Contributing

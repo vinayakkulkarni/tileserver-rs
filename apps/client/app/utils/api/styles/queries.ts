@@ -86,7 +86,7 @@ export function stylesQueryOptions() {
 
 export function styleQueryOptions(id: string, isRaster: boolean = false) {
   return {
-    queryKey: MAP_STYLES_QUERY_KEYS.style(id),
+    queryKey: MAP_STYLES_QUERY_KEYS.style(id, isRaster),
     queryFn: (): Promise<StyleSpecification> =>
       isRaster ? fetchRasterStyle(id) : fetchVectorStyle(id),
     staleTime: 60 * 1000,

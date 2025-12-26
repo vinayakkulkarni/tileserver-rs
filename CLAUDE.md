@@ -7,11 +7,14 @@
 
 ## Project Overview
 
-**tileserver-rs** is a high-performance vector tile server built in Rust with a Nuxt 4 frontend. It serves vector tiles from PMTiles and MBTiles sources with MapLibre GL JS visualization.
+**tileserver-rs** is a high-performance vector tile server built in Rust with a Nuxt 4 frontend. It serves vector tiles from PMTiles and MBTiles sources with native MapLibre rendering for raster tile generation.
 
 ### Key Capabilities
 - PMTiles and MBTiles tile serving from local files
 - HTTP-based PMTiles serving (remote files)
+- **Native MapLibre GL rendering** via FFI bindings to MapLibre Native (C++)
+- Raster tile generation (PNG/JPEG/WebP) from vector styles
+- Static map image generation (like Mapbox Static API)
 - TileJSON 3.0 metadata API
 - MapLibre GL JS map viewer
 - Style JSON and data inspector
@@ -28,6 +31,7 @@
 - **Serde** - Serialization
 - **Tracing** - Structured logging
 - **Clap** - CLI argument parsing
+- **maplibre-native-sys** - FFI bindings to MapLibre Native C++ for server-side rendering
 
 ### Frontend (Nuxt 4)
 - **Nuxt 4** (v3.15) - Vue 3.5 framework with `app/` directory structure
@@ -284,12 +288,29 @@ tileserver-rs/
 │   └── docs/                          # Docus v3 documentation (planned)
 │       └── package.json               # @tileserver-rs/docs
 │
+├── maplibre-native-sys/               # FFI bindings to MapLibre Native
+│   ├── cpp/                           # C/C++ wrapper code
+│   │   ├── maplibre_c.h               # C API header
+│   │   ├── maplibre_c.cpp             # C++ implementation wrapping mbgl::*
+│   │   └── maplibre_c_stub.c          # Stub for development without native libs
+│   ├── src/lib.rs                     # Rust FFI bindings
+│   ├── build.rs                       # Build script (links MapLibre Native)
+│   └── vendor/maplibre-native/        # MapLibre Native C++ source (git submodule)
+│
 ├── src/                               # Rust backend
 │   ├── main.rs                        # Server entry point, routes
 │   ├── cli.rs                         # CLI argument parsing
 │   ├── config.rs                      # TOML configuration
 │   ├── error.rs                       # Error types
 │   ├── cache_control.rs               # Cache headers middleware
+│   ├── render/                        # Native MapLibre rendering
+│   │   ├── mod.rs                     # Module exports
+│   │   ├── native.rs                  # Safe Rust wrappers around FFI
+│   │   ├── pool.rs                    # Renderer pool (per scale factor)
+│   │   ├── renderer.rs                # High-level render API
+│   │   └── types.rs                   # RenderOptions, ImageFormat, etc.
+│   ├── styles/                        # Style management
+│   │   └── mod.rs                     # Style loading + rewrite_style_for_native()
 │   └── sources/                       # Tile source implementations
 │       ├── mod.rs                     # TileSource trait, TileMetadata, TileJSON
 │       ├── manager.rs                 # SourceManager (loads and manages sources)
@@ -465,14 +486,98 @@ path = "/data/styles/osm-bright/style.json"
 
 ## API Endpoints
 
+### Data Endpoints (Vector Tiles)
+
 | Endpoint | Description |
 |----------|-------------|
 | `GET /health` | Health check |
 | `GET /data.json` | List all tile sources |
 | `GET /data/{source}.json` | TileJSON for a source |
-| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a tile |
-| `GET /styles.json` | List all styles (planned) |
-| `GET /styles/{style}/style.json` | Get style JSON (planned) |
+| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile |
+
+### Style Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /styles.json` | List all styles |
+| `GET /styles/{style}/style.json` | Get style JSON |
+
+### Raster Rendering Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /styles/{style}/{z}/{x}/{y}.{format}` | Raster tile (PNG/JPEG/WebP) |
+| `GET /styles/{style}/{z}/{x}/{y}@{scale}x.{format}` | Retina raster tile |
+| `GET /styles/{style}/static/{lon},{lat},{zoom}/{width}x{height}.{format}` | Static image by center |
+| `GET /styles/{style}/static/{minx},{miny},{maxx},{maxy}/{width}x{height}.{format}` | Static image by bounds |
+
+---
+
+## Native MapLibre Rendering Architecture
+
+The project uses **MapLibre Native** (C++) for server-side raster tile generation, similar to tileserver-gl. This provides fast rendering (~100-800ms per tile) compared to browser-based approaches.
+
+### Architecture
+
+```
+tileserver-rs (main binary)
+    └── src/render/
+        ├── renderer.rs  (high-level API)
+        ├── pool.rs      (renderer pooling by scale factor)
+        ├── native.rs    (safe Rust wrappers)
+        └── types.rs     (RenderOptions, ImageFormat, etc.)
+    
+maplibre-native-sys (FFI crate)
+    ├── src/lib.rs       (unsafe FFI declarations)
+    ├── cpp/maplibre_c.h (C API header)
+    ├── cpp/maplibre_c.cpp (C++ implementation using mbgl::*)
+    └── vendor/maplibre-native/ (C++ library source)
+        └── build-macos-metal/ (compiled .a files)
+```
+
+### Key Components
+
+1. **maplibre-native-sys** - Rust crate providing FFI bindings to MapLibre Native
+2. **Renderer Pool** - Maintains pools of native renderers per scale factor (1x, 2x, 3x)
+3. **Style Rewriter** - Converts relative source URLs to absolute tile URLs for native rendering
+
+### Style Rewriting
+
+The native renderer cannot fetch TileJSON from our server (same process), so styles are rewritten before rendering:
+
+```rust
+// Before: style references TileJSON endpoint
+"sources": {
+  "protomaps": {
+    "type": "vector",
+    "url": "/data/protomaps.json"
+  }
+}
+
+// After: style has inline tile URLs
+"sources": {
+  "protomaps": {
+    "type": "vector",
+    "tiles": ["http://localhost:8080/data/protomaps/{z}/{x}/{y}.pbf"]
+  }
+}
+```
+
+### Building MapLibre Native (macOS)
+
+```bash
+cd maplibre-native-sys/vendor/maplibre-native
+git submodule update --init --recursive
+brew install ninja ccache libuv glfw bazelisk
+cmake --preset macos-metal
+cmake --build build-macos-metal --target mbgl-core mlt-cpp -j8
+```
+
+### Performance
+
+- **Warm cache**: ~100ms per tile
+- **Cold cache**: ~700-800ms per tile (includes remote tile fetching)
+- **Static images**: ~3s for 800x600 (depends on tile count)
 
 ---
 

@@ -1,0 +1,23 @@
+[package]
+name = "maplibre-native-sys"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Low-level FFI bindings to MapLibre GL Native"
+build = "build.rs"
+links = "maplibre-native"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.2"
+cmake = "0.1"
+pkg-config = "0.3"
+
+[features]
+default = ["bundled"]
+# Bundle and build MapLibre Native from source
+bundled = []
+# Use system-installed MapLibre Native
+system = []

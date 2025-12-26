@@ -1,26 +1,67 @@
-use chromiumoxide::browser::Browser;
-use chromiumoxide::cdp::browser_protocol::page::{
-    CaptureScreenshotFormat, CaptureScreenshotParams,
-};
-use std::sync::Arc;
-use std::time::Duration;
+//! High-level renderer interface
+//!
+//! This module provides a high-level interface for rendering map tiles
+//! and static images using the native MapLibre renderer pool.
 
+use std::sync::Arc;
+
+use super::pool::{PoolConfig, RendererPool};
 use super::types::{ImageFormat, RenderOptions};
 use crate::error::{Result, TileServerError};
 
+/// High-level renderer that manages the native renderer pool
 pub struct Renderer {
-    browser: Arc<Browser>,
+    pool: Arc<RendererPool>,
 }
 
 impl Renderer {
-    pub fn new(browser: Arc<Browser>) -> Self {
-        Self { browser }
+    /// Create a new renderer with default configuration
+    pub fn new() -> Result<Self> {
+        Self::with_config(PoolConfig::default(), 3)
     }
 
-    /// Render a map to an image buffer
-    pub async fn render(&self, options: RenderOptions) -> Result<Vec<u8>> {
+    /// Create a new renderer with custom configuration
+    pub fn with_config(config: PoolConfig, max_scale: u8) -> Result<Self> {
+        let pool = RendererPool::new(config, max_scale)?;
+        Ok(Self {
+            pool: Arc::new(pool),
+        })
+    }
+
+    /// Render a map tile
+    pub async fn render_tile(
+        &self,
+        style_json: &str,
+        z: u8,
+        x: u32,
+        y: u32,
+        scale: u8,
+        format: ImageFormat,
+    ) -> Result<Vec<u8>> {
         tracing::debug!(
-            "Rendering map: {}x{} @ {}x, zoom={}, center=[{}, {}]",
+            "Rendering tile z={}, x={}, y={}, scale={}, format={:?}",
+            z,
+            x,
+            y,
+            scale,
+            format
+        );
+
+        // Get PNG from pool
+        let png_data = self.pool.render_tile(style_json, z, x, y, scale).await?;
+
+        // Convert to requested format if needed
+        match format {
+            ImageFormat::Png => Ok(png_data),
+            ImageFormat::Jpeg => self.convert_png_to_jpeg(&png_data, 90),
+            ImageFormat::Webp => self.convert_png_to_webp(&png_data, 90),
+        }
+    }
+
+    /// Render a static map image
+    pub async fn render_static(&self, options: RenderOptions) -> Result<Vec<u8>> {
+        tracing::debug!(
+            "Rendering static image: {}x{} @ {}x, zoom={}, center=[{}, {}]",
             options.width,
             options.height,
             options.scale,
@@ -29,70 +70,92 @@ impl Renderer {
             options.lat
         );
 
-        // Set viewport size (accounting for pixel ratio)
-        let viewport_width = options.width * options.scale as u32;
-        let viewport_height = options.height * options.scale as u32;
-
-        // Build URL to existing Nuxt viewer page with screenshot mode
-        // Format: http://localhost:8080/styles/{style}?screenshot#zoom/lat/lon
-        let url = format!(
-            "http://localhost:8080/styles/{}?screenshot#{}/{}/{}",
-            options.style_id, options.zoom, options.lat, options.lon
-        );
-
-        tracing::debug!("Navigating to: {}", url);
-
-        // Create a new page
-        let page =
-            self.browser.new_page(&url).await.map_err(|e| {
-                TileServerError::RenderError(format!("Failed to create page: {}", e))
-            })?;
-
-        // Set viewport using emulation (chromiumoxide 0.8 API)
-        use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
-
-        page.execute(
-            SetDeviceMetricsOverrideParams::builder()
-                .width(viewport_width as i64)
-                .height(viewport_height as i64)
-                .device_scale_factor(options.scale as f64)
-                .mobile(false)
-                .build()
-                .map_err(|e| {
-                    TileServerError::RenderError(format!("Failed to build viewport params: {}", e))
-                })?,
-        )
-        .await
-        .map_err(|e| TileServerError::RenderError(format!("Failed to set viewport: {}", e)))?;
-
-        // Wait for page to load and map to be ready
-        tokio::time::sleep(Duration::from_secs(3)).await;
-
-        // Take screenshot
-        let screenshot_format = match options.format {
-            ImageFormat::Png => CaptureScreenshotFormat::Png,
-            ImageFormat::Jpeg => CaptureScreenshotFormat::Jpeg,
-            ImageFormat::Webp => CaptureScreenshotFormat::Webp,
+        let native_options = super::native::RenderOptions {
+            size: super::native::Size::new(options.width, options.height),
+            pixel_ratio: options.scale as f32,
+            camera: super::native::CameraOptions::new(options.lat, options.lon, options.zoom)
+                .with_bearing(options.bearing)
+                .with_pitch(options.pitch),
+            mode: super::native::MapMode::Static,
         };
 
-        let mut params = CaptureScreenshotParams::builder()
-            .format(screenshot_format)
-            .build();
+        let image = self
+            .pool
+            .render_static(&options.style_json, native_options)
+            .await?;
 
-        // Set quality for JPEG/WebP
-        if matches!(options.format, ImageFormat::Jpeg | ImageFormat::Webp) {
-            params.quality = Some(90);
+        // Convert to requested format
+        match options.format {
+            ImageFormat::Png => image.to_png(),
+            ImageFormat::Jpeg => image.to_jpeg(90),
+            ImageFormat::Webp => image.to_webp(90),
+        }
+    }
+
+    /// Convert PNG data to JPEG
+    fn convert_png_to_jpeg(&self, png_data: &[u8], quality: u8) -> Result<Vec<u8>> {
+        use image::ImageReader;
+        use std::io::Cursor;
+
+        let img = ImageReader::new(Cursor::new(png_data))
+            .with_guessed_format()
+            .map_err(|e| TileServerError::RenderError(format!("Failed to read PNG: {}", e)))?
+            .decode()
+            .map_err(|e| TileServerError::RenderError(format!("Failed to decode PNG: {}", e)))?;
+
+        let rgb = img.to_rgb8();
+
+        let mut buffer = Vec::new();
+        {
+            let mut encoder =
+                image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buffer, quality);
+            encoder
+                .encode(
+                    rgb.as_raw(),
+                    rgb.width(),
+                    rgb.height(),
+                    image::ExtendedColorType::Rgb8,
+                )
+                .map_err(|e| {
+                    TileServerError::RenderError(format!("JPEG encoding failed: {}", e))
+                })?;
         }
 
-        let screenshot = page.screenshot(params).await.map_err(|e| {
-            TileServerError::RenderError(format!("Failed to capture screenshot: {}", e))
-        })?;
+        Ok(buffer)
+    }
 
-        // Close the page
-        let _ = page.close().await;
+    /// Convert PNG data to WebP
+    fn convert_png_to_webp(&self, png_data: &[u8], _quality: u8) -> Result<Vec<u8>> {
+        use image::ImageReader;
+        use std::io::Cursor;
 
-        tracing::debug!("Render complete, image size: {} bytes", screenshot.len());
+        let img = ImageReader::new(Cursor::new(png_data))
+            .with_guessed_format()
+            .map_err(|e| TileServerError::RenderError(format!("Failed to read PNG: {}", e)))?
+            .decode()
+            .map_err(|e| TileServerError::RenderError(format!("Failed to decode PNG: {}", e)))?;
 
-        Ok(screenshot)
+        // Use DynamicImage to write WebP
+        let mut buffer = Cursor::new(Vec::new());
+        img.write_to(&mut buffer, image::ImageFormat::WebP)
+            .map_err(|e| TileServerError::RenderError(format!("WebP encoding failed: {}", e)))?;
+
+        Ok(buffer.into_inner())
+    }
+
+    /// Get the underlying pool (for advanced usage)
+    pub fn pool(&self) -> Arc<RendererPool> {
+        self.pool.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_renderer_creation() {
+        let renderer = Renderer::new();
+        assert!(renderer.is_ok());
     }
 }

@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::config::StyleConfig;
 use crate::error::{Result, TileServerError};
+use crate::sources::SourceManager;
 
 /// Style metadata returned by /styles.json
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,5 +122,119 @@ impl StyleManager {
 impl Default for StyleManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Rewrite a style JSON to inline tile URLs for native rendering.
+///
+/// This function replaces relative source URLs (like `/data/protomaps.json`)
+/// with inline tile URL templates that MapLibre Native can use directly.
+///
+/// The native renderer cannot fetch TileJSON from our server (same process),
+/// so we need to embed the tile URLs directly in the style.
+pub fn rewrite_style_for_native(
+    style_json: &serde_json::Value,
+    base_url: &str,
+    sources: &SourceManager,
+) -> serde_json::Value {
+    let mut style = style_json.clone();
+
+    // Get the sources object
+    if let Some(style_sources) = style.get_mut("sources") {
+        if let Some(sources_obj) = style_sources.as_object_mut() {
+            for (source_id, source_config) in sources_obj.iter_mut() {
+                rewrite_source(source_id, source_config, base_url, sources);
+            }
+        }
+    }
+
+    style
+}
+
+/// Rewrite a single source to inline tile URLs
+fn rewrite_source(
+    source_id: &str,
+    source_config: &mut serde_json::Value,
+    base_url: &str,
+    sources: &SourceManager,
+) {
+    let source_obj = match source_config.as_object_mut() {
+        Some(obj) => obj,
+        None => return,
+    };
+
+    // Check if this source has a URL that references our data endpoint
+    let url = match source_obj.get("url") {
+        Some(serde_json::Value::String(url)) => url.clone(),
+        _ => return,
+    };
+
+    // Check if this is a reference to our data endpoint
+    // e.g., "/data/protomaps.json" or "http://localhost:8080/data/protomaps.json"
+    let data_source_id = if let Some(rest) = url.strip_prefix("/data/") {
+        rest.strip_suffix(".json")
+    } else if url.contains("/data/") && url.ends_with(".json") {
+        url.rsplit("/data/")
+            .next()
+            .and_then(|s| s.strip_suffix(".json"))
+    } else {
+        None
+    };
+
+    let data_source_id = match data_source_id {
+        Some(id) => id,
+        None => return, // Not a reference to our data endpoint
+    };
+
+    // Look up the source metadata
+    let tile_source = match sources.get(data_source_id) {
+        Some(s) => s,
+        None => {
+            tracing::warn!(
+                "Style references source '{}' via URL '{}', but source not found",
+                source_id,
+                url
+            );
+            return;
+        }
+    };
+
+    let metadata = tile_source.metadata();
+
+    // Build the tile URL template
+    let tile_url = format!(
+        "{}/data/{}/{{z}}/{{x}}/{{y}}.{}",
+        base_url,
+        data_source_id,
+        metadata.format.extension()
+    );
+
+    tracing::debug!(
+        "Rewriting source '{}' from URL '{}' to tiles ['{}']",
+        source_id,
+        url,
+        tile_url
+    );
+
+    // Remove the URL and add tiles array
+    source_obj.remove("url");
+    source_obj.insert("tiles".to_string(), serde_json::json!([tile_url]));
+
+    // Add additional metadata if not already present
+    if !source_obj.contains_key("minzoom") {
+        source_obj.insert("minzoom".to_string(), serde_json::json!(metadata.minzoom));
+    }
+    if !source_obj.contains_key("maxzoom") {
+        source_obj.insert("maxzoom".to_string(), serde_json::json!(metadata.maxzoom));
+    }
+    if !source_obj.contains_key("bounds") {
+        if let Some(bounds) = &metadata.bounds {
+            source_obj.insert("bounds".to_string(), serde_json::json!(bounds));
+        }
+    }
+    if !source_obj.contains_key("attribution") {
+        if let Some(attribution) = &metadata.attribution {
+            source_obj.insert("attribution".to_string(), serde_json::json!(attribution));
+        }
     }
 }

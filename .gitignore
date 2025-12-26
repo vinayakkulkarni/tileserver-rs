@@ -159,3 +159,4 @@ bun.lockb
 # Environment file(s)
 .env
 config.toml
+maplibre-native-sys/vendor/
