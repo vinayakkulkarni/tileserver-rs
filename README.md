@@ -121,8 +121,11 @@ docker run -d \
 
 ```bash
 # Clone the repository with submodules
-git clone --recursive https://github.com/vinayakkulkarni/tileserver-rs.git
+git clone --recursive git@github.com:vinayakkulkarni/tileserver-rs.git
 cd tileserver-rs
+
+# Or using HTTPS
+git clone --recursive https://github.com/vinayakkulkarni/tileserver-rs.git
 
 # If you already cloned without --recursive:
 git submodule update --init --recursive
@@ -140,7 +143,7 @@ bun run build:client
 ./target/release/tileserver-rs --config config.toml
 ```
 
-> **Note:** The `--recursive` flag is important! It fetches the MapLibre Native submodule required for native raster rendering. See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed setup instructions.
+> **Note:** The `--recursive` flag fetches the MapLibre Native submodule (~200MB) required for native raster rendering. If the clone times out, use `git submodule update --init --depth 1` for a shallow clone. See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed setup instructions.
 
 ## Configuration
 
@@ -296,6 +299,9 @@ git submodule update --init --recursive
 # After pulling changes from upstream
 git pull
 git submodule update --init --recursive
+
+# If clone times out (shallow clone)
+git submodule update --init --depth 1
 ```
 
 **Notes:**

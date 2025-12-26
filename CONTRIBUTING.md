@@ -41,13 +41,24 @@ For native rendering support, you'll also need:
 ### Cloning the Repository
 
 ```bash
-# Clone with submodules
+# Clone with submodules (SSH - recommended for contributors)
+git clone --recursive git@github.com:vinayakkulkarni/tileserver-rs.git
+cd tileserver-rs
+
+# Or using HTTPS
 git clone --recursive https://github.com/vinayakkulkarni/tileserver-rs.git
 cd tileserver-rs
 
 # If you already cloned without --recursive, initialize submodules:
 git submodule update --init --recursive
 ```
+
+> **Note:** The `--recursive` flag fetches the MapLibre Native submodule (~200MB). If cloning times out, try a shallow clone:
+> ```bash
+> git clone git@github.com:vinayakkulkarni/tileserver-rs.git
+> cd tileserver-rs
+> git submodule update --init --depth 1
+> ```
 
 ### Setting Up MapLibre Native
 
@@ -143,6 +154,20 @@ git clean -fd
 ```bash
 # Reset submodule to the commit tracked by the parent repo
 git submodule update --init --recursive --force
+```
+
+**Clone timed out (large submodule):**
+```bash
+# Use shallow clone for the submodule
+git submodule update --init --depth 1
+```
+
+**Submodule URL issues (SSH vs HTTPS):**
+The submodule is configured to use SSH (`git@github.com:...`). If you need HTTPS:
+```bash
+# Temporarily override submodule URL
+git config submodule.maplibre-native-sys/vendor/maplibre-native.url https://github.com/maplibre/maplibre-native.git
+git submodule update --init --recursive
 ```
 
 ### Running Tests
