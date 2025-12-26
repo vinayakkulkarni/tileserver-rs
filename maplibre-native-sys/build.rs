@@ -3,7 +3,8 @@
 //! This build script compiles the C++ wrapper and links to MapLibre GL Native.
 
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::process::Command;
 
 fn main() {
@@ -56,11 +57,7 @@ fn main() {
     }
 }
 
-fn build_with_maplibre_native(
-    manifest_dir: &PathBuf,
-    out_dir: &PathBuf,
-    maplibre_build_dir: &PathBuf,
-) {
+fn build_with_maplibre_native(manifest_dir: &Path, out_dir: &Path, maplibre_build_dir: &Path) {
     let maplibre_src = manifest_dir.join("vendor/maplibre-native");
 
     // Build our C++ wrapper
@@ -168,7 +165,7 @@ fn build_with_maplibre_native(
     }
 }
 
-fn build_stub(out_dir: &PathBuf) {
+fn build_stub(out_dir: &Path) {
     let mut build = cc::Build::new();
 
     build
