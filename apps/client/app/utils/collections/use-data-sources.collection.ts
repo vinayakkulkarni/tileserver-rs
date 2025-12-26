@@ -44,15 +44,15 @@ function createDataSourcesCollection(
 // COLLECTION CACHE (Singleton)
 // ============================================================================
 
-let cachedDataSourcesCollection: ReturnType<typeof createDataSourcesCollection> | null = null;
+let cachedDataSourcesCollection: ReturnType<
+  typeof createDataSourcesCollection
+> | null = null;
 
 /**
  * Get or create the data sources collection.
  * Caches the collection to ensure single instance.
  */
-function getOrCreateCollection(
-  queryClient: ReturnType<typeof useQueryClient>,
-) {
+function getOrCreateCollection(queryClient: ReturnType<typeof useQueryClient>) {
   if (cachedDataSourcesCollection) {
     return cachedDataSourcesCollection;
   }

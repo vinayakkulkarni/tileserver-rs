@@ -6,10 +6,7 @@
 
 import type { MapOptions, StyleSpecification } from 'maplibre-gl';
 
-export function useStyleViewer(
-  styleId: Ref<string>,
-  isRaster: Ref<boolean>,
-) {
+export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
   const { style, isLoading } = useMapStyle(styleId, isRaster);
 
   // Generate unique container ID for each instance

@@ -48,9 +48,7 @@
           text-slate-500
           dark:text-slate-400
         "
-      >
-        Loading style...
-      </span>
+      > Loading style... </span>
     </div>
 
     <!-- Map - VMap wrapped in ClientOnly -->

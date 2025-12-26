@@ -1,58 +1,72 @@
 /**
  * Data Inspector Composable
  *
- * Provides map options for data inspection with VMap component.
- * Adds the inspect control when the map is loaded.
+ * Provides map options and handlers for the data inspector page.
+ * Uses VMap from @geoql/v-maplibre with maplibre-gl-inspect.
  */
 
-import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
-import maplibregl from 'maplibre-gl';
+import type { Map, MapOptions } from 'maplibre-gl';
+
+import type { Data, LayerColor } from '~/types/data';
 
 export function useDataInspector(dataId: Ref<string>) {
-  // Generate unique container ID for each instance
-  const containerId = `map-data-${Math.random().toString(36).substring(2, 11)}`;
+  const layerColors = ref<LayerColor[]>([]);
 
-  const style = computed<StyleSpecification>(() => ({
-    version: 8,
-    sources: {
-      'vector-source': {
-        type: 'vector',
-        url: `/data/${dataId.value}.json`,
-      },
-    },
-    layers: [],
-  }));
-
-  // VMap requires full MapOptions with container
-  // IMPORTANT: Use toRaw to unwrap reactive style object for MapLibre
+  // Map options for VMap - container ID is required by VMap
   const mapOptions = computed<MapOptions>(() => ({
-    container: containerId,
-    style: toRaw(style.value) as StyleSpecification,
-    center: [0, 0],
-    zoom: 1,
+    container: 'data-inspector-map',
     hash: true,
+    style: {
+      version: 8,
+      sources: {
+        vector_layer_: {
+          type: 'vector',
+          url: `/data/${dataId.value}.json`,
+        },
+      },
+      layers: [],
+    },
   }));
 
+  // Handler for when map is loaded - adds inspect control
   async function onMapLoaded(map: Map) {
-    // Dynamically import maplibre-gl-inspect to avoid SSR issues
-    const { default: MaplibreInspect } = await import(
-      '@maplibre/maplibre-gl-inspect'
-    );
+    const [maplibregl, { default: MaplibreInspect }] = await Promise.all([
+      import('maplibre-gl'),
+      import('@maplibre/maplibre-gl-inspect'),
+    ]);
 
-    map.addControl(
-      new MaplibreInspect({
-        showInspectMap: true,
-        showInspectButton: false,
-        showInspectMapPopup: true,
-        showInspectMapPopupOnHover: true,
-        popup: new maplibregl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-        }),
+    // Fetch TileJSON to get vector_layers
+    const tileJson = await $fetch<Data>(`/data/${dataId.value}.json`);
+    const vectorLayerIds = tileJson.vector_layers?.map((l) => l.id) || [];
+
+    // Pre-populate sources so inspect knows about the layers
+    const sources: Record<string, string[]> = {
+      vector_layer_: vectorLayerIds,
+    };
+
+    const inspect = new MaplibreInspect({
+      showInspectMap: true,
+      showInspectButton: false,
+      sources,
+      popup: new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
       }),
-      'top-right',
-    );
+    });
+
+    map.addControl(inspect);
+    inspect.render();
+
+    // Build layer colors
+    layerColors.value = vectorLayerIds.map((layerId) => ({
+      id: layerId,
+      color: inspect.assignLayerColor(layerId, 1),
+    }));
   }
 
-  return { mapOptions, onMapLoaded };
+  return {
+    mapOptions,
+    layerColors,
+    onMapLoaded,
+  };
 }

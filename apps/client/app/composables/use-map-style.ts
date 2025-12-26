@@ -10,7 +10,10 @@ import { useQuery } from '@tanstack/vue-query';
 import { fetchRasterStyle, fetchVectorStyle } from '~/utils/api/styles';
 import { MAP_STYLES_QUERY_KEYS } from '~/utils/query-keys';
 
-export function useMapStyle(styleId: MaybeRef<string>, isRaster: MaybeRef<boolean> = false) {
+export function useMapStyle(
+  styleId: MaybeRef<string>,
+  isRaster: MaybeRef<boolean> = false,
+) {
   // Use computed to make query options reactive
   const queryOptions = computed(() => {
     const id = toValue(styleId);

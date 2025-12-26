@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { CollapsibleTriggerProps } from 'reka-ui';
-import { CollapsibleTrigger } from 'reka-ui';
+  import type { CollapsibleTriggerProps } from 'reka-ui';
+  import { CollapsibleTrigger } from 'reka-ui';
 
-const props = defineProps<CollapsibleTriggerProps>();
+  const props = defineProps<CollapsibleTriggerProps>();
 </script>
 
 <template>

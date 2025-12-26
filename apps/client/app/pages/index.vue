@@ -101,12 +101,32 @@
   const apiEndpoints = [
     { method: 'GET', path: '/data.json', description: 'List all data sources' },
     { method: 'GET', path: '/data/{source}.json', description: 'TileJSON' },
-    { method: 'GET', path: '/data/{source}/{z}/{x}/{y}.pbf', description: 'Vector tiles' },
+    {
+      method: 'GET',
+      path: '/data/{source}/{z}/{x}/{y}.pbf',
+      description: 'Vector tiles',
+    },
     { method: 'GET', path: '/styles.json', description: 'List all styles' },
-    { method: 'GET', path: '/styles/{style}/style.json', description: 'GL style spec' },
-    { method: 'GET', path: '/styles/{style}.json', description: 'Raster TileJSON' },
-    { method: 'GET', path: '/styles/{style}/wmts.xml', description: 'WMTS capabilities' },
-    { method: 'GET', path: '/styles/{style}/{z}/{x}/{y}.{fmt}', description: 'Raster tiles' },
+    {
+      method: 'GET',
+      path: '/styles/{style}/style.json',
+      description: 'GL style spec',
+    },
+    {
+      method: 'GET',
+      path: '/styles/{style}.json',
+      description: 'Raster TileJSON',
+    },
+    {
+      method: 'GET',
+      path: '/styles/{style}/wmts.xml',
+      description: 'WMTS capabilities',
+    },
+    {
+      method: 'GET',
+      path: '/styles/{style}/{z}/{x}/{y}.{fmt}',
+      description: 'Raster tiles',
+    },
     { method: 'GET', path: '/fonts.json', description: 'List fonts' },
     { method: 'GET', path: '/health', description: 'Health check' },
   ];
@@ -121,7 +141,9 @@
         backdrop-blur-xl
       "
     >
-      <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+      <div
+        class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4"
+      >
         <div class="flex items-center gap-3">
           <div
             class="
@@ -140,7 +162,12 @@
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" class="rounded-xl" @click="toggleColorMode">
+        <Button
+          variant="ghost"
+          size="icon"
+          class="rounded-xl"
+          @click="toggleColorMode"
+        >
           <Sun v-if="isDark" class="size-5" />
           <Moon v-else class="size-5" />
         </Button>
@@ -395,10 +422,17 @@
                           variant="ghost"
                           size="icon"
                           class="size-7 shrink-0 rounded-lg"
-                          @click="copyUrl(`${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`)"
+                          @click="
+                            copyUrl(
+                              `${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`,
+                            )
+                          "
                         >
                           <Check
-                            v-if="copiedUrl === `${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`"
+                            v-if="
+                              copiedUrl
+                                === `${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`
+                            "
                             class="size-3.5 text-green-500"
                           />
                           <Copy v-else class="size-3.5" />
@@ -594,10 +628,17 @@
                           variant="ghost"
                           size="icon"
                           class="size-7 shrink-0 rounded-lg"
-                          @click="copyUrl(`${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`)"
+                          @click="
+                            copyUrl(
+                              `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`,
+                            )
+                          "
                         >
                           <Check
-                            v-if="copiedUrl === `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`"
+                            v-if="
+                              copiedUrl
+                                === `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`
+                            "
                             class="size-3.5 text-green-500"
                           />
                           <Copy v-else class="size-3.5" />
@@ -666,7 +707,9 @@
                   </Badge>
                   <code class="truncate text-sm">{{ endpoint.path }}</code>
                 </div>
-                <span class="shrink-0 text-xs text-muted-foreground">{{ endpoint.description }}</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{{
+                  endpoint.description
+                }}</span>
               </div>
             </div>
           </CollapsibleContent>

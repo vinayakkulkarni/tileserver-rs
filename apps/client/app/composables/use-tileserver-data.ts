@@ -18,9 +18,8 @@ export function useTileserverData() {
   const { data: dataSources, isLoading: isLoadingData } = useLiveQuery(
     dataSourcesCollection,
   );
-  const { data: styles, isLoading: isLoadingStyles } = useLiveQuery(
-    mapStylesCollection,
-  );
+  const { data: styles, isLoading: isLoadingStyles } =
+    useLiveQuery(mapStylesCollection);
 
   const hasStyles = computed(() => styles.value && styles.value.length > 0);
   const hasData = computed(

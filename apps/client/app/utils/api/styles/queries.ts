@@ -38,12 +38,16 @@ export async function fetchStyles(): Promise<Style[]> {
   return result ?? [];
 }
 
-export async function fetchVectorStyle(id: string): Promise<StyleSpecification> {
+export async function fetchVectorStyle(
+  id: string,
+): Promise<StyleSpecification> {
   const styleSpec = await $fetch<StyleSpecification>(`/styles/${id}/style.json`);
   return styleSpec ?? defaultStyle;
 }
 
-export async function fetchRasterStyle(id: string): Promise<StyleSpecification> {
+export async function fetchRasterStyle(
+  id: string,
+): Promise<StyleSpecification> {
   const tileJSON = await $fetch<TileJSON>(`/styles/${id}.json`);
 
   if (!tileJSON) {

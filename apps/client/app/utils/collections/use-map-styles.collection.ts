@@ -44,15 +44,15 @@ function createMapStylesCollection(
 // COLLECTION CACHE (Singleton)
 // ============================================================================
 
-let cachedMapStylesCollection: ReturnType<typeof createMapStylesCollection> | null = null;
+let cachedMapStylesCollection: ReturnType<
+  typeof createMapStylesCollection
+> | null = null;
 
 /**
  * Get or create the map styles collection.
  * Caches the collection to ensure single instance.
  */
-function getOrCreateCollection(
-  queryClient: ReturnType<typeof useQueryClient>,
-) {
+function getOrCreateCollection(queryClient: ReturnType<typeof useQueryClient>) {
   if (cachedMapStylesCollection) {
     return cachedMapStylesCollection;
   }

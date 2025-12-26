@@ -21,3 +21,8 @@ export interface Data {
   center: number[];
   vector_layers: VectorLayer[];
 }
+
+export interface LayerColor {
+  id: string;
+  color: string;
+}

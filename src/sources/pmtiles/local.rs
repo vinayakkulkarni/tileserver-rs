@@ -61,6 +61,19 @@ impl LocalPmTilesSource {
         // Store tile compression for later use
         let tile_compression = convert_compression(header.tile_compression);
 
+        // Try to extract vector_layers from PMTiles metadata JSON
+        let vector_layers = match reader.get_metadata().await {
+            Ok(metadata_str) => {
+                if let Ok(metadata_json) = serde_json::from_str::<serde_json::Value>(&metadata_str)
+                {
+                    metadata_json.get("vector_layers").cloned()
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        };
+
         // Extract metadata from header
         let metadata = TileMetadata {
             id: config.id.clone(),
@@ -81,7 +94,7 @@ impl LocalPmTilesSource {
                 header.center_latitude,
                 header.center_zoom as f64,
             ]),
-            vector_layers: None,
+            vector_layers,
         };
 
         tracing::info!(

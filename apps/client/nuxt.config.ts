@@ -38,7 +38,7 @@ export default defineNuxtConfig({
     '~/assets/css/tailwind.css',
     'maplibre-gl/dist/maplibre-gl.css',
     '@geoql/v-maplibre/dist/v-maplibre.css',
-    'maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
+    '@maplibre/maplibre-gl-inspect/dist/maplibre-gl-inspect.css',
   ],
 
   colorMode: {
@@ -64,15 +64,6 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: ['/'],
     },
-    devProxy: {
-      '/styles.json': { target: 'http://localhost:8080/styles.json' },
-      '/styles': { target: 'http://localhost:8080/styles' },
-      '/data.json': { target: 'http://localhost:8080/data.json' },
-      '/data': { target: 'http://localhost:8080/data' },
-      '/fonts.json': { target: 'http://localhost:8080/fonts.json' },
-      '/fonts': { target: 'http://localhost:8080/fonts' },
-      '/health': { target: 'http://localhost:8080/health' },
-    },
   },
 
   vite: {
@@ -81,6 +72,21 @@ export default defineNuxtConfig({
     },
     ssr: {
       external: ['maplibre-gl', '@geoql/v-maplibre'],
+    },
+    server: {
+      proxy: {
+        // Proxy API requests to Rust backend
+        '/health': 'http://localhost:8080',
+        '/data.json': 'http://localhost:8080',
+        '/styles.json': 'http://localhost:8080',
+        '/fonts.json': 'http://localhost:8080',
+        // Use regex to match .json and tile requests but not page routes
+        '^/data/[^/]+\\.json$': 'http://localhost:8080',
+        '^/data/[^/]+/\\d+/\\d+/\\d+': 'http://localhost:8080',
+        '^/styles/[^/]+/style\\.json$': 'http://localhost:8080',
+        '^/styles/[^/]+/\\d+/\\d+/\\d+': 'http://localhost:8080',
+        '^/fonts/': 'http://localhost:8080',
+      },
     },
   },
 
