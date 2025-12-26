@@ -120,9 +120,12 @@ docker run -d \
 ### Building from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/vinayakkulkarni/tileserver-rs.git
+# Clone the repository with submodules
+git clone --recursive https://github.com/vinayakkulkarni/tileserver-rs.git
 cd tileserver-rs
+
+# If you already cloned without --recursive:
+git submodule update --init --recursive
 
 # Install dependencies
 bun install
@@ -136,6 +139,8 @@ bun run build:client
 # Run the server
 ./target/release/tileserver-rs --config config.toml
 ```
+
+> **Note:** The `--recursive` flag is important! It fetches the MapLibre Native submodule required for native raster rendering. See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed setup instructions.
 
 ## Configuration
 
@@ -271,11 +276,27 @@ tileserver-rs/
 
 ## Contributing
 
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+**Quick Start:**
+
 1. Fork it ([https://github.com/vinayakkulkarni/tileserver-rs/fork](https://github.com/vinayakkulkarni/tileserver-rs/fork))
-2. Create your feature branch (`git checkout -b feat/new-feature`)
-3. Commit your changes (`git commit -Sam 'feat: add feature'`)
-4. Push to the branch (`git push origin feat/new-feature`)
-5. Create a new [Pull Request](https://github.com/vinayakkulkarni/tileserver-rs/compare)
+2. Clone with submodules: `git clone --recursive <your-fork-url>`
+3. Create your feature branch (`git checkout -b feat/new-feature`)
+4. Commit your changes (`git commit -Sam 'feat: add feature'`)
+5. Push to the branch (`git push origin feat/new-feature`)
+6. Create a new [Pull Request](https://github.com/vinayakkulkarni/tileserver-rs/compare)
+
+**Working with Git Submodules:**
+
+```bash
+# After cloning (if you forgot --recursive)
+git submodule update --init --recursive
+
+# After pulling changes from upstream
+git pull
+git submodule update --init --recursive
+```
 
 **Notes:**
 

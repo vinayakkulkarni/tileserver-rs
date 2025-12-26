@@ -1,0 +1,274 @@
+# Contributing to tileserver-rs
+
+Thank you for your interest in contributing to tileserver-rs! This document provides guidelines and instructions for contributing.
+
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Cloning the Repository](#cloning-the-repository)
+  - [Setting Up MapLibre Native](#setting-up-maplibre-native)
+- [Development Workflow](#development-workflow)
+  - [Git Workflow](#git-workflow)
+  - [Working with the Submodule](#working-with-the-submodule)
+  - [Running Tests](#running-tests)
+  - [Code Style](#code-style)
+- [Submitting Changes](#submitting-changes)
+  - [Commit Messages](#commit-messages)
+  - [Pull Requests](#pull-requests)
+- [Project Structure](#project-structure)
+- [Need Help?](#need-help)
+
+## Code of Conduct
+
+This project follows our [Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you agree to uphold this code.
+
+## Getting Started
+
+### Prerequisites
+
+- [Rust 1.75+](https://www.rust-lang.org/tools/install)
+- [Bun 1.0+](https://bun.sh/)
+- [Git](https://git-scm.com/)
+- (Optional) [Docker](https://www.docker.com/)
+
+For native rendering support, you'll also need:
+- CMake 3.20+
+- Ninja
+- C++ compiler (clang or gcc)
+
+### Cloning the Repository
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/vinayakkulkarni/tileserver-rs.git
+cd tileserver-rs
+
+# If you already cloned without --recursive, initialize submodules:
+git submodule update --init --recursive
+```
+
+### Setting Up MapLibre Native
+
+The `maplibre-native-sys/vendor/maplibre-native` directory contains the MapLibre Native C++ library as a Git submodule. This is required for native raster tile rendering.
+
+**macOS (Apple Silicon/Intel):**
+```bash
+# Install dependencies
+brew install ninja ccache libuv glfw bazelisk cmake
+
+# Initialize submodule and build
+cd maplibre-native-sys/vendor/maplibre-native
+git submodule update --init --recursive
+cmake --preset macos-metal
+cmake --build build-macos-metal --target mbgl-core mlt-cpp -j$(sysctl -n hw.ncpu)
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+# Install dependencies
+sudo apt-get install -y ninja-build ccache libuv1-dev libglfw3-dev cmake \
+  libcurl4-openssl-dev libicu-dev libjpeg-dev libpng-dev libsqlite3-dev
+
+# Initialize submodule and build
+cd maplibre-native-sys/vendor/maplibre-native
+git submodule update --init --recursive
+cmake --preset linux
+cmake --build build-linux --target mbgl-core mlt-cpp -j$(nproc)
+```
+
+**Note:** If you don't need native raster rendering, you can skip this step. The server will use a stub implementation that returns placeholder images.
+
+## Development Workflow
+
+### Git Workflow
+
+We use [GitHub Flow](https://guides.github.com/introduction/flow/):
+
+1. Fork the repository
+2. Create a feature branch from `main`
+3. Make your changes
+4. Submit a pull request
+
+### Working with the Submodule
+
+The MapLibre Native source code is managed as a Git submodule. Here's how to work with it:
+
+#### After Cloning
+
+```bash
+# If you cloned without --recursive
+git submodule update --init --recursive
+```
+
+#### After Pulling Changes
+
+```bash
+# Always update submodules after pulling
+git pull
+git submodule update --init --recursive
+```
+
+#### Updating the Submodule to a New Version
+
+```bash
+# Navigate to submodule directory
+cd maplibre-native-sys/vendor/maplibre-native
+
+# Fetch and checkout the desired version
+git fetch origin
+git checkout <tag-or-commit>
+
+# Go back to root and commit the submodule update
+cd ../../..
+git add maplibre-native-sys/vendor/maplibre-native
+git commit -m "chore: update maplibre-native to <version>"
+```
+
+#### Common Submodule Issues
+
+**Detached HEAD in submodule:**
+This is normal. Submodules are always checked out at a specific commit.
+
+**Submodule has local changes:**
+```bash
+# Discard local changes in submodule
+cd maplibre-native-sys/vendor/maplibre-native
+git checkout .
+git clean -fd
+```
+
+**Submodule out of sync:**
+```bash
+# Reset submodule to the commit tracked by the parent repo
+git submodule update --init --recursive --force
+```
+
+### Running Tests
+
+```bash
+# Run Rust tests
+cargo test
+
+# Run Rust linter
+cargo clippy
+
+# Check Rust formatting
+cargo fmt --all -- --check
+
+# Run frontend linter
+bun run lint
+```
+
+### Code Style
+
+**Rust:**
+- Follow [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
+- Run `cargo fmt` before committing
+- Run `cargo clippy` and fix warnings
+- No `unwrap()` in library code - use proper error handling
+
+**TypeScript/Vue:**
+- Follow the ESLint configuration
+- Use TypeScript strict mode
+- See [CLAUDE.md](./CLAUDE.md) for detailed frontend conventions
+
+## Submitting Changes
+
+### Commit Messages
+
+We use [Conventional Commits](https://www.conventionalcommits.org/). Format:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only
+- `style` - Code style (formatting, semicolons, etc.)
+- `refactor` - Code refactoring
+- `test` - Adding or updating tests
+- `chore` - Maintenance tasks
+
+**Examples:**
+```bash
+feat(sources): add S3 PMTiles support
+fix(render): handle empty tile responses
+docs(readme): update configuration examples
+chore(deps): upgrade axum to 0.8
+```
+
+**Important:** Commits must be signed. [Learn how to sign commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits).
+
+### Pull Requests
+
+1. **Title:** Use conventional commit format (e.g., `feat(sources): add S3 support`)
+2. **Description:** Explain what and why, not just how
+3. **Tests:** Add tests for new functionality
+4. **Documentation:** Update docs if needed
+5. **Breaking Changes:** Clearly mark and explain any breaking changes
+
+**PR Checklist:**
+- [ ] Code follows project style guidelines
+- [ ] Tests pass locally (`cargo test`)
+- [ ] Linters pass (`cargo clippy`, `cargo fmt --check`, `bun run lint`)
+- [ ] Documentation updated (if applicable)
+- [ ] Commit messages follow conventional commits
+- [ ] Commits are signed
+
+## Project Structure
+
+```
+tileserver-rs/
+├── apps/
+│   ├── client/                  # Nuxt 4 frontend
+│   │   ├── app/                 # Nuxt app directory
+│   │   │   ├── components/      # Vue components
+│   │   │   ├── composables/     # Vue composables
+│   │   │   ├── pages/           # File-based routing
+│   │   │   └── types/           # TypeScript types
+│   │   └── nuxt.config.ts
+│   └── docs/                    # Documentation site
+│
+├── maplibre-native-sys/         # FFI bindings crate
+│   ├── cpp/                     # C/C++ wrapper code
+│   ├── src/lib.rs               # Rust FFI declarations
+│   ├── build.rs                 # Build script
+│   └── vendor/maplibre-native/  # MapLibre Native (submodule)
+│
+├── src/                         # Main Rust application
+│   ├── main.rs                  # Entry point, HTTP routes
+│   ├── config.rs                # TOML configuration
+│   ├── error.rs                 # Error types
+│   ├── render/                  # Native rendering
+│   │   ├── pool.rs              # Renderer pool
+│   │   ├── renderer.rs          # High-level API
+│   │   └── native.rs            # Safe FFI wrappers
+│   ├── sources/                 # Tile sources
+│   │   ├── pmtiles/             # PMTiles (local + HTTP)
+│   │   └── mbtiles.rs           # MBTiles
+│   └── styles/                  # Style management
+│
+├── compose.yml                  # Docker Compose base
+├── Dockerfile                   # Multi-stage build
+├── Cargo.toml                   # Rust workspace
+├── CLAUDE.md                    # AI assistant guidelines
+└── CONTRIBUTING.md              # This file
+```
+
+## Need Help?
+
+- **Questions:** Open a [Discussion](https://github.com/vinayakkulkarni/tileserver-rs/discussions)
+- **Bugs:** Open an [Issue](https://github.com/vinayakkulkarni/tileserver-rs/issues)
+- **Security:** See [SECURITY.md](./SECURITY.md) (if applicable)
+
+---
+
+Thank you for contributing to tileserver-rs!
