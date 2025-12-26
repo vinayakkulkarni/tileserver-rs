@@ -53,7 +53,7 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 | `GET /data.json` | ✅ | List all tile sources |
 | `GET /data/{id}.json` | ✅ | TileJSON for a source |
 | `GET /data/{id}/{z}/{x}/{y}.{format}` | ✅ | Get vector tile (pbf/mvt) |
-| `GET /data/{id}/{z}/{x}/{y}.geojson` | ❌ | Get tile as GeoJSON |
+| `GET /data/{id}/{z}/{x}/{y}.geojson` | ✅ | Get tile as GeoJSON |
 | `GET /data/{id}/elevation/{z}/{x}/{y}` | ❌ | Elevation for tile |
 | `GET /data/{id}/elevation/{z}/{lon}/{lat}` | ❌ | Elevation at coordinate |
 
@@ -63,7 +63,7 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 |----------|--------|-------------|
 | `GET /health` | ✅ | Health check |
 | `GET /fonts.json` | ✅ | List available fonts |
-| `GET /index.json` | ❌ | Combined TileJSON array |
+| `GET /index.json` | ✅ | Combined TileJSON array |
 | `GET /files/{filename}` | ❌ | Static file serving |
 
 ---

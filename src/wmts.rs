@@ -107,13 +107,7 @@ pub fn generate_wmts_capabilities(
     xml.push_str("  </Contents>\n");
 
     // Service Metadata URL
-    write!(
-        xml,
-        r#"  <ServiceMetadataURL xlink:href="{}"/>
-"#,
-        wmts_url
-    )
-    .unwrap();
+    writeln!(xml, r#"  <ServiceMetadataURL xlink:href="{}"/>"#, wmts_url).unwrap();
 
     xml.push_str("</Capabilities>\n");
 
@@ -184,12 +178,17 @@ fn write_tile_matrix_set_google_maps(xml: &mut String, tile_size: u16, min_zoom:
 
     // Write TileMatrix for each zoom level
     let max_z = (max_zoom as usize).min(SCALE_DENOMINATORS_256.len() - 1);
-    for z in (min_zoom as usize)..=max_z {
+    for (z, &base_scale) in SCALE_DENOMINATORS_256
+        .iter()
+        .enumerate()
+        .take(max_z + 1)
+        .skip(min_zoom as usize)
+    {
         // For 512px tiles, scale denominator is halved (same geographic extent, double pixels)
         let scale = if tile_size == 512 {
-            SCALE_DENOMINATORS_256[z] / 2.0
+            base_scale / 2.0
         } else {
-            SCALE_DENOMINATORS_256[z]
+            base_scale
         };
 
         let matrix_size = 1u32 << z; // 2^z

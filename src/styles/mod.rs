@@ -111,6 +111,11 @@ impl StyleManager {
         self.styles.values().map(|s| s.to_info(base_url)).collect()
     }
 
+    /// Get all styles
+    pub fn all(&self) -> Vec<&Style> {
+        self.styles.values().collect()
+    }
+
     /// Get the number of styles
     pub fn len(&self) -> usize {
         self.styles.len()

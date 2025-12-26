@@ -244,6 +244,7 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
 fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
+        .route("/index.json", get(get_index_json))
         // Style endpoints
         .route("/styles.json", get(get_all_styles))
         .route("/styles/{style_json}", get(get_style_tilejson))
@@ -266,12 +267,50 @@ fn api_router(state: AppState) -> Router {
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
+        .route("/data/{source}/{z}/{x}/{y}.geojson", get(get_tile_geojson))
         .with_state(state)
 }
 
 /// Health check endpoint
 async fn health_check() -> (StatusCode, &'static str) {
     (StatusCode::OK, "OK")
+}
+
+/// Combined index entry for /index.json
+#[derive(serde::Serialize)]
+#[serde(untagged)]
+enum IndexEntry {
+    Data(TileJson),
+    Style(RasterTileJson),
+}
+
+/// Get combined TileJSON array for all data sources and styles
+/// Route: GET /index.json
+async fn get_index_json(State(state): State<AppState>) -> Json<Vec<IndexEntry>> {
+    let mut entries = Vec::new();
+
+    // Add all data sources
+    for metadata in state.sources.all_metadata() {
+        entries.push(IndexEntry::Data(metadata.to_tilejson(&state.base_url)));
+    }
+
+    // Add all styles as raster tile sources
+    for style in state.styles.all() {
+        let tile_url = format!(
+            "{}/styles/{}/{{z}}/{{x}}/{{y}}.png",
+            state.base_url, style.id
+        );
+        entries.push(IndexEntry::Style(RasterTileJson {
+            tilejson: "3.0.0",
+            name: style.name.clone(),
+            tiles: vec![tile_url],
+            minzoom: 0,
+            maxzoom: 22,
+            attribution: None,
+        }));
+    }
+
+    Json(entries)
 }
 
 /// Get all available styles
@@ -420,6 +459,113 @@ async fn get_tile(
     }
 
     Ok((headers, tile.data).into_response())
+}
+
+/// GeoJSON tile request parameters
+#[derive(serde::Deserialize)]
+struct GeoJsonTileParams {
+    source: String,
+    z: u8,
+    x: u32,
+    y: u32,
+}
+
+/// Get a tile as GeoJSON (converts PBF to GeoJSON)
+/// Route: GET /data/{source}/{z}/{x}/{y}.geojson
+async fn get_tile_geojson(
+    State(state): State<AppState>,
+    Path(params): Path<GeoJsonTileParams>,
+) -> Result<Response, TileServerError> {
+    use flate2::read::GzDecoder;
+    use geozero::mvt::{Message, Tile};
+    use geozero::ProcessToJson;
+    use sources::TileCompression;
+    use std::io::Read;
+
+    let source = state
+        .sources
+        .get(&params.source)
+        .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+
+    // Check if source is vector format
+    if source.metadata().format != sources::TileFormat::Pbf {
+        return Err(TileServerError::RenderError(
+            "GeoJSON conversion only supported for vector tiles (PBF)".to_string(),
+        ));
+    }
+
+    let tile = source.get_tile(params.z, params.x, params.y).await?.ok_or(
+        TileServerError::TileNotFound {
+            z: params.z,
+            x: params.x,
+            y: params.y,
+        },
+    )?;
+
+    // Decompress if needed
+    let raw_data = match tile.compression {
+        TileCompression::Gzip => {
+            let mut decoder = GzDecoder::new(&tile.data[..]);
+            let mut decompressed = Vec::new();
+            decoder.read_to_end(&mut decompressed).map_err(|e| {
+                TileServerError::RenderError(format!("Failed to decompress tile: {}", e))
+            })?;
+            decompressed
+        }
+        TileCompression::None => tile.data.to_vec(),
+        _ => {
+            return Err(TileServerError::RenderError(format!(
+                "Unsupported compression: {:?}",
+                tile.compression
+            )));
+        }
+    };
+
+    // Parse MVT tile using prost
+    let mvt_tile = Tile::decode(raw_data.as_slice())
+        .map_err(|e| TileServerError::RenderError(format!("Failed to decode MVT tile: {}", e)))?;
+
+    // Convert each layer to GeoJSON and combine into a FeatureCollection
+    let mut all_features: Vec<serde_json::Value> = Vec::new();
+
+    for mut layer in mvt_tile.layers {
+        // Each layer implements GeozeroDatasource which can convert to JSON
+        if let Ok(layer_json) = layer.to_json() {
+            // Parse the layer GeoJSON (it's a FeatureCollection)
+            if let Ok(fc) = serde_json::from_str::<serde_json::Value>(&layer_json) {
+                if let Some(features) = fc.get("features").and_then(|f| f.as_array()) {
+                    // Add layer name to each feature's properties
+                    for feature in features {
+                        let mut feature = feature.clone();
+                        if let Some(props) = feature.get_mut("properties") {
+                            if let Some(props_obj) = props.as_object_mut() {
+                                props_obj.insert(
+                                    "_layer".to_string(),
+                                    serde_json::Value::String(layer.name.clone()),
+                                );
+                            }
+                        }
+                        all_features.push(feature);
+                    }
+                }
+            }
+        }
+    }
+
+    // Build final FeatureCollection
+    let geojson = serde_json::json!({
+        "type": "FeatureCollection",
+        "features": all_features
+    });
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static("application/geo+json"),
+    );
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+    Ok((headers, geojson.to_string()).into_response())
 }
 
 /// Raster tile request parameters
