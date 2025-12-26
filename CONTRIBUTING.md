@@ -91,6 +91,18 @@ cmake --build build-linux --target mbgl-core mlt-cpp -j$(nproc)
 
 **Note:** If you don't need native raster rendering, you can skip this step. The server will use a stub implementation that returns placeholder images.
 
+**Important:** After building MapLibre Native, you must clear Cargo's build cache to detect the new libraries:
+
+```bash
+# Clear the cached build script output
+rm -rf target/release/build/maplibre-native-sys-*
+
+# Rebuild
+cargo build --release
+```
+
+You should see `Building with real MapLibre Native renderer` instead of `using stub implementation`.
+
 ## Development Workflow
 
 ### Git Workflow

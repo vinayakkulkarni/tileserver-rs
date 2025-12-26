@@ -75,6 +75,16 @@ cmake --preset linux
 cmake --build build-linux --target mbgl-core mlt-cpp -j8
 ```
 
+**After building MapLibre Native:**
+```bash
+# Clear Cargo's cached build to detect the new libraries
+cd /path/to/tileserver-rs
+rm -rf target/release/build/maplibre-native-sys-*
+cargo build --release
+```
+
+You should see `Building with real MapLibre Native renderer` in the build output.
+
 ## Quick Start
 
 ```bash
