@@ -43,6 +43,8 @@ export function useDataInspector(dataId: Ref<string>) {
       new MaplibreInspect({
         showInspectMap: true,
         showInspectButton: false,
+        showInspectMapPopup: true,
+        showInspectMapPopupOnHover: true,
         popup: new maplibregl.Popup({
           closeButton: false,
           closeOnClick: false,

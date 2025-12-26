@@ -45,12 +45,14 @@ pub fn generate_wmts_capabilities(
 "#);
 
     // Service Identification
-    xml.push_str(r#"  <ows:ServiceIdentification>
+    xml.push_str(
+        r#"  <ows:ServiceIdentification>
     <ows:Title>TileServer RS</ows:Title>
     <ows:ServiceType>OGC WMTS</ows:ServiceType>
     <ows:ServiceTypeVersion>1.0.0</ows:ServiceTypeVersion>
   </ows:ServiceIdentification>
-"#);
+"#,
+    );
 
     // Operations Metadata
     let wmts_url = format!("{}/styles/{}/wmts.xml", base_url, style_id);
@@ -218,13 +220,8 @@ mod tests {
 
     #[test]
     fn test_generate_wmts_capabilities() {
-        let xml = generate_wmts_capabilities(
-            "http://localhost:8080",
-            "osm-bright",
-            "OSM Bright",
-            0,
-            18,
-        );
+        let xml =
+            generate_wmts_capabilities("http://localhost:8080", "osm-bright", "OSM Bright", 0, 18);
 
         assert!(xml.contains("<?xml version"));
         assert!(xml.contains("OGC WMTS"));

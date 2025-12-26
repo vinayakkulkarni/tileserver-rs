@@ -510,7 +510,7 @@ async fn get_raster_tile(
 #[derive(serde::Deserialize)]
 struct RasterTileWithSizeParams {
     style: String,
-    tile_size: u16,   // e.g., 256 or 512
+    tile_size: u16, // e.g., 256 or 512
     z: u8,
     x: u32,
     y_fmt: String, // e.g., "123.png" or "123@2x.webp"
@@ -797,7 +797,9 @@ async fn get_wmts_capabilities(
 
 /// Get list of available fonts
 /// Route: GET /fonts.json
-async fn get_fonts_list(State(state): State<AppState>) -> Result<Json<Vec<String>>, TileServerError> {
+async fn get_fonts_list(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<String>>, TileServerError> {
     let fonts_dir = match &state.fonts_dir {
         Some(dir) => dir,
         None => return Ok(Json(Vec::new())),
