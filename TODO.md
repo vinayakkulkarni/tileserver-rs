@@ -18,22 +18,22 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 |----------|--------|-------------|
 | `GET /styles.json` | ✅ | List all available styles |
 | `GET /styles/{id}/style.json` | ✅ | Get MapLibre GL style JSON |
-| `GET /styles/{id}/sprite[@2x].{format}` | ❌ | Serve sprite images (png) and metadata (json) |
-| `GET /fonts/{fontstack}/{start}-{end}.pbf` | ❌ | Serve font glyphs (PBF format) |
+| `GET /styles/{id}/sprite[@2x].{format}` | ✅ | Serve sprite images (png) and metadata (json) |
+| `GET /fonts/{fontstack}/{start}-{end}.pbf` | ✅ | Serve font glyphs (PBF format) |
 
 ### Rendered Tiles (Raster)
 
 | Endpoint | Status | Description |
 |----------|--------|-------------|
 | `GET /styles/{id}/{z}/{x}/{y}[@{scale}x].{format}` | ✅ | Raster tiles (PNG/JPEG/WebP) |
-| `GET /styles/{id}/{tileSize}/{z}/{x}/{y}[@{scale}x].{format}` | ❌ | Variable tile size (256/512) |
+| `GET /styles/{id}/{tileSize}/{z}/{x}/{y}[@{scale}x].{format}` | ✅ | Variable tile size (256/512) |
 | `GET /styles/{id}.json` | ✅ | TileJSON for raster tiles |
 
 ### WMTS
 
 | Endpoint | Status | Description |
 |----------|--------|-------------|
-| `GET /styles/{id}/wmts.xml` | ❌ | WMTS capabilities document |
+| `GET /styles/{id}/wmts.xml` | ✅ | WMTS capabilities document |
 
 ### Static Images
 
@@ -62,7 +62,7 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 | Endpoint | Status | Description |
 |----------|--------|-------------|
 | `GET /health` | ✅ | Health check |
-| `GET /fonts.json` | ❌ | List available fonts |
+| `GET /fonts.json` | ✅ | List available fonts |
 | `GET /index.json` | ❌ | Combined TileJSON array |
 | `GET /files/{filename}` | ❌ | Static file serving |
 

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::config::StyleConfig;
 use crate::error::{Result, TileServerError};
@@ -21,6 +21,8 @@ pub struct Style {
     pub id: String,
     pub name: String,
     pub style_json: serde_json::Value,
+    /// Path to the style.json file (used to locate sprites)
+    pub path: PathBuf,
 }
 
 impl Style {
@@ -52,6 +54,7 @@ impl Style {
             id: config.id.clone(),
             name,
             style_json,
+            path: config.path.clone(),
         })
     }
 

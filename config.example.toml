@@ -45,7 +45,25 @@ sample_rate = 1.0
 # path = "/data/terrain.mbtiles"
 # name = "Terrain RGB"
 
+# Path to fonts directory (for serving PBF glyph files)
+# The directory structure should be:
+#   fonts/
+#   ├── Noto Sans Regular/
+#   │   ├── 0-255.pbf
+#   │   ├── 256-511.pbf
+#   │   └── ...
+#   └── Open Sans Bold/
+#       └── ...
+# fonts = "/data/fonts"
+
 # Map styles
+# Sprites should be placed alongside style.json:
+#   styles/my-style/
+#   ├── style.json
+#   ├── sprite.json
+#   ├── sprite.png
+#   ├── sprite@2x.json
+#   └── sprite@2x.png
 # [[styles]]
 # id = "osm-bright"
 # path = "/data/styles/osm-bright/style.json"

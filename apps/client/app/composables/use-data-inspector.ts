@@ -6,6 +6,7 @@
  */
 
 import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
 
 export function useDataInspector(dataId: Ref<string>) {
   // Generate unique container ID for each instance
@@ -34,12 +35,18 @@ export function useDataInspector(dataId: Ref<string>) {
 
   async function onMapLoaded(map: Map) {
     // Dynamically import maplibre-gl-inspect to avoid SSR issues
-    const { default: MaplibreInspect } = await import('maplibre-gl-inspect');
+    const { default: MaplibreInspect } = await import(
+      '@maplibre/maplibre-gl-inspect'
+    );
 
     map.addControl(
       new MaplibreInspect({
         showInspectMap: true,
         showInspectButton: false,
+        popup: new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+        }),
       }),
       'top-right',
     );

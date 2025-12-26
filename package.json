@@ -3,13 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "description": "Tileserver for serving vector maps from data source(s)",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:client": "bun run --filter @tileserver-rs/client dev",
     "dev:docs": "cd docs && bun run dev",
     "build:client": "bun run --filter @tileserver-rs/client build",
     "build:docs": "cd docs && bun run build",
-    "lint": "bun run --filter @tileserver-rs/client lint",
+    "lint": "bun run --filter @tileserver-rs/client lint:fix",
     "prepare": "husky"
   },
   "devDependencies": {

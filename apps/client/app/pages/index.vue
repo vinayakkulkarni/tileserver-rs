@@ -1,16 +1,21 @@
 <script setup lang="ts">
   import {
+    Check,
+    ChevronRight,
+    Copy,
     Database,
     ExternalLink,
-    FileJson,
     Globe,
+    Grid3x3,
     Image,
     Layers,
     Map,
     Moon,
     Palette,
+    Search,
     Sun,
   } from 'lucide-vue-next';
+  import { useClipboard } from '@vueuse/core';
 
   const { isDark, toggle: toggleColorMode } = useThemeToggle();
   const {
@@ -22,60 +27,112 @@
     hasData,
   } = useTileserverData();
 
+  const { copy } = useClipboard();
+
+  // Search filter
+  const searchQuery = ref('');
+
+  // Filtered lists
+  const filteredStyles = computed(() => {
+    if (!searchQuery.value) return styles.value;
+    const query = searchQuery.value.toLowerCase();
+    return styles.value.filter(
+      (s) =>
+        s.name.toLowerCase().includes(query) ||
+        s.id.toLowerCase().includes(query),
+    );
+  });
+
+  const filteredDataSources = computed(() => {
+    if (!searchQuery.value) return dataSources.value;
+    const query = searchQuery.value.toLowerCase();
+    return dataSources.value.filter(
+      (s) =>
+        (s.name || '').toLowerCase().includes(query) ||
+        s.id.toLowerCase().includes(query),
+    );
+  });
+
+  // Track which XYZ URLs are expanded
+  const expandedStyleXyz = ref<Set<string>>(new Set());
+  const expandedDataXyz = ref<Set<string>>(new Set());
+
+  function toggleStyleXyz(styleId: string) {
+    if (expandedStyleXyz.value.has(styleId)) {
+      expandedStyleXyz.value.delete(styleId);
+    } else {
+      expandedStyleXyz.value.add(styleId);
+    }
+    expandedStyleXyz.value = new Set(expandedStyleXyz.value);
+  }
+
+  function toggleDataXyz(dataId: string) {
+    if (expandedDataXyz.value.has(dataId)) {
+      expandedDataXyz.value.delete(dataId);
+    } else {
+      expandedDataXyz.value.add(dataId);
+    }
+    expandedDataXyz.value = new Set(expandedDataXyz.value);
+  }
+
+  // Copy with feedback
+  const copiedUrl = ref<string | null>(null);
+  function copyUrl(url: string) {
+    copy(url);
+    copiedUrl.value = url;
+    setTimeout(() => {
+      copiedUrl.value = null;
+    }, 2000);
+  }
+
+  // Collapsible sections
+  const stylesOpen = ref(true);
+  const dataOpen = ref(true);
+  const apiOpen = ref(false);
+
+  // Get base URL for XYZ templates
+  const baseUrl = computed(() => {
+    if (import.meta.client) {
+      return window.location.origin;
+    }
+    return '';
+  });
+
   const apiEndpoints = [
     { method: 'GET', path: '/data.json', description: 'List all data sources' },
-    {
-      method: 'GET',
-      path: '/data/{source}.json',
-      description: 'TileJSON for a source',
-    },
-    {
-      method: 'GET',
-      path: '/data/{source}/{z}/{x}/{y}.pbf',
-      description: 'Vector tiles',
-    },
+    { method: 'GET', path: '/data/{source}.json', description: 'TileJSON' },
+    { method: 'GET', path: '/data/{source}/{z}/{x}/{y}.pbf', description: 'Vector tiles' },
     { method: 'GET', path: '/styles.json', description: 'List all styles' },
-    {
-      method: 'GET',
-      path: '/styles/{style}/style.json',
-      description: 'MapLibre style spec',
-    },
-    {
-      method: 'GET',
-      path: '/styles/{style}/{z}/{x}/{y}[@{scale}x].{format}',
-      description: 'Raster tiles (PNG/JPEG/WebP)',
-    },
-    {
-      method: 'GET',
-      path: '/styles/{style}/static/{type}/{size}[@{scale}x].{format}',
-      description: 'Static map images',
-    },
+    { method: 'GET', path: '/styles/{style}/style.json', description: 'GL style spec' },
+    { method: 'GET', path: '/styles/{style}.json', description: 'Raster TileJSON' },
+    { method: 'GET', path: '/styles/{style}/wmts.xml', description: 'WMTS capabilities' },
+    { method: 'GET', path: '/styles/{style}/{z}/{x}/{y}.{fmt}', description: 'Raster tiles' },
+    { method: 'GET', path: '/fonts.json', description: 'List fonts' },
     { method: 'GET', path: '/health', description: 'Health check' },
   ];
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="flex min-h-dvh flex-col bg-background">
     <!-- Header -->
     <header
       class="
-        sticky top-0 z-50 border-b border-border/40 bg-background/95
-        backdrop-blur-sm
-        supports-backdrop-filter:bg-background/60
+        sticky top-0 z-50 border-b border-border/50 bg-background/80
+        backdrop-blur-xl
       "
     >
-      <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+      <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <div class="flex items-center gap-3">
           <div
             class="
-              flex size-10 items-center justify-center rounded-xl bg-primary
-              shadow-lg shadow-primary/25
+              flex size-9 items-center justify-center rounded-xl bg-linear-to-br
+              from-primary to-primary/80 shadow-lg shadow-primary/20
             "
           >
             <Globe class="size-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 class="text-xl font-semibold tracking-tight">
+            <h1 class="text-lg font-semibold tracking-tight">
               Tileserver RS
             </h1>
             <p class="text-xs text-muted-foreground">
@@ -83,281 +140,545 @@
             </p>
           </div>
         </div>
-
-        <Button variant="ghost" size="icon" @click="toggleColorMode">
+        <Button variant="ghost" size="icon" class="rounded-xl" @click="toggleColorMode">
           <Sun v-if="isDark" class="size-5" />
           <Moon v-else class="size-5" />
-          <span class="sr-only">Toggle theme</span>
         </Button>
       </div>
     </header>
 
-    <main class="mx-auto max-w-5xl space-y-8 px-6 py-8">
+    <!-- Main content -->
+    <main class="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4">
+      <!-- Search -->
+      <div class="relative">
+        <Search
+          class="
+            absolute top-1/2 left-4 size-4 -translate-y-1/2
+            text-muted-foreground
+          "
+        />
+        <Input
+          v-model="searchQuery"
+          placeholder="Search styles and data sources..."
+          class="
+            h-11 rounded-xl border-border/50 bg-muted/30 pl-11 transition-all
+            focus:bg-background
+          "
+        />
+      </div>
+
       <!-- Styles Section -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-2">
-          <Palette class="size-5 text-primary" />
-          <h2 class="text-lg font-semibold">
-            Map Styles
-          </h2>
-        </div>
-
-        <div
-          v-if="isLoadingStyles"
-          class="flex items-center justify-center py-8"
+      <Collapsible v-model:open="stylesOpen">
+        <Card
+          class="
+            overflow-hidden rounded-xl border-border/50 bg-card/50
+            backdrop-blur-sm
+          "
         >
-          <div
+          <CollapsibleTrigger
             class="
-              size-6 animate-spin rounded-full border-2 border-muted
-              border-t-primary
-            "
-          ></div>
-        </div>
-
-        <Card v-else-if="!hasStyles" class="border-dashed">
-          <CardContent
-            class="flex flex-col items-center justify-center py-8 text-center"
-          >
-            <Palette class="mb-3 size-10 text-muted-foreground/50" />
-            <CardTitle class="text-base">
-              No styles configured
-            </CardTitle>
-            <CardDescription class="mt-1">
-              Add styles to your config.toml to enable styled map views
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        <div v-else class="grid gap-4">
-          <Card
-            v-for="style in styles"
-            :key="style.id"
-            class="
-              group overflow-hidden transition-all
-              hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5
+              flex w-full items-center gap-3 p-4 transition-colors
+              hover:bg-muted/30
             "
           >
-            <CardContent class="flex items-center justify-between p-5">
-              <div class="flex items-center gap-4">
-                <div
-                  class="relative size-14 overflow-hidden rounded-lg bg-muted"
-                >
-                  <img
-                    :src="`/styles/${style.id}/static/0,0,1/112x112.png`"
-                    :alt="`${style.name} preview`"
-                    class="size-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div class="space-y-1">
-                  <CardTitle class="text-base">
-                    {{ style.name }}
-                  </CardTitle>
-                  <div class="flex items-center gap-2">
-                    <Badge variant="secondary" class="font-mono text-xs">
-                      {{ style.id }}
-                    </Badge>
-                    <NuxtLink
-                      :to="`/styles/${style.id}/style.json`"
-                      class="
-                        flex items-center gap-1 text-xs text-muted-foreground
-                        transition-colors
-                        hover:text-primary
-                      "
-                    >
-                      <FileJson class="size-3" />
-                      style.json
-                    </NuxtLink>
-                    <span class="text-muted-foreground/50">|</span>
-                    <NuxtLink
-                      :to="`/styles/${style.id}.json`"
-                      class="
-                        flex items-center gap-1 text-xs text-muted-foreground
-                        transition-colors
-                        hover:text-primary
-                      "
-                    >
-                      <FileJson class="size-3" />
-                      tilejson
-                    </NuxtLink>
-                  </div>
-                </div>
-              </div>
-              <div class="flex flex-col items-end gap-2">
-                <Button as-child>
-                  <NuxtLink :to="`/styles/${style.id}/#2/0/0`">
-                    <Map class="size-4" />
-                    Viewer
-                  </NuxtLink>
-                </Button>
-                <div class="flex items-center gap-3">
-                  <NuxtLink
-                    :to="`/styles/${style.id}/?raster#2/0/0`"
-                    class="
-                      text-xs text-muted-foreground transition-colors
-                      hover:text-primary
-                    "
-                  >
-                    <Image class="mr-1 inline size-3" />
-                    Raster
-                  </NuxtLink>
-                  <NuxtLink
-                    :to="`/styles/${style.id}/#2/0/0`"
-                    class="
-                      text-xs text-muted-foreground transition-colors
-                      hover:text-primary
-                    "
-                  >
-                    <Layers class="mr-1 inline size-3" />
-                    Vector
-                  </NuxtLink>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <Separator />
-
-      <!-- Data Sources Section -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-2">
-          <Database class="size-5 text-primary" />
-          <h2 class="text-lg font-semibold">
-            Data Sources
-          </h2>
-        </div>
-
-        <div v-if="isLoadingData" class="flex items-center justify-center py-8">
-          <div
-            class="
-              size-6 animate-spin rounded-full border-2 border-muted
-              border-t-primary
-            "
-          ></div>
-        </div>
-
-        <Card v-else-if="!hasData" class="border-dashed">
-          <CardContent
-            class="flex flex-col items-center justify-center py-8 text-center"
-          >
-            <Database class="mb-3 size-10 text-muted-foreground/50" />
-            <CardTitle class="text-base">
-              No data sources available
-            </CardTitle>
-            <CardDescription class="mt-1">
-              Configure PMTiles or MBTiles sources in your config.toml
-            </CardDescription>
-          </CardContent>
-        </Card>
-
-        <div v-else class="grid gap-4">
-          <Card
-            v-for="source in dataSources"
-            :key="source.id"
-            class="
-              group overflow-hidden transition-all
-              hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5
-            "
-          >
-            <CardContent class="flex items-center justify-between p-5">
-              <div class="flex items-center gap-4">
-                <div
-                  class="
-                    flex size-14 items-center justify-center rounded-lg bg-muted
-                  "
-                >
-                  <Layers class="size-6 text-muted-foreground" />
-                </div>
-                <div class="space-y-1">
-                  <CardTitle class="text-base">
-                    {{ source.name || source.id }}
-                  </CardTitle>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" class="font-mono text-xs">
-                      {{ source.id }}
-                    </Badge>
-                    <Badge variant="outline" class="text-xs">
-                      z{{ source.minzoom }}-{{ source.maxzoom }}
-                    </Badge>
-                    <NuxtLink
-                      :to="`/data/${source.id}.json`"
-                      class="
-                        flex items-center gap-1 text-xs text-muted-foreground
-                        transition-colors
-                        hover:text-primary
-                      "
-                    >
-                      <FileJson class="size-3" />
-                      tilejson
-                    </NuxtLink>
-                  </div>
-                </div>
-              </div>
-              <Button as-child variant="secondary">
-                <NuxtLink :to="`/data/${source.id}/#2/0/0`">
-                  <Layers class="size-4" />
-                  Inspect
-                </NuxtLink>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <Separator />
-
-      <!-- API Endpoints Section -->
-      <section class="space-y-4">
-        <div class="flex items-center gap-2">
-          <ExternalLink class="size-5 text-muted-foreground" />
-          <h2 class="text-lg font-semibold">
-            API Endpoints
-          </h2>
-        </div>
-
-        <Card>
-          <CardContent class="divide-y divide-border p-0">
-            <div
-              v-for="(endpoint, index) in apiEndpoints"
-              :key="index"
+            <ChevronRight
               class="
-                flex items-center justify-between px-5 py-3 transition-colors
-                hover:bg-muted/50
+                size-4 text-muted-foreground transition-transform duration-200
+              "
+              :class="{ 'rotate-90': stylesOpen }"
+            />
+            <div
+              class="
+                flex size-8 items-center justify-center rounded-lg bg-primary/10
               "
             >
-              <div class="flex items-center gap-3">
-                <Badge
-                  variant="outline"
+              <Palette class="size-4 text-primary" />
+            </div>
+            <span class="font-medium">Styles</span>
+            <Badge variant="secondary" class="ml-auto rounded-lg">
+              {{ filteredStyles.length }}
+            </Badge>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <Separator class="bg-border/50" />
+            <div class="p-4">
+              <!-- Loading -->
+              <div v-if="isLoadingStyles" class="flex justify-center py-12">
+                <div
                   class="
-                    font-mono text-xs text-emerald-600
-                    dark:text-emerald-400
+                    size-8 animate-spin rounded-full border-2 border-muted
+                    border-t-primary
+                  "
+                ></div>
+              </div>
+
+              <!-- Empty state -->
+              <div v-else-if="!hasStyles" class="py-12 text-center">
+                <div
+                  class="
+                    mx-auto mb-4 flex size-16 items-center justify-center
+                    rounded-2xl bg-muted/50
                   "
                 >
-                  {{ endpoint.method }}
-                </Badge>
-                <code
-                  class="text-sm text-foreground"
-                  v-text="endpoint.path"
-                ></code>
+                  <Palette class="size-8 text-muted-foreground" />
+                </div>
+                <p class="font-medium">
+                  No styles configured
+                </p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  Add styles to your config.toml
+                </p>
               </div>
-              <span class="text-xs text-muted-foreground">
-                {{ endpoint.description }}
-              </span>
+
+              <!-- No results -->
+              <div
+                v-else-if="filteredStyles.length === 0"
+                class="py-12 text-center text-muted-foreground"
+              >
+                No styles match "{{ searchQuery }}"
+              </div>
+
+              <!-- Style list -->
+              <div v-else class="space-y-3">
+                <div
+                  v-for="style in filteredStyles"
+                  :key="style.id"
+                  class="
+                    group rounded-xl border border-border/50 bg-background/50
+                    p-4 transition-all
+                    hover:border-primary/30 hover:shadow-lg
+                    hover:shadow-primary/5
+                  "
+                >
+                  <div class="flex gap-4">
+                    <!-- Preview thumbnail -->
+                    <div
+                      class="
+                        size-20 shrink-0 overflow-hidden rounded-xl bg-muted
+                        ring-1 ring-border/50
+                      "
+                    >
+                      <img
+                        :src="`/styles/${style.id}/static/0,0,1/160x160.png`"
+                        :alt="style.name"
+                        class="
+                          size-full object-cover transition-transform
+                          group-hover:scale-105
+                        "
+                        loading="lazy"
+                      />
+                    </div>
+
+                    <!-- Content -->
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 class="font-semibold">
+                            {{ style.name }}
+                          </h3>
+                          <p class="mt-0.5 text-sm text-muted-foreground">
+                            <code
+                              class="
+                                rounded-md bg-muted px-1.5 py-0.5 text-xs
+                                font-medium
+                              "
+                            >{{ style.id }}</code>
+                          </p>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="flex items-center gap-2">
+                          <Button as-child size="sm" class="rounded-lg">
+                            <NuxtLink :to="`/styles/${style.id}/#2/0/0`">
+                              <Map class="mr-1.5 size-4" />
+                              Viewer
+                            </NuxtLink>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <!-- View mode links -->
+                      <div class="mt-2 flex items-center gap-3">
+                        <NuxtLink
+                          :to="`/styles/${style.id}/?raster#2/0/0`"
+                          class="
+                            flex items-center gap-1.5 rounded-lg bg-muted/50
+                            px-2.5 py-1 text-xs font-medium
+                            text-muted-foreground transition-colors
+                            hover:bg-muted hover:text-foreground
+                          "
+                        >
+                          <Image class="size-3.5" />
+                          Raster
+                        </NuxtLink>
+                        <NuxtLink
+                          :to="`/styles/${style.id}/#2/0/0`"
+                          class="
+                            flex items-center gap-1.5 rounded-lg bg-muted/50
+                            px-2.5 py-1 text-xs font-medium
+                            text-muted-foreground transition-colors
+                            hover:bg-muted hover:text-foreground
+                          "
+                        >
+                          <Grid3x3 class="size-3.5" />
+                          Vector
+                        </NuxtLink>
+                      </div>
+
+                      <!-- Service links -->
+                      <div
+                        class="
+                          mt-3 flex flex-wrap items-center gap-x-2 gap-y-1
+                          text-xs
+                        "
+                      >
+                        <span class="text-muted-foreground">Services:</span>
+                        <a
+                          :href="`/styles/${style.id}/style.json`"
+                          target="_blank"
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                        >
+                          GL Style
+                        </a>
+                        <span class="text-muted-foreground/30">•</span>
+                        <a
+                          :href="`/styles/${style.id}.json`"
+                          target="_blank"
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                        >
+                          TileJSON
+                        </a>
+                        <span class="text-muted-foreground/30">•</span>
+                        <a
+                          :href="`/styles/${style.id}/wmts.xml`"
+                          target="_blank"
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                        >
+                          WMTS
+                        </a>
+                        <span class="text-muted-foreground/30">•</span>
+                        <button
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                          @click="toggleStyleXyz(style.id)"
+                        >
+                          XYZ URL
+                        </button>
+                      </div>
+
+                      <!-- XYZ URL -->
+                      <div
+                        v-if="expandedStyleXyz.has(style.id)"
+                        class="
+                          mt-2 flex items-center gap-2 rounded-lg bg-muted/50
+                          p-2
+                        "
+                      >
+                        <code
+                          class="flex-1 truncate text-xs text-muted-foreground"
+                        >
+                          {{ baseUrl }}/styles/{{ style.id }}/{z}/{x}/{y}.png
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-7 shrink-0 rounded-lg"
+                          @click="copyUrl(`${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`)"
+                        >
+                          <Check
+                            v-if="copiedUrl === `${baseUrl}/styles/${style.id}/{z}/{x}/{y}.png`"
+                            class="size-3.5 text-green-500"
+                          />
+                          <Copy v-else class="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </CardContent>
+          </CollapsibleContent>
         </Card>
-      </section>
+      </Collapsible>
+
+      <!-- Data Sources Section -->
+      <Collapsible v-model:open="dataOpen">
+        <Card
+          class="
+            overflow-hidden rounded-xl border-border/50 bg-card/50
+            backdrop-blur-sm
+          "
+        >
+          <CollapsibleTrigger
+            class="
+              flex w-full items-center gap-3 p-4 transition-colors
+              hover:bg-muted/30
+            "
+          >
+            <ChevronRight
+              class="
+                size-4 text-muted-foreground transition-transform duration-200
+              "
+              :class="{ 'rotate-90': dataOpen }"
+            />
+            <div
+              class="
+                flex size-8 items-center justify-center rounded-lg bg-primary/10
+              "
+            >
+              <Database class="size-4 text-primary" />
+            </div>
+            <span class="font-medium">Data Sources</span>
+            <Badge variant="secondary" class="ml-auto rounded-lg">
+              {{ filteredDataSources.length }}
+            </Badge>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <Separator class="bg-border/50" />
+            <div class="p-4">
+              <!-- Loading -->
+              <div v-if="isLoadingData" class="flex justify-center py-12">
+                <div
+                  class="
+                    size-8 animate-spin rounded-full border-2 border-muted
+                    border-t-primary
+                  "
+                ></div>
+              </div>
+
+              <!-- Empty state -->
+              <div v-else-if="!hasData" class="py-12 text-center">
+                <div
+                  class="
+                    mx-auto mb-4 flex size-16 items-center justify-center
+                    rounded-2xl bg-muted/50
+                  "
+                >
+                  <Database class="size-8 text-muted-foreground" />
+                </div>
+                <p class="font-medium">
+                  No data sources configured
+                </p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  Add PMTiles or MBTiles to config.toml
+                </p>
+              </div>
+
+              <!-- No results -->
+              <div
+                v-else-if="filteredDataSources.length === 0"
+                class="py-12 text-center text-muted-foreground"
+              >
+                No data sources match "{{ searchQuery }}"
+              </div>
+
+              <!-- Data source list -->
+              <div v-else class="space-y-3">
+                <div
+                  v-for="source in filteredDataSources"
+                  :key="source.id"
+                  class="
+                    group rounded-xl border border-border/50 bg-background/50
+                    p-4 transition-all
+                    hover:border-primary/30 hover:shadow-lg
+                    hover:shadow-primary/5
+                  "
+                >
+                  <div class="flex items-start gap-4">
+                    <div
+                      class="
+                        flex size-12 shrink-0 items-center justify-center
+                        rounded-xl bg-muted ring-1 ring-border/50
+                      "
+                    >
+                      <Layers class="size-6 text-muted-foreground" />
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 class="font-semibold">
+                            {{ source.name || source.id }}
+                          </h3>
+                          <p
+                            class="
+                              mt-0.5 flex flex-wrap items-center gap-2 text-sm
+                              text-muted-foreground
+                            "
+                          >
+                            <code
+                              class="
+                                rounded-md bg-muted px-1.5 py-0.5 text-xs
+                                font-medium
+                              "
+                            >{{ source.id }}</code>
+                            <Badge
+                              variant="outline"
+                              class="rounded-md text-[10px]"
+                            >
+                              z{{ source.minzoom }}-{{ source.maxzoom }}
+                            </Badge>
+                          </p>
+                        </div>
+
+                        <Button
+                          as-child
+                          variant="secondary"
+                          size="sm"
+                          class="rounded-lg"
+                        >
+                          <NuxtLink :to="`/data/${source.id}/#2/0/0`">
+                            <Layers class="mr-1.5 size-4" />
+                            Inspect
+                          </NuxtLink>
+                        </Button>
+                      </div>
+
+                      <!-- Service links -->
+                      <div
+                        class="
+                          mt-3 flex flex-wrap items-center gap-x-2 gap-y-1
+                          text-xs
+                        "
+                      >
+                        <span class="text-muted-foreground">Services:</span>
+                        <a
+                          :href="`/data/${source.id}.json`"
+                          target="_blank"
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                        >
+                          TileJSON
+                        </a>
+                        <span class="text-muted-foreground/30">•</span>
+                        <button
+                          class="
+                            text-primary
+                            hover:underline
+                          "
+                          @click="toggleDataXyz(source.id)"
+                        >
+                          XYZ URL
+                        </button>
+                      </div>
+
+                      <!-- XYZ URL -->
+                      <div
+                        v-if="expandedDataXyz.has(source.id)"
+                        class="
+                          mt-2 flex items-center gap-2 rounded-lg bg-muted/50
+                          p-2
+                        "
+                      >
+                        <code
+                          class="flex-1 truncate text-xs text-muted-foreground"
+                        >
+                          {{ baseUrl }}/data/{{ source.id }}/{z}/{x}/{y}.pbf
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          class="size-7 shrink-0 rounded-lg"
+                          @click="copyUrl(`${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`)"
+                        >
+                          <Check
+                            v-if="copiedUrl === `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`"
+                            class="size-3.5 text-green-500"
+                          />
+                          <Copy v-else class="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      <!-- API Reference Section -->
+      <Collapsible v-model:open="apiOpen">
+        <Card
+          class="
+            overflow-hidden rounded-xl border-border/50 bg-card/50
+            backdrop-blur-sm
+          "
+        >
+          <CollapsibleTrigger
+            class="
+              flex w-full items-center gap-3 p-4 transition-colors
+              hover:bg-muted/30
+            "
+          >
+            <ChevronRight
+              class="
+                size-4 text-muted-foreground transition-transform duration-200
+              "
+              :class="{ 'rotate-90': apiOpen }"
+            />
+            <div
+              class="
+                flex size-8 items-center justify-center rounded-lg bg-muted/50
+              "
+            >
+              <ExternalLink class="size-4 text-muted-foreground" />
+            </div>
+            <span class="font-medium">API Reference</span>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <Separator class="bg-border/50" />
+            <div class="divide-y divide-border/50">
+              <div
+                v-for="(endpoint, i) in apiEndpoints"
+                :key="i"
+                class="
+                  flex items-center justify-between gap-4 px-4 py-3
+                  transition-colors
+                  hover:bg-muted/30
+                "
+              >
+                <div class="flex min-w-0 items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    class="
+                      shrink-0 rounded-md font-mono text-[10px] text-green-600
+                      dark:text-green-400
+                    "
+                  >
+                    {{ endpoint.method }}
+                  </Badge>
+                  <code class="truncate text-sm">{{ endpoint.path }}</code>
+                </div>
+                <span class="shrink-0 text-xs text-muted-foreground">{{ endpoint.description }}</span>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-border/40">
-      <div class="mx-auto max-w-5xl p-6">
-        <p class="text-center text-sm text-muted-foreground">
-          Tileserver RS — Built with Rust + Axum + MapLibre GL JS
-        </p>
-      </div>
+    <footer class="mt-auto border-t border-border/50 py-6">
+      <p class="text-center text-sm text-muted-foreground">
+        Tileserver RS — Built with Rust + Axum + MapLibre GL JS
+      </p>
     </footer>
   </div>
 </template>

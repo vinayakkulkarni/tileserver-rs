@@ -64,6 +64,15 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: ['/'],
     },
+    devProxy: {
+      '/styles.json': { target: 'http://localhost:8080/styles.json' },
+      '/styles': { target: 'http://localhost:8080/styles' },
+      '/data.json': { target: 'http://localhost:8080/data.json' },
+      '/data': { target: 'http://localhost:8080/data' },
+      '/fonts.json': { target: 'http://localhost:8080/fonts.json' },
+      '/fonts': { target: 'http://localhost:8080/fonts' },
+      '/health': { target: 'http://localhost:8080/health' },
+    },
   },
 
   vite: {

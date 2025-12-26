@@ -12,6 +12,9 @@ pub struct Config {
     pub sources: Vec<SourceConfig>,
     #[serde(default)]
     pub styles: Vec<StyleConfig>,
+    /// Path to fonts directory containing PBF glyph files
+    #[serde(default)]
+    pub fonts: Option<PathBuf>,
 }
 
 /// Server configuration

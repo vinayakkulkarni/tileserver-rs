@@ -9,7 +9,7 @@ use axum::{
     Json, Router,
 };
 use rust_embed::Embed;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -22,6 +22,7 @@ mod render;
 mod sources;
 mod styles;
 mod telemetry;
+mod wmts;
 
 use cli::Cli;
 use config::Config;
@@ -43,6 +44,7 @@ pub struct AppState {
     pub renderer: Option<Arc<Renderer>>,
     pub base_url: String,
     pub ui_enabled: bool,
+    pub fonts_dir: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -116,12 +118,22 @@ async fn main() -> anyhow::Result<()> {
     };
     let base_url = format!("http://{}:{}", host_for_url, config.server.port);
 
+    // Log fonts directory if configured
+    if let Some(ref fonts_path) = config.fonts {
+        if fonts_path.exists() {
+            tracing::info!("Fonts directory: {}", fonts_path.display());
+        } else {
+            tracing::warn!("Fonts directory not found: {}", fonts_path.display());
+        }
+    }
+
     let state = AppState {
         sources: Arc::new(sources),
         styles: Arc::new(styles),
         renderer,
         base_url,
         ui_enabled,
+        fonts_dir: config.fonts,
     };
 
     if ui_enabled {
@@ -232,14 +244,25 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
 fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
+        // Style endpoints
         .route("/styles.json", get(get_all_styles))
         .route("/styles/{style_json}", get(get_style_tilejson))
         .route("/styles/{style}/style.json", get(get_style_json))
+        .route("/styles/{style}/wmts.xml", get(get_wmts_capabilities))
+        .route("/styles/{style}/{sprite_file}", get(get_sprite))
         .route("/styles/{style}/{z}/{x}/{y_fmt}", get(get_raster_tile))
+        .route(
+            "/styles/{style}/{tile_size}/{z}/{x}/{y_fmt}",
+            get(get_raster_tile_with_size),
+        )
         .route(
             "/styles/{style}/static/{static_type}/{size_fmt}",
             get(get_static_image),
         )
+        // Font endpoints
+        .route("/fonts.json", get(get_fonts_list))
+        .route("/fonts/{fontstack}/{range}", get(get_font_glyphs))
+        // Data endpoints
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
@@ -483,6 +506,110 @@ async fn get_raster_tile(
     Ok((headers, image_data).into_response())
 }
 
+/// Raster tile request parameters with variable tile size
+#[derive(serde::Deserialize)]
+struct RasterTileWithSizeParams {
+    style: String,
+    tile_size: u16,   // e.g., 256 or 512
+    z: u8,
+    x: u32,
+    y_fmt: String, // e.g., "123.png" or "123@2x.webp"
+}
+
+impl RasterTileWithSizeParams {
+    /// Parse y, scale, and format from "123@2x.png" style string
+    fn parse(&self) -> Option<(u32, u8, ImageFormat)> {
+        // Split extension first: "123@2x" and "png"
+        let (y_and_scale, format_str) = self.y_fmt.rsplit_once('.')?;
+
+        let format = ImageFormat::from_str(format_str)?;
+
+        // Check for scale: "123@2x" or just "123"
+        if let Some((y_str, scale_str)) = y_and_scale.split_once('@') {
+            let y = y_str.parse().ok()?;
+            // Parse scale like "2x" -> 2
+            let scale = scale_str.strip_suffix('x')?.parse().ok()?;
+            // Validate scale range (1-9)
+            if (1..=9).contains(&scale) {
+                Some((y, scale, format))
+            } else {
+                None
+            }
+        } else {
+            // No scale, default to 1
+            let y = y_and_scale.parse().ok()?;
+            Some((y, 1, format))
+        }
+    }
+}
+
+/// Get a raster tile with variable tile size
+/// Route: GET /styles/{style}/{tile_size}/{z}/{x}/{y}[@{scale}x].{format}
+async fn get_raster_tile_with_size(
+    State(state): State<AppState>,
+    Path(params): Path<RasterTileWithSizeParams>,
+) -> Result<Response, TileServerError> {
+    // Validate tile size (only 256 and 512 are supported)
+    if params.tile_size != 256 && params.tile_size != 512 {
+        return Err(TileServerError::RenderError(format!(
+            "Invalid tile size: {}. Only 256 and 512 are supported.",
+            params.tile_size
+        )));
+    }
+
+    // Check if rendering is available
+    let renderer = state
+        .renderer
+        .as_ref()
+        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+
+    // Parse parameters
+    let (y, additional_scale, format) =
+        params.parse().ok_or(TileServerError::InvalidTileRequest)?;
+
+    // Calculate effective scale
+    // For 512px tiles, we use scale=2 (renders at 512px)
+    // For 256px tiles, we use scale=1 (renders at 256px)
+    // Additional scale from URL (e.g., @2x) multiplies on top
+    let base_scale: u8 = if params.tile_size == 512 { 2 } else { 1 };
+    let effective_scale = base_scale * additional_scale;
+
+    // Clamp to valid range
+    let scale = effective_scale.min(9);
+
+    // Get style
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+
+    // Rewrite style to inline tile URLs for native rendering
+    let rewritten_style =
+        styles::rewrite_style_for_native(&style.style_json, &state.base_url, &state.sources);
+
+    // Render the tile
+    let image_data = renderer
+        .render_tile(
+            &rewritten_style.to_string(),
+            params.z,
+            params.x,
+            y,
+            scale,
+            format,
+        )
+        .await?;
+
+    // Build response
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(format.content_type()),
+    );
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+    Ok((headers, image_data).into_response())
+}
+
 /// Static image request parameters
 #[derive(serde::Deserialize)]
 struct StaticImageParams {
@@ -580,4 +707,185 @@ async fn get_static_image(
     );
 
     Ok((headers, image_data).into_response())
+}
+
+/// Sprite request parameters
+#[derive(serde::Deserialize)]
+struct SpriteParams {
+    style: String,
+    sprite_file: String, // e.g., "sprite.png", "sprite@2x.json", "sprite.json"
+}
+
+/// Get sprite image or metadata for a style
+/// Route: GET /styles/{style}/sprite[@{scale}x].{format}
+async fn get_sprite(
+    State(state): State<AppState>,
+    Path(params): Path<SpriteParams>,
+) -> Result<Response, TileServerError> {
+    // Only handle sprite files
+    if !params.sprite_file.starts_with("sprite") {
+        return Err(TileServerError::InvalidTileRequest);
+    }
+
+    // Get style to find its directory
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+
+    // Get the style directory (parent of style.json)
+    let style_dir = style
+        .path
+        .parent()
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+
+    // Build path to sprite file
+    let sprite_path = style_dir.join(&params.sprite_file);
+
+    // Read the sprite file
+    let data = tokio::fs::read(&sprite_path).await.map_err(|e| {
+        tracing::debug!("Sprite file not found: {} ({})", sprite_path.display(), e);
+        TileServerError::SpriteNotFound(params.sprite_file.clone())
+    })?;
+
+    // Determine content type
+    let content_type = if params.sprite_file.ends_with(".json") {
+        "application/json"
+    } else if params.sprite_file.ends_with(".png") {
+        "image/png"
+    } else {
+        "application/octet-stream"
+    };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static(content_type));
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+    Ok((headers, data).into_response())
+}
+
+/// Get WMTS GetCapabilities document for a style
+/// Route: GET /styles/{style}/wmts.xml
+async fn get_wmts_capabilities(
+    State(state): State<AppState>,
+    Path(style_id): Path<String>,
+) -> Result<Response, TileServerError> {
+    // Get style
+    let style = state
+        .styles
+        .get(&style_id)
+        .ok_or_else(|| TileServerError::StyleNotFound(style_id.clone()))?;
+
+    // Generate WMTS capabilities XML
+    let xml = wmts::generate_wmts_capabilities(
+        &state.base_url,
+        &style_id,
+        &style.name,
+        0,  // minzoom
+        22, // maxzoom
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/xml"));
+    headers.insert(
+        CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=86400"),
+    );
+
+    Ok((headers, xml).into_response())
+}
+
+/// Get list of available fonts
+/// Route: GET /fonts.json
+async fn get_fonts_list(State(state): State<AppState>) -> Result<Json<Vec<String>>, TileServerError> {
+    let fonts_dir = match &state.fonts_dir {
+        Some(dir) => dir,
+        None => return Ok(Json(Vec::new())),
+    };
+
+    let mut fonts = Vec::new();
+
+    // Read the fonts directory to find font families
+    // Each subdirectory is a font family (e.g., "Noto Sans Regular")
+    if let Ok(mut entries) = tokio::fs::read_dir(fonts_dir).await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            if let Ok(file_type) = entry.file_type().await {
+                if file_type.is_dir() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        // Only include directories that have at least one .pbf file
+                        let font_dir = entry.path();
+                        if has_pbf_files(&font_dir).await {
+                            fonts.push(name.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Sort alphabetically for consistent output
+    fonts.sort();
+
+    Ok(Json(fonts))
+}
+
+/// Check if a directory contains at least one .pbf file
+async fn has_pbf_files(dir: &std::path::Path) -> bool {
+    if let Ok(mut entries) = tokio::fs::read_dir(dir).await {
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.ends_with(".pbf") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Font glyph request parameters
+#[derive(serde::Deserialize)]
+struct FontParams {
+    fontstack: String, // e.g., "Noto Sans Regular" or "Open Sans Bold,Arial Unicode MS Regular"
+    range: String,     // e.g., "0-255.pbf"
+}
+
+/// Get font glyphs (PBF format)
+/// Route: GET /fonts/{fontstack}/{start}-{end}.pbf
+async fn get_font_glyphs(
+    State(state): State<AppState>,
+    Path(params): Path<FontParams>,
+) -> Result<Response, TileServerError> {
+    // Check if fonts directory is configured
+    let fonts_dir = state.fonts_dir.as_ref().ok_or_else(|| {
+        TileServerError::FontNotFound("Fonts directory not configured".to_string())
+    })?;
+
+    // Parse the range to ensure it's valid (e.g., "0-255.pbf")
+    if !params.range.ends_with(".pbf") {
+        return Err(TileServerError::InvalidTileRequest);
+    }
+
+    // Font stacks are comma-separated, try each font in order
+    let fonts: Vec<&str> = params.fontstack.split(',').map(|s| s.trim()).collect();
+
+    for font_name in &fonts {
+        let font_path = fonts_dir.join(font_name).join(&params.range);
+
+        if let Ok(data) = tokio::fs::read(&font_path).await {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                CONTENT_TYPE,
+                HeaderValue::from_static("application/x-protobuf"),
+            );
+            headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+
+            tracing::debug!("Serving font: {}/{}", font_name, params.range);
+            return Ok((headers, data).into_response());
+        }
+    }
+
+    // No font found in the stack
+    tracing::debug!("Font not found: {} (tried: {:?})", params.range, fonts);
+    Err(TileServerError::FontNotFound(params.fontstack))
 }
