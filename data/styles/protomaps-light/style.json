@@ -1,0 +1,187 @@
+{
+  "version": 8,
+  "name": "Protomaps Light",
+  "sources": {
+    "protomaps": {
+      "type": "vector",
+      "url": "/data/protomaps.json"
+    }
+  },
+  "glyphs": "/fonts/{fontstack}/{range}.pbf",
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f8f4f0"
+      }
+    },
+    {
+      "id": "earth",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "earth",
+      "paint": {
+        "fill-color": "#f8f4f0"
+      }
+    },
+    {
+      "id": "landuse_park",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "filter": ["any",
+        ["==", "pmap:kind", "park"],
+        ["==", "pmap:kind", "nature_reserve"],
+        ["==", "pmap:kind", "forest"]
+      ],
+      "paint": {
+        "fill-color": "#d8e8c8"
+      }
+    },
+    {
+      "id": "landuse_urban",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "landuse",
+      "filter": ["any",
+        ["==", "pmap:kind", "residential"],
+        ["==", "pmap:kind", "commercial"],
+        ["==", "pmap:kind", "industrial"]
+      ],
+      "paint": {
+        "fill-color": "#e8e0d8"
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#aad3df"
+      }
+    },
+    {
+      "id": "roads_other",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["all",
+        ["!=", "pmap:kind", "highway"],
+        ["!=", "pmap:kind", "major_road"]
+      ],
+      "paint": {
+        "line-color": "#ffffff",
+        "line-width": [
+          "interpolate", ["exponential", 1.5], ["zoom"],
+          12, 0.5,
+          18, 4
+        ]
+      }
+    },
+    {
+      "id": "roads_major",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["==", "pmap:kind", "major_road"],
+      "paint": {
+        "line-color": "#ffffff",
+        "line-width": [
+          "interpolate", ["exponential", 1.5], ["zoom"],
+          8, 0.5,
+          18, 10
+        ]
+      }
+    },
+    {
+      "id": "roads_highway",
+      "type": "line",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": ["==", "pmap:kind", "highway"],
+      "paint": {
+        "line-color": "#ffcc88",
+        "line-width": [
+          "interpolate", ["exponential", 1.5], ["zoom"],
+          6, 0.5,
+          18, 14
+        ]
+      }
+    },
+    {
+      "id": "buildings",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "buildings",
+      "minzoom": 13,
+      "paint": {
+        "fill-color": "#d9d0c9",
+        "fill-opacity": 0.8
+      }
+    },
+    {
+      "id": "places_locality",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "filter": ["==", "pmap:kind", "locality"],
+      "layout": {
+        "text-field": "{name}",
+        "text-font": ["Noto Sans Regular"],
+        "text-size": [
+          "interpolate", ["linear"], ["zoom"],
+          3, 10,
+          10, 14
+        ]
+      },
+      "paint": {
+        "text-color": "#333333",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
+      }
+    },
+    {
+      "id": "places_region",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "filter": ["==", "pmap:kind", "region"],
+      "layout": {
+        "text-field": "{name}",
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 12,
+        "text-transform": "uppercase",
+        "text-letter-spacing": 0.1
+      },
+      "paint": {
+        "text-color": "#666666",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1
+      }
+    },
+    {
+      "id": "places_country",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "filter": ["==", "pmap:kind", "country"],
+      "layout": {
+        "text-field": "{name}",
+        "text-font": ["Noto Sans Medium"],
+        "text-size": [
+          "interpolate", ["linear"], ["zoom"],
+          2, 10,
+          6, 16
+        ],
+        "text-transform": "uppercase"
+      },
+      "paint": {
+        "text-color": "#333333",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 2
+      }
+    }
+  ]
+}
