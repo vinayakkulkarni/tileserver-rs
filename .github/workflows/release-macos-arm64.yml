@@ -37,7 +37,7 @@ jobs:
           targets: aarch64-apple-darwin
 
       - name: Install build dependencies
-        run: brew install cmake ninja ccache
+        run: brew install cmake ninja ccache glfw libuv pkg-config
 
       - name: Cache MapLibre Native build
         uses: actions/cache@v4

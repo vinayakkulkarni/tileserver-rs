@@ -1,13 +1,15 @@
 # =============================================================================
 # Stage 1: Build MapLibre Native (C++ library)
 # =============================================================================
-FROM ubuntu:jammy AS maplibre-builder
+FROM ubuntu:24.04 AS maplibre-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies for MapLibre Native (matches tileserver-gl)
+# Install build dependencies for MapLibre Native
+# Using clang as required by MapLibre Native CMake presets
 RUN apt-get update && apt-get install -y --no-install-recommends --no-install-suggests \
     build-essential \
+    clang \
     cmake \
     ninja-build \
     ccache \
@@ -26,6 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends --no-install-su
     xvfb \
     libopengl-dev \
     libgl-dev \
+    libwayland-dev \
+    libxkbcommon-dev \
+    wayland-protocols \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -34,16 +39,12 @@ WORKDIR /build
 # Copy MapLibre Native source
 COPY maplibre-native-sys/vendor/maplibre-native ./maplibre-native
 
-# Build MapLibre Native for Linux (headless OpenGL)
+# Build MapLibre Native for Linux using the official preset
 WORKDIR /build/maplibre-native
-RUN cmake -B build-linux \
-    -G Ninja \
+RUN cmake --preset linux-opengl \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    -DMBGL_WITH_QT=OFF \
-    -DMBGL_WITH_OPENGL=ON \
-    -DMBGL_WITH_WERROR=OFF \
-    && cmake --build build-linux --target mbgl-core mlt-cpp -j$(nproc)
+    -DMLN_WITH_WERROR=OFF \
+    && cmake --build build-linux-opengl --target mbgl-core mlt-cpp -j$(nproc)
 
 # =============================================================================
 # Stage 2: Build Nuxt frontend (SPA)
@@ -86,8 +87,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy MapLibre Native build artifacts
-COPY --from=maplibre-builder /build/maplibre-native/build-linux /app/maplibre-native-sys/vendor/maplibre-native/build-linux
+# Copy MapLibre Native build artifacts (from linux-opengl preset)
+COPY --from=maplibre-builder /build/maplibre-native/build-linux-opengl /app/maplibre-native-sys/vendor/maplibre-native/build-linux-opengl
 
 # Copy MapLibre Native headers (needed for build.rs)
 COPY maplibre-native-sys ./maplibre-native-sys
