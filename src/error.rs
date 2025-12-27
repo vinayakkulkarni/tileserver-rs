@@ -27,6 +27,9 @@ pub enum TileServerError {
     #[error("Font not found: {0}")]
     FontNotFound(String),
 
+    #[error("Not found: {0}")]
+    NotFound(String),
+
     #[error("Failed to read file: {0}")]
     FileError(#[from] std::io::Error),
 
@@ -55,6 +58,7 @@ impl IntoResponse for TileServerError {
             TileServerError::StyleNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
             TileServerError::SpriteNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
             TileServerError::FontNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
+            TileServerError::NotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
             TileServerError::FileError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "File read error".to_string(),

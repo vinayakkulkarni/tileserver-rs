@@ -79,17 +79,81 @@ impl Renderer {
             mode: super::native::MapMode::Static,
         };
 
-        let image = self
+        let rendered_image = self
             .pool
             .render_static(&options.style_json, native_options)
             .await?;
 
+        // Apply overlays if specified
+        let final_image = self.apply_overlays(rendered_image, &options)?;
+
         // Convert to requested format
         match options.format {
-            ImageFormat::Png => image.to_png(),
-            ImageFormat::Jpeg => image.to_jpeg(90),
-            ImageFormat::Webp => image.to_webp(90),
+            ImageFormat::Png => final_image.to_png(),
+            ImageFormat::Jpeg => final_image.to_jpeg(90),
+            ImageFormat::Webp => final_image.to_webp(90),
         }
+    }
+
+    /// Apply path and marker overlays to a rendered image
+    fn apply_overlays(
+        &self,
+        mut image: super::native::RenderedImage,
+        options: &RenderOptions,
+    ) -> Result<super::native::RenderedImage> {
+        // Parse paths and markers
+        let mut paths = Vec::new();
+        let mut markers = Vec::new();
+
+        if let Some(ref path_str) = options.path {
+            // Multiple paths can be separated by |
+            for path_part in path_str.split('~') {
+                if let Some(path) = super::overlay::parse_path(path_part) {
+                    paths.push(path);
+                }
+            }
+        }
+
+        if let Some(ref marker_str) = options.marker {
+            // Multiple markers can be separated by |
+            for marker_part in marker_str.split('~') {
+                if let Some(marker) = super::overlay::parse_marker(marker_part) {
+                    markers.push(marker);
+                }
+            }
+        }
+
+        // If no overlays, return the original image
+        if paths.is_empty() && markers.is_empty() {
+            return Ok(image);
+        }
+
+        // Convert to image::RgbaImage for drawing
+        let actual_width = options.width * options.scale as u32;
+        let actual_height = options.height * options.scale as u32;
+
+        let mut rgba_image =
+            image::RgbaImage::from_raw(actual_width, actual_height, image.take_data()).ok_or_else(
+                || TileServerError::RenderError("Failed to create image buffer".to_string()),
+            )?;
+
+        // Draw overlays
+        super::overlay::draw_overlays(
+            &mut rgba_image,
+            &paths,
+            &markers,
+            options.lon,
+            options.lat,
+            options.zoom,
+            options.scale as f32,
+        );
+
+        // Convert back to native RenderedImage
+        Ok(super::native::RenderedImage::from_rgba(
+            actual_width,
+            actual_height,
+            rgba_image.into_raw(),
+        ))
     }
 
     /// Convert PNG data to JPEG

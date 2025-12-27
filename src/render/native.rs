@@ -179,9 +179,23 @@ pub struct RenderedImage {
 }
 
 impl RenderedImage {
+    /// Create a new RenderedImage from raw RGBA data
+    pub fn from_rgba(width: u32, height: u32, data: Vec<u8>) -> Self {
+        Self {
+            data,
+            width,
+            height,
+        }
+    }
+
     /// Get the raw RGBA pixel data (premultiplied alpha)
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    /// Take ownership of the raw data
+    pub fn take_data(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.data)
     }
 
     /// Get the image width in pixels

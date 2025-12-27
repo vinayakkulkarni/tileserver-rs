@@ -56,6 +56,10 @@ sample_rate = 1.0
 #       └── ...
 # fonts = "/data/fonts"
 
+# Path to static files directory (for /files/{filename} endpoint)
+# Serves arbitrary static files like GeoJSON overlays, custom icons, etc.
+# files = "/data/files"
+
 # Map styles
 # Sprites should be placed alongside style.json:
 #   styles/my-style/

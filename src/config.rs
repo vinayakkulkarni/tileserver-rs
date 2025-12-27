@@ -15,6 +15,9 @@ pub struct Config {
     /// Path to fonts directory containing PBF glyph files
     #[serde(default)]
     pub fonts: Option<PathBuf>,
+    /// Path to static files directory for /files/{filename} endpoint
+    #[serde(default)]
+    pub files: Option<PathBuf>,
 }
 
 /// Server configuration

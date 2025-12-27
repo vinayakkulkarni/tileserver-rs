@@ -41,10 +41,10 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 |----------|--------|-------------|
 | `GET /styles/{id}/static/{lon},{lat},{zoom}[@{bearing}[,{pitch}]]/{width}x{height}[@{scale}x].{format}` | ✅ | Center-based static image |
 | `GET /styles/{id}/static/{minx},{miny},{maxx},{maxy}/{width}x{height}[@{scale}x].{format}` | ✅ | Bounding box static image |
-| `GET /styles/{id}/static/auto/{width}x{height}[@{scale}x].{format}` | ❌ | Auto-fit static image |
-| `?path=...` query parameter | ❌ | Path/polyline overlay |
-| `?marker=...` query parameter | ❌ | Marker overlay |
-| `?padding=...` query parameter | ❌ | Padding for auto-fit |
+| `GET /styles/{id}/static/auto/{width}x{height}[@{scale}x].{format}` | ✅ | Auto-fit static image |
+| `?path=...` query parameter | ✅ | Path/polyline overlay |
+| `?marker=...` query parameter | ✅ | Marker overlay |
+| `?padding=...` query parameter | ✅ | Padding for auto-fit |
 
 ### Source Data (Vector Tiles)
 
@@ -64,7 +64,7 @@ Feature parity tracking with [tileserver-gl](https://tileserver.readthedocs.io/e
 | `GET /health` | ✅ | Health check |
 | `GET /fonts.json` | ✅ | List available fonts |
 | `GET /index.json` | ✅ | Combined TileJSON array |
-| `GET /files/{filename}` | ❌ | Static file serving |
+| `GET /files/{filename}` | ✅ | Static file serving |
 
 ---
 

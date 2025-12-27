@@ -266,10 +266,66 @@ impl RenderOptions {
                 (center_lon, center_lat, zoom, 0.0, 0.0)
             }
             StaticType::Auto => {
-                // For auto mode, we'll need to parse paths/markers
-                // For now, default to world view
-                // TODO: Implement bbox calculation from paths/markers
-                (0.0, 0.0, 1.0, 0.0, 0.0)
+                // For auto mode, calculate bounds from paths/markers
+                let mut paths = Vec::new();
+                let mut markers = Vec::new();
+
+                if let Some(ref path_str) = query_params.path {
+                    for path_part in path_str.split('~') {
+                        if let Some(path) = crate::render::overlay::parse_path(path_part) {
+                            paths.push(path);
+                        }
+                    }
+                }
+
+                if let Some(ref marker_str) = query_params.marker {
+                    for marker_part in marker_str.split('~') {
+                        if let Some(marker) = crate::render::overlay::parse_marker(marker_part) {
+                            markers.push(marker);
+                        }
+                    }
+                }
+
+                if let Some((min_lon, min_lat, max_lon, max_lat)) =
+                    crate::render::overlay::calculate_bounds(&paths, &markers)
+                {
+                    // Calculate center
+                    let center_lon = (min_lon + max_lon) / 2.0;
+                    let center_lat = (min_lat + max_lat) / 2.0;
+
+                    // Calculate zoom to fit bounds with padding
+                    let padding = query_params.padding.unwrap_or(0.1);
+                    let lon_diff = (max_lon - min_lon).abs() * (1.0 + padding);
+                    let lat_diff = (max_lat - min_lat).abs() * (1.0 + padding);
+
+                    // Account for image aspect ratio
+                    let aspect = width as f64 / height as f64;
+                    let adjusted_lon_diff = lon_diff.max(lat_diff * aspect);
+                    let adjusted_lat_diff = lat_diff.max(lon_diff / aspect);
+                    let max_diff = adjusted_lon_diff.max(adjusted_lat_diff);
+
+                    let zoom = if max_diff > 180.0 {
+                        0.0
+                    } else if max_diff > 0.0 {
+                        let zoom_lon = (360.0 / max_diff).log2();
+                        let zoom_lat = (180.0 / adjusted_lat_diff).log2();
+                        let calculated_zoom = zoom_lon.min(zoom_lat).floor();
+                        // Clamp to maxzoom if specified
+                        if let Some(max_zoom) = query_params.maxzoom {
+                            calculated_zoom.min(max_zoom as f64)
+                        } else {
+                            calculated_zoom.min(18.0)
+                        }
+                    } else {
+                        // Single point, use a reasonable default zoom
+                        query_params.maxzoom.map_or(14.0, |z| z as f64)
+                    };
+
+                    (center_lon, center_lat, zoom, 0.0, 0.0)
+                } else {
+                    // No paths or markers, default to world view
+                    (0.0, 0.0, 1.0, 0.0, 0.0)
+                }
             }
         };
 

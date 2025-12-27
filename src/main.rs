@@ -45,6 +45,7 @@ pub struct AppState {
     pub base_url: String,
     pub ui_enabled: bool,
     pub fonts_dir: Option<PathBuf>,
+    pub files_dir: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -127,6 +128,15 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Log files directory if configured
+    if let Some(ref files_path) = config.files {
+        if files_path.exists() {
+            tracing::info!("Files directory: {}", files_path.display());
+        } else {
+            tracing::warn!("Files directory not found: {}", files_path.display());
+        }
+    }
+
     let state = AppState {
         sources: Arc::new(sources),
         styles: Arc::new(styles),
@@ -134,6 +144,7 @@ async fn main() -> anyhow::Result<()> {
         base_url,
         ui_enabled,
         fonts_dir: config.fonts,
+        files_dir: config.files,
     };
 
     if ui_enabled {
@@ -268,6 +279,8 @@ fn api_router(state: AppState) -> Router {
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
         .route("/data/{source}/{z}/{x}/{y}.geojson", get(get_tile_geojson))
+        // Static files endpoint
+        .route("/files/{*filepath}", get(get_static_file))
         .with_state(state)
 }
 
@@ -1036,4 +1049,61 @@ async fn get_font_glyphs(
     // No font found in the stack
     tracing::debug!("Font not found: {} (tried: {:?})", params.range, fonts);
     Err(TileServerError::FontNotFound(params.fontstack))
+}
+
+/// Get a static file from the files directory
+/// Route: GET /files/{*filepath}
+async fn get_static_file(
+    State(state): State<AppState>,
+    Path(filepath): Path<String>,
+) -> Result<Response, TileServerError> {
+    // Check if files directory is configured
+    let files_dir = state
+        .files_dir
+        .as_ref()
+        .ok_or_else(|| TileServerError::NotFound("Files directory not configured".to_string()))?;
+
+    // Sanitize the filepath to prevent directory traversal attacks
+    let filepath = filepath.trim_start_matches('/');
+    if filepath.contains("..") || filepath.starts_with('/') {
+        return Err(TileServerError::NotFound("Invalid file path".to_string()));
+    }
+
+    let file_path = files_dir.join(filepath);
+
+    // Ensure the resolved path is still within the files directory
+    let canonical_files_dir = files_dir
+        .canonicalize()
+        .map_err(|_| TileServerError::NotFound("Files directory not accessible".to_string()))?;
+    let canonical_file_path = file_path
+        .canonicalize()
+        .map_err(|_| TileServerError::NotFound(format!("File not found: {}", filepath)))?;
+
+    if !canonical_file_path.starts_with(&canonical_files_dir) {
+        return Err(TileServerError::NotFound("Invalid file path".to_string()));
+    }
+
+    // Read the file
+    let data = tokio::fs::read(&canonical_file_path)
+        .await
+        .map_err(|_| TileServerError::NotFound(format!("File not found: {}", filepath)))?;
+
+    // Determine content type from extension
+    let content_type = mime_guess::from_path(&canonical_file_path)
+        .first_or_octet_stream()
+        .to_string();
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_str(&content_type)
+            .unwrap_or(HeaderValue::from_static("application/octet-stream")),
+    );
+    // Cache static files for 1 hour
+    headers.insert(
+        CACHE_CONTROL,
+        HeaderValue::from_static("public, max-age=3600"),
+    );
+
+    Ok((headers, data).into_response())
 }
