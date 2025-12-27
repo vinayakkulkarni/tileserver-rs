@@ -1,5 +1,11 @@
 use serde::Deserialize;
 
+/// Maximum allowed image dimension (width or height) in pixels
+pub const MAX_IMAGE_DIMENSION: u32 = 4096;
+
+/// Maximum allowed scale factor for retina images
+pub const MAX_SCALE_FACTOR: u8 = 4;
+
 /// Image format for rendered output
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageFormat {
@@ -221,6 +227,29 @@ impl RenderOptions {
         format: ImageFormat,
         query_params: StaticQueryParams,
     ) -> Result<Self, String> {
+        // Security: Validate image dimensions to prevent DoS via memory exhaustion
+        if width == 0 || height == 0 {
+            return Err("Image dimensions must be greater than 0".to_string());
+        }
+        if width > MAX_IMAGE_DIMENSION {
+            return Err(format!(
+                "Image width {} exceeds maximum of {}",
+                width, MAX_IMAGE_DIMENSION
+            ));
+        }
+        if height > MAX_IMAGE_DIMENSION {
+            return Err(format!(
+                "Image height {} exceeds maximum of {}",
+                height, MAX_IMAGE_DIMENSION
+            ));
+        }
+        if scale == 0 || scale > MAX_SCALE_FACTOR {
+            return Err(format!(
+                "Scale factor must be between 1 and {}",
+                MAX_SCALE_FACTOR
+            ));
+        }
+
         let (lon, lat, zoom, bearing, pitch) = match static_type {
             StaticType::Center {
                 lon,

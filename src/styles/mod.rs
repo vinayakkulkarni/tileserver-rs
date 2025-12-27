@@ -140,6 +140,7 @@ impl Default for StyleManager {
 ///
 /// The native renderer cannot fetch TileJSON from our server (same process),
 /// so we need to embed the tile URLs directly in the style.
+/// This also rewrites relative glyphs and sprite URLs to absolute URLs.
 pub fn rewrite_style_for_native(
     style_json: &serde_json::Value,
     base_url: &str,
@@ -147,11 +148,33 @@ pub fn rewrite_style_for_native(
 ) -> serde_json::Value {
     let mut style = style_json.clone();
 
-    // Get the sources object
+    // Rewrite sources - inline tile URLs
     if let Some(style_sources) = style.get_mut("sources") {
         if let Some(sources_obj) = style_sources.as_object_mut() {
             for (source_id, source_config) in sources_obj.iter_mut() {
                 rewrite_source(source_id, source_config, base_url, sources);
+            }
+        }
+    }
+
+    // Rewrite glyphs URL if it's relative
+    if let Some(glyphs) = style.get_mut("glyphs") {
+        if let Some(glyphs_str) = glyphs.as_str() {
+            if glyphs_str.starts_with('/') {
+                let absolute_url = format!("{}{}", base_url, glyphs_str);
+                tracing::debug!("Rewriting glyphs URL: {} -> {}", glyphs_str, absolute_url);
+                *glyphs = serde_json::Value::String(absolute_url);
+            }
+        }
+    }
+
+    // Rewrite sprite URL if it's relative
+    if let Some(sprite) = style.get_mut("sprite") {
+        if let Some(sprite_str) = sprite.as_str() {
+            if sprite_str.starts_with('/') {
+                let absolute_url = format!("{}{}", base_url, sprite_str);
+                tracing::debug!("Rewriting sprite URL: {} -> {}", sprite_str, absolute_url);
+                *sprite = serde_json::Value::String(absolute_url);
             }
         }
     }

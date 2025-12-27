@@ -1,0 +1,38 @@
+# Tileserver-RS Offline Configuration
+# This config uses only local files - no internet required!
+#
+# Usage:
+#   1. Download a PMTiles file (e.g., from https://protomaps.com/downloads)
+#   2. Place it in ./data/tiles/ directory
+#   3. Update the path below to point to your file
+#   4. Run: ./target/release/tileserver-rs --config config.offline.toml --ui
+
+# Root-level configuration (must come before any [section] headers)
+# Fonts directory
+fonts = "./data/fonts"
+
+# Optional: static files directory for custom overlays, icons, etc.
+# files = "./data/files"
+
+[server]
+host = "0.0.0.0"
+port = 8080
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+# Local tile source - update the path to your PMTiles file
+# Download tiles from: https://protomaps.com/downloads
+[[sources]]
+id = "protomaps"
+type = "pmtiles"
+path = "./data/tiles/protomaps-sample.pmtiles"
+name = "Protomaps Firenze Sample"
+attribution = "<a href=\"https://protomaps.com\">Protomaps</a> | <a href=\"https://openstreetmap.org/copyright\">© OpenStreetMap</a>"
+
+# Local style (uses the bundled style in ./styles)
+[[styles]]
+id = "protomaps"
+path = "./styles/protomaps/style.json"
+name = "Protomaps Light"

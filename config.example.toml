@@ -1,6 +1,29 @@
 # Tileserver-RS Configuration Example
 # Copy this file to config.toml and customize for your setup
 
+# ============================================================================
+# ROOT-LEVEL CONFIGURATION
+# These must come BEFORE any [section] headers due to TOML parsing rules
+# ============================================================================
+
+# Path to fonts directory (for serving PBF glyph files)
+# The directory structure should be:
+#   fonts/
+#   ├── Noto Sans Regular/
+#   │   ├── 0-255.pbf
+#   │   ├── 256-511.pbf
+#   │   └── ...
+#   └── Open Sans Bold/
+#       └── ...
+# fonts = "/data/fonts"
+
+# Path to static files directory (for /files/{filename} endpoint)
+# Serves arbitrary static files like GeoJSON overlays, custom icons, etc.
+# files = "/data/files"
+
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
 [server]
 # Host to bind to (use 0.0.0.0 to listen on all interfaces)
 host = "0.0.0.0"
@@ -9,7 +32,9 @@ port = 8080
 # Allowed CORS origins (use ["*"] for all origins)
 cors_origins = ["*"]
 
-# OpenTelemetry configuration
+# ============================================================================
+# OPENTELEMETRY CONFIGURATION
+# ============================================================================
 [telemetry]
 # Enable OpenTelemetry tracing (default: false)
 enabled = false
@@ -20,8 +45,10 @@ service_name = "tileserver-rs"
 # Sampling rate (0.0 to 1.0, where 1.0 = 100% of traces)
 sample_rate = 1.0
 
-# Tile sources - PMTiles and MBTiles files
-# You can add multiple sources, each with a unique ID
+# ============================================================================
+# TILE SOURCES
+# PMTiles and MBTiles files - add multiple sources, each with a unique ID
+# ============================================================================
 
 # Example: Local PMTiles file
 # [[sources]]
@@ -45,21 +72,9 @@ sample_rate = 1.0
 # path = "/data/terrain.mbtiles"
 # name = "Terrain RGB"
 
-# Path to fonts directory (for serving PBF glyph files)
-# The directory structure should be:
-#   fonts/
-#   ├── Noto Sans Regular/
-#   │   ├── 0-255.pbf
-#   │   ├── 256-511.pbf
-#   │   └── ...
-#   └── Open Sans Bold/
-#       └── ...
-# fonts = "/data/fonts"
-
-# Path to static files directory (for /files/{filename} endpoint)
-# Serves arbitrary static files like GeoJSON overlays, custom icons, etc.
-# files = "/data/files"
-
+# ============================================================================
+# MAP STYLES
+# ============================================================================
 # Map styles
 # Sprites should be placed alongside style.json:
 #   styles/my-style/

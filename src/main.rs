@@ -11,7 +11,11 @@ use axum::{
 use rust_embed::Embed;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{AllowOrigin, CorsLayer},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 mod cache_control;
@@ -153,18 +157,43 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Web UI disabled (use --ui to enable)");
     }
 
-    // Build CORS layer
+    // Build CORS layer with proper multi-origin support
+    let allow_origin = if config.server.cors_origins.is_empty()
+        || config.server.cors_origins.iter().any(|o| o == "*")
+    {
+        // Wildcard: allow any origin
+        if !config.server.cors_origins.is_empty() {
+            tracing::warn!(
+                "CORS configured with wildcard (*). Consider restricting origins in production."
+            );
+        }
+        AllowOrigin::any()
+    } else {
+        // Specific origins: parse and validate each one
+        let origins: Vec<HeaderValue> = config
+            .server
+            .cors_origins
+            .iter()
+            .filter_map(|o| {
+                o.parse::<HeaderValue>().ok().or_else(|| {
+                    tracing::warn!("Invalid CORS origin '{}', skipping", o);
+                    None
+                })
+            })
+            .collect();
+
+        if origins.is_empty() {
+            tracing::warn!("No valid CORS origins configured, defaulting to wildcard");
+            AllowOrigin::any()
+        } else {
+            AllowOrigin::list(origins)
+        }
+    };
+
     let cors = CorsLayer::new()
         .allow_headers([ACCEPT, CONTENT_TYPE])
         .max_age(Duration::from_secs(86400))
-        .allow_origin(
-            config
-                .server
-                .cors_origins
-                .first()
-                .unwrap_or(&"*".to_string())
-                .parse::<HeaderValue>()?,
-        )
+        .allow_origin(allow_origin)
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     // Build router
@@ -278,7 +307,6 @@ fn api_router(state: AppState) -> Router {
         .route("/data.json", get(get_all_sources))
         .route("/data/{source}", get(get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
-        .route("/data/{source}/{z}/{x}/{y}.geojson", get(get_tile_geojson))
         // Static files endpoint
         .route("/files/{*filepath}", get(get_static_file))
         .with_state(state)
@@ -440,9 +468,14 @@ async fn get_tile(
     State(state): State<AppState>,
     Path(params): Path<TileParams>,
 ) -> Result<Response, TileServerError> {
-    let (y, _format) = params
+    let (y, format) = params
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
+
+    // Handle GeoJSON format separately
+    if format == "geojson" {
+        return get_tile_as_geojson(&state, &params.source, params.z, params.x, y).await;
+    }
 
     let source = state
         .sources
@@ -474,20 +507,13 @@ async fn get_tile(
     Ok((headers, tile.data).into_response())
 }
 
-/// GeoJSON tile request parameters
-#[derive(serde::Deserialize)]
-struct GeoJsonTileParams {
-    source: String,
+/// Get a tile as GeoJSON (helper function)
+async fn get_tile_as_geojson(
+    state: &AppState,
+    source_id: &str,
     z: u8,
     x: u32,
     y: u32,
-}
-
-/// Get a tile as GeoJSON (converts PBF to GeoJSON)
-/// Route: GET /data/{source}/{z}/{x}/{y}.geojson
-async fn get_tile_geojson(
-    State(state): State<AppState>,
-    Path(params): Path<GeoJsonTileParams>,
 ) -> Result<Response, TileServerError> {
     use flate2::read::GzDecoder;
     use geozero::mvt::{Message, Tile};
@@ -497,8 +523,8 @@ async fn get_tile_geojson(
 
     let source = state
         .sources
-        .get(&params.source)
-        .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+        .get(source_id)
+        .ok_or_else(|| TileServerError::SourceNotFound(source_id.to_string()))?;
 
     // Check if source is vector format
     if source.metadata().format != sources::TileFormat::Pbf {
@@ -507,13 +533,10 @@ async fn get_tile_geojson(
         ));
     }
 
-    let tile = source.get_tile(params.z, params.x, params.y).await?.ok_or(
-        TileServerError::TileNotFound {
-            z: params.z,
-            x: params.x,
-            y: params.y,
-        },
-    )?;
+    let tile = source
+        .get_tile(z, x, y)
+        .await?
+        .ok_or(TileServerError::TileNotFound { z, x, y })?;
 
     // Decompress if needed
     let raw_data = match tile.compression {
@@ -881,8 +904,27 @@ async fn get_sprite(
     State(state): State<AppState>,
     Path(params): Path<SpriteParams>,
 ) -> Result<Response, TileServerError> {
-    // Only handle sprite files
+    // Security: Strict validation of sprite file name
+    // Only allow: sprite.png, sprite.json, sprite@2x.png, sprite@2x.json, sprite@3x.png, etc.
     if !params.sprite_file.starts_with("sprite") {
+        return Err(TileServerError::InvalidTileRequest);
+    }
+
+    // Security: Reject any path traversal attempts
+    if params.sprite_file.contains("..")
+        || params.sprite_file.contains('/')
+        || params.sprite_file.contains('\\')
+    {
+        return Err(TileServerError::InvalidTileRequest);
+    }
+
+    // Security: Validate sprite file matches expected pattern
+    // Valid patterns: sprite.png, sprite.json, sprite@2x.png, sprite@2x.json, sprite@3x.png, etc.
+    let valid_extensions = [".png", ".json"];
+    let has_valid_extension = valid_extensions
+        .iter()
+        .any(|ext| params.sprite_file.ends_with(ext));
+    if !has_valid_extension {
         return Err(TileServerError::InvalidTileRequest);
     }
 
@@ -1023,15 +1065,39 @@ async fn get_font_glyphs(
     })?;
 
     // Parse the range to ensure it's valid (e.g., "0-255.pbf")
+    // Must match pattern like "0-255.pbf", "256-511.pbf", etc.
     if !params.range.ends_with(".pbf") {
+        return Err(TileServerError::InvalidTileRequest);
+    }
+
+    // Security: Validate range format to prevent path traversal
+    let range_name = params.range.trim_end_matches(".pbf");
+    if range_name.contains("..") || range_name.contains('/') || range_name.contains('\\') {
         return Err(TileServerError::InvalidTileRequest);
     }
 
     // Font stacks are comma-separated, try each font in order
     let fonts: Vec<&str> = params.fontstack.split(',').map(|s| s.trim()).collect();
 
+    // Security: Canonicalize fonts directory for path validation
+    let canonical_fonts_dir = fonts_dir
+        .canonicalize()
+        .map_err(|_| TileServerError::FontNotFound("Fonts directory not accessible".to_string()))?;
+
     for font_name in &fonts {
+        // Security: Reject font names with path traversal sequences
+        if font_name.contains("..") || font_name.contains('/') || font_name.contains('\\') {
+            continue;
+        }
+
         let font_path = fonts_dir.join(font_name).join(&params.range);
+
+        // Security: Verify the resolved path is within fonts directory
+        if let Ok(canonical_path) = font_path.canonicalize() {
+            if !canonical_path.starts_with(&canonical_fonts_dir) {
+                continue; // Path escapes fonts directory
+            }
+        }
 
         if let Ok(data) = tokio::fs::read(&font_path).await {
             let mut headers = HeaderMap::new();
