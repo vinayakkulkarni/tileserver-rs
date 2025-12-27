@@ -100,11 +100,12 @@ cargo build --release
 
 ### Using Docker
 
-**Development (with local data directory):**
-
 ```bash
-# Start the tileserver
+# Development (builds locally, mounts ./data directory)
 docker compose up -d
+
+# Production (uses pre-built image with resource limits)
+docker compose -f compose.yml -f compose.prod.yml up -d
 
 # View logs
 docker compose logs -f tileserver
@@ -113,16 +114,12 @@ docker compose logs -f tileserver
 docker compose down
 ```
 
-**Production:**
+**Or run directly with Docker:**
 
 ```bash
-# Start with production configuration
-docker compose -f compose.yml -f compose.prod.yml up -d
-
-# Or use pre-built image
 docker run -d \
   -p 8080:8080 \
-  -v /path/to/tiles:/data:ro \
+  -v /path/to/data:/data:ro \
   -v /path/to/config.toml:/app/config.toml:ro \
   ghcr.io/vinayakkulkarni/tileserver-rs:latest
 ```
@@ -310,10 +307,8 @@ tileserver-rs/
 │   │   └── types.rs         # RenderOptions, ImageFormat, etc.
 │   ├── sources/             # Tile source implementations
 │   └── styles/              # Style management + rewriting
-├── compose/                 # Docker Compose modules
-├── compose.yml              # Base compose config
-├── compose.override.yml     # Development overrides
-├── compose.prod.yml         # Production config
+├── compose.yml              # Docker Compose (development)
+├── compose.prod.yml         # Docker Compose (production overrides)
 ├── Dockerfile               # Multi-stage Docker build
 └── config.example.toml      # Example configuration
 ```

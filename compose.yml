@@ -1,16 +1,32 @@
-# Base Docker Compose configuration for tileserver-rs
-# Local Development: Runs tileserver only (for dev with hot reload)
-# Production: Use with compose.prod.yml for optimized deployment
+# Docker Compose for tileserver-rs
+#
+# Development: docker compose up
+# Production:  docker compose -f compose.yml -f compose.prod.yml up -d
 
-include:
-  - path: ./compose/tileserver.yml
-
-networks:
-  app-network:
-    driver: bridge
-    name: ${COMPOSE_PROJECT_NAME:-tileserver_rs}_network
-
-volumes:
-  app_tiles_volume:
-    driver: local
-    name: ${COMPOSE_PROJECT_NAME:-tileserver_rs}_tiles
+services:
+  tileserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tileserver
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT:-8080}:8080"
+    volumes:
+      - ./data:/data:ro
+      - ./config.toml:/app/config.toml:ro
+    environment:
+      - RUST_LOG=${RUST_LOG:-debug}
+      - HOST=0.0.0.0
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
