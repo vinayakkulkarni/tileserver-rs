@@ -206,6 +206,13 @@ bun run lint
 - Run `cargo clippy` and fix warnings
 - No `unwrap()` in library code - use proper error handling
 
+**Security:**
+- Always validate user input (paths, coordinates, dimensions)
+- Use path canonicalization to prevent directory traversal
+- Reject `..`, `/`, and `\` in user-provided filenames
+- Set reasonable limits on resource sizes (max 4096x4096 for images)
+- Don't expose internal paths in error messages
+
 **TypeScript/Vue:**
 - Follow the ESLint configuration
 - Use TypeScript strict mode

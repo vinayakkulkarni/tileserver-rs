@@ -157,13 +157,20 @@ bun run build:client
 
 ## Configuration
 
-Create a `config.toml` file:
+Create a `config.toml` file. **Important:** Root-level options (`fonts`, `files`) must come before any `[section]` headers:
 
 ```toml
+# Root-level options (must come BEFORE [sections])
+fonts = "/data/fonts"
+files = "/data/files"
+
 [server]
 host = "0.0.0.0"
 port = 8080
-cors_origins = ["*"]
+cors_origins = ["*", "https://example.com"]  # Supports multiple origins
+
+[telemetry]
+enabled = false
 
 [[sources]]
 id = "openmaptiles"
@@ -183,7 +190,7 @@ id = "osm-bright"
 path = "/data/styles/osm-bright/style.json"
 ```
 
-See [config.example.toml](./config.example.toml) for a complete example.
+See [config.example.toml](./config.example.toml) for a complete example, or [config.offline.toml](./config.offline.toml) for a local development setup.
 
 ## API Endpoints
 
@@ -195,6 +202,7 @@ See [config.example.toml](./config.example.toml) for a complete example.
 | `GET /data.json` | List all tile sources |
 | `GET /data/{source}.json` | TileJSON for a source |
 | `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile (`.pbf`, `.mvt`) |
+| `GET /data/{source}/{z}/{x}/{y}.geojson` | Get tile as GeoJSON (for debugging) |
 
 ### Style Endpoints
 
@@ -202,6 +210,22 @@ See [config.example.toml](./config.example.toml) for a complete example.
 |----------|-------------|
 | `GET /styles.json` | List all styles |
 | `GET /styles/{style}/style.json` | Get MapLibre GL style JSON |
+| `GET /styles/{style}/sprite[@2x].{png,json}` | Get sprite image/metadata |
+| `GET /styles/{style}/wmts.xml` | WMTS capabilities (for QGIS/ArcGIS) |
+
+### Font Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /fonts.json` | List available font families |
+| `GET /fonts/{fontstack}/{range}.pbf` | Get font glyphs (PBF format) |
+
+### Other Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /files/{filepath}` | Serve static files (GeoJSON, icons, etc.) |
+| `GET /index.json` | Combined TileJSON for all sources and styles |
 
 ### Rendering Endpoints (Native MapLibre)
 
@@ -232,6 +256,13 @@ See [config.example.toml](./config.example.toml) for a complete example.
   /styles/protomaps-light/static/-123,37,-122,38/1024x768.jpeg
   ```
 - **Auto-fit**: `auto` (with `?path=` or `?marker=` query params)
+  ```
+  /styles/protomaps-light/static/auto/800x600.png?path=path-5+f00(-122.4,37.8|-122.5,37.9)
+  ```
+
+**Static Image Limits:**
+- Maximum dimensions: 4096x4096 pixels
+- Maximum scale: 4x
 
 ## Development
 
