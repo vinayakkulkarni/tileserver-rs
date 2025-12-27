@@ -66,7 +66,7 @@ RUN bun run --filter @tileserver-rs/client generate
 # =============================================================================
 # Stage 3: Build Rust backend
 # =============================================================================
-FROM rust:1.85-bookworm AS rust-builder
+FROM rust:1.92-bookworm AS rust-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
