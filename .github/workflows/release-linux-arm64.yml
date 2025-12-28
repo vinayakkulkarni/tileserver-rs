@@ -1,0 +1,121 @@
+name: "Release (Linux ARM64)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g., tileserver-rs-v0.1.0)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "tileserver-rs-v*"
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build Linux ARM64
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            cmake \
+            ninja-build \
+            ccache \
+            pkg-config \
+            libcurl4-openssl-dev \
+            libglfw3-dev \
+            libuv1-dev \
+            libpng-dev \
+            libicu-dev \
+            libjpeg-turbo8-dev \
+            libwebp-dev \
+            libsqlite3-dev \
+            libopengl-dev \
+            libgl-dev
+
+      - name: Cache MapLibre Native build
+        uses: actions/cache@v4
+        with:
+          path: maplibre-native-sys/vendor/maplibre-native/build-linux-opengl
+          key: maplibre-linux-arm64-${{ hashFiles('maplibre-native-sys/vendor/maplibre-native/CMakeLists.txt') }}
+          restore-keys: maplibre-linux-arm64-
+
+      - name: Build MapLibre Native
+        run: |
+          cd maplibre-native-sys/vendor/maplibre-native
+          if [ ! -f "build-linux-opengl/libmbgl-core.a" ]; then
+            echo "Building MapLibre Native..."
+            cmake --preset linux-opengl \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DMLN_WITH_WERROR=OFF
+            cmake --build build-linux-opengl --target mbgl-core mlt-cpp -j$(nproc)
+          else
+            echo "Using cached MapLibre Native build"
+          fi
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: linux-arm64
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build client
+        run: bun run --filter @tileserver-rs/client generate
+
+      - name: Build Rust binary
+        run: cargo build --release
+
+      - name: Prepare release
+        run: |
+          mkdir -p dist
+          cp target/release/tileserver-rs dist/tileserver-rs
+          chmod +x dist/tileserver-rs
+          cd dist
+          tar -czvf tileserver-rs-linux-arm64.tar.gz tileserver-rs
+          sha256sum tileserver-rs-linux-arm64.tar.gz > tileserver-rs-linux-arm64.tar.gz.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tileserver-rs-linux-arm64
+          path: |
+            dist/tileserver-rs-linux-arm64.tar.gz
+            dist/tileserver-rs-linux-arm64.tar.gz.sha256
+          retention-days: 30
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
+            dist/tileserver-rs-linux-arm64.tar.gz
+            dist/tileserver-rs-linux-arm64.tar.gz.sha256
+          draft: false
+          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

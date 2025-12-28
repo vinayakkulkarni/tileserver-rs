@@ -31,22 +31,29 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        workflow:
+          - release-macos-arm64.yml
+          - release-macos-amd64.yml
+          - release-linux-amd64.yml
+          - release-linux-arm64.yml
     steps:
-      - name: Trigger macOS ARM64 build
+      - name: Trigger ${{ matrix.workflow }}
         uses: actions/github-script@v7
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'release-macos-arm64.yml',
-              ref: '${{ needs.release-please.outputs.tag_name }}',
+              workflow_id: '${{ matrix.workflow }}',
+              ref: 'main',
               inputs: {
-                version: '${{ needs.release-please.outputs.tag_name }}'
+                tag: '${{ needs.release-please.outputs.tag_name }}'
               }
             })
 
       - name: Log release info
         run: |
           echo "Release created: ${{ needs.release-please.outputs.tag_name }}"
-          echo "Version: ${{ needs.release-please.outputs.version }}"
+          echo "Triggered: ${{ matrix.workflow }}"
