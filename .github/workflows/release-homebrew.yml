@@ -1,0 +1,163 @@
+name: "Update Homebrew Formula"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g., tileserver-rs-v0.2.0)"
+        required: true
+        type: string
+  # Also trigger when any release workflow completes - will check if all assets exist
+  workflow_run:
+    workflows:
+      - "Release (macOS ARM64)"
+      - "Release (macOS AMD64)"
+      - "Release (Linux AMD64)"
+      - "Release (Linux ARM64)"
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  update-formula:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    # Only run if manually triggered OR if the triggering workflow succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Get tag from workflow run
+        if: ${{ github.event_name == 'workflow_run' }}
+        id: get-tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the tag from the workflow run that triggered this
+          # The release workflows are triggered with a tag input
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          
+          # Get the latest release tag
+          TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Found tag: ${TAG}"
+
+      - name: Download release assets and update formula
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag || steps.get-tag.outputs.tag }}"
+          
+          if [ -z "$TAG" ]; then
+            echo "No tag found, skipping"
+            exit 0
+          fi
+          VERSION="${TAG#tileserver-rs-v}"
+          
+          echo "Updating Homebrew formula for version ${VERSION}"
+          
+          # Download SHA256 files from the release
+          # Try to download all 4 checksums - if any are missing, skip this run
+          gh release download "$TAG" \
+            --pattern "*.sha256" \
+            --dir ./checksums \
+            || { echo "Failed to download checksums - release assets may not be ready yet"; exit 0; }
+          
+          # Check if all 4 checksum files exist
+          EXPECTED_FILES=(
+            "tileserver-rs-aarch64-apple-darwin.tar.gz.sha256"
+            "tileserver-rs-x86_64-apple-darwin.tar.gz.sha256"
+            "tileserver-rs-x86_64-unknown-linux-gnu.tar.gz.sha256"
+            "tileserver-rs-aarch64-unknown-linux-gnu.tar.gz.sha256"
+          )
+          
+          for file in "${EXPECTED_FILES[@]}"; do
+            if [ ! -f "checksums/$file" ]; then
+              echo "Missing $file - not all platform builds have completed yet"
+              exit 0
+            fi
+          done
+          
+          echo "All platform builds complete, updating formula"
+          
+          ls -la ./checksums/
+          
+          # Extract SHA256 values
+          SHA_AARCH64_DARWIN=$(cat checksums/tileserver-rs-aarch64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_X86_64_DARWIN=$(cat checksums/tileserver-rs-x86_64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_X86_64_LINUX=$(cat checksums/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+          SHA_AARCH64_LINUX=$(cat checksums/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+          
+          echo "SHA256 values:"
+          echo "  aarch64-apple-darwin: ${SHA_AARCH64_DARWIN}"
+          echo "  x86_64-apple-darwin:  ${SHA_X86_64_DARWIN}"
+          echo "  x86_64-linux-gnu:     ${SHA_X86_64_LINUX}"
+          echo "  aarch64-linux-gnu:    ${SHA_AARCH64_LINUX}"
+          
+          # Generate new formula
+          cat > homebrew/Formula/tileserver-rs.rb << EOF
+          # typed: false
+          # frozen_string_literal: true
+
+          class TileserverRs < Formula
+            desc "High-performance vector tile server with native MapLibre rendering"
+            homepage "https://github.com/vinayakkulkarni/tileserver-rs"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
+                sha256 "${SHA_AARCH64_DARWIN}"
+              elsif Hardware::CPU.intel?
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
+                sha256 "${SHA_X86_64_DARWIN}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_AARCH64_LINUX}"
+              elsif Hardware::CPU.intel?
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_X86_64_LINUX}"
+              end
+            end
+
+            def install
+              bin.install "tileserver-rs"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/tileserver-rs --version")
+            end
+          end
+          EOF
+          
+          # Fix indentation (remove leading spaces from heredoc)
+          sed -i 's/^          //' homebrew/Formula/tileserver-rs.rb
+          
+          # Show the result
+          cat homebrew/Formula/tileserver-rs.rb
+
+      - name: Commit and push
+        run: |
+          TAG="${{ github.event.inputs.tag || steps.get-tag.outputs.tag }}"
+          
+          if [ -z "$TAG" ]; then
+            echo "No tag found, skipping"
+            exit 0
+          fi
+          VERSION="${TAG#tileserver-rs-v}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add homebrew/Formula/tileserver-rs.rb
+          git commit -m "chore(homebrew): update formula to v${VERSION}" || echo "No changes to commit"
+          git push origin main

@@ -78,16 +78,16 @@ jobs:
           cp target/x86_64-apple-darwin/release/tileserver-rs dist/tileserver-rs
           chmod +x dist/tileserver-rs
           cd dist
-          tar -czvf tileserver-rs-macos-amd64.tar.gz tileserver-rs
-          shasum -a 256 tileserver-rs-macos-amd64.tar.gz > tileserver-rs-macos-amd64.tar.gz.sha256
+          tar -czvf tileserver-rs-x86_64-apple-darwin.tar.gz tileserver-rs
+          shasum -a 256 tileserver-rs-x86_64-apple-darwin.tar.gz > tileserver-rs-x86_64-apple-darwin.tar.gz.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tileserver-rs-macos-amd64
+          name: tileserver-rs-x86_64-apple-darwin
           path: |
-            dist/tileserver-rs-macos-amd64.tar.gz
-            dist/tileserver-rs-macos-amd64.tar.gz.sha256
+            dist/tileserver-rs-x86_64-apple-darwin.tar.gz
+            dist/tileserver-rs-x86_64-apple-darwin.tar.gz.sha256
           retention-days: 30
 
       - name: Upload to release
@@ -95,8 +95,8 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
-            dist/tileserver-rs-macos-amd64.tar.gz
-            dist/tileserver-rs-macos-amd64.tar.gz.sha256
+            dist/tileserver-rs-x86_64-apple-darwin.tar.gz
+            dist/tileserver-rs-x86_64-apple-darwin.tar.gz.sha256
           draft: false
           prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
         env:

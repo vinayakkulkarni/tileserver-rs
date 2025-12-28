@@ -113,13 +113,24 @@ tileserver-rs --config config.toml
 
 Download the latest release from [GitHub Releases](https://github.com/vinayakkulkarni/tileserver-rs/releases).
 
+| Platform | Architecture | Download |
+|----------|--------------|----------|
+| macOS | Apple Silicon (ARM64) | `tileserver-rs-aarch64-apple-darwin.tar.gz` |
+| macOS | Intel (x86_64) | `tileserver-rs-x86_64-apple-darwin.tar.gz` |
+| Linux | x86_64 | `tileserver-rs-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux | ARM64 | `tileserver-rs-aarch64-unknown-linux-gnu.tar.gz` |
+
 ```bash
 # macOS ARM64 (Apple Silicon)
-curl -L https://github.com/vinayakkulkarni/tileserver-rs/releases/latest/download/tileserver-rs-macos-arm64.tar.gz | tar xz
+curl -L https://github.com/vinayakkulkarni/tileserver-rs/releases/latest/download/tileserver-rs-aarch64-apple-darwin.tar.gz | tar xz
 chmod +x tileserver-rs
 
 # Remove macOS quarantine (required for unsigned binaries)
 xattr -d com.apple.quarantine tileserver-rs
+
+# Linux x86_64
+curl -L https://github.com/vinayakkulkarni/tileserver-rs/releases/latest/download/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz | tar xz
+chmod +x tileserver-rs
 
 # Run
 ./tileserver-rs --config config.toml

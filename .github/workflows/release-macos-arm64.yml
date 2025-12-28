@@ -78,16 +78,16 @@ jobs:
           cp target/aarch64-apple-darwin/release/tileserver-rs dist/tileserver-rs
           chmod +x dist/tileserver-rs
           cd dist
-          tar -czvf tileserver-rs-macos-arm64.tar.gz tileserver-rs
-          shasum -a 256 tileserver-rs-macos-arm64.tar.gz > tileserver-rs-macos-arm64.tar.gz.sha256
+          tar -czvf tileserver-rs-aarch64-apple-darwin.tar.gz tileserver-rs
+          shasum -a 256 tileserver-rs-aarch64-apple-darwin.tar.gz > tileserver-rs-aarch64-apple-darwin.tar.gz.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tileserver-rs-macos-arm64
+          name: tileserver-rs-aarch64-apple-darwin
           path: |
-            dist/tileserver-rs-macos-arm64.tar.gz
-            dist/tileserver-rs-macos-arm64.tar.gz.sha256
+            dist/tileserver-rs-aarch64-apple-darwin.tar.gz
+            dist/tileserver-rs-aarch64-apple-darwin.tar.gz.sha256
           retention-days: 30
 
       - name: Upload to release
@@ -95,33 +95,11 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
-            dist/tileserver-rs-macos-arm64.tar.gz
-            dist/tileserver-rs-macos-arm64.tar.gz.sha256
+            dist/tileserver-rs-aarch64-apple-darwin.tar.gz
+            dist/tileserver-rs-aarch64-apple-darwin.tar.gz.sha256
           draft: false
           prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update Homebrew formula
-        if: ${{ !contains(github.event.inputs.tag || github.ref_name, '-') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          VERSION="${TAG#tileserver-rs-v}"
-          SHA256=$(cat dist/tileserver-rs-macos-arm64.tar.gz.sha256 | awk '{print $1}')
 
-          # Checkout main branch to update formula
-          git fetch origin main
-          git checkout main
-
-          # Update formula
-          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" homebrew/Formula/tileserver-rs.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" homebrew/Formula/tileserver-rs.rb
-
-          # Commit and push the formula update
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add homebrew/Formula/tileserver-rs.rb
-          git commit -m "chore(homebrew): update formula to v${VERSION}" || echo "No changes to commit"
-          git push origin main || echo "Push failed - may need manual update"
