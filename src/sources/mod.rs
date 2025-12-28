@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 pub mod manager;
 pub mod mbtiles;
@@ -42,16 +43,20 @@ impl TileFormat {
             TileFormat::Unknown => "bin",
         }
     }
+}
 
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
+impl FromStr for TileFormat {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
             "pbf" | "mvt" | "vector" => TileFormat::Pbf,
             "png" => TileFormat::Png,
             "jpg" | "jpeg" => TileFormat::Jpeg,
             "webp" => TileFormat::Webp,
             "avif" => TileFormat::Avif,
             _ => TileFormat::Unknown,
-        }
+        })
     }
 }
 

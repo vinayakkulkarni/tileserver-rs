@@ -1,0 +1,33 @@
+# Test configuration for integration tests
+# Uses fixtures from the data/ directory
+
+fonts = "data/fonts"
+
+[server]
+host = "127.0.0.1"
+port = 0  # Use random available port for tests
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+# PMTiles source
+[[sources]]
+id = "protomaps"
+type = "pmtiles"
+path = "data/tiles/protomaps-sample.pmtiles"
+name = "Protomaps Sample"
+attribution = "© Protomaps © OpenStreetMap"
+
+# MBTiles source
+[[sources]]
+id = "zurich"
+type = "mbtiles"
+path = "data/tiles/zurich_switzerland.mbtiles"
+name = "Zurich Switzerland"
+
+# Style
+[[styles]]
+id = "protomaps-light"
+path = "data/styles/protomaps-light/style.json"
+name = "Protomaps Light"

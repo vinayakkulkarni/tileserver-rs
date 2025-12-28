@@ -40,6 +40,10 @@ urlencoding = "2.1"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 
+# OpenAPI / Swagger UI (bundled, no external dependencies)
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+
 # OpenTelemetry
 opentelemetry = "0.27"
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
@@ -57,6 +61,12 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 [features]
 default = []
 # s3 = ["aws-config", "aws-sdk-s3"]
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+axum-test = "17"
+tempfile = "3"
+insta = { version = "1.42", features = ["json"] }
 
 [profile.release]
 lto = true

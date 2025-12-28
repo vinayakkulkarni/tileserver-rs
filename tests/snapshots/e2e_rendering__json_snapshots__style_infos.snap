@@ -1,0 +1,11 @@
+---
+source: tests/e2e_rendering.rs
+expression: json
+---
+[
+  {
+    "id": "protomaps-light",
+    "name": "Protomaps Light",
+    "url": "http://localhost:8080/styles/protomaps-light/style.json"
+  }
+]

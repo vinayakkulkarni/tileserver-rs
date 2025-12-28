@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::str::FromStr;
 
 /// Maximum allowed image dimension (width or height) in pixels
 pub const MAX_IMAGE_DIMENSION: u32 = 4096;
@@ -15,20 +16,24 @@ pub enum ImageFormat {
 }
 
 impl ImageFormat {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "png" => Some(Self::Png),
-            "jpg" | "jpeg" => Some(Self::Jpeg),
-            "webp" => Some(Self::Webp),
-            _ => None,
-        }
-    }
-
     pub fn content_type(&self) -> &'static str {
         match self {
             Self::Png => "image/png",
             Self::Jpeg => "image/jpeg",
             Self::Webp => "image/webp",
+        }
+    }
+}
+
+impl FromStr for ImageFormat {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "png" => Ok(Self::Png),
+            "jpg" | "jpeg" => Ok(Self::Jpeg),
+            "webp" => Ok(Self::Webp),
+            _ => Err(()),
         }
     }
 }
@@ -55,7 +60,9 @@ pub enum StaticType {
     Auto,
 }
 
-impl StaticType {
+impl FromStr for StaticType {
+    type Err = String;
+
     /// Parse static type from path parameter
     /// Examples:
     /// - "-122.4,37.8,12" -> Center
@@ -63,7 +70,7 @@ impl StaticType {
     /// - "-122.4,37.8,12@45,60" -> Center with bearing and pitch
     /// - "-123,37,-122,38" -> BoundingBox
     /// - "auto" -> Auto
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "auto" {
             return Ok(Self::Auto);
         }

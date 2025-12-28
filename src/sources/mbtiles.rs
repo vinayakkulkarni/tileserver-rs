@@ -187,7 +187,7 @@ impl TileSource for MbTilesSource {
 
         // Clone the connection Arc for use in the blocking task
         let conn = self.conn.clone();
-        let format = self.metadata.format.clone();
+        let format = self.metadata.format;
 
         // Run the SQLite query in a blocking task to avoid blocking the async runtime
         let result = tokio::task::spawn_blocking(move || {
@@ -213,7 +213,7 @@ impl TileSource for MbTilesSource {
 
                 TileData {
                     data: data.into(),
-                    format: format.clone(),
+                    format,
                     compression,
                 }
             }))
