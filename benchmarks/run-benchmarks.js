@@ -24,11 +24,15 @@ const SERVERS = {
     name: 'tileserver-gl',
     port: 8900,
     color: chalk.yellow,
-    // tileserver-gl only supports MBTiles
-    pmtiles: null, // Not supported
+    // PMTiles source (protomaps-sample)
+    pmtiles: {
+      source: 'protomaps-sample',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/protomaps-sample/${z}/${x}/${y}.pbf`,
+    },
+    // MBTiles source (zurich_switzerland)
     mbtiles: {
-      source: 'v3',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/v3/${z}/${x}/${y}.pbf`,
+      source: 'zurich_switzerland',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/zurich_switzerland/${z}/${x}/${y}.pbf`,
     },
     healthUrl: 'http://127.0.0.1:8900/health',
   },

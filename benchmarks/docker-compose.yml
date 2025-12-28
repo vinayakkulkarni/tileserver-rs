@@ -19,14 +19,15 @@
 services:
   # tileserver-gl - Node.js-based tile server with raster rendering
   # https://github.com/maptiler/tileserver-gl
-  # Note: tileserver-gl only supports MBTiles, not PMTiles
+  # Supports both MBTiles and PMTiles
   tileserver-gl:
     image: maptiler/tileserver-gl:latest
     ports:
       - "8900:8080"
     volumes:
       - ../data/tiles:/data:ro
-    command: ["-p", "8080", "--mbtiles", "/data/zurich_switzerland.mbtiles"]
+      - ./tileserver-gl-config.json:/config.json:ro
+    command: ["-p", "8080", "-c", "/config.json"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 5s

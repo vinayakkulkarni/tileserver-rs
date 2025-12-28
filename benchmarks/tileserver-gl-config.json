@@ -1,0 +1,17 @@
+{
+  "options": {
+    "paths": {
+      "root": "",
+      "mbtiles": "/data",
+      "pmtiles": "/data"
+    }
+  },
+  "data": {
+    "zurich_switzerland": {
+      "mbtiles": "zurich_switzerland.mbtiles"
+    },
+    "protomaps-sample": {
+      "pmtiles": "protomaps-sample.pmtiles"
+    }
+  }
+}
