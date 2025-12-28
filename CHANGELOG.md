@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v0.2.0...tileserver-rs-v0.2.1) (2025-12-28)
+
+
+### Features
+
+* **ci:** add multi-platform release workflows ([a08edf8](https://github.com/vinayakkulkarni/tileserver-rs/commit/a08edf808e3351eebdc9f422ee28611d4833bfc7))
+
+
+### Bug Fixes
+
+* **ci:** add actions:write permission to trigger builds ([b8e4a9a](https://github.com/vinayakkulkarni/tileserver-rs/commit/b8e4a9acf16bad83fdf9891685710ebe84777aca))
+* **ci:** use macos-15-large for Intel, disable Linux ARM64 for now ([2ebb092](https://github.com/vinayakkulkarni/tileserver-rs/commit/2ebb0929ca3145f4bd6f3d886678d98b14aa39d4))
+
+
+### Documentation
+
+* add release process documentation to README and CONTRIBUTING ([247ac46](https://github.com/vinayakkulkarni/tileserver-rs/commit/247ac46d3850adba089e25f1cb0945cd0e0ac6b3))
+
+
+### Code Refactoring
+
+* **ci:** use standard artifact naming and separate homebrew workflow ([4fced3f](https://github.com/vinayakkulkarni/tileserver-rs/commit/4fced3fffabb18ef704e09050eb21938285f29ee))
+
 ## [0.2.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v0.1.0...tileserver-rs-v0.2.0) (2025-12-28)
 
 
