@@ -1,20 +1,60 @@
 # Docker Compose for benchmark comparison
 #
-# Ports:
-# - tileserver-rs: http://127.0.0.1:8000 (run natively, not in Docker)
-# - martin:        http://127.0.0.1:8001
-# - tileserver-gl: http://127.0.0.1:8002
+# All servers run in Docker for fair apples-to-apples comparison.
 #
-# Run: docker compose -f benchmarks/docker-compose.yml up -d
+# Ports:
+# - tileserver-gl: http://127.0.0.1:8900
+# - tileserver-rs: http://127.0.0.1:8901
+# - martin:        http://127.0.0.1:8902
+#
+# Build tileserver-rs first:
+#   docker build -t tileserver-rs:latest .
+#
+# Run all servers:
+#   docker compose -f benchmarks/docker-compose.yml up -d
+#
+# Run benchmarks:
+#   node benchmarks/run-benchmarks.js
 
 services:
+  # tileserver-gl - Node.js-based tile server with raster rendering
+  # https://github.com/maptiler/tileserver-gl
+  # Note: tileserver-gl only supports MBTiles, not PMTiles
+  tileserver-gl:
+    image: maptiler/tileserver-gl:latest
+    ports:
+      - "8900:8080"
+    volumes:
+      - ../data/tiles:/data:ro
+    command: ["-p", "8080", "--mbtiles", "/data/zurich_switzerland.mbtiles"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # tileserver-rs - Our Rust tile server
+  # Use local ARM64 build for fair comparison
+  tileserver-rs:
+    image: tileserver-rs:arm64
+    ports:
+      - "8901:8080"
+    volumes:
+      - ../data:/data:ro
+      - ./config.docker.toml:/app/config.toml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
   # Martin - Rust-based tile server (latest v1.1.0+)
   # https://github.com/maplibre/martin
   # Supports both PMTiles and MBTiles
   martin:
     image: ghcr.io/maplibre/martin:latest
     ports:
-      - "8001:3000"
+      - "8902:3000"
     volumes:
       - ../data/tiles:/data:ro
     command: ["/data/zurich_switzerland.mbtiles", "/data/protomaps-sample.pmtiles"]
@@ -24,18 +64,3 @@ services:
       timeout: 3s
       retries: 3
 
-  # tileserver-gl - Node.js-based tile server with raster rendering
-  # https://github.com/maptiler/tileserver-gl
-  # Note: tileserver-gl only supports MBTiles, not PMTiles
-  tileserver-gl:
-    image: maptiler/tileserver-gl:latest
-    ports:
-      - "8002:8080"
-    volumes:
-      - ../data/tiles:/data:ro
-    command: ["-p", "8080", "--mbtiles", "/data/zurich_switzerland.mbtiles"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3

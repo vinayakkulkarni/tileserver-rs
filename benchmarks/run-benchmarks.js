@@ -18,49 +18,50 @@ import Table from 'cli-table3';
 
 // Server configurations
 // Use 127.0.0.1 instead of localhost to avoid proxy issues
+// All servers run in Docker for fair apples-to-apples comparison
 const SERVERS = {
-  'tileserver-rs': {
-    name: 'tileserver-rs',
-    port: 8000,
-    color: chalk.green,
-    // PMTiles source endpoints
-    pmtiles: {
-      source: 'pmtiles',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8000/data/pmtiles/${z}/${x}/${y}.pbf`,
-    },
-    // MBTiles source endpoints
-    mbtiles: {
-      source: 'mbtiles',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8000/data/mbtiles/${z}/${x}/${y}.pbf`,
-    },
-    healthUrl: 'http://127.0.0.1:8000/health',
-  },
-  martin: {
-    name: 'martin',
-    port: 8001,
-    color: chalk.blue,
-    // Martin uses source name directly in URL
-    pmtiles: {
-      source: 'protomaps-sample',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8001/protomaps-sample/${z}/${x}/${y}`,
-    },
-    mbtiles: {
-      source: 'zurich_switzerland',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8001/zurich_switzerland/${z}/${x}/${y}`,
-    },
-    healthUrl: 'http://127.0.0.1:8001/catalog',
-  },
   'tileserver-gl': {
     name: 'tileserver-gl',
-    port: 8002,
+    port: 8900,
     color: chalk.yellow,
     // tileserver-gl only supports MBTiles
     pmtiles: null, // Not supported
     mbtiles: {
       source: 'v3',
-      tileUrl: (z, x, y) => `http://127.0.0.1:8002/data/v3/${z}/${x}/${y}.pbf`,
+      tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/v3/${z}/${x}/${y}.pbf`,
     },
-    healthUrl: 'http://127.0.0.1:8002/health',
+    healthUrl: 'http://127.0.0.1:8900/health',
+  },
+  'tileserver-rs': {
+    name: 'tileserver-rs',
+    port: 8901,
+    color: chalk.green,
+    // PMTiles source endpoints
+    pmtiles: {
+      source: 'pmtiles',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/pmtiles/${z}/${x}/${y}.pbf`,
+    },
+    // MBTiles source endpoints
+    mbtiles: {
+      source: 'mbtiles',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/mbtiles/${z}/${x}/${y}.pbf`,
+    },
+    healthUrl: 'http://127.0.0.1:8901/health',
+  },
+  martin: {
+    name: 'martin',
+    port: 8902,
+    color: chalk.blue,
+    // Martin uses source name directly in URL
+    pmtiles: {
+      source: 'protomaps-sample',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8902/protomaps-sample/${z}/${x}/${y}`,
+    },
+    mbtiles: {
+      source: 'zurich_switzerland',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8902/zurich_switzerland/${z}/${x}/${y}`,
+    },
+    healthUrl: 'http://127.0.0.1:8902/catalog',
   },
 };
 
@@ -148,10 +149,10 @@ async function checkServer(healthUrl) {
 /**
  * Run benchmarks for a server and format
  */
-async function benchmarkServerFormat(serverId, format) {
-  const server = SERVERS[serverId];
+async function benchmarkServerFormat(serverKey, format) {
+  const server = SERVERS[serverKey];
   if (!server) {
-    console.log(chalk.red(`Unknown server: ${serverId}`));
+    console.log(chalk.red(`Unknown server: ${serverKey}`));
     return [];
   }
 
@@ -191,7 +192,7 @@ async function benchmarkServerFormat(serverId, format) {
 
       results.push({
         server: server.name,
-        serverId,
+        serverId: serverKey,
         format,
         zoom: tile.z,
         desc: tile.desc,
@@ -397,7 +398,7 @@ async function main() {
 
   console.log(chalk.bold.cyan('\n🚀 Tile Server Benchmark Suite\n'));
   console.log(chalk.gray(`Duration: ${BENCHMARK_CONFIG.duration}s | Connections: ${BENCHMARK_CONFIG.connections}`));
-  console.log(chalk.gray(`Servers: tileserver-rs (8000), martin (8001), tileserver-gl (8002)\n`));
+  console.log(chalk.gray(`Servers: tileserver-gl (8900), tileserver-rs (8901), martin (8902)\n`));
 
   // Determine which servers to test
   const serversToTest = opts.server === 'all' ? Object.keys(SERVERS) : [opts.server];
@@ -423,9 +424,9 @@ async function main() {
 
   if (availableServers.length === 0) {
     console.log(chalk.red('\nNo servers available. Please start the servers first.'));
-    console.log(chalk.gray('\nTo start servers:'));
-    console.log(chalk.gray('  tileserver-rs: ./target/release/tileserver-rs --config config.benchmark.toml --port 8000'));
-    console.log(chalk.gray('  martin + tileserver-gl: cd benchmarks && docker compose up -d'));
+    console.log(chalk.gray('\nTo start all servers (Docker):'));
+    console.log(chalk.gray('  1. Build tileserver-rs: docker build -t tileserver-rs:latest .'));
+    console.log(chalk.gray('  2. Start all: docker compose -f benchmarks/docker-compose.yml up -d'));
     process.exit(1);
   }
 

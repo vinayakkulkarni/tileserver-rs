@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends --no-install-su
     git \
     curl \
     ca-certificates \
+    # Core libraries
     libcurl4-openssl-dev \
     libglfw3-dev \
     libuv1-dev \
@@ -25,9 +26,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends --no-install-su
     libjpeg-turbo8-dev \
     libwebp-dev \
     libsqlite3-dev \
+    # OpenGL/EGL
     xvfb \
     libopengl-dev \
     libgl-dev \
+    libegl-dev \
+    # X11 (required for linux-opengl preset)
+    libx11-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxcursor-dev \
+    libxi-dev \
+    # Wayland (optional but included)
     libwayland-dev \
     libxkbcommon-dev \
     wayland-protocols \
@@ -40,11 +50,12 @@ WORKDIR /build
 COPY maplibre-native-sys/vendor/maplibre-native ./maplibre-native
 
 # Build MapLibre Native for Linux using the official preset
+# Build all static libraries required for linking
 WORKDIR /build/maplibre-native
 RUN cmake --preset linux-opengl \
     -DCMAKE_BUILD_TYPE=Release \
     -DMLN_WITH_WERROR=OFF \
-    && cmake --build build-linux-opengl --target mbgl-core mlt-cpp -j$(nproc)
+    && cmake --build build-linux-opengl -j$(nproc)
 
 # =============================================================================
 # Stage 2: Build Nuxt frontend (SPA)
@@ -66,12 +77,19 @@ RUN bun run --filter @tileserver-rs/client generate
 # =============================================================================
 # Stage 3: Build Rust backend
 # =============================================================================
-FROM rust:1.92-bookworm AS rust-builder
+# Use Ubuntu 24.04 to match glibc version with maplibre-builder stage
+# (Ubuntu 24.04 has glibc 2.39 with C23 functions like __isoc23_strtol)
+FROM ubuntu:24.04 AS rust-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install deps needed for linking (minimal set matching tileserver-gl runtime)
+# Install Rust and deps needed for linking
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Required for rustup
+    ca-certificates \
+    curl \
+    build-essential \
+    # Core libraries
     libcurl4-openssl-dev \
     libpng-dev \
     libicu-dev \
@@ -80,15 +98,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     libuv1-dev \
     libglfw3-dev \
+    # OpenGL/EGL
     libopengl-dev \
     libgl-dev \
+    libegl-dev \
+    # X11 (required for linking)
+    libx11-dev \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # Install Rust via rustup
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /app
 
 # Copy MapLibre Native build artifacts (from linux-opengl preset)
-COPY --from=maplibre-builder /build/maplibre-native/build-linux-opengl /app/maplibre-native-sys/vendor/maplibre-native/build-linux-opengl
+# build.rs expects 'build-linux' directory, so copy to that name
+COPY --from=maplibre-builder /build/maplibre-native/build-linux-opengl /app/maplibre-native-sys/vendor/maplibre-native/build-linux
 
 # Copy MapLibre Native headers (needed for build.rs)
 COPY maplibre-native-sys ./maplibre-native-sys
@@ -113,13 +140,13 @@ COPY src ./src
 RUN touch src/main.rs && cargo build --release
 
 # =============================================================================
-# Stage 4: Runtime (minimal, matches tileserver-gl proven setup)
+# Stage 4: Runtime (must match glibc version from build stage)
 # =============================================================================
-FROM ubuntu:jammy AS runtime
+FROM ubuntu:24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies (mirrors tileserver-gl for proven compatibility)
+# Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
     ca-certificates \
@@ -128,12 +155,14 @@ RUN apt-get update && \
     libglfw3 \
     libuv1 \
     libjpeg-turbo8 \
-    libicu70 \
-    libcurl4 \
-    libpng16-16 \
+    libicu74 \
+    libcurl4t64 \
+    libpng16-16t64 \
     libwebp7 \
     libsqlite3-0 \
     libopengl0 \
+    libx11-6 \
+    libegl1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

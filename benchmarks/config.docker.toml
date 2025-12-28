@@ -1,0 +1,28 @@
+# Tileserver-RS Benchmark Configuration (Docker)
+# Paths are relative to the container's /data volume
+
+fonts = "/data/fonts"
+
+[server]
+host = "0.0.0.0"
+port = 8080
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+# PMTiles source (Protomaps sample - Firenze area)
+[[sources]]
+id = "pmtiles"
+type = "pmtiles"
+path = "/data/tiles/protomaps-sample.pmtiles"
+name = "PMTiles Sample"
+attribution = "© OpenStreetMap contributors"
+
+# MBTiles source (Zurich, Switzerland - from tileserver-gl)
+[[sources]]
+id = "mbtiles"
+type = "mbtiles"
+path = "/data/tiles/zurich_switzerland.mbtiles"
+name = "Zurich MBTiles"
+attribution = "© OpenStreetMap contributors"

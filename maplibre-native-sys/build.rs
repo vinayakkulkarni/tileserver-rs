@@ -115,17 +115,20 @@ fn build_with_maplibre_native(manifest_dir: &Path, out_dir: &Path, maplibre_buil
             .display()
     );
 
+    // Core MapLibre libraries (common to all platforms)
     println!("cargo:rustc-link-lib=static=mbgl-core");
     println!("cargo:rustc-link-lib=static=mlt-cpp");
     println!("cargo:rustc-link-lib=static=mbgl-freetype");
     println!("cargo:rustc-link-lib=static=mbgl-harfbuzz");
     println!("cargo:rustc-link-lib=static=mbgl-vendor-csscolorparser");
-    println!("cargo:rustc-link-lib=static=mbgl-vendor-icu");
     println!("cargo:rustc-link-lib=static=mbgl-vendor-parsedate");
 
     // Link system libraries required by MapLibre Native
     #[cfg(target_os = "macos")]
     {
+        // macOS uses vendored ICU
+        println!("cargo:rustc-link-lib=static=mbgl-vendor-icu");
+
         // macOS frameworks
         println!("cargo:rustc-link-lib=framework=Metal");
         println!("cargo:rustc-link-lib=framework=MetalKit");
@@ -156,12 +159,28 @@ fn build_with_maplibre_native(manifest_dir: &Path, out_dir: &Path, maplibre_buil
 
     #[cfg(target_os = "linux")]
     {
+        // Linux uses system ICU instead of vendored
+        println!("cargo:rustc-link-lib=icuuc");
+        println!("cargo:rustc-link-lib=icui18n");
+        println!("cargo:rustc-link-lib=icudata");
+
+        // Additional vendored libraries on Linux
+        println!("cargo:rustc-link-lib=static=mbgl-vendor-nunicode");
+        println!("cargo:rustc-link-lib=static=mbgl-vendor-sqlite");
+
+        // System libraries
         println!("cargo:rustc-link-lib=stdc++");
         println!("cargo:rustc-link-lib=z");
-        println!("cargo:rustc-link-lib=sqlite3");
+        println!("cargo:rustc-link-lib=curl");
+        println!("cargo:rustc-link-lib=png");
+        println!("cargo:rustc-link-lib=jpeg");
+        println!("cargo:rustc-link-lib=webp");
         println!("cargo:rustc-link-lib=uv");
+
+        // OpenGL/X11
         println!("cargo:rustc-link-lib=GL");
         println!("cargo:rustc-link-lib=EGL");
+        println!("cargo:rustc-link-lib=X11");
     }
 }
 
