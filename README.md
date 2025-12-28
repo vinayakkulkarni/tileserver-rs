@@ -313,6 +313,9 @@ cargo watch -x run
 # Start Nuxt frontend (in another terminal)
 bun run dev:client
 
+# Start marketing site (landing page)
+bun run dev:marketing
+
 # Run linters
 bun run lint
 cargo clippy
@@ -327,8 +330,9 @@ bun run build:client
 ```
 tileserver-rs/
 ├── apps/
-│   ├── client/              # Nuxt 4 frontend
-│   └── docs/                # Documentation site
+│   └── client/              # Nuxt 4 frontend (embedded in binary)
+├── docs/                    # Documentation site (docs.tileserver.app)
+├── marketing/               # Landing page (tileserver.app)
 ├── maplibre-native-sys/     # FFI bindings to MapLibre Native (C++)
 │   ├── cpp/                 # C/C++ wrapper code
 │   │   ├── maplibre_c.h     # C API header
@@ -352,6 +356,26 @@ tileserver-rs/
 ├── Dockerfile               # Multi-stage Docker build
 └── config.example.toml      # Example configuration
 ```
+
+## Deployments
+
+### Documentation Site (docs.tileserver.app)
+
+The docs site is deployed automatically via Cloudflare Pages (linked repo). Any changes to `docs/` trigger a rebuild.
+
+### Marketing Site (tileserver.app)
+
+The marketing/landing page is deployed via GitHub Actions to a separate CF Pages project.
+
+**Setup (one-time):**
+
+1. Create a new CF Pages project named `tileserver-marketing` (Direct Upload, not linked to repo)
+2. Add custom domain `tileserver.app` to the project
+3. Add these secrets to GitHub repo settings:
+   - `CLOUDFLARE_API_TOKEN` - API token with "Cloudflare Pages: Edit" permission
+   - `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
+
+Deployments are triggered on push to `main` when files in `marketing/` change.
 
 ## Releases
 

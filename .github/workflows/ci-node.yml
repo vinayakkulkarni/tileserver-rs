@@ -83,3 +83,43 @@ jobs:
       - name: Build docs
         working-directory: docs
         run: bun run build
+
+  lint-marketing:
+    name: CI (Marketing) [Node] | Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install marketing dependencies
+        working-directory: marketing
+        run: bun install
+
+      - name: Lint marketing
+        working-directory: marketing
+        run: bun run lint
+
+  build-marketing:
+    name: CI (Marketing) [Node] | Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install marketing dependencies
+        working-directory: marketing
+        run: bun install
+
+      - name: Build marketing
+        working-directory: marketing
+        run: bun run build

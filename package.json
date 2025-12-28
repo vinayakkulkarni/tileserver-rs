@@ -9,8 +9,10 @@
   "scripts": {
     "dev:client": "bun run --filter @tileserver-rs/client dev",
     "dev:docs": "cd docs && bun run dev",
+    "dev:marketing": "cd marketing && bun run dev",
     "build:client": "bun run --filter @tileserver-rs/client build",
     "build:docs": "cd docs && bun run build",
+    "build:marketing": "cd marketing && bun run build",
     "lint": "bun run --filter @tileserver-rs/client lint:fix",
     "prepare": "husky"
   },
