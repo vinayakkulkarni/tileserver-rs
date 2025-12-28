@@ -329,43 +329,174 @@ async fn get_openapi_json(State(state): State<AppState>) -> Json<serde_json::Val
     Json(openapi::generate_openapi_spec(&state.base_url, version))
 }
 
-/// Get OpenAPI HTML documentation (Swagger UI)
+/// Get OpenAPI HTML documentation (minimal offline-friendly viewer)
 /// Route: GET /_openapi
 async fn get_openapi_html(State(state): State<AppState>) -> Html<String> {
     let spec_url = format!("{}/_openapi/openapi.json", state.base_url);
+    let version = env!("CARGO_PKG_VERSION");
+
+    // Minimal offline-friendly API documentation viewer
+    // No external dependencies - works completely offline
     Html(format!(
-        r#"<!DOCTYPE html>
+        r##"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>tileserver-rs API</title>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <title>tileserver-rs API Documentation</title>
     <style>
-        body {{ margin: 0; padding: 0; }}
-        .swagger-ui .topbar {{ display: none; }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fafafa; color: #333; line-height: 1.6; }}
+        .container {{ max-width: 1200px; margin: 0 auto; padding: 2rem; }}
+        header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; margin-bottom: 2rem; border-radius: 8px; }}
+        h1 {{ font-size: 2rem; margin-bottom: 0.5rem; }}
+        .version {{ opacity: 0.9; font-size: 0.9rem; }}
+        .download {{ margin-top: 1rem; }}
+        .download a {{ color: white; background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }}
+        .download a:hover {{ background: rgba(255,255,255,0.3); }}
+        .section {{ background: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        .section h2 {{ color: #667eea; margin-bottom: 1rem; font-size: 1.25rem; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }}
+        .endpoint {{ display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #eee; }}
+        .endpoint:last-child {{ border-bottom: none; }}
+        .method {{ font-weight: bold; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; min-width: 50px; text-align: center; }}
+        .method.get {{ background: #61affe; color: white; }}
+        .path {{ font-family: monospace; color: #333; flex: 1; word-break: break-all; }}
+        .desc {{ color: #666; font-size: 0.875rem; min-width: 200px; text-align: right; }}
+        .tag {{ display: inline-block; background: #eee; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.5rem; }}
+        @media (max-width: 768px) {{
+            .endpoint {{ flex-direction: column; gap: 0.5rem; }}
+            .desc {{ text-align: left; min-width: auto; }}
+        }}
     </style>
 </head>
 <body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
-    <script>
-        window.onload = () => {{
-            window.ui = SwaggerUIBundle({{
-                url: "{}",
-                dom_id: '#swagger-ui',
-                deepLinking: true,
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIBundle.SwaggerUIStandalonePreset
-                ],
-                layout: "StandaloneLayout"
-            }});
-        }};
-    </script>
+    <div class="container">
+        <header>
+            <h1>tileserver-rs API</h1>
+            <p class="version">Version {version} | OpenAPI 3.1</p>
+            <div class="download">
+                <a href="{spec_url}" download="openapi.json">Download OpenAPI Spec (JSON)</a>
+            </div>
+        </header>
+
+        <div class="section">
+            <h2>Health</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/health</span>
+                <span class="desc">Health check</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Data Sources (Vector Tiles)</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/data.json</span>
+                <span class="desc">List all data sources</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/data/{{source}}.json</span>
+                <span class="desc">TileJSON metadata</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/data/{{source}}/{{z}}/{{x}}/{{y}}.pbf</span>
+                <span class="desc">Vector tile (PBF/MVT)</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/data/{{source}}/{{z}}/{{x}}/{{y}}.geojson</span>
+                <span class="desc">Vector tile as GeoJSON</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Styles (Raster Tiles)</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles.json</span>
+                <span class="desc">List all styles</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/style.json</span>
+                <span class="desc">MapLibre GL style spec</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}.json</span>
+                <span class="desc">Raster TileJSON</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/{{z}}/{{x}}/{{y}}.png</span>
+                <span class="desc">Raster tile (PNG/JPG/WebP)</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/{{z}}/{{x}}/{{y}}@2x.png</span>
+                <span class="desc">Retina raster tile</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/static/{{lon}},{{lat}},{{zoom}}/{{w}}x{{h}}.png</span>
+                <span class="desc">Static map image</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/wmts.xml</span>
+                <span class="desc">WMTS capabilities</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/sprite.png</span>
+                <span class="desc">Sprite image</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/styles/{{style}}/sprite.json</span>
+                <span class="desc">Sprite metadata</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Fonts</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/fonts.json</span>
+                <span class="desc">List available fonts</span>
+            </div>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/fonts/{{fontstack}}/{{range}}.pbf</span>
+                <span class="desc">Font glyphs (PBF)</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Static Files</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/files/{{filepath}}</span>
+                <span class="desc">Serve static files</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>OpenAPI</h2>
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span class="path">/_openapi/openapi.json</span>
+                <span class="desc">OpenAPI 3.1 specification</span>
+            </div>
+        </div>
+    </div>
 </body>
-</html>"#,
-        spec_url
+</html>"##,
+        version = version,
+        spec_url = spec_url
     ))
 }
 
