@@ -6,6 +6,7 @@ on:
       - main
     tags:
       - 'v*'
+      - 'tileserver-rs-v*'
   pull_request:
     branches:
       - main
@@ -48,9 +49,11 @@ jobs:
           tags: |
             type=ref,event=branch
             type=ref,event=pr
+            # Handle both v* and tileserver-rs-v* tag formats
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+            type=match,pattern=tileserver-rs-v(.*),group=1
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
