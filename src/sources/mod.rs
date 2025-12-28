@@ -135,11 +135,21 @@ pub struct TileJson {
 impl TileMetadata {
     /// Convert to TileJSON format
     pub fn to_tilejson(&self, base_url: &str) -> TileJson {
+        self.to_tilejson_with_key(base_url, None)
+    }
+
+    /// Convert to TileJSON format with optional API key
+    pub fn to_tilejson_with_key(&self, base_url: &str, key: Option<&str>) -> TileJson {
+        let key_query = key
+            .map(|k| format!("?key={}", urlencoding::encode(k)))
+            .unwrap_or_default();
+
         let tile_url = format!(
-            "{}/data/{}/{{z}}/{{x}}/{{y}}.{}",
+            "{}/data/{}/{{z}}/{{x}}/{{y}}.{}{}",
             base_url,
             self.id,
-            self.format.extension()
+            self.format.extension(),
+            key_query
         );
 
         TileJson {

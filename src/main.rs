@@ -334,21 +334,42 @@ enum IndexEntry {
     Style(RasterTileJson),
 }
 
+/// Query parameters for index endpoint
+#[derive(Debug, serde::Deserialize, Default)]
+struct IndexQueryParams {
+    /// API key to append to all URLs
+    key: Option<String>,
+}
+
 /// Get combined TileJSON array for all data sources and styles
 /// Route: GET /index.json
-async fn get_index_json(State(state): State<AppState>) -> Json<Vec<IndexEntry>> {
+/// Query parameters:
+/// - `key`: Optional API key to append to all tile URLs
+async fn get_index_json(
+    State(state): State<AppState>,
+    Query(query): Query<IndexQueryParams>,
+) -> Json<Vec<IndexEntry>> {
     let mut entries = Vec::new();
+
+    // Build key query string
+    let key_query = query
+        .key
+        .as_ref()
+        .map(|k| format!("?key={}", urlencoding::encode(k)))
+        .unwrap_or_default();
 
     // Add all data sources
     for metadata in state.sources.all_metadata() {
-        entries.push(IndexEntry::Data(metadata.to_tilejson(&state.base_url)));
+        entries.push(IndexEntry::Data(
+            metadata.to_tilejson_with_key(&state.base_url, query.key.as_deref()),
+        ));
     }
 
     // Add all styles as raster tile sources
     for style in state.styles.all() {
         let tile_url = format!(
-            "{}/styles/{}/{{z}}/{{x}}/{{y}}.png",
-            state.base_url, style.id
+            "{}/styles/{}/{{z}}/{{x}}/{{y}}.png{}",
+            state.base_url, style.id, key_query
         );
         entries.push(IndexEntry::Style(RasterTileJson {
             tilejson: "3.0.0",
@@ -363,9 +384,26 @@ async fn get_index_json(State(state): State<AppState>) -> Json<Vec<IndexEntry>> 
     Json(entries)
 }
 
+/// Query parameters for styles list endpoint
+#[derive(Debug, serde::Deserialize, Default)]
+struct StylesQueryParams {
+    /// API key to append to style URLs
+    key: Option<String>,
+}
+
 /// Get all available styles
-async fn get_all_styles(State(state): State<AppState>) -> Json<Vec<StyleInfo>> {
-    Json(state.styles.all_infos(&state.base_url))
+/// Route: GET /styles.json
+/// Query parameters:
+/// - `key`: Optional API key to append to style URLs
+async fn get_all_styles(
+    State(state): State<AppState>,
+    Query(query): Query<StylesQueryParams>,
+) -> Json<Vec<StyleInfo>> {
+    Json(
+        state
+            .styles
+            .all_infos_with_key(&state.base_url, query.key.as_deref()),
+    )
 }
 
 /// Query parameters for style.json endpoint
@@ -411,10 +449,21 @@ struct RasterTileJson {
 }
 
 /// Get TileJSON for raster tiles of a style
+/// Query parameters for style TileJSON endpoint
+#[derive(Debug, serde::Deserialize, Default)]
+struct StyleTileJsonQueryParams {
+    /// API key to append to tile URLs
+    key: Option<String>,
+}
+
+/// Get TileJSON for raster tiles of a style
 /// Route: GET /styles/{style}.json
+/// Query parameters:
+/// - `key`: Optional API key to append to tile URLs
 async fn get_style_tilejson(
     State(state): State<AppState>,
     Path(style_json): Path<String>,
+    Query(query): Query<StyleTileJsonQueryParams>,
 ) -> Result<Json<RasterTileJson>, TileServerError> {
     // Only handle requests ending with .json
     let style_id = style_json
@@ -426,10 +475,16 @@ async fn get_style_tilejson(
         .get(style_id)
         .ok_or_else(|| TileServerError::StyleNotFound(style_id.to_string()))?;
 
-    // Build raster tile URL template
+    // Build raster tile URL template with optional key
+    let key_query = query
+        .key
+        .as_ref()
+        .map(|k| format!("?key={}", urlencoding::encode(k)))
+        .unwrap_or_default();
+
     let tile_url = format!(
-        "{}/styles/{}/{{z}}/{{x}}/{{y}}.png",
-        state.base_url, style_id
+        "{}/styles/{}/{{z}}/{{x}}/{{y}}.png{}",
+        state.base_url, style_id, key_query
     );
 
     Ok(Json(RasterTileJson {
@@ -442,22 +497,39 @@ async fn get_style_tilejson(
     }))
 }
 
+/// Query parameters for data source endpoints
+#[derive(Debug, serde::Deserialize, Default)]
+struct DataSourceQueryParams {
+    /// API key to append to tile URLs
+    key: Option<String>,
+}
+
 /// Get all available tile sources
-async fn get_all_sources(State(state): State<AppState>) -> Json<Vec<TileJson>> {
+/// Route: GET /data.json
+/// Query parameters:
+/// - `key`: Optional API key to append to tile URLs
+async fn get_all_sources(
+    State(state): State<AppState>,
+    Query(query): Query<DataSourceQueryParams>,
+) -> Json<Vec<TileJson>> {
     let sources: Vec<TileJson> = state
         .sources
         .all_metadata()
         .iter()
-        .map(|m| m.to_tilejson(&state.base_url))
+        .map(|m| m.to_tilejson_with_key(&state.base_url, query.key.as_deref()))
         .collect();
 
     Json(sources)
 }
 
 /// Get TileJSON for a specific source
+/// Route: GET /data/{source}
+/// Query parameters:
+/// - `key`: Optional API key to append to tile URLs
 async fn get_source_tilejson(
     State(state): State<AppState>,
     Path(source): Path<String>,
+    Query(query): Query<DataSourceQueryParams>,
 ) -> Result<Json<TileJson>, TileServerError> {
     // Strip .json extension if present
     let source_id = source.strip_suffix(".json").unwrap_or(&source);
@@ -467,7 +539,9 @@ async fn get_source_tilejson(
         .get(source_id)
         .ok_or_else(|| TileServerError::SourceNotFound(source_id.to_string()))?;
 
-    let tilejson = source_ref.metadata().to_tilejson(&state.base_url);
+    let tilejson = source_ref
+        .metadata()
+        .to_tilejson_with_key(&state.base_url, query.key.as_deref());
     Ok(Json(tilejson))
 }
 
@@ -993,11 +1067,21 @@ async fn get_sprite(
     Ok((headers, data).into_response())
 }
 
+/// Query parameters for WMTS endpoint
+#[derive(Debug, serde::Deserialize, Default)]
+struct WmtsQueryParams {
+    /// API key to include in all URLs
+    key: Option<String>,
+}
+
 /// Get WMTS GetCapabilities document for a style
 /// Route: GET /styles/{style}/wmts.xml
+/// Query parameters:
+/// - `key`: Optional API key to append to all tile URLs (e.g., `?key=my_api_key`)
 async fn get_wmts_capabilities(
     State(state): State<AppState>,
     Path(style_id): Path<String>,
+    Query(query): Query<WmtsQueryParams>,
 ) -> Result<Response, TileServerError> {
     // Get style
     let style = state
@@ -1005,13 +1089,14 @@ async fn get_wmts_capabilities(
         .get(&style_id)
         .ok_or_else(|| TileServerError::StyleNotFound(style_id.clone()))?;
 
-    // Generate WMTS capabilities XML
+    // Generate WMTS capabilities XML with optional key
     let xml = wmts::generate_wmts_capabilities(
         &state.base_url,
         &style_id,
         &style.name,
         0,  // minzoom
         22, // maxzoom
+        query.key.as_deref(),
     );
 
     let mut headers = HeaderMap::new();

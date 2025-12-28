@@ -30,14 +30,28 @@ const SCALE_DENOMINATORS_256: [f64; 19] = [
 ];
 
 /// Generate WMTS GetCapabilities XML for a style
+///
+/// # Arguments
+/// * `base_url` - Base URL of the server (e.g., "http://localhost:8080")
+/// * `style_id` - Style identifier
+/// * `style_name` - Human-readable style name
+/// * `min_zoom` - Minimum zoom level
+/// * `max_zoom` - Maximum zoom level
+/// * `key` - Optional API key to append to all URLs as `?key=...`
 pub fn generate_wmts_capabilities(
     base_url: &str,
     style_id: &str,
     style_name: &str,
     min_zoom: u8,
     max_zoom: u8,
+    key: Option<&str>,
 ) -> String {
     let mut xml = String::with_capacity(32768);
+
+    // Build query string for key parameter
+    let key_query = key
+        .map(|k| format!("?key={}", urlencoding::encode(k)))
+        .unwrap_or_default();
 
     // XML declaration and root element
     xml.push_str(r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -54,8 +68,8 @@ pub fn generate_wmts_capabilities(
 "#,
     );
 
-    // Operations Metadata
-    let wmts_url = format!("{}/styles/{}/wmts.xml", base_url, style_id);
+    // Operations Metadata - include key in WMTS URL
+    let wmts_url = format!("{}/styles/{}/wmts.xml{}", base_url, style_id, key_query);
     write!(
         xml,
         r#"  <ows:OperationsMetadata>
@@ -95,10 +109,10 @@ pub fn generate_wmts_capabilities(
     xml.push_str("  <Contents>\n");
 
     // Layer for 256px tiles
-    write_layer(&mut xml, base_url, style_id, style_name, 256);
+    write_layer(&mut xml, base_url, style_id, style_name, 256, &key_query);
 
     // Layer for 512px tiles (using @2x)
-    write_layer(&mut xml, base_url, style_id, style_name, 512);
+    write_layer(&mut xml, base_url, style_id, style_name, 512, &key_query);
 
     // TileMatrixSets
     write_tile_matrix_set_google_maps(&mut xml, 256, min_zoom, max_zoom);
@@ -115,24 +129,31 @@ pub fn generate_wmts_capabilities(
 }
 
 /// Write a Layer element for a specific tile size
-fn write_layer(xml: &mut String, base_url: &str, style_id: &str, style_name: &str, tile_size: u16) {
+fn write_layer(
+    xml: &mut String,
+    base_url: &str,
+    style_id: &str,
+    style_name: &str,
+    tile_size: u16,
+    key_query: &str,
+) {
     let layer_id = format!("{}-{}", style_id, tile_size);
     let layer_title = format!("{}-{}", style_name, tile_size);
     let matrix_set = format!("GoogleMapsCompatible_{}", tile_size);
 
-    // Build tile URL template
-    // For 256px: /styles/{id}/{z}/{x}/{y}.png
-    // For 512px: /styles/{id}/{z}/{x}/{y}@2x.png (which renders at 512px)
+    // Build tile URL template with optional key query parameter
+    // For 256px: /styles/{id}/{z}/{x}/{y}.png?key=...
+    // For 512px: /styles/{id}/{z}/{x}/{y}@2x.png?key=... (which renders at 512px)
     let tile_template = if tile_size == 256 {
         format!(
-            "{}/styles/{}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png",
-            base_url, style_id
+            "{}/styles/{}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}.png{}",
+            base_url, style_id, key_query
         )
     } else {
         // 512px tiles use @2x scale factor
         format!(
-            "{}/styles/{}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@2x.png",
-            base_url, style_id
+            "{}/styles/{}/{{TileMatrix}}/{{TileCol}}/{{TileRow}}@2x.png{}",
+            base_url, style_id, key_query
         )
     };
 
@@ -219,8 +240,14 @@ mod tests {
 
     #[test]
     fn test_generate_wmts_capabilities() {
-        let xml =
-            generate_wmts_capabilities("http://localhost:8080", "osm-bright", "OSM Bright", 0, 18);
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "osm-bright",
+            "OSM Bright",
+            0,
+            18,
+            None,
+        );
 
         assert!(xml.contains("<?xml version"));
         assert!(xml.contains("OGC WMTS"));
@@ -229,5 +256,47 @@ mod tests {
         assert!(xml.contains("GoogleMapsCompatible_256"));
         assert!(xml.contains("GoogleMapsCompatible_512"));
         assert!(xml.contains("http://localhost:8080/styles/osm-bright/wmts.xml"));
+        // Without key, URLs should not have query params
+        assert!(!xml.contains("?key="));
+    }
+
+    #[test]
+    fn test_generate_wmts_capabilities_with_key() {
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "osm-bright",
+            "OSM Bright",
+            0,
+            18,
+            Some("my_api_key_123"),
+        );
+
+        assert!(xml.contains("<?xml version"));
+        assert!(xml.contains("OGC WMTS"));
+
+        // With key, all URLs should include the key query parameter
+        assert!(xml.contains("?key=my_api_key_123"));
+
+        // WMTS URL should include key
+        assert!(xml.contains("http://localhost:8080/styles/osm-bright/wmts.xml?key=my_api_key_123"));
+
+        // Tile URLs should include key
+        assert!(xml.contains("{TileRow}.png?key=my_api_key_123"));
+        assert!(xml.contains("{TileRow}@2x.png?key=my_api_key_123"));
+    }
+
+    #[test]
+    fn test_generate_wmts_capabilities_with_special_chars_key() {
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "osm-bright",
+            "OSM Bright",
+            0,
+            18,
+            Some("key with spaces & symbols="),
+        );
+
+        // Key should be URL-encoded
+        assert!(xml.contains("?key=key%20with%20spaces%20%26%20symbols%3D"));
     }
 }

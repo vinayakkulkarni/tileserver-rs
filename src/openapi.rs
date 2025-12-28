@@ -174,11 +174,15 @@ pub async fn health_check() {}
 
 /// Get all sources and styles
 ///
-/// Returns a combined list of all data sources and styles as TileJSON
+/// Returns a combined list of all data sources and styles as TileJSON.
+/// The optional `key` parameter is appended to all tile URLs in the response.
 #[utoipa::path(
     get,
     path = "/index.json",
     tag = "Data",
+    params(
+        ("key" = Option<String>, Query, description = "API key to include in all tile URLs")
+    ),
     responses(
         (status = 200, description = "Combined list of sources and styles", body = Vec<TileJSON>)
     )
@@ -187,11 +191,15 @@ pub async fn get_index() {}
 
 /// List all data sources
 ///
-/// Returns TileJSON metadata for all available tile sources
+/// Returns TileJSON metadata for all available tile sources.
+/// The optional `key` parameter is appended to all tile URLs in the response.
 #[utoipa::path(
     get,
     path = "/data.json",
     tag = "Data",
+    params(
+        ("key" = Option<String>, Query, description = "API key to include in tile URLs")
+    ),
     responses(
         (status = 200, description = "List of data sources", body = Vec<TileJSON>)
     )
@@ -200,13 +208,15 @@ pub async fn list_data_sources() {}
 
 /// Get data source TileJSON
 ///
-/// Returns TileJSON metadata for a specific tile source
+/// Returns TileJSON metadata for a specific tile source.
+/// The optional `key` parameter is appended to all tile URLs in the response.
 #[utoipa::path(
     get,
     path = "/data/{source}",
     tag = "Data",
     params(
-        ("source" = String, Path, description = "Source ID (with or without .json extension)")
+        ("source" = String, Path, description = "Source ID (with or without .json extension)"),
+        ("key" = Option<String>, Query, description = "API key to include in tile URLs")
     ),
     responses(
         (status = 200, description = "TileJSON metadata", body = TileJSON),
@@ -239,11 +249,15 @@ pub async fn get_tile() {}
 
 /// List all styles
 ///
-/// Returns metadata for all available map styles
+/// Returns metadata for all available map styles.
+/// The optional `key` parameter is appended to all style URLs in the response.
 #[utoipa::path(
     get,
     path = "/styles.json",
     tag = "Styles",
+    params(
+        ("key" = Option<String>, Query, description = "API key to include in style URLs")
+    ),
     responses(
         (status = 200, description = "List of styles", body = Vec<StyleInfo>)
     )
@@ -252,13 +266,15 @@ pub async fn list_styles() {}
 
 /// Get style TileJSON
 ///
-/// Returns TileJSON for raster tiles rendered from this style
+/// Returns TileJSON for raster tiles rendered from this style.
+/// The optional `key` parameter is appended to all tile URLs in the response.
 #[utoipa::path(
     get,
     path = "/styles/{style}.json",
     tag = "Styles",
     params(
-        ("style" = String, Path, description = "Style ID")
+        ("style" = String, Path, description = "Style ID"),
+        ("key" = Option<String>, Query, description = "API key to include in tile URLs")
     ),
     responses(
         (status = 200, description = "TileJSON for raster tiles", body = TileJSON),
@@ -269,13 +285,15 @@ pub async fn get_style_tilejson() {}
 
 /// Get MapLibre style JSON
 ///
-/// Returns the full MapLibre GL style specification
+/// Returns the full MapLibre GL style specification.
+/// The optional `key` parameter is appended to all URLs in the style (sources, glyphs, sprites).
 #[utoipa::path(
     get,
     path = "/styles/{style}/style.json",
     tag = "Styles",
     params(
-        ("style" = String, Path, description = "Style ID")
+        ("style" = String, Path, description = "Style ID"),
+        ("key" = Option<String>, Query, description = "API key to include in all URLs within the style")
     ),
     responses(
         (status = 200, description = "MapLibre style specification", content_type = "application/json"),
@@ -376,7 +394,8 @@ pub async fn get_sprite() {}
     path = "/styles/{style}/wmts.xml",
     tag = "Styles",
     params(
-        ("style" = String, Path, description = "Style ID")
+        ("style" = String, Path, description = "Style ID"),
+        ("key" = Option<String>, Query, description = "API key to include in all tile URLs")
     ),
     responses(
         (status = 200, description = "WMTS capabilities XML", content_type = "application/xml")

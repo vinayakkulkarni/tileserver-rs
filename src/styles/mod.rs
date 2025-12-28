@@ -60,10 +60,22 @@ impl Style {
 
     /// Convert to StyleInfo for API response
     pub fn to_info(&self, base_url: &str) -> StyleInfo {
+        self.to_info_with_key(base_url, None)
+    }
+
+    /// Convert to StyleInfo for API response with optional API key
+    pub fn to_info_with_key(&self, base_url: &str, key: Option<&str>) -> StyleInfo {
+        let key_query = key
+            .map(|k| format!("?key={}", urlencoding::encode(k)))
+            .unwrap_or_default();
+
         StyleInfo {
             id: self.id.clone(),
             name: self.name.clone(),
-            url: Some(format!("{}/styles/{}/style.json", base_url, self.id)),
+            url: Some(format!(
+                "{}/styles/{}/style.json{}",
+                base_url, self.id, key_query
+            )),
         }
     }
 }
@@ -108,7 +120,15 @@ impl StyleManager {
 
     /// Get all style infos for API response
     pub fn all_infos(&self, base_url: &str) -> Vec<StyleInfo> {
-        self.styles.values().map(|s| s.to_info(base_url)).collect()
+        self.all_infos_with_key(base_url, None)
+    }
+
+    /// Get all style infos for API response with optional API key
+    pub fn all_infos_with_key(&self, base_url: &str, key: Option<&str>) -> Vec<StyleInfo> {
+        self.styles
+            .values()
+            .map(|s| s.to_info_with_key(base_url, key))
+            .collect()
     }
 
     /// Get all styles
@@ -153,7 +173,7 @@ impl UrlQueryParams {
 
     /// Build query string to append to URLs
     /// Returns empty string if no params, otherwise "?key=value&..."
-    fn to_query_string(&self) -> String {
+    pub fn to_query_string(&self) -> String {
         let mut params = Vec::new();
 
         if let Some(ref key) = self.key {

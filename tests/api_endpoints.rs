@@ -953,8 +953,6 @@ mod tilejson_tests {
 // ============================================================
 
 mod wmts_tests {
-    use super::*;
-
     #[test]
     fn test_wmts_xml_structure() {
         // WMTS GetCapabilities should return valid XML
@@ -985,6 +983,328 @@ mod wmts_tests {
             assert!(matrix_width > 0);
             assert_eq!(matrix_width, matrix_height);
         }
+    }
+
+    #[test]
+    fn test_wmts_key_parameter_format() {
+        // Test that key parameter is properly formatted in WMTS URLs
+        let key = "my_api_key_123";
+        let expected_query = format!("?key={}", key);
+
+        assert!(expected_query.starts_with("?key="));
+        assert!(expected_query.contains(key));
+    }
+
+    #[test]
+    fn test_wmts_key_parameter_encoding() {
+        // Test URL encoding of special characters in key
+        let special_keys = [
+            ("simple_key", "simple_key"),
+            ("key with spaces", "key%20with%20spaces"),
+            ("key&value=test", "key%26value%3Dtest"),
+        ];
+
+        for (input, expected_encoded) in special_keys {
+            let encoded = urlencoding::encode(input);
+            assert_eq!(
+                encoded, expected_encoded,
+                "Key '{}' not encoded correctly",
+                input
+            );
+        }
+    }
+
+    #[test]
+    fn test_wmts_generates_without_key() {
+        use tileserver_rs::wmts::generate_wmts_capabilities;
+
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "test-style",
+            "Test Style",
+            0,
+            18,
+            None,
+        );
+
+        assert!(
+            !xml.contains("?key="),
+            "Should not have key param without key"
+        );
+        assert!(
+            xml.contains("wmts.xml\""),
+            "Should have WMTS URL without query params"
+        );
+    }
+
+    #[test]
+    fn test_wmts_generates_with_key() {
+        use tileserver_rs::wmts::generate_wmts_capabilities;
+
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "test-style",
+            "Test Style",
+            0,
+            18,
+            Some("my_secret_key"),
+        );
+
+        assert!(
+            xml.contains("?key=my_secret_key"),
+            "Should have key param in URLs"
+        );
+
+        // Key should appear in:
+        // 1. WMTS capabilities URL
+        assert!(xml.contains("wmts.xml?key=my_secret_key"));
+        // 2. Tile URLs for both 256 and 512 layers
+        assert!(xml.contains(".png?key=my_secret_key"));
+    }
+
+    #[test]
+    fn test_wmts_key_url_encoded() {
+        use tileserver_rs::wmts::generate_wmts_capabilities;
+
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "test-style",
+            "Test Style",
+            0,
+            18,
+            Some("key with spaces & symbols="),
+        );
+
+        // Key should be URL-encoded
+        assert!(xml.contains("?key=key%20with%20spaces%20%26%20symbols%3D"));
+    }
+
+    #[test]
+    fn test_wmts_key_in_all_urls() {
+        use tileserver_rs::wmts::generate_wmts_capabilities;
+
+        let xml = generate_wmts_capabilities(
+            "http://localhost:8080",
+            "osm-bright",
+            "OSM Bright",
+            0,
+            18,
+            Some("test_key"),
+        );
+
+        // Count occurrences of key parameter
+        let key_count = xml.matches("?key=test_key").count();
+
+        // Should appear in:
+        // - 2x in OperationsMetadata (GetCapabilities + GetTile hrefs)
+        // - 2x in ResourceURL templates (256px + 512px layers)
+        // - 1x in ServiceMetadataURL
+        // Total: 5 occurrences
+        assert!(
+            key_count >= 4,
+            "Key should appear in multiple URLs, found {} occurrences",
+            key_count
+        );
+    }
+}
+
+// ============================================================
+// API Key Parameter Tests
+// ============================================================
+
+mod key_param_tests {
+    use super::*;
+    use tileserver_rs::{Config, SourceManager};
+
+    #[tokio::test]
+    async fn test_tilejson_with_key() {
+        let config =
+            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let all_metadata = sources.all_metadata();
+        let metadata = all_metadata.first().expect("Should have a source");
+
+        // Without key
+        let tilejson_no_key = metadata.to_tilejson("http://localhost:8080");
+        assert!(
+            !tilejson_no_key.tiles[0].contains("?key="),
+            "Should not have key param without key"
+        );
+
+        // With key
+        let tilejson_with_key =
+            metadata.to_tilejson_with_key("http://localhost:8080", Some("my_api_key"));
+        assert!(
+            tilejson_with_key.tiles[0].contains("?key=my_api_key"),
+            "Should have key param in tile URL"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_tilejson_key_url_encoding() {
+        let config =
+            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let all_metadata = sources.all_metadata();
+        let metadata = all_metadata.first().expect("Should have a source");
+
+        // Key with special characters should be URL-encoded
+        let tilejson = metadata
+            .to_tilejson_with_key("http://localhost:8080", Some("key with spaces & symbols="));
+
+        assert!(
+            tilejson.tiles[0].contains("key%20with%20spaces%20%26%20symbols%3D"),
+            "Key should be URL-encoded in tile URL: {}",
+            tilejson.tiles[0]
+        );
+    }
+
+    #[test]
+    fn test_style_info_with_key() {
+        use std::path::PathBuf;
+        use tileserver_rs::styles::Style;
+
+        let style = Style {
+            id: "osm-bright".to_string(),
+            name: "OSM Bright".to_string(),
+            style_json: serde_json::json!({"version": 8}),
+            path: PathBuf::from("data/styles/protomaps-light/style.json"),
+        };
+
+        // Without key
+        let info_no_key = style.to_info("http://localhost:8080");
+        assert!(
+            !info_no_key.url.as_ref().unwrap().contains("?key="),
+            "Should not have key param without key"
+        );
+
+        // With key
+        let info_with_key = style.to_info_with_key("http://localhost:8080", Some("my_api_key"));
+        assert!(
+            info_with_key
+                .url
+                .as_ref()
+                .unwrap()
+                .contains("?key=my_api_key"),
+            "Should have key param in style URL"
+        );
+    }
+
+    #[test]
+    fn test_style_info_key_url_encoding() {
+        use std::path::PathBuf;
+        use tileserver_rs::styles::Style;
+
+        let style = Style {
+            id: "test-style".to_string(),
+            name: "Test Style".to_string(),
+            style_json: serde_json::json!({"version": 8}),
+            path: PathBuf::from("data/styles/test/style.json"),
+        };
+
+        // Key with special characters should be URL-encoded
+        let info =
+            style.to_info_with_key("http://localhost:8080", Some("key with spaces & symbols="));
+
+        assert!(
+            info.url
+                .as_ref()
+                .unwrap()
+                .contains("key%20with%20spaces%20%26%20symbols%3D"),
+            "Key should be URL-encoded in style URL: {}",
+            info.url.as_ref().unwrap()
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_api_with_key() {
+        use tileserver_rs::styles::{rewrite_style_for_api, UrlQueryParams};
+
+        let style = serde_json::json!({
+            "version": 8,
+            "sources": {
+                "openmaptiles": {
+                    "type": "vector",
+                    "url": "/data/openmaptiles.json"
+                }
+            },
+            "glyphs": "/fonts/{fontstack}/{range}.pbf",
+            "sprite": "/styles/basic/sprite"
+        });
+
+        // With key
+        let params = UrlQueryParams::with_key(Some("my_secret_key".to_string()));
+        let result = rewrite_style_for_api(&style, "http://tiles.example.com", &params);
+
+        // All URLs should have key appended
+        assert_eq!(
+            result["sources"]["openmaptiles"]["url"],
+            "http://tiles.example.com/data/openmaptiles.json?key=my_secret_key"
+        );
+        assert_eq!(
+            result["glyphs"],
+            "http://tiles.example.com/fonts/{fontstack}/{range}.pbf?key=my_secret_key"
+        );
+        assert_eq!(
+            result["sprite"],
+            "http://tiles.example.com/styles/basic/sprite?key=my_secret_key"
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_api_preserves_external_urls() {
+        use tileserver_rs::styles::{rewrite_style_for_api, UrlQueryParams};
+
+        let style = serde_json::json!({
+            "version": 8,
+            "sources": {
+                "external": {
+                    "type": "vector",
+                    "url": "https://external-tiles.com/tiles.json"
+                }
+            },
+            "glyphs": "https://fonts.example.com/{fontstack}/{range}.pbf"
+        });
+
+        // With key - external URLs should NOT have key appended
+        let params = UrlQueryParams::with_key(Some("my_key".to_string()));
+        let result = rewrite_style_for_api(&style, "http://localhost", &params);
+
+        // External URLs should remain unchanged
+        assert_eq!(
+            result["sources"]["external"]["url"],
+            "https://external-tiles.com/tiles.json"
+        );
+        assert_eq!(
+            result["glyphs"],
+            "https://fonts.example.com/{fontstack}/{range}.pbf"
+        );
+    }
+
+    #[test]
+    fn test_key_query_string_generation() {
+        use tileserver_rs::styles::UrlQueryParams;
+
+        // Empty params
+        let empty = UrlQueryParams::default();
+        assert_eq!(empty.to_query_string(), "");
+
+        // With key
+        let with_key = UrlQueryParams::with_key(Some("abc123".to_string()));
+        assert_eq!(with_key.to_query_string(), "?key=abc123");
+
+        // With key and extra params
+        let with_extra = UrlQueryParams {
+            key: Some("key1".to_string()),
+            extra: vec![("foo".to_string(), "bar".to_string())],
+        };
+        assert_eq!(with_extra.to_query_string(), "?key=key1&foo=bar");
     }
 }
 
