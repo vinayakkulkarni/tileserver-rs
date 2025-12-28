@@ -342,6 +342,26 @@ tileserver-rs/
 └── config.example.toml      # Example configuration
 ```
 
+## Releases
+
+This project uses [Release Please](https://github.com/googleapis/release-please) for automated releases. The release process is fully automated based on [Conventional Commits](https://www.conventionalcommits.org/).
+
+**How it works:**
+1. Commits to `main` with conventional commit messages (`feat:`, `fix:`, etc.) trigger Release Please
+2. Release Please creates/updates a **Release PR** with version bumps and changelog
+3. Merging the Release PR creates a GitHub Release and triggers platform builds
+
+**Version bumping:**
+- `feat:` commits → minor version (0.1.0 → 0.2.0)
+- `fix:` commits → patch version (0.1.0 → 0.1.1)
+- `feat!:` or `BREAKING CHANGE:` → major version (0.1.0 → 1.0.0)
+
+**Release artifacts:**
+- GitHub Release with changelog
+- macOS ARM64 binary (`.tar.gz`)
+- Docker image (`ghcr.io/vinayakkulkarni/tileserver-rs`)
+- Homebrew formula auto-update
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.

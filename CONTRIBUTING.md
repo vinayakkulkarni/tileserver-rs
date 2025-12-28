@@ -17,6 +17,7 @@ Thank you for your interest in contributing to tileserver-rs! This document prov
 - [Submitting Changes](#submitting-changes)
   - [Commit Messages](#commit-messages)
   - [Pull Requests](#pull-requests)
+- [Release Process](#release-process)
 - [Project Structure](#project-structure)
 - [Need Help?](#need-help)
 
@@ -266,6 +267,49 @@ chore(deps): upgrade axum to 0.8
 - [ ] Documentation updated (if applicable)
 - [ ] Commit messages follow conventional commits
 - [ ] Commits are signed
+
+## Release Process
+
+This project uses [Release Please](https://github.com/googleapis/release-please) for automated releases. You don't need to manually bump versions or write changelogs.
+
+### How It Works
+
+1. **Commit with conventional messages** - Use `feat:`, `fix:`, `docs:`, etc.
+2. **Release Please creates a PR** - After merging to `main`, Release Please automatically creates/updates a Release PR with:
+   - Version bump in `Cargo.toml`
+   - Auto-generated `CHANGELOG.md`
+   - Updated versions in `apps/client/package.json` and `homebrew/Formula/tileserver-rs.rb`
+3. **Merge the Release PR** - When ready to release, merge the Release PR (use **regular merge**, not squash)
+4. **Automated release** - Merging triggers:
+   - GitHub Release creation with changelog
+   - macOS ARM64 binary build
+   - Docker image build and push
+   - Homebrew formula update
+
+### Version Bumping Rules
+
+| Commit Type | Version Bump | Example |
+|-------------|--------------|---------|
+| `fix:` | Patch (0.1.0 → 0.1.1) | `fix(render): handle empty tiles` |
+| `feat:` | Minor (0.1.0 → 0.2.0) | `feat(sources): add S3 support` |
+| `feat!:` or `BREAKING CHANGE:` | Major (0.1.0 → 1.0.0) | `feat!: change config format` |
+
+### Manual Release (if needed)
+
+For maintainers who need to trigger a release manually:
+
+```bash
+# Trigger macOS ARM64 build for a specific tag
+gh workflow run release-macos-arm64.yml --ref v0.2.0 -f version=v0.2.0
+```
+
+### Release Artifacts
+
+Each release produces:
+- **GitHub Release** - Changelog and release notes
+- **macOS ARM64 binary** - `tileserver-rs-macos-arm64.tar.gz`
+- **Docker image** - `ghcr.io/vinayakkulkarni/tileserver-rs:v0.x.x`
+- **Homebrew formula** - Auto-updated in `homebrew/Formula/tileserver-rs.rb`
 
 ## Project Structure
 
