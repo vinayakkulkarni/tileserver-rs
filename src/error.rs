@@ -42,6 +42,9 @@ pub enum TileServerError {
     #[error("Render error: {0}")]
     RenderError(String),
 
+    #[error("MBTiles error: {0}")]
+    MbTilesError(String),
+
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }
@@ -70,6 +73,9 @@ impl IntoResponse for TileServerError {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::RenderError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            TileServerError::MbTilesError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::Internal(_) => (
