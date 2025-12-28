@@ -37,7 +37,8 @@ jobs:
           - release-macos-arm64.yml
           - release-macos-amd64.yml
           - release-linux-amd64.yml
-          - release-linux-arm64.yml
+          # Linux ARM64 disabled - needs ARM runner or cross-compilation
+          # - release-linux-arm64.yml
     steps:
       - name: Trigger ${{ matrix.workflow }}
         uses: actions/github-script@v7

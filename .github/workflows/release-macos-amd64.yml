@@ -18,7 +18,7 @@ env:
 jobs:
   build:
     name: Build macOS AMD64
-    runs-on: macos-13
+    runs-on: macos-15-large
     timeout-minutes: 60
     steps:
       - name: Checkout repository
