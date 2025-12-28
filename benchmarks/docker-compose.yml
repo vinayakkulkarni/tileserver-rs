@@ -1,55 +1,39 @@
 # Docker Compose for benchmark comparison
-# Run: docker compose -f benchmarks/docker-compose.yml up -d
 #
-# Services:
-# - tileserver-rs: http://localhost:8080
-# - martin:        http://localhost:3000
-# - tileserver-gl: http://localhost:8081
+# Ports:
+# - tileserver-rs: http://127.0.0.1:8000 (run natively, not in Docker)
+# - martin:        http://127.0.0.1:8001
+# - tileserver-gl: http://127.0.0.1:8002
+#
+# Run: docker compose -f benchmarks/docker-compose.yml up -d
 
 services:
-  # tileserver-rs (this project)
-  tileserver-rs:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    volumes:
-      - ../data:/data:ro
-      - ./config-tileserver-rs.toml:/config.toml:ro
-    environment:
-      - RUST_LOG=info
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-
-  # Martin - Rust-based tile server
+  # Martin - Rust-based tile server (latest v1.1.0+)
   # https://github.com/maplibre/martin
+  # Supports both PMTiles and MBTiles
   martin:
-    image: ghcr.io/maplibre/martin:v0.15.0
+    image: ghcr.io/maplibre/martin:latest
     ports:
-      - "3000:3000"
+      - "8001:3000"
     volumes:
       - ../data/tiles:/data:ro
-    command: ["serve", "/data"]
+    command: ["/data/zurich_switzerland.mbtiles", "/data/protomaps-sample.pmtiles"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/catalog"]
       interval: 5s
       timeout: 3s
       retries: 3
 
   # tileserver-gl - Node.js-based tile server with raster rendering
   # https://github.com/maptiler/tileserver-gl
+  # Note: tileserver-gl only supports MBTiles, not PMTiles
   tileserver-gl:
-    image: maptiler/tileserver-gl:v4.12.0
+    image: maptiler/tileserver-gl:latest
     ports:
-      - "8081:8080"
+      - "8002:8080"
     volumes:
-      - ../data:/data:ro
-      - ./config-tileserver-gl.json:/data/config.json:ro
-    command: ["--config", "/data/config.json", "--verbose"]
+      - ../data/tiles:/data:ro
+    command: ["-p", "8080", "--mbtiles", "/data/zurich_switzerland.mbtiles"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 5s

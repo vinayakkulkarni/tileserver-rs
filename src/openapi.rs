@@ -124,8 +124,12 @@ pub fn generate_openapi_spec(base_url: &str, version: &str) -> Value {
                             "content": {
                                 "text/plain": {
                                     "schema": {
-                                        "type": "string",
-                                        "example": "OK"
+                                        "type": "string"
+                                    },
+                                    "examples": {
+                                        "ok": {
+                                            "value": "OK"
+                                        }
                                     }
                                 }
                             }
@@ -194,7 +198,16 @@ pub fn generate_openapi_spec(base_url: &str, version: &str) -> Value {
                             "schema": {
                                 "type": "string"
                             },
-                            "example": "openmaptiles.json"
+                            "examples": {
+                                "withExtension": {
+                                    "value": "openmaptiles.json",
+                                    "summary": "With .json extension"
+                                },
+                                "withoutExtension": {
+                                    "value": "openmaptiles",
+                                    "summary": "Without extension"
+                                }
+                            }
                         }
                     ],
                     "responses": {
@@ -773,8 +786,12 @@ pub fn generate_openapi_spec(base_url: &str, version: &str) -> Value {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
-                                        },
-                                        "example": ["Noto Sans Regular", "Noto Sans Bold"]
+                                        }
+                                    },
+                                    "examples": {
+                                        "fonts": {
+                                            "value": ["Noto Sans Regular", "Noto Sans Bold"]
+                                        }
                                     }
                                 }
                             }
@@ -797,7 +814,16 @@ pub fn generate_openapi_spec(base_url: &str, version: &str) -> Value {
                             "schema": {
                                 "type": "string"
                             },
-                            "example": "Noto Sans Regular"
+                            "examples": {
+                                "single": {
+                                    "value": "Noto Sans Regular",
+                                    "summary": "Single font"
+                                },
+                                "fallback": {
+                                    "value": "Noto Sans Bold,Noto Sans Regular",
+                                    "summary": "Font with fallback"
+                                }
+                            }
                         },
                         {
                             "name": "range",
@@ -808,7 +834,16 @@ pub fn generate_openapi_spec(base_url: &str, version: &str) -> Value {
                                 "type": "string",
                                 "pattern": "^\\d+-\\d+\\.pbf$"
                             },
-                            "example": "0-255.pbf"
+                            "examples": {
+                                "basic": {
+                                    "value": "0-255.pbf",
+                                    "summary": "Basic Latin characters"
+                                },
+                                "extended": {
+                                    "value": "256-511.pbf",
+                                    "summary": "Latin Extended"
+                                }
+                            }
                         }
                     ],
                     "responses": {

@@ -34,7 +34,7 @@ use config::Config;
 use error::TileServerError;
 use render::{ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
 use sources::{SourceManager, TileJson};
-use styles::{StyleInfo, StyleManager};
+use styles::{StyleInfo, StyleManager, UrlQueryParams};
 
 /// Embedded SPA assets (built from apps/client)
 #[derive(Embed)]
@@ -542,17 +542,34 @@ async fn get_all_styles(State(state): State<AppState>) -> Json<Vec<StyleInfo>> {
     Json(state.styles.all_infos(&state.base_url))
 }
 
+/// Query parameters for style.json endpoint
+#[derive(Debug, serde::Deserialize, Default)]
+struct StyleQueryParams {
+    /// API key to forward to all URLs in the style
+    key: Option<String>,
+}
+
 /// Get style.json for a specific style
+/// Returns the style with all relative URLs rewritten to absolute URLs
+/// Query parameters (like `?key=API_KEY`) are forwarded to all rewritten URLs
 async fn get_style_json(
     State(state): State<AppState>,
     Path(style_id): Path<String>,
+    Query(query): Query<StyleQueryParams>,
 ) -> Result<Json<serde_json::Value>, TileServerError> {
     let style = state
         .styles
         .get(&style_id)
         .ok_or_else(|| TileServerError::StyleNotFound(style_id))?;
 
-    Ok(Json(style.style_json.clone()))
+    // Build query params to forward to rewritten URLs
+    let url_params = UrlQueryParams::with_key(query.key);
+
+    // Rewrite relative URLs to absolute URLs for external clients
+    let rewritten_style =
+        styles::rewrite_style_for_api(&style.style_json, &state.base_url, &url_params);
+
+    Ok(Json(rewritten_style))
 }
 
 /// TileJSON response for raster style tiles
