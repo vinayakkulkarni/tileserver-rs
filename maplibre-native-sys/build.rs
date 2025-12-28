@@ -17,6 +17,13 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/maplibre_c_stub.c");
     println!("cargo:rerun-if-changed=build.rs");
 
+    // Also rerun if the MapLibre Native build output changes (or appears)
+    // This ensures we switch from stub to real implementation when libraries are built
+    #[cfg(target_os = "macos")]
+    println!("cargo:rerun-if-changed=vendor/maplibre-native/build-macos-metal/libmbgl-core.a");
+    #[cfg(target_os = "linux")]
+    println!("cargo:rerun-if-changed=vendor/maplibre-native/build-linux/libmbgl-core.a");
+
     // Check if the native libraries are built
     // Try platform-specific build directories
     #[cfg(target_os = "macos")]
