@@ -1,0 +1,57 @@
+# Docker Compose for benchmark comparison
+# Run: docker compose -f benchmarks/docker-compose.yml up -d
+#
+# Services:
+# - tileserver-rs: http://localhost:8080
+# - martin:        http://localhost:3000
+# - tileserver-gl: http://localhost:8081
+
+services:
+  # tileserver-rs (this project)
+  tileserver-rs:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../data:/data:ro
+      - ./config-tileserver-rs.toml:/config.toml:ro
+    environment:
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Martin - Rust-based tile server
+  # https://github.com/maplibre/martin
+  martin:
+    image: ghcr.io/maplibre/martin:v0.15.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../data/tiles:/data:ro
+    command: ["serve", "/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # tileserver-gl - Node.js-based tile server with raster rendering
+  # https://github.com/maptiler/tileserver-gl
+  tileserver-gl:
+    image: maptiler/tileserver-gl:v4.12.0
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../data:/data:ro
+      - ./config-tileserver-gl.json:/data/config.json:ro
+    command: ["--config", "/data/config.json", "--verbose"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3

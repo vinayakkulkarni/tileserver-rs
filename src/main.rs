@@ -287,8 +287,8 @@ fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
         // OpenAPI spec endpoints
-        .route("/api", get(get_openapi_html))
-        .route("/api/openapi.json", get(get_openapi_json))
+        .route("/_openapi", get(get_openapi_html))
+        .route("/_openapi/openapi.json", get(get_openapi_json))
         .route("/index.json", get(get_index_json))
         // Style endpoints
         .route("/styles.json", get(get_all_styles))
@@ -323,16 +323,16 @@ async fn health_check() -> (StatusCode, &'static str) {
 }
 
 /// Get OpenAPI JSON specification
-/// Route: GET /api/openapi.json
+/// Route: GET /_openapi/openapi.json
 async fn get_openapi_json(State(state): State<AppState>) -> Json<serde_json::Value> {
     let version = env!("CARGO_PKG_VERSION");
     Json(openapi::generate_openapi_spec(&state.base_url, version))
 }
 
 /// Get OpenAPI HTML documentation (Swagger UI)
-/// Route: GET /api
+/// Route: GET /_openapi
 async fn get_openapi_html(State(state): State<AppState>) -> Html<String> {
-    let spec_url = format!("{}/api/openapi.json", state.base_url);
+    let spec_url = format!("{}/_openapi/openapi.json", state.base_url);
     Html(format!(
         r#"<!DOCTYPE html>
 <html lang="en">

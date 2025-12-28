@@ -1,0 +1,19 @@
+{
+  "name": "@tileserver-rs/benchmarks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Benchmarks comparing tileserver-rs, martin, and tileserver-gl",
+  "type": "module",
+  "scripts": {
+    "bench": "node run-benchmarks.js",
+    "bench:vector": "node run-benchmarks.js --type vector",
+    "bench:raster": "node run-benchmarks.js --type raster",
+    "bench:report": "node generate-report.js"
+  },
+  "dependencies": {
+    "autocannon": "^8.0.0",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0"
+  }
+}

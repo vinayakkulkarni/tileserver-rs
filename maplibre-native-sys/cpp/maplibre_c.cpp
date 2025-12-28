@@ -76,6 +76,12 @@ MLNErrorCode mln_init(void) {
     }
     
     try {
+        // Suppress MapLibre Native's verbose logging by default
+        if (!loggingSuppressed) {
+            mbgl::Log::setObserver(std::make_unique<SilentLogObserver>());
+            loggingSuppressed = true;
+        }
+        
         // Ensure the calling thread has a RunLoop
         ensureRunLoop();
         initialized = true;

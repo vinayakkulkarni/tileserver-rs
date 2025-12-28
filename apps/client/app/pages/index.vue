@@ -88,7 +88,6 @@
   // Collapsible sections
   const stylesOpen = ref(true);
   const dataOpen = ref(true);
-  const apiOpen = ref(false);
 
   // Get base URL for XYZ templates
   const baseUrl = computed(() => {
@@ -97,39 +96,6 @@
     }
     return '';
   });
-
-  const apiEndpoints = [
-    { method: 'GET', path: '/data.json', description: 'List all data sources' },
-    { method: 'GET', path: '/data/{source}.json', description: 'TileJSON' },
-    {
-      method: 'GET',
-      path: '/data/{source}/{z}/{x}/{y}.pbf',
-      description: 'Vector tiles',
-    },
-    { method: 'GET', path: '/styles.json', description: 'List all styles' },
-    {
-      method: 'GET',
-      path: '/styles/{style}/style.json',
-      description: 'GL style spec',
-    },
-    {
-      method: 'GET',
-      path: '/styles/{style}.json',
-      description: 'Raster TileJSON',
-    },
-    {
-      method: 'GET',
-      path: '/styles/{style}/wmts.xml',
-      description: 'WMTS capabilities',
-    },
-    {
-      method: 'GET',
-      path: '/styles/{style}/{z}/{x}/{y}.{fmt}',
-      description: 'Raster tiles',
-    },
-    { method: 'GET', path: '/fonts.json', description: 'List fonts' },
-    { method: 'GET', path: '/health', description: 'Health check' },
-  ];
 </script>
 
 <template>
@@ -653,26 +619,20 @@
         </Card>
       </Collapsible>
 
-      <!-- API Reference Section -->
-      <Collapsible v-model:open="apiOpen">
+      <!-- API Documentation Link -->
+      <a
+        href="/_openapi"
+        target="_blank"
+        class="block"
+      >
         <Card
           class="
             overflow-hidden rounded-xl border-border/50 bg-card/50
-            backdrop-blur-sm
+            backdrop-blur-sm transition-all
+            hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5
           "
         >
-          <CollapsibleTrigger
-            class="
-              flex w-full items-center gap-3 p-4 transition-colors
-              hover:bg-muted/30
-            "
-          >
-            <ChevronRight
-              class="
-                size-4 text-muted-foreground transition-transform duration-200
-              "
-              :class="{ 'rotate-90': apiOpen }"
-            />
+          <div class="flex items-center gap-3 p-4">
             <div
               class="
                 flex size-8 items-center justify-center rounded-lg bg-muted/50
@@ -680,41 +640,16 @@
             >
               <ExternalLink class="size-4 text-muted-foreground" />
             </div>
-            <span class="font-medium">API Reference</span>
-          </CollapsibleTrigger>
-
-          <CollapsibleContent>
-            <Separator class="bg-border/50" />
-            <div class="divide-y divide-border/50">
-              <div
-                v-for="(endpoint, i) in apiEndpoints"
-                :key="i"
-                class="
-                  flex items-center justify-between gap-4 px-4 py-3
-                  transition-colors
-                  hover:bg-muted/30
-                "
-              >
-                <div class="flex min-w-0 items-center gap-3">
-                  <Badge
-                    variant="outline"
-                    class="
-                      shrink-0 rounded-md font-mono text-[10px] text-green-600
-                      dark:text-green-400
-                    "
-                  >
-                    {{ endpoint.method }}
-                  </Badge>
-                  <code class="truncate text-sm">{{ endpoint.path }}</code>
-                </div>
-                <span class="shrink-0 text-xs text-muted-foreground">{{
-                  endpoint.description
-                }}</span>
-              </div>
+            <div class="flex-1">
+              <span class="font-medium">API Documentation</span>
+              <p class="text-xs text-muted-foreground">
+                OpenAPI 3.1 specification with Swagger UI
+              </p>
             </div>
-          </CollapsibleContent>
+            <ChevronRight class="size-4 text-muted-foreground" />
+          </div>
         </Card>
-      </Collapsible>
+      </a>
     </main>
 
     <!-- Footer -->
