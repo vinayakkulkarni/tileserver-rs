@@ -1,15 +1,15 @@
-name: 'Release (macOS ARM64)'
+name: "Release (macOS ARM64)"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v0.1.0)'
+        description: "Version tag (e.g., v0.1.0)"
         required: true
         type: string
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   CARGO_INCREMENTAL: 0
@@ -74,10 +74,10 @@ jobs:
       - name: Prepare release
         run: |
           mkdir -p dist
-          cp target/aarch64-apple-darwin/release/tileserver-rs dist/tileserver-rs-macos-arm64
-          chmod +x dist/tileserver-rs-macos-arm64
+          cp target/aarch64-apple-darwin/release/tileserver-rs dist/tileserver-rs
+          chmod +x dist/tileserver-rs
           cd dist
-          tar -czvf tileserver-rs-macos-arm64.tar.gz tileserver-rs-macos-arm64
+          tar -czvf tileserver-rs-macos-arm64.tar.gz tileserver-rs
           shasum -a 256 tileserver-rs-macos-arm64.tar.gz > tileserver-rs-macos-arm64.tar.gz.sha256
 
       - name: Upload artifact
@@ -100,3 +100,22 @@ jobs:
           prerelease: ${{ contains(github.ref, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          SHA256=$(cat dist/tileserver-rs-macos-arm64.tar.gz.sha256 | awk '{print $1}')
+
+          # Update formula in this repo
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" homebrew/Formula/tileserver-rs.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" homebrew/Formula/tileserver-rs.rb
+
+          # Commit and push the formula update
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add homebrew/Formula/tileserver-rs.rb
+          git commit -m "chore(homebrew): update formula to v${VERSION}" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Push failed - may need manual update"

@@ -98,6 +98,35 @@ cargo build --release
 
 ## Installation
 
+### Using Homebrew (macOS)
+
+```bash
+# Add the tap and install
+brew tap vinayakkulkarni/tileserver-rs https://github.com/vinayakkulkarni/tileserver-rs
+brew install vinayakkulkarni/tileserver-rs/tileserver-rs
+
+# Run the server
+tileserver-rs --config config.toml
+```
+
+### Pre-built Binaries
+
+Download the latest release from [GitHub Releases](https://github.com/vinayakkulkarni/tileserver-rs/releases).
+
+```bash
+# macOS ARM64 (Apple Silicon)
+curl -L https://github.com/vinayakkulkarni/tileserver-rs/releases/latest/download/tileserver-rs-macos-arm64.tar.gz | tar xz
+chmod +x tileserver-rs
+
+# Remove macOS quarantine (required for unsigned binaries)
+xattr -d com.apple.quarantine tileserver-rs
+
+# Run
+./tileserver-rs --config config.toml
+```
+
+> **macOS Security Note:** If you download via a browser, macOS Gatekeeper will block the unsigned binary. Either use the `curl` command above, or after downloading, run `xattr -d com.apple.quarantine <binary>` to remove the quarantine flag. Alternatively, right-click the binary in Finder and select "Open".
+
 ### Using Docker
 
 ```bash
