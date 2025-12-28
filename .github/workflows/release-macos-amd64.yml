@@ -1,5 +1,8 @@
 name: "Release (macOS AMD64)"
 
+# DISABLED: Intel macOS runners (macos-13) are retired
+# macos-15-large requires payment, cross-compilation of MapLibre is complex
+# TODO: Re-enable when solution is found
 on:
   workflow_dispatch:
     inputs:
@@ -7,9 +10,10 @@ on:
         description: "Release tag (e.g., tileserver-rs-v0.1.0)"
         required: true
         type: string
-  push:
-    tags:
-      - "tileserver-rs-v*"
+  # Disabled automatic trigger
+  # push:
+  #   tags:
+  #     - "tileserver-rs-v*"
 
 env:
   CARGO_INCREMENTAL: 0
@@ -18,7 +22,7 @@ env:
 jobs:
   build:
     name: Build macOS AMD64
-    runs-on: macos-15-large
+    runs-on: macos-14
     timeout-minutes: 60
     steps:
       - name: Checkout repository
