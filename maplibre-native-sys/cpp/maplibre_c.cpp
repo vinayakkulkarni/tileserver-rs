@@ -15,6 +15,7 @@
 #include <mbgl/util/image.hpp>
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/util/premultiply.hpp>
+#include <mbgl/util/logging.hpp>
 
 #include <cstring>
 #include <memory>
@@ -31,6 +32,17 @@ static thread_local std::unique_ptr<mbgl::util::RunLoop> threadRunLoop;
 /* Global initialization state */
 static bool initialized = false;
 static std::mutex initMutex;
+
+/* Silent log observer that suppresses all MapLibre logs */
+class SilentLogObserver : public mbgl::Log::Observer {
+public:
+    bool onRecord(mbgl::EventSeverity, mbgl::Event, int64_t, const std::string&) override {
+        return true; // Consume all messages
+    }
+};
+
+/* Flag to track if logging is suppressed */
+static bool loggingSuppressed = false;
 
 /* Ensure the current thread has a RunLoop */
 static void ensureRunLoop() {

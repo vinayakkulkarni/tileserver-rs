@@ -14,7 +14,6 @@ use tokio::net::TcpListener;
 use tower_http::{
     compression::CompressionLayer,
     cors::{AllowOrigin, CorsLayer},
-    trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -22,6 +21,8 @@ mod cache_control;
 mod cli;
 mod config;
 mod error;
+mod logging;
+mod openapi;
 mod render;
 mod sources;
 mod styles;
@@ -65,10 +66,11 @@ async fn main() -> anyhow::Result<()> {
     let mut config = Config::load(cli.config)?;
 
     // Initialize tracing with OpenTelemetry
+    // Filter out verbose MapLibre Native logs unless explicitly requested
     let filter = if verbose {
         EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
     } else {
-        EnvFilter::from_default_env()
+        EnvFilter::from_default_env().add_directive("tileserver_rs=info".parse()?)
     };
 
     let fmt_layer = tracing_subscriber::fmt::layer().compact();
@@ -207,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
     let router = router
         .layer(cors)
         .layer(CompressionLayer::new())
-        .layer(TraceLayer::new_for_http());
+        .layer(axum::middleware::from_fn(logging::request_logger));
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);
@@ -284,6 +286,9 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
 fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health_check))
+        // OpenAPI spec endpoints
+        .route("/api", get(get_openapi_html))
+        .route("/api/openapi.json", get(get_openapi_json))
         .route("/index.json", get(get_index_json))
         // Style endpoints
         .route("/styles.json", get(get_all_styles))
@@ -315,6 +320,53 @@ fn api_router(state: AppState) -> Router {
 /// Health check endpoint
 async fn health_check() -> (StatusCode, &'static str) {
     (StatusCode::OK, "OK")
+}
+
+/// Get OpenAPI JSON specification
+/// Route: GET /api/openapi.json
+async fn get_openapi_json(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let version = env!("CARGO_PKG_VERSION");
+    Json(openapi::generate_openapi_spec(&state.base_url, version))
+}
+
+/// Get OpenAPI HTML documentation (Swagger UI)
+/// Route: GET /api
+async fn get_openapi_html(State(state): State<AppState>) -> Html<String> {
+    let spec_url = format!("{}/api/openapi.json", state.base_url);
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tileserver-rs API</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+        body {{ margin: 0; padding: 0; }}
+        .swagger-ui .topbar {{ display: none; }}
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" crossorigin></script>
+    <script>
+        window.onload = () => {{
+            window.ui = SwaggerUIBundle({{
+                url: "{}",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIBundle.SwaggerUIStandalonePreset
+                ],
+                layout: "StandaloneLayout"
+            }});
+        }};
+    </script>
+</body>
+</html>"#,
+        spec_url
+    ))
 }
 
 /// Combined index entry for /index.json
