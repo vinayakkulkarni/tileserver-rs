@@ -120,6 +120,6 @@ jobs:
             dist/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz
             dist/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz.sha256
           draft: false
-          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-') }}
+          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-alpha') || contains(github.event.inputs.tag || github.ref_name, '-beta') || contains(github.event.inputs.tag || github.ref_name, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
