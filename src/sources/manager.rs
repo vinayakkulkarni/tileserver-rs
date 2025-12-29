@@ -13,6 +13,8 @@ use crate::sources::postgres::{
     PoolSettings, PostgresFunctionSource, PostgresPool, PostgresTableSource, TileCache,
 };
 use crate::sources::{TileMetadata, TileSource};
+#[cfg(feature = "postgres")]
+use tokio_postgres::types::Type;
 
 pub struct SourceManager {
     sources: HashMap<String, Arc<dyn TileSource>>,
@@ -74,12 +76,13 @@ impl SourceManager {
             wait_timeout_ms: config.pool_wait_timeout_ms,
             create_timeout_ms: config.pool_create_timeout_ms,
             recycle_timeout_ms: config.pool_recycle_timeout_ms,
+            pre_warm: config.pool_pre_warm,
         };
 
         let pool = Arc::new(
             PostgresPool::new(
                 &config.connection_string,
-                pool_settings,
+                pool_settings.clone(),
                 config.ssl_cert.as_ref(),
                 config.ssl_key.as_ref(),
                 config.ssl_root_cert.as_ref(),
@@ -103,6 +106,7 @@ impl SourceManager {
         });
         self.tile_cache = tile_cache.clone();
 
+        let mut function_sources: Vec<PostgresFunctionSource> = Vec::new();
         for func_config in &config.functions {
             match PostgresFunctionSource::new(pool.clone(), func_config, tile_cache.clone()).await {
                 Ok(source) => {
@@ -112,8 +116,7 @@ impl SourceManager {
                         func_config.schema,
                         func_config.function
                     );
-                    self.sources
-                        .insert(func_config.id.clone(), Arc::new(source));
+                    function_sources.push(source);
                 }
                 Err(e) => {
                     tracing::error!(
@@ -125,6 +128,7 @@ impl SourceManager {
             }
         }
 
+        let mut table_sources: Vec<PostgresTableSource> = Vec::new();
         for table_config in &config.tables {
             match PostgresTableSource::new(pool.clone(), table_config, tile_cache.clone()).await {
                 Ok(source) => {
@@ -134,8 +138,7 @@ impl SourceManager {
                         table_config.schema,
                         table_config.table
                     );
-                    self.sources
-                        .insert(table_config.id.clone(), Arc::new(source));
+                    table_sources.push(source);
                 }
                 Err(e) => {
                     tracing::error!(
@@ -145,6 +148,29 @@ impl SourceManager {
                     );
                 }
             }
+        }
+
+        if pool_settings.pre_warm {
+            let tile_param_types: &[Type] = &[Type::INT4, Type::INT4, Type::INT4];
+            let mut queries: Vec<(&str, &[Type])> = Vec::new();
+
+            for source in &function_sources {
+                queries.push((source.tile_query(), tile_param_types));
+            }
+            for source in &table_sources {
+                queries.push((source.tile_query(), tile_param_types));
+            }
+
+            pool.warmup(&queries).await?;
+        }
+
+        for source in function_sources {
+            self.sources
+                .insert(source.metadata().id.clone(), Arc::new(source));
+        }
+        for source in table_sources {
+            self.sources
+                .insert(source.metadata().id.clone(), Arc::new(source));
         }
 
         Ok(())

@@ -116,6 +116,10 @@ impl PostgresTableSource {
         })
     }
 
+    pub fn tile_query(&self) -> &str {
+        &self.tile_query
+    }
+
     async fn discover_table(
         conn: &deadpool_postgres::Object,
         config: &PostgresTableConfig,

@@ -102,7 +102,19 @@ impl PostgresFunctionSource {
         })
     }
 
-    /// Gets information about a PostgreSQL function.
+    pub fn tile_query(&self) -> &str {
+        &self.sql_query
+    }
+
+    pub fn query_param_types(&self) -> Vec<tokio_postgres::types::Type> {
+        use tokio_postgres::types::Type;
+        if self.supports_query_params {
+            vec![Type::INT4, Type::INT4, Type::INT4, Type::JSON]
+        } else {
+            vec![Type::INT4, Type::INT4, Type::INT4]
+        }
+    }
+
     async fn get_function_info(
         conn: &deadpool_postgres::Object,
         schema: &str,

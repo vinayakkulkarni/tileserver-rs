@@ -136,6 +136,9 @@ pub struct PostgresConfig {
     /// Timeout for recycling a connection in milliseconds (default: 5000)
     #[serde(default = "default_pool_recycle_timeout_ms")]
     pub pool_recycle_timeout_ms: u64,
+    /// Pre-warm all connections at startup (default: true)
+    #[serde(default = "default_pool_pre_warm")]
+    pub pool_pre_warm: bool,
     /// SSL certificate file path (optional, same as PGSSLCERT)
     pub ssl_cert: Option<PathBuf>,
     /// SSL key file path (optional, same as PGSSLKEY)
@@ -193,6 +196,11 @@ fn default_pool_create_timeout_ms() -> u64 {
 #[cfg(feature = "postgres")]
 fn default_pool_recycle_timeout_ms() -> u64 {
     5000
+}
+
+#[cfg(feature = "postgres")]
+fn default_pool_pre_warm() -> bool {
+    true
 }
 
 /// PostgreSQL function source configuration

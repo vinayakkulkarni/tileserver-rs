@@ -28,6 +28,7 @@ pool_size = 20
 pool_wait_timeout_ms = 30000
 pool_create_timeout_ms = 10000
 pool_recycle_timeout_ms = 5000
+pool_pre_warm = true
 
 [postgres.cache]
 size_mb = 256

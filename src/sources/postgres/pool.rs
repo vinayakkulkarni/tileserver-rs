@@ -4,6 +4,7 @@ use deadpool_postgres::{Manager, ManagerConfig, Object, Pool, RecyclingMethod, T
 use semver::Version;
 use std::path::PathBuf;
 use std::time::Duration;
+use tokio_postgres::types::Type;
 use tokio_postgres::NoTls;
 
 use crate::error::{Result, TileServerError};
@@ -16,6 +17,7 @@ pub struct PoolSettings {
     pub wait_timeout_ms: u64,
     pub create_timeout_ms: u64,
     pub recycle_timeout_ms: u64,
+    pub pre_warm: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -115,14 +117,52 @@ impl PostgresPool {
         Ok(result)
     }
 
-    /// Gets a connection from the pool.
     pub async fn get(&self) -> Result<Object> {
         self.pool.get().await.map_err(|e| {
             TileServerError::PostgresPoolError(format!("Failed to get connection: {}", e))
         })
     }
 
-    /// Returns the pool identifier (database name).
+    pub async fn warmup(&self, queries: &[(&str, &[Type])]) -> Result<()> {
+        let max_size = self.pool.status().max_size;
+        let mut connections = Vec::with_capacity(max_size);
+
+        tracing::info!("Pre-warming {} database connections...", max_size);
+
+        for i in 0..max_size {
+            match self.pool.get().await {
+                Ok(conn) => {
+                    for (query, types) in queries {
+                        if let Err(e) = conn.prepare_typed_cached(query, types).await {
+                            tracing::warn!(
+                                "Failed to prepare statement on connection {}: {}",
+                                i,
+                                e
+                            );
+                        }
+                    }
+                    connections.push(conn);
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to pre-warm connection {}: {}", i, e);
+                }
+            }
+        }
+
+        let warmed = connections.len();
+        drop(connections);
+
+        tracing::info!(
+            "Pre-warmed {}/{} connections with {} prepared statements for pool '{}'",
+            warmed,
+            max_size,
+            queries.len(),
+            self.id
+        );
+
+        Ok(())
+    }
+
     pub fn id(&self) -> &str {
         &self.id
     }
