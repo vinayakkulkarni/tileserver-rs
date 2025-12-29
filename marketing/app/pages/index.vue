@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Github, Zap, Globe, Layers, Image, Server, FileJson, ArrowRight, Copy, Check, Terminal, Sparkles } from 'lucide-vue-next';
+import { Github, Zap, Globe, Layers, Image, Server, FileJson, ArrowRight, Copy, Check, Terminal, Sparkles, Database } from 'lucide-vue-next';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -28,6 +28,11 @@ const features = [
     description: 'Native support for modern PMTiles and classic MBTiles tile archives.',
   },
   {
+    icon: Database,
+    title: 'PostgreSQL / PostGIS',
+    description: 'Serve vector tiles directly from PostGIS tables with optimized spatial queries.',
+  },
+  {
     icon: Layers,
     title: 'Vector & Raster',
     description: 'Serve vector tiles directly or render them to raster on-the-fly.',
@@ -41,11 +46,6 @@ const features = [
     icon: Server,
     title: 'Self-Hosted',
     description: 'Run on your own infrastructure. No vendor lock-in, no API keys required.',
-  },
-  {
-    icon: FileJson,
-    title: 'TileJSON 3.0',
-    description: 'Full TileJSON 3.0 specification support with automatic metadata generation.',
   },
 ];
 
@@ -199,8 +199,8 @@ const apiEndpoints = [
                 "
               >
                 High-performance vector tile server built in
-                <span class="font-semibold text-primary">Rust</span>. Serve PMTiles and MBTiles with native MapLibre
-                rendering for static images.
+                <span class="font-semibold text-primary">Rust</span>. Serve PMTiles, MBTiles, and PostGIS with native
+                MapLibre rendering for static images.
               </p>
 
               <!-- CTA buttons -->
@@ -383,7 +383,7 @@ const apiEndpoints = [
                     >
                       <div class="size-1.5 rounded-full bg-primary"></div>
                     </div>
-                    <span class="text-foreground">Multiple tile sources (PMTiles, MBTiles)</span>
+                    <span class="text-foreground">Multiple tile sources (PMTiles, MBTiles, PostGIS)</span>
                   </li>
                   <li class="flex items-center gap-3">
                     <div
@@ -405,7 +405,7 @@ const apiEndpoints = [
                     >
                       <div class="size-1.5 rounded-full bg-primary"></div>
                     </div>
-                    <span class="text-foreground">Configurable CORS and caching</span>
+                    <span class="text-foreground">In-memory tile caching with TTL</span>
                   </li>
                   <li class="flex items-center gap-3">
                     <div
@@ -416,7 +416,7 @@ const apiEndpoints = [
                     >
                       <div class="size-1.5 rounded-full bg-primary"></div>
                     </div>
-                    <span class="text-foreground">Font glyph serving</span>
+                    <span class="text-foreground">Configurable CORS and connection pooling</span>
                   </li>
                 </ul>
               </div>
@@ -437,21 +437,20 @@ const apiEndpoints = [
                     class="overflow-x-auto p-5 font-mono text-sm/relaxed"
                   ><code><span
                            class="token-comment"
-                         ># Server configuration</span>
-<span class="token-keyword">[server]</span>
-host = <span class="token-string">"0.0.0.0"</span>
-port = <span class="token-number">8080</span>
-
-<span class="token-comment"># Tile sources</span>
+                         ># Tile sources</span>
 <span class="token-keyword">[[sources]]</span>
 id = <span class="token-string">"openmaptiles"</span>
 type = <span class="token-string">"pmtiles"</span>
 path = <span class="token-string">"/data/tiles.pmtiles"</span>
 
-<span class="token-comment"># Map styles</span>
-<span class="token-keyword">[[styles]]</span>
-id = <span class="token-string">"osm-bright"</span>
-path = <span class="token-string">"/data/styles/osm-bright/style.json"</span></code></pre>
+<span class="token-comment"># PostgreSQL / PostGIS</span>
+<span class="token-keyword">[postgres]</span>
+connection_string = <span class="token-string">"postgresql://user:pass@localhost/db"</span>
+
+<span class="token-keyword">[[postgres.tables]]</span>
+id = <span class="token-string">"buildings"</span>
+table = <span class="token-string">"buildings"</span>
+geometry_column = <span class="token-string">"geom"</span></code></pre>
                 </CardContent>
               </Card>
             </div>
