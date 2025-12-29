@@ -100,7 +100,7 @@ jobs:
           sha256sum tileserver-rs-x86_64-unknown-linux-gnu.tar.gz > tileserver-rs-x86_64-unknown-linux-gnu.tar.gz.sha256
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tileserver-rs-x86_64-unknown-linux-gnu
           path: |
