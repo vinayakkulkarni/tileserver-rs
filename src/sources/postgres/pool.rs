@@ -61,6 +61,7 @@ impl PostgresPool {
         let pool = Pool::builder(mgr)
             .max_size(settings.max_size)
             .timeouts(timeouts)
+            .runtime(deadpool_postgres::Runtime::Tokio1)
             .build()
             .map_err(|e| {
                 TileServerError::PostgresPoolError(format!("Failed to build pool: {}", e))
