@@ -57,7 +57,7 @@ jobs:
             libgl-dev
 
       - name: Cache MapLibre Native build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: maplibre-native-sys/vendor/maplibre-native/build-linux-opengl
           key: maplibre-linux-amd64-${{ hashFiles('maplibre-native-sys/vendor/maplibre-native/CMakeLists.txt') }}
