@@ -1,23 +1,35 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+#[cfg(feature = "postgres")]
+use crate::config::PostgresConfig;
 use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
 use crate::sources::mbtiles::MbTilesSource;
 use crate::sources::pmtiles::http::HttpPmTilesSource;
 use crate::sources::pmtiles::local::LocalPmTilesSource;
+#[cfg(feature = "postgres")]
+use crate::sources::postgres::{
+    PoolSettings, PostgresFunctionSource, PostgresPool, PostgresTableSource, TileCache,
+};
 use crate::sources::{TileMetadata, TileSource};
 
-/// Manages all tile sources
 pub struct SourceManager {
     sources: HashMap<String, Arc<dyn TileSource>>,
+    #[cfg(feature = "postgres")]
+    postgres_pool: Option<Arc<PostgresPool>>,
+    #[cfg(feature = "postgres")]
+    tile_cache: Option<Arc<TileCache>>,
 }
 
 impl SourceManager {
-    /// Create a new empty source manager
     pub fn new() -> Self {
         Self {
             sources: HashMap::new(),
+            #[cfg(feature = "postgres")]
+            postgres_pool: None,
+            #[cfg(feature = "postgres")]
+            tile_cache: None,
         }
     }
 
@@ -38,6 +50,104 @@ impl SourceManager {
         }
 
         Ok(manager)
+    }
+
+    /// Load sources from configuration including PostgreSQL sources
+    #[cfg(feature = "postgres")]
+    pub async fn from_configs_with_postgres(
+        configs: &[SourceConfig],
+        postgres_config: Option<&PostgresConfig>,
+    ) -> Result<Self> {
+        let mut manager = Self::from_configs(configs).await?;
+
+        if let Some(pg_config) = postgres_config {
+            manager.load_postgres_sources(pg_config).await?;
+        }
+
+        Ok(manager)
+    }
+
+    #[cfg(feature = "postgres")]
+    pub async fn load_postgres_sources(&mut self, config: &PostgresConfig) -> Result<()> {
+        let pool_settings = PoolSettings {
+            max_size: config.pool_size,
+            wait_timeout_ms: config.pool_wait_timeout_ms,
+            create_timeout_ms: config.pool_create_timeout_ms,
+            recycle_timeout_ms: config.pool_recycle_timeout_ms,
+        };
+
+        let pool = Arc::new(
+            PostgresPool::new(
+                &config.connection_string,
+                pool_settings,
+                config.ssl_cert.as_ref(),
+                config.ssl_key.as_ref(),
+                config.ssl_root_cert.as_ref(),
+            )
+            .await?,
+        );
+
+        self.postgres_pool = Some(pool.clone());
+
+        let tile_cache = config.cache.as_ref().map(|cache_config| {
+            let cache = Arc::new(TileCache::new(
+                cache_config.size_mb,
+                cache_config.ttl_seconds,
+            ));
+            tracing::info!(
+                "Initialized PostgreSQL tile cache: {}MB, TTL {}s",
+                cache_config.size_mb,
+                cache_config.ttl_seconds
+            );
+            cache
+        });
+        self.tile_cache = tile_cache.clone();
+
+        for func_config in &config.functions {
+            match PostgresFunctionSource::new(pool.clone(), func_config, tile_cache.clone()).await {
+                Ok(source) => {
+                    tracing::info!(
+                        "Loaded PostgreSQL function source: {} ({}.{})",
+                        func_config.id,
+                        func_config.schema,
+                        func_config.function
+                    );
+                    self.sources
+                        .insert(func_config.id.clone(), Arc::new(source));
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to load PostgreSQL function source {}: {}",
+                        func_config.id,
+                        e
+                    );
+                }
+            }
+        }
+
+        for table_config in &config.tables {
+            match PostgresTableSource::new(pool.clone(), table_config, tile_cache.clone()).await {
+                Ok(source) => {
+                    tracing::info!(
+                        "Loaded PostgreSQL table source: {} ({}.{})",
+                        table_config.id,
+                        table_config.schema,
+                        table_config.table
+                    );
+                    self.sources
+                        .insert(table_config.id.clone(), Arc::new(source));
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to load PostgreSQL table source {}: {}",
+                        table_config.id,
+                        e
+                    );
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Load a single source from config
@@ -67,6 +177,13 @@ impl SourceManager {
                 }
             }
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),
+            #[cfg(feature = "postgres")]
+            SourceType::Postgres => {
+                // PostgreSQL sources are loaded separately via load_postgres_sources
+                return Err(TileServerError::ConfigError(
+                    "PostgreSQL sources should be configured in the [postgres] section, not as regular sources".to_string(),
+                ));
+            }
         };
 
         self.sources.insert(config.id.clone(), source);

@@ -54,12 +54,21 @@ tracing-opentelemetry = "0.28"
 # MBTiles support (SQLite)
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# PostgreSQL support (optional)
+deadpool-postgres = { version = "0.14", optional = true }
+tokio-postgres = { version = "0.7", optional = true, features = ["with-serde_json-1"] }
+postgres-types = { version = "0.2", optional = true, features = ["derive"] }
+semver = { version = "1.0", optional = true }
+moka = { version = "0.12", features = ["future"], optional = true }
+
 # Optional S3 support
 # aws-config = { version = "1.5", optional = true }
 # aws-sdk-s3 = { version = "1.65", optional = true }
 
 [features]
 default = []
+postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "moka"]
+postgres-integration = ["postgres"]
 # s3 = ["aws-config", "aws-sdk-s3"]
 
 [dev-dependencies]

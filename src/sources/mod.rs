@@ -6,6 +6,8 @@ use std::str::FromStr;
 pub mod manager;
 pub mod mbtiles;
 pub mod pmtiles;
+#[cfg(feature = "postgres")]
+pub mod postgres;
 
 pub use manager::SourceManager;
 
@@ -168,8 +170,7 @@ impl TileMetadata {
     }
 }
 
-/// Tile data with metadata
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TileData {
     pub data: Bytes,
     pub format: TileFormat,

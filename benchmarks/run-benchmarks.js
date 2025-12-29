@@ -24,12 +24,10 @@ const SERVERS = {
     name: 'tileserver-gl',
     port: 8900,
     color: chalk.yellow,
-    // PMTiles source (protomaps-sample)
     pmtiles: {
       source: 'protomaps-sample',
       tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/protomaps-sample/${z}/${x}/${y}.pbf`,
     },
-    // MBTiles source (zurich_switzerland)
     mbtiles: {
       source: 'zurich_switzerland',
       tileUrl: (z, x, y) => `http://127.0.0.1:8900/data/zurich_switzerland/${z}/${x}/${y}.pbf`,
@@ -40,15 +38,21 @@ const SERVERS = {
     name: 'tileserver-rs',
     port: 8901,
     color: chalk.green,
-    // PMTiles source endpoints
     pmtiles: {
       source: 'pmtiles',
       tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/pmtiles/${z}/${x}/${y}.pbf`,
     },
-    // MBTiles source endpoints
     mbtiles: {
       source: 'mbtiles',
       tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/mbtiles/${z}/${x}/${y}.pbf`,
+    },
+    postgres: {
+      source: 'benchmark_table',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/benchmark_table/${z}/${x}/${y}.pbf`,
+    },
+    postgres_function: {
+      source: 'benchmark_points',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/benchmark_points/${z}/${x}/${y}.pbf`,
     },
     healthUrl: 'http://127.0.0.1:8901/health',
   },
@@ -56,7 +60,6 @@ const SERVERS = {
     name: 'martin',
     port: 8902,
     color: chalk.blue,
-    // Martin uses source name directly in URL
     pmtiles: {
       source: 'protomaps-sample',
       tileUrl: (z, x, y) => `http://127.0.0.1:8902/protomaps-sample/${z}/${x}/${y}`,
@@ -64,6 +67,14 @@ const SERVERS = {
     mbtiles: {
       source: 'zurich_switzerland',
       tileUrl: (z, x, y) => `http://127.0.0.1:8902/zurich_switzerland/${z}/${x}/${y}`,
+    },
+    postgres: {
+      source: 'benchmark_points',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8902/benchmark_points/${z}/${x}/${y}`,
+    },
+    postgres_function: {
+      source: 'get_benchmark_tiles',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8902/get_benchmark_tiles/${z}/${x}/${y}`,
     },
     healthUrl: 'http://127.0.0.1:8902/catalog',
   },
@@ -81,7 +92,6 @@ const SERVERS = {
 // All coordinates verified to return 200 OK with real tile data
 const TEST_TILES = {
   pmtiles: [
-    // Florence center tiles - verified working
     { z: 10, x: 544, y: 373, desc: 'Florence z10' },
     { z: 11, x: 1088, y: 746, desc: 'Florence z11' },
     { z: 12, x: 2176, y: 1493, desc: 'Florence z12' },
@@ -90,12 +100,25 @@ const TEST_TILES = {
     { z: 15, x: 17408, y: 11944, desc: 'Florence z15' },
   ],
   mbtiles: [
-    // Zurich center tiles - verified working
     { z: 10, x: 536, y: 358, desc: 'Zurich z10' },
     { z: 11, x: 1072, y: 717, desc: 'Zurich z11' },
     { z: 12, x: 2145, y: 1434, desc: 'Zurich z12' },
     { z: 13, x: 4290, y: 2868, desc: 'Zurich z13' },
     { z: 14, x: 8580, y: 5737, desc: 'Zurich z14' },
+  ],
+  postgres: [
+    { z: 10, x: 536, y: 358, desc: 'Table z10' },
+    { z: 11, x: 1072, y: 717, desc: 'Table z11' },
+    { z: 12, x: 2145, y: 1434, desc: 'Table z12' },
+    { z: 13, x: 4290, y: 2868, desc: 'Table z13' },
+    { z: 14, x: 8580, y: 5737, desc: 'Table z14' },
+  ],
+  postgres_function: [
+    { z: 10, x: 536, y: 358, desc: 'Function z10' },
+    { z: 11, x: 1072, y: 717, desc: 'Function z11' },
+    { z: 12, x: 2145, y: 1434, desc: 'Function z12' },
+    { z: 13, x: 4290, y: 2868, desc: 'Function z13' },
+    { z: 14, x: 8580, y: 5737, desc: 'Function z14' },
   ],
 };
 
@@ -355,7 +378,7 @@ function generateMarkdownReport(results) {
 
   md += `\n### Detailed Results\n\n`;
 
-  for (const format of ['pmtiles', 'mbtiles']) {
+  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function']) {
     const filtered = results.filter((r) => r.format === format);
     if (filtered.length === 0) continue;
 
@@ -389,7 +412,7 @@ function formatBytes(bytes) {
 async function main() {
   program
     .option('-s, --server <server>', 'Server to test: tileserver-rs, martin, tileserver-gl, or all', 'all')
-    .option('-f, --format <format>', 'Format to test: pmtiles, mbtiles, or all', 'all')
+    .option('-f, --format <format>', 'Format to test: pmtiles, mbtiles, postgres, postgres_function, or all', 'all')
     .option('-d, --duration <seconds>', 'Test duration in seconds', '10')
     .option('-c, --connections <num>', 'Number of connections', '100')
     .option('--markdown', 'Output markdown report')
@@ -404,9 +427,8 @@ async function main() {
   console.log(chalk.gray(`Duration: ${BENCHMARK_CONFIG.duration}s | Connections: ${BENCHMARK_CONFIG.connections}`));
   console.log(chalk.gray(`Servers: tileserver-gl (8900), tileserver-rs (8901), martin (8902)\n`));
 
-  // Determine which servers to test
   const serversToTest = opts.server === 'all' ? Object.keys(SERVERS) : [opts.server];
-  const formatsToTest = opts.format === 'all' ? ['pmtiles', 'mbtiles'] : [opts.format];
+  const formatsToTest = opts.format === 'all' ? ['pmtiles', 'mbtiles', 'postgres', 'postgres_function'] : [opts.format];
 
   // Check server availability
   console.log(chalk.bold('Checking server availability...'));

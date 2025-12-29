@@ -1,0 +1,31 @@
+fonts = "data/fonts"
+
+[server]
+host = "127.0.0.1"
+port = 0
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+[postgres]
+connection_string = "postgresql://tileserver:tileserver@localhost:5432/tiles"
+pool_size = 5
+
+[[postgres.functions]]
+id = "benchmark_points"
+schema = "public"
+function = "get_benchmark_tiles"
+name = "Benchmark Points"
+minzoom = 0
+maxzoom = 14
+bounds = [8.45, 47.32, 8.63, 47.44]
+
+[[postgres.functions]]
+id = "filtered_points"
+schema = "public"
+function = "get_filtered_tiles"
+name = "Filtered Points"
+minzoom = 0
+maxzoom = 14
+bounds = [8.45, 47.32, 8.63, 47.44]

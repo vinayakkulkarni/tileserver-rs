@@ -11,11 +11,15 @@ pub mod sources;
 pub mod styles;
 pub mod wmts;
 
-// Re-export key types for convenience
 pub use config::Config;
 pub use error::{Result, TileServerError};
-pub use sources::{SourceManager, TileFormat, TileJson};
+pub use sources::{SourceManager, TileCompression, TileData, TileFormat, TileJson, TileSource};
 pub use styles::{rewrite_style_for_api, Style, StyleInfo, StyleManager, UrlQueryParams};
+
+#[cfg(feature = "postgres")]
+pub use config::{PostgresConfig, PostgresFunctionConfig};
+#[cfg(feature = "postgres")]
+pub use sources::postgres::{PostgresFunctionSource, PostgresPool};
 
 // Re-export render types for testing
 pub use render::overlay;

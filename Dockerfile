@@ -129,15 +129,26 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs
 # Copy the embedded SPA
 COPY --from=node-builder /app/apps/client/.output/public ./apps/client/.output/public
 
+# Optional features (default: postgres enabled for PostGIS function sources)
+ARG FEATURES="postgres"
+
 # Build dependencies only (may fail on first try, that's ok)
-RUN cargo build --release 2>/dev/null || true
+RUN if [ -n "$FEATURES" ]; then \
+      cargo build --release --features "$FEATURES" 2>/dev/null || true; \
+    else \
+      cargo build --release 2>/dev/null || true; \
+    fi
 RUN rm -rf src
 
 # Copy actual source code
 COPY src ./src
 
-# Build the actual application
-RUN touch src/main.rs && cargo build --release
+RUN touch src/main.rs && \
+    if [ -n "$FEATURES" ]; then \
+      cargo build --release --features "$FEATURES"; \
+    else \
+      cargo build --release; \
+    fi
 
 # =============================================================================
 # Stage 4: Runtime (must match glibc version from build stage)

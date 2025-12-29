@@ -45,6 +45,18 @@ pub enum TileServerError {
     #[error("MBTiles error: {0}")]
     MbTilesError(String),
 
+    #[cfg(feature = "postgres")]
+    #[error("PostgreSQL error: {0}")]
+    PostgresError(String),
+
+    #[cfg(feature = "postgres")]
+    #[error("PostgreSQL pool error: {0}")]
+    PostgresPoolError(String),
+
+    #[cfg(feature = "postgres")]
+    #[error("PostgreSQL version error: {0}")]
+    PostgresVersionError(String),
+
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }
@@ -76,6 +88,18 @@ impl IntoResponse for TileServerError {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::MbTilesError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "postgres")]
+            TileServerError::PostgresError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "postgres")]
+            TileServerError::PostgresPoolError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "postgres")]
+            TileServerError::PostgresVersionError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::Internal(_) => (

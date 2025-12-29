@@ -95,6 +95,11 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Load tile sources
+    #[cfg(feature = "postgres")]
+    let sources =
+        SourceManager::from_configs_with_postgres(&config.sources, config.postgres.as_ref())
+            .await?;
+    #[cfg(not(feature = "postgres"))]
     let sources = SourceManager::from_configs(&config.sources).await?;
     tracing::info!("Loaded {} tile source(s)", sources.len());
 

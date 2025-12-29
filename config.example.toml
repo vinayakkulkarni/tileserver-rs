@@ -73,6 +73,87 @@ sample_rate = 1.0
 # name = "Terrain RGB"
 
 # ============================================================================
+# POSTGRESQL FUNCTION SOURCES (requires --features postgres)
+# ============================================================================
+# PostgreSQL function sources allow serving vector tiles directly from
+# PostGIS functions, similar to martin's function source feature.
+#
+# Your function must have one of these signatures:
+#
+# Simple function (z, x, y):
+#   CREATE FUNCTION my_tiles(z integer, x integer, y integer)
+#       RETURNS bytea AS $$ ... $$ LANGUAGE plpgsql;
+#
+# Function with query parameters (z, x, y, query):
+#   CREATE FUNCTION my_tiles(z integer, x integer, y integer, query json)
+#       RETURNS bytea AS $$ ... $$ LANGUAGE plpgsql;
+#
+# Example tile function:
+#   CREATE OR REPLACE FUNCTION get_building_tiles(z integer, x integer, y integer)
+#       RETURNS bytea AS $$
+#   DECLARE
+#       mvt bytea;
+#   BEGIN
+#       SELECT INTO mvt ST_AsMVT(tile, 'buildings', 4096, 'geom') FROM (
+#           SELECT
+#               ST_AsMVTGeom(geom, ST_TileEnvelope(z, x, y), 4096, 64, true) AS geom,
+#               name, height
+#           FROM buildings
+#           WHERE geom && ST_TileEnvelope(z, x, y)
+#       ) AS tile WHERE geom IS NOT NULL;
+#       RETURN mvt;
+#   END
+#   $$ LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE;
+#
+# [postgres]
+# # PostgreSQL connection string
+# connection_string = "postgresql://user:password@localhost:5432/mydb"
+# # Maximum connections in pool (default: 20)
+# pool_size = 20
+# # Connection pool timeouts (milliseconds)
+# pool_wait_timeout_ms = 30000    # Timeout waiting for connection from pool
+# pool_create_timeout_ms = 10000  # Timeout creating new connection
+# pool_recycle_timeout_ms = 5000  # Timeout recycling connection
+# # SSL certificate paths (optional)
+# # ssl_cert = "/path/to/client.crt"
+# # ssl_key = "/path/to/client.key"
+# # ssl_root_cert = "/path/to/ca.crt"
+#
+# # Tile cache configuration (optional, disabled if omitted)
+# # Caches rendered tiles in memory using LRU with byte-size weighting
+# [postgres.cache]
+# size_mb = 256        # Maximum cache size in megabytes
+# ttl_seconds = 3600   # Cache entry time-to-live (1 hour)
+#
+# # Function sources
+# [[postgres.functions]]
+# id = "buildings"
+# schema = "public"
+# function = "get_building_tiles"
+# name = "Buildings"
+# attribution = "© My Company"
+# minzoom = 10
+# maxzoom = 18
+# bounds = [-122.5, 37.5, -122.0, 38.0]
+#
+# [[postgres.functions]]
+# id = "roads"
+# function = "get_road_tiles"  # schema defaults to "public"
+# maxzoom = 14
+#
+# # Table sources (auto-discover geometry columns, generate optimized SQL)
+# [[postgres.tables]]
+# id = "buildings"
+# table = "buildings"
+# geometry_column = "geom"   # Optional: auto-detected from geometry_columns
+# id_column = "id"           # Optional: feature ID column
+# properties = ["name", "height"]  # Optional: auto-detected if omitted
+# minzoom = 0
+# maxzoom = 18
+# extent = 4096    # MVT tile extent (default: 4096)
+# buffer = 64      # Tile buffer in pixels (default: 64)
+
+# ============================================================================
 # MAP STYLES
 # ============================================================================
 # Map styles

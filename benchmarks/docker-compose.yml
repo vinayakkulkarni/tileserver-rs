@@ -6,6 +6,7 @@
 # - tileserver-gl: http://127.0.0.1:8900
 # - tileserver-rs: http://127.0.0.1:8901
 # - martin:        http://127.0.0.1:8902
+# - postgres:      127.0.0.1:5432
 #
 # Build tileserver-rs first:
 #   docker build -t tileserver-rs:latest .
@@ -17,9 +18,23 @@
 #   node benchmarks/run-benchmarks.js
 
 services:
-  # tileserver-gl - Node.js-based tile server with raster rendering
-  # https://github.com/maptiler/tileserver-gl
-  # Supports both MBTiles and PMTiles
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: tileserver
+      POSTGRES_PASSWORD: tileserver
+      POSTGRES_DB: tiles
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tileserver -d tiles"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   tileserver-gl:
     image: maptiler/tileserver-gl:latest
     ports:
@@ -34,34 +49,44 @@ services:
       timeout: 3s
       retries: 3
 
-  # tileserver-rs - Our Rust tile server
-  # Use local ARM64 build for fair comparison
   tileserver-rs:
-    image: tileserver-rs:arm64
+    image: tileserver-rs:latest
     ports:
       - "8901:8080"
     volumes:
       - ../data:/data:ro
       - ./config.docker.toml:/app/config.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
       retries: 3
 
-  # Martin - Rust-based tile server (latest v1.1.0+)
-  # https://github.com/maplibre/martin
-  # Supports both PMTiles and MBTiles
   martin:
     image: ghcr.io/maplibre/martin:latest
     ports:
       - "8902:3000"
     volumes:
       - ../data/tiles:/data:ro
-    command: ["/data/zurich_switzerland.mbtiles", "/data/protomaps-sample.pmtiles"]
+    environment:
+      DATABASE_URL: postgresql://tileserver:tileserver@postgres:5432/tiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - "/data/zurich_switzerland.mbtiles"
+      - "/data/protomaps-sample.pmtiles"
+      - "--auto-bounds"
+      - "calc"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/catalog"]
       interval: 5s
       timeout: 3s
       retries: 3
+
+volumes:
+  postgres_data:
 

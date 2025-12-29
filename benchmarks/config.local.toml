@@ -1,8 +1,8 @@
-fonts = "/data/fonts"
+fonts = "./data/fonts"
 
 [server]
 host = "0.0.0.0"
-port = 8080
+port = 8901
 cors_origins = ["*"]
 
 [telemetry]
@@ -11,19 +11,19 @@ enabled = false
 [[sources]]
 id = "pmtiles"
 type = "pmtiles"
-path = "/data/tiles/protomaps-sample.pmtiles"
+path = "./data/tiles/protomaps-sample.pmtiles"
 name = "PMTiles Sample"
 attribution = "© OpenStreetMap contributors"
 
 [[sources]]
 id = "mbtiles"
 type = "mbtiles"
-path = "/data/tiles/zurich_switzerland.mbtiles"
+path = "./data/tiles/zurich_switzerland.mbtiles"
 name = "Zurich MBTiles"
 attribution = "© OpenStreetMap contributors"
 
 [postgres]
-connection_string = "postgresql://tileserver:tileserver@postgres:5432/tiles"
+connection_string = "postgresql://tileserver:tileserver@127.0.0.1:5432/tiles"
 pool_size = 20
 pool_wait_timeout_ms = 30000
 pool_create_timeout_ms = 10000
