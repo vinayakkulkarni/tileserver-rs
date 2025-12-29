@@ -82,7 +82,7 @@ jobs:
           shasum -a 256 tileserver-rs-aarch64-apple-darwin.tar.gz > tileserver-rs-aarch64-apple-darwin.tar.gz.sha256
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tileserver-rs-aarch64-apple-darwin
           path: |
