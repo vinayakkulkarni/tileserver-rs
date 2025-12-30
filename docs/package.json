@@ -22,7 +22,7 @@
     "@nuxtjs/plausible": "^2.0.1",
     "eslint": "^9.39.2",
     "eslint-plugin-oxlint": "^1.35.0",
-    "oxlint": "^1.35.0",
+    "oxlint": "^1.36.0",
     "typescript": "^5.9.3"
   },
   "overrides": {
