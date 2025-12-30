@@ -19,7 +19,7 @@
     "@nuxtjs/color-mode": "^4.0.0",
     "@tanstack/query-db-collection": "^1.0.12",
     "@tanstack/vue-db": "^0.0.92",
-    "@tanstack/vue-query": "^5.92.3",
+    "@tanstack/vue-query": "^5.92.4",
     "@vueuse/core": "^14.1.0",
     "@vueuse/nuxt": "^14.1.0",
     "class-variance-authority": "^0.7.1",
