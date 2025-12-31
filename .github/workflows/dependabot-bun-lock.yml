@@ -29,23 +29,33 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Update bun.lock
-        run: bun install --no-frozen-lockfile
+      - name: Update lockfiles
+        run: |
+          bun install --no-frozen-lockfile
+          cd docs && bun install --no-frozen-lockfile
+          cd ../marketing && bun install --no-frozen-lockfile
+
+      - name: Format and lint
+        run: |
+          bun run --filter @tileserver-rs/client format || true
+          bun run --filter @tileserver-rs/client lint:fix || true
+          cd docs && bun run lint:fix || true
+          cd ../marketing && bun run lint:fix || true
 
       - name: Check for changes
         id: changes
         run: |
-          if git diff --quiet bun.lock; then
+          if git diff --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit updated lockfile
+      - name: Commit changes
         if: steps.changes.outputs.changed == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add bun.lock
-          git commit -m "chore: update bun.lock for dependabot changes"
+          git add -A
+          git commit -m "chore: update lockfiles and fix linting for dependabot"
           git push
