@@ -19,7 +19,7 @@ pub use styles::{rewrite_style_for_api, Style, StyleInfo, StyleManager, UrlQuery
 #[cfg(feature = "postgres")]
 pub use config::{PostgresConfig, PostgresFunctionConfig};
 #[cfg(feature = "postgres")]
-pub use sources::postgres::{PostgresFunctionSource, PostgresPool};
+pub use sources::postgres::{PoolSettings, PostgresFunctionSource, PostgresPool};
 
 // Re-export render types for testing
 pub use render::overlay;

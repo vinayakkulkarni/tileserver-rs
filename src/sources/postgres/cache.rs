@@ -57,6 +57,7 @@ impl TileCache {
         self.cache.entry_count()
     }
 
+    #[allow(dead_code)]
     pub fn weighted_size(&self) -> u64 {
         self.cache.weighted_size()
     }

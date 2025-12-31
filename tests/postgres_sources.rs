@@ -245,7 +245,7 @@ mod version_tests {
         assert!(Version::new(16, 0, 0) >= MINIMUM_POSTGRES_VERSION);
 
         // PostgreSQL 10 is too old
-        assert!(!(Version::new(10, 0, 0) >= MINIMUM_POSTGRES_VERSION));
+        assert!(Version::new(10, 0, 0) < MINIMUM_POSTGRES_VERSION);
     }
 
     #[test]
@@ -256,7 +256,7 @@ mod version_tests {
         assert!(Version::new(3, 4, 0) >= MINIMUM_POSTGIS_VERSION);
 
         // PostGIS 2.x is too old
-        assert!(!(Version::new(2, 5, 0) >= MINIMUM_POSTGIS_VERSION));
+        assert!(Version::new(2, 5, 0) < MINIMUM_POSTGIS_VERSION);
     }
 
     #[test]
@@ -267,8 +267,8 @@ mod version_tests {
         assert!(Version::new(3, 4, 0) >= ST_TILE_ENVELOPE_MARGIN_VERSION);
 
         // PostGIS 3.0 does not support margin
-        assert!(!(Version::new(3, 0, 0) >= ST_TILE_ENVELOPE_MARGIN_VERSION));
-        assert!(!(Version::new(3, 0, 5) >= ST_TILE_ENVELOPE_MARGIN_VERSION));
+        assert!(Version::new(3, 0, 0) < ST_TILE_ENVELOPE_MARGIN_VERSION);
+        assert!(Version::new(3, 0, 5) < ST_TILE_ENVELOPE_MARGIN_VERSION);
     }
 
     #[test]
@@ -338,16 +338,16 @@ mod compression_tests {
     #[test]
     fn test_gzip_magic_bytes() {
         // Gzip magic bytes: 0x1f 0x8b
-        let gzip_data = vec![0x1f, 0x8b, 0x08, 0x00];
+        let gzip_data: &[u8] = &[0x1f, 0x8b, 0x08, 0x00];
         assert!(gzip_data.len() >= 2 && gzip_data[0] == 0x1f && gzip_data[1] == 0x8b);
 
         // Non-gzip data
-        let plain_data = vec![0x00, 0x00, 0x00, 0x00];
-        assert!(!(plain_data.len() >= 2 && plain_data[0] == 0x1f && plain_data[1] == 0x8b));
+        let plain_data: &[u8] = &[0x00, 0x00, 0x00, 0x00];
+        assert!(plain_data.len() < 2 || plain_data[0] != 0x1f || plain_data[1] != 0x8b);
 
         // Empty data
-        let empty_data: Vec<u8> = vec![];
-        assert!(!(empty_data.len() >= 2));
+        let empty_data: &[u8] = &[];
+        assert!(empty_data.len() < 2);
     }
 
     #[test]
@@ -389,7 +389,19 @@ mod tilejson_tests {
 #[cfg(feature = "postgres-integration")]
 mod integration_tests {
     use std::sync::Arc;
-    use tileserver_rs::{PostgresFunctionConfig, PostgresFunctionSource, PostgresPool, TileSource};
+    use tileserver_rs::{
+        PoolSettings, PostgresFunctionConfig, PostgresFunctionSource, PostgresPool, TileSource,
+    };
+
+    fn default_pool_settings() -> PoolSettings {
+        PoolSettings {
+            max_size: 5,
+            wait_timeout_ms: 5000,
+            create_timeout_ms: 5000,
+            recycle_timeout_ms: 5000,
+            pre_warm: false,
+        }
+    }
 
     fn get_connection_string() -> String {
         std::env::var("DATABASE_URL").unwrap_or_else(|_| {
@@ -400,7 +412,7 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_pool_creation() {
         let conn_str = get_connection_string();
-        let pool = PostgresPool::new(&conn_str, 5, None, None, None).await;
+        let pool = PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await;
 
         match pool {
             Ok(pool) => {
@@ -416,13 +428,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_function_source_creation() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "benchmark_points".to_string(),
@@ -436,7 +449,7 @@ mod integration_tests {
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
         };
 
-        let source = PostgresFunctionSource::new(pool, &config).await;
+        let source = PostgresFunctionSource::new(pool, &config, None).await;
 
         match source {
             Ok(source) => {
@@ -454,13 +467,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_get_tile() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "benchmark_points".to_string(),
@@ -474,7 +488,7 @@ mod integration_tests {
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
         };
 
-        let source = match PostgresFunctionSource::new(pool, &config).await {
+        let source = match PostgresFunctionSource::new(pool, &config, None).await {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Skipping test - function not available: {}", e);
@@ -505,13 +519,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_tile_outside_zoom_range() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "benchmark_points".to_string(),
@@ -525,7 +540,7 @@ mod integration_tests {
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
         };
 
-        let source = match PostgresFunctionSource::new(pool, &config).await {
+        let source = match PostgresFunctionSource::new(pool, &config, None).await {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Skipping test - function not available: {}", e);
@@ -549,13 +564,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_function_with_query_params() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "filtered_points".to_string(),
@@ -569,7 +585,7 @@ mod integration_tests {
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
         };
 
-        let source = PostgresFunctionSource::new(pool, &config).await;
+        let source = PostgresFunctionSource::new(pool, &config, None).await;
 
         match source {
             Ok(source) => {
@@ -587,13 +603,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_invalid_coordinates() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "benchmark_points".to_string(),
@@ -607,7 +624,7 @@ mod integration_tests {
             bounds: None,
         };
 
-        let source = match PostgresFunctionSource::new(pool, &config).await {
+        let source = match PostgresFunctionSource::new(pool, &config, None).await {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Skipping test - function not available: {}", e);
@@ -622,13 +639,14 @@ mod integration_tests {
     #[tokio::test]
     async fn test_postgres_multiple_tiles() {
         let conn_str = get_connection_string();
-        let pool = match PostgresPool::new(&conn_str, 5, None, None, None).await {
-            Ok(p) => Arc::new(p),
-            Err(e) => {
-                eprintln!("Skipping test - database not available: {}", e);
-                return;
-            }
-        };
+        let pool =
+            match PostgresPool::new(&conn_str, default_pool_settings(), None, None, None).await {
+                Ok(p) => Arc::new(p),
+                Err(e) => {
+                    eprintln!("Skipping test - database not available: {}", e);
+                    return;
+                }
+            };
 
         let config = PostgresFunctionConfig {
             id: "benchmark_points".to_string(),
@@ -642,7 +660,7 @@ mod integration_tests {
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
         };
 
-        let source = match PostgresFunctionSource::new(pool, &config).await {
+        let source = match PostgresFunctionSource::new(pool, &config, None).await {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Skipping test - function not available: {}", e);
