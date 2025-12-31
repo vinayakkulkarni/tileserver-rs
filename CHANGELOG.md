@@ -1,5 +1,76 @@
 # Changelog
 
+## [1.0.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v0.2.1...tileserver-rs-v1.0.0) (2025-12-31)
+
+
+### Features
+
+* add HTTP request logging and OpenAPI 3.1 spec ([f5efd37](https://github.com/vinayakkulkarni/tileserver-rs/commit/f5efd370102c5a47599191abf0e61507e17b39c4))
+* **api:** add ?key query parameter support for API key passthrough ([b8b0f39](https://github.com/vinayakkulkarni/tileserver-rs/commit/b8b0f39779d7a8202e4850efb8333bef95b5f302))
+* **api:** add comprehensive test suite and Swagger UI documentation ([18fa5a4](https://github.com/vinayakkulkarni/tileserver-rs/commit/18fa5a40c650e4ab6f26346985ccbf7187035cd5))
+* **benchmarks:** add comprehensive benchmark suite with correct tile coordinates ([a3f421c](https://github.com/vinayakkulkarni/tileserver-rs/commit/a3f421ca68cf7f29c552d9cc34d797bdc24ccd91))
+* **benchmarks:** add tileserver-gl PMTiles support and update results ([95c8303](https://github.com/vinayakkulkarni/tileserver-rs/commit/95c8303d903e42465c45b1633e9f27e5a02601ed))
+* **benchmarks:** fair Docker-to-Docker ARM64 benchmark comparison ([b4eba14](https://github.com/vinayakkulkarni/tileserver-rs/commit/b4eba14aae17a76435f6996f03afccd53e5152a5))
+* **marketing:** add landing page with Nuxt 4 + shadcn-vue ([63920e4](https://github.com/vinayakkulkarni/tileserver-rs/commit/63920e40c39e71be3a580437622fa0694b4d3189))
+* **marketing:** add PostgreSQL/PostGIS support to landing page ([ed1187d](https://github.com/vinayakkulkarni/tileserver-rs/commit/ed1187d4849ab91da6e3f6e06fb504e5f1fc21cc))
+* **mbtiles:** implement full MBTiles 1.3 support with SQLite ([c2b125e](https://github.com/vinayakkulkarni/tileserver-rs/commit/c2b125e0cc71b2eff567ce052e98310ca4914ee5))
+* **postgres:** add PostgreSQL/PostGIS tile source support with performance optimizations ([24a88ae](https://github.com/vinayakkulkarni/tileserver-rs/commit/24a88aeecbaac8bda335f111dcc525dd593fc8e1))
+* suppress MapLibre logs, move OpenAPI to /_openapi, simplify UI ([d42118e](https://github.com/vinayakkulkarni/tileserver-rs/commit/d42118e52aebbd6e6fc055f43907d8003b4bbacb))
+
+
+### Bug Fixes
+
+* **build:** detect MapLibre Native library changes for proper rebuild ([28f8c09](https://github.com/vinayakkulkarni/tileserver-rs/commit/28f8c094c39019c9d3deac23fcf77d09eafb1df0))
+* **ci:** disable macOS AMD64 build (Intel runners retired) ([61f6487](https://github.com/vinayakkulkarni/tileserver-rs/commit/61f648775555096b29d1a122d4b16b3c0d0ed91e))
+* **ci:** fix prerelease detection for tileserver-rs-v* tags ([06867ee](https://github.com/vinayakkulkarni/tileserver-rs/commit/06867ee8f5fc62fc21a96ce8066b0d6e0b49b6ed))
+* **deps:** Bump actions/cache from 4 to 5 ([#469](https://github.com/vinayakkulkarni/tileserver-rs/issues/469)) ([3333f35](https://github.com/vinayakkulkarni/tileserver-rs/commit/3333f3529ea151338b5161a68b31e8fe31b04c8b))
+* **deps:** Bump actions/checkout from 4 to 6 ([#467](https://github.com/vinayakkulkarni/tileserver-rs/issues/467)) ([97f0a00](https://github.com/vinayakkulkarni/tileserver-rs/commit/97f0a00aaf172fe64cffd98a7427a9a6d069991b))
+* **deps:** Bump actions/github-script from 7 to 8 ([#468](https://github.com/vinayakkulkarni/tileserver-rs/issues/468)) ([c4d3cf2](https://github.com/vinayakkulkarni/tileserver-rs/commit/c4d3cf2caa8d883d7c3b669b7affeb52bc680715))
+* **deps:** Bump actions/upload-artifact from 4 to 6 ([#470](https://github.com/vinayakkulkarni/tileserver-rs/issues/470)) ([47e16f6](https://github.com/vinayakkulkarni/tileserver-rs/commit/47e16f602673f0a0d4f536ea4ef5d3f1cca26e51))
+* **deps:** Update @tanstack/vue-query requirement ([#472](https://github.com/vinayakkulkarni/tileserver-rs/issues/472)) ([3e3e338](https://github.com/vinayakkulkarni/tileserver-rs/commit/3e3e3387497dd3cdef2a020b782809272f19e090))
+* **deps:** Update @tanstack/vue-query requirement ([#476](https://github.com/vinayakkulkarni/tileserver-rs/issues/476)) ([885582e](https://github.com/vinayakkulkarni/tileserver-rs/commit/885582e937002a1421706f80b2a35280615a4167))
+* **deps:** Update @tanstack/vue-query requirement ([#483](https://github.com/vinayakkulkarni/tileserver-rs/issues/483)) ([5eb855a](https://github.com/vinayakkulkarni/tileserver-rs/commit/5eb855ac8413bdf2f8d3a85e161ae2c2af9407db))
+* **deps:** Update @tanstack/vue-query requirement in /apps/client ([#474](https://github.com/vinayakkulkarni/tileserver-rs/issues/474)) ([144ebd7](https://github.com/vinayakkulkarni/tileserver-rs/commit/144ebd7c6dbb6f2a6d10377469f2c38aedb2bd90))
+* **deps:** Update @tanstack/vue-query requirement in /apps/client ([#480](https://github.com/vinayakkulkarni/tileserver-rs/issues/480)) ([107eee7](https://github.com/vinayakkulkarni/tileserver-rs/commit/107eee796938fd6bbc438aa8ce923b01d56f6609))
+* **deps:** Update @tanstack/vue-query requirement in /apps/client ([#484](https://github.com/vinayakkulkarni/tileserver-rs/issues/484)) ([d12816c](https://github.com/vinayakkulkarni/tileserver-rs/commit/d12816ccdaf41c1836dd44b201bc591fc820f492))
+* **docker:** add version tags from release-please format ([7a72e91](https://github.com/vinayakkulkarni/tileserver-rs/commit/7a72e919c3290f21a7e56506aa1ca27a01d9edcc))
+* **docker:** add workflow_dispatch for manual builds ([be21765](https://github.com/vinayakkulkarni/tileserver-rs/commit/be217657a6680c4139f136ad4a93e349eddff192))
+* **docs:** martin supports PMTiles ([2abaf79](https://github.com/vinayakkulkarni/tileserver-rs/commit/2abaf794fe89e398e13aa2cfa82f08e7eceaded9))
+* **docs:** remove duplicate h1 header in benchmarks page ([86f3e72](https://github.com/vinayakkulkarni/tileserver-rs/commit/86f3e728744305efbf8f7601e40908b296ba577b))
+* **docs:** remove duplicate h1 headers from all doc pages ([700bcb6](https://github.com/vinayakkulkarni/tileserver-rs/commit/700bcb68ee4d8e97bd17fc884d2ec5a7d5653560))
+* make OpenAPI docs work offline without external dependencies ([15b44ea](https://github.com/vinayakkulkarni/tileserver-rs/commit/15b44eadf72a61424f772e7dbab6a29548248dfa))
+
+
+### Performance Improvements
+
+* **postgres:** add connection pool pre-warming and prepared statement caching ([429aa6e](https://github.com/vinayakkulkarni/tileserver-rs/commit/429aa6e8d7f3ada57ff0bcf8dfe282b657948859))
+
+
+### Documentation
+
+* add crates.io publishing plan ([c961745](https://github.com/vinayakkulkarni/tileserver-rs/commit/c9617456e66959250a457a1d5aa1c801bacc8307))
+* add quickstart guide, static images guide, and MapLibre integration ([e8e426f](https://github.com/vinayakkulkarni/tileserver-rs/commit/e8e426fcd3d3d2391a2adb0aff5729abe3293bdd))
+* add vector tiles guide and Docker deployment guide ([adb9a14](https://github.com/vinayakkulkarni/tileserver-rs/commit/adb9a1499b1de57007085cb9757e5952c41dc6ab))
+* **benchmarks:** update comparison table with actual benchmark results ([e6159a9](https://github.com/vinayakkulkarni/tileserver-rs/commit/e6159a94c11b6d4f9488e98b22c0ea6b85f74ca9))
+* **benchmarks:** update PostgreSQL results with isolated benchmark data ([1ac4f31](https://github.com/vinayakkulkarni/tileserver-rs/commit/1ac4f31b0dbfe703053fc4562cb9af8676eee1d8))
+
+
+### Miscellaneous
+
+* **data:** add zuric mbtiles ([7b95e79](https://github.com/vinayakkulkarni/tileserver-rs/commit/7b95e79634bd2776525257deeaba5c5bb6140fcf))
+* **deps-dev:** Update eslint-plugin-better-tailwindcss requirement ([#471](https://github.com/vinayakkulkarni/tileserver-rs/issues/471)) ([26b03e2](https://github.com/vinayakkulkarni/tileserver-rs/commit/26b03e286bffc311e592a078d37f3faacce861e1))
+* **deps-dev:** Update eslint-plugin-better-tailwindcss requirement ([#473](https://github.com/vinayakkulkarni/tileserver-rs/issues/473)) ([47e4df7](https://github.com/vinayakkulkarni/tileserver-rs/commit/47e4df727009169bb60457d1be9f178dc249947e))
+* **deps-dev:** Update eslint-plugin-oxlint requirement ([#475](https://github.com/vinayakkulkarni/tileserver-rs/issues/475)) ([5b743c8](https://github.com/vinayakkulkarni/tileserver-rs/commit/5b743c8b28788d44ef9ef850027b4bcb96a55f96))
+* **deps-dev:** Update eslint-plugin-oxlint requirement in /docs ([#479](https://github.com/vinayakkulkarni/tileserver-rs/issues/479)) ([8db60d9](https://github.com/vinayakkulkarni/tileserver-rs/commit/8db60d94d91353ecba6b41b5c5b96c38d43cdedc))
+* **deps-dev:** Update oxlint requirement from ^1.35.0 to ^1.36.0 ([#477](https://github.com/vinayakkulkarni/tileserver-rs/issues/477)) ([07fe55c](https://github.com/vinayakkulkarni/tileserver-rs/commit/07fe55c91d8d5c7da730225e28c167928df0fd14))
+* **deps-dev:** Update oxlint requirement in /apps/client ([#478](https://github.com/vinayakkulkarni/tileserver-rs/issues/478)) ([69a7b87](https://github.com/vinayakkulkarni/tileserver-rs/commit/69a7b879bb392f271c048ecd70bdc7d7bd892dc0))
+* **deps-dev:** Update oxlint requirement in /docs ([#481](https://github.com/vinayakkulkarni/tileserver-rs/issues/481)) ([5761821](https://github.com/vinayakkulkarni/tileserver-rs/commit/5761821a408b85808d0b2288c779349de82f5e9f))
+* **homebrew:** update formula to v0.2.1 ([4c3459c](https://github.com/vinayakkulkarni/tileserver-rs/commit/4c3459c1940cd3f3062254f747dfac7dca759290))
+* release 1.0.0 ([eee2124](https://github.com/vinayakkulkarni/tileserver-rs/commit/eee21240d4e678568b3d33b52c066210463ff07a))
+* remove redundant config.benchmark.toml ([10af658](https://github.com/vinayakkulkarni/tileserver-rs/commit/10af6586db07523f2332d87dbb5d62d5334cd4ab))
+* remove TODO.md (all features implemented) ([7767498](https://github.com/vinayakkulkarni/tileserver-rs/commit/77674985ddd3a78c05b58807879b6ec1e65f3e6d))
+* update bun.lock ([4d19ee9](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d19ee9ce4e318ace7a59ce2ebc1eec4dbf460b0))
+
 ## [0.2.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v0.2.0...tileserver-rs-v0.2.1) (2025-12-28)
 
 
