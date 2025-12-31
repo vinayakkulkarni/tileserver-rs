@@ -249,7 +249,7 @@ mod tests {
         assert!(v12 >= MINIMUM_POSTGRES_VERSION);
         assert!(v3_0 >= MINIMUM_POSTGIS_VERSION);
         assert!(v3_1 >= ST_TILE_ENVELOPE_MARGIN_VERSION);
-        assert!(!(v3_0 >= ST_TILE_ENVELOPE_MARGIN_VERSION));
+        assert!(v3_0 < ST_TILE_ENVELOPE_MARGIN_VERSION);
     }
 
     #[test]

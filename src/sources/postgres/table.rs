@@ -17,6 +17,7 @@ pub struct TableInfo {
     pub table: String,
     pub geometry_column: String,
     pub srid: i32,
+    #[allow(dead_code)]
     pub geometry_type: String,
     pub id_column: Option<String>,
     pub properties: Vec<String>,
@@ -30,10 +31,13 @@ pub struct PostgresTableSource {
     metadata: TileMetadata,
     table_info: TableInfo,
     tile_query: String,
+    #[allow(dead_code)]
     extent: u32,
+    #[allow(dead_code)]
     buffer: u32,
+    #[allow(dead_code)]
     max_features: Option<u32>,
-    /// Whether ST_TileEnvelope supports margin parameter (PostGIS >= 3.1)
+    #[allow(dead_code)]
     supports_tile_margin: bool,
     cache: Option<Arc<TileCache>>,
 }
