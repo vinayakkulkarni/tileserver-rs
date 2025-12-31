@@ -1,9 +1,27 @@
 <script setup lang="ts">
-import { Github, Zap, Globe, Layers, Image, Server, FileJson, ArrowRight, Copy, Check, Terminal, Sparkles, Database } from 'lucide-vue-next';
+import {
+  Github,
+  Zap,
+  Globe,
+  Layers,
+  Image,
+  Server,
+  ArrowRight,
+  Copy,
+  Check,
+  Terminal,
+  Sparkles,
+  Database,
+} from 'lucide-vue-next';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '~/components/ui/tooltip';
 
 const copied = ref(false);
 const installCommand = 'brew install vinayakkulkarni/tap/tileserver-rs';
@@ -20,32 +38,38 @@ const features = [
   {
     icon: Zap,
     title: 'Blazing Fast',
-    description: 'Built in Rust for maximum performance. Serve tiles with sub-millisecond latency.',
+    description:
+      'Built in Rust for maximum performance. Serve tiles with sub-millisecond latency.',
   },
   {
     icon: Globe,
     title: 'PMTiles & MBTiles',
-    description: 'Native support for modern PMTiles and classic MBTiles tile archives.',
+    description:
+      'Native support for modern PMTiles and classic MBTiles tile archives.',
   },
   {
     icon: Database,
     title: 'PostgreSQL / PostGIS',
-    description: 'Serve vector tiles directly from PostGIS tables with optimized spatial queries.',
+    description:
+      'Serve vector tiles directly from PostGIS tables with optimized spatial queries.',
   },
   {
     icon: Layers,
     title: 'Vector & Raster',
-    description: 'Serve vector tiles directly or render them to raster on-the-fly.',
+    description:
+      'Serve vector tiles directly or render them to raster on-the-fly.',
   },
   {
     icon: Image,
     title: 'Static Images',
-    description: 'Generate static map images like Mapbox Static API with native MapLibre rendering.',
+    description:
+      'Generate static map images like Mapbox Static API with native MapLibre rendering.',
   },
   {
     icon: Server,
     title: 'Self-Hosted',
-    description: 'Run on your own infrastructure. No vendor lock-in, no API keys required.',
+    description:
+      'Run on your own infrastructure. No vendor lock-in, no API keys required.',
   },
 ];
 
@@ -67,7 +91,10 @@ const apiEndpoints = [
   {
     title: 'Static Images',
     endpoints: [
-      { method: 'GET', path: '/styles/{style}/static/{lon},{lat},{zoom}/{w}x{h}.png' },
+      {
+        method: 'GET',
+        path: '/styles/{style}/static/{lon},{lat},{zoom}/{w}x{h}.png',
+      },
     ],
   },
   {
@@ -85,9 +112,15 @@ const apiEndpoints = [
     <div class="relative min-h-screen overflow-hidden bg-background">
       <!-- Animated background orbs -->
       <div class="pointer-events-none fixed inset-0 overflow-hidden">
-        <div class="orb orb-primary absolute top-1/4 -left-32 size-[500px]"></div>
-        <div class="orb orb-secondary absolute top-1/2 -right-32 size-[600px]"></div>
-        <div class="orb orb-accent absolute bottom-0 left-1/3 size-[400px]"></div>
+        <div
+          class="orb orb-primary absolute top-1/4 -left-32 size-[500px]"
+        ></div>
+        <div
+          class="orb orb-secondary absolute top-1/2 -right-32 size-[600px]"
+        ></div>
+        <div
+          class="orb orb-accent absolute bottom-0 left-1/3 size-[400px]"
+        ></div>
       </div>
 
       <!-- Grid overlay -->
@@ -199,8 +232,9 @@ const apiEndpoints = [
                 "
               >
                 High-performance vector tile server built in
-                <span class="font-semibold text-primary">Rust</span>. Serve PMTiles, MBTiles, and PostGIS with native
-                MapLibre rendering for static images.
+                <span class="font-semibold text-primary">Rust</span>. Serve
+                PMTiles, MBTiles, and PostGIS with native MapLibre rendering for
+                static images.
               </p>
 
               <!-- CTA buttons -->
@@ -270,12 +304,15 @@ const apiEndpoints = [
                           "
                           @click="copyToClipboard"
                         >
-                          <Check v-if="copied" class="size-4 text-emerald-400" />
+                          <Check
+                            v-if="copied"
+                            class="size-4 text-emerald-400"
+                          />
                           <Copy v-else class="size-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent class="border-primary/20 bg-card">
-                        <p>{{ copied ? 'Copied!' : 'Copy to clipboard' }}</p>
+                        <p>{{ copied ? "Copied!" : "Copy to clipboard" }}</p>
                       </TooltipContent>
                     </Tooltip>
                   </CardContent>
@@ -370,8 +407,8 @@ const apiEndpoints = [
                   Simple <span class="text-gradient">Setup</span>
                 </h2>
                 <p class="mb-8 text-lg text-muted-foreground">
-                  Get started with a simple TOML configuration file. Define your tile sources, styles, and server
-                  settings in one place.
+                  Get started with a simple TOML configuration file. Define your
+                  tile sources, styles, and server settings in one place.
                 </p>
                 <ul class="space-y-4">
                   <li class="flex items-center gap-3">
@@ -513,7 +550,9 @@ geometry_column = <span class="token-string">"geom"</span></code></pre>
                     >
                       {{ endpoint.method }}
                     </Badge>
-                    <span class="text-muted-foreground">{{ endpoint.path }}</span>
+                    <span class="text-muted-foreground">{{
+                      endpoint.path
+                    }}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -540,7 +579,8 @@ geometry_column = <span class="token-string">"geom"</span></code></pre>
                 Ready to <span class="text-gradient">Deploy</span>?
               </h2>
               <p class="mb-10 text-lg text-muted-foreground">
-                Deploy your own tile server in minutes with our comprehensive documentation.
+                Deploy your own tile server in minutes with our comprehensive
+                documentation.
               </p>
               <div
                 class="
