@@ -20,7 +20,7 @@ class TileserverRs < Formula
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "TODO"
+      sha256 "9c62f824547cffe0db0c0caebc5636dc78e50c7035b6c87078950dbfc9276f0b"
     elsif Hardware::CPU.intel?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
       sha256 "d1d384a8976bd74fb19d8521d6b8f79d0b40a214ad1c9c5df6327c8eaece9df2"
