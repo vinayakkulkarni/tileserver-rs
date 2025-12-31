@@ -164,6 +164,7 @@ impl PostgresPool {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -174,11 +175,13 @@ impl PostgresPool {
     }
 
     /// Returns the PostgreSQL version.
+    #[allow(dead_code)]
     pub fn postgres_version(&self) -> &Version {
         &self.postgres_version
     }
 
     /// Returns the PostGIS version.
+    #[allow(dead_code)]
     pub fn postgis_version(&self) -> &Version {
         &self.postgis_version
     }

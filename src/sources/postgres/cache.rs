@@ -52,6 +52,7 @@ impl TileCache {
         self.cache.insert(key, value).await;
     }
 
+    #[allow(dead_code)]
     pub fn entry_count(&self) -> u64 {
         self.cache.entry_count()
     }

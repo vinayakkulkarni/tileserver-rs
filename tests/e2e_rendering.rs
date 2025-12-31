@@ -60,6 +60,7 @@ fn images_match(img1_path: &Path, img2_path: &Path, tolerance: f64) -> bool {
 }
 
 /// Save an image and return the path
+#[allow(dead_code)]
 fn save_test_image(name: &str, data: &[u8]) -> PathBuf {
     let path = PathBuf::from(SNAPSHOTS_DIR).join(format!("{}.png", name));
     fs::create_dir_all(SNAPSHOTS_DIR).expect("Should create snapshots dir");
@@ -74,9 +75,7 @@ fn save_test_image(name: &str, data: &[u8]) -> PathBuf {
 mod overlay_rendering {
     use super::*;
     use image::{Rgba, RgbaImage};
-    use tileserver_rs::render::overlay::{
-        draw_overlays, parse_marker, parse_path, GeoPoint, MarkerOverlay, PathOverlay,
-    };
+    use tileserver_rs::render::overlay::{draw_overlays, parse_marker, parse_path};
 
     /// Generate a test image with a marker overlay
     fn render_marker_test_image(marker_str: &str) -> RgbaImage {
@@ -222,7 +221,7 @@ mod overlay_rendering {
 mod polyline_rendering {
     use super::*;
     use image::{Rgba, RgbaImage};
-    use tileserver_rs::render::overlay::{decode_polyline, draw_overlays, parse_path, PathOverlay};
+    use tileserver_rs::render::overlay::{decode_polyline, draw_overlays, parse_path};
 
     #[test]
     fn test_render_google_polyline() {

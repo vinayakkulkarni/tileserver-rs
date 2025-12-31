@@ -13,6 +13,7 @@ const TEST_CONFIG: &str = "tests/config.test.toml";
 // ============================================================
 
 mod health_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -35,8 +36,8 @@ mod health_tests {
 // ============================================================
 
 mod openapi_tests {
+    #[allow(unused_imports)]
     use super::*;
-    use serde_json::Value;
 
     #[test]
     fn test_openapi_json_structure() {
@@ -271,7 +272,7 @@ mod style_tests {
         assert!(style_info
             .url
             .as_ref()
-            .map_or(false, |u| u.contains("style.json")));
+            .is_some_and(|u| u.contains("style.json")));
     }
 
     #[test]
@@ -378,7 +379,7 @@ mod font_tests {
                     let pbf_files: Vec<_> = fs::read_dir(&font_path)
                         .expect("Should read font dir")
                         .filter_map(|e| e.ok())
-                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "pbf"))
+                        .filter(|e| e.path().extension().is_some_and(|ext| ext == "pbf"))
                         .collect();
 
                     assert!(!pbf_files.is_empty(), "Font should have PBF files");
@@ -421,6 +422,7 @@ mod font_tests {
 // ============================================================
 
 mod files_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -495,6 +497,7 @@ mod files_tests {
 // ============================================================
 
 mod content_type_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -574,6 +577,7 @@ mod content_type_tests {
 // ============================================================
 
 mod cache_control_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -604,6 +608,7 @@ mod cache_control_tests {
 // ============================================================
 
 mod error_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -653,6 +658,7 @@ mod error_tests {
 // ============================================================
 
 mod cors_tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
@@ -691,6 +697,7 @@ mod cors_tests {
 // ============================================================
 
 mod url_params_tests {
+    #[allow(unused_imports)]
     use super::*;
     use std::str::FromStr;
 
@@ -800,6 +807,7 @@ mod url_params_tests {
 // ============================================================
 
 mod overlay_params_tests {
+    #[allow(unused_imports)]
     use super::*;
     use tileserver_rs::render::overlay::{parse_marker, parse_path};
 
@@ -835,7 +843,7 @@ mod overlay_params_tests {
         for marker in invalid_markers {
             if !marker.is_empty() {
                 // Empty string might have different handling
-                let result = parse_marker(marker);
+                let _result = parse_marker(marker);
                 // Invalid formats should return None or parse to defaults
                 // The actual behavior depends on implementation
             }

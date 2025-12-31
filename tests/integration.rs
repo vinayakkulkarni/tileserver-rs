@@ -837,7 +837,7 @@ mod async_style_tests {
         let styles =
             StyleManager::from_configs(&config.styles).expect("Should load styles from config");
 
-        assert!(styles.len() >= 1, "Should have at least 1 style loaded");
+        assert!(!styles.is_empty(), "Should have at least 1 style loaded");
     }
 
     #[tokio::test]
