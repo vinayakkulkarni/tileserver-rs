@@ -620,11 +620,7 @@
       </Collapsible>
 
       <!-- API Documentation Link -->
-      <a
-        href="/_openapi"
-        target="_blank"
-        class="block"
-      >
+      <a href="/_openapi" target="_blank" class="block">
         <Card
           class="
             overflow-hidden rounded-xl border-border/50 bg-card/50
