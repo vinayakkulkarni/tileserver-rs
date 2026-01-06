@@ -42,7 +42,7 @@
     "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
     "eslint-plugin-better-tailwindcss": "^4.0.0-rc.0",
-    "eslint-plugin-oxlint": "^1.36.0",
+    "eslint-plugin-oxlint": "^1.37.0",
     "oxlint": "^1.36.0",
     "prettier": "^3.7.4",
     "shadcn-nuxt": "^2.4.3",
