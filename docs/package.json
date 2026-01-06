@@ -21,7 +21,7 @@
     "@nuxt/eslint": "^1.12.1",
     "@nuxtjs/plausible": "^2.0.1",
     "eslint": "^9.39.2",
-    "eslint-plugin-oxlint": "^1.36.0",
+    "eslint-plugin-oxlint": "^1.37.0",
     "oxlint": "^1.36.0",
     "typescript": "^5.9.3"
   },
