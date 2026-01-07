@@ -98,6 +98,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     libuv1-dev \
     libglfw3-dev \
+    # GDAL for raster/COG support
+    libgdal-dev \
     # OpenGL/EGL
     libopengl-dev \
     libgl-dev \
@@ -129,8 +131,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs
 # Copy the embedded SPA
 COPY --from=node-builder /app/apps/client/.output/public ./apps/client/.output/public
 
-# Optional features (default: postgres enabled for PostGIS function sources)
-ARG FEATURES="postgres"
+# Features are now enabled by default in Cargo.toml (postgres, raster)
+ARG FEATURES=""
 
 # Build dependencies only (may fail on first try, that's ok)
 RUN if [ -n "$FEATURES" ]; then \
@@ -174,6 +176,7 @@ RUN apt-get update && \
     libopengl0 \
     libx11-6 \
     libegl1 \
+    libgdal34t64 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

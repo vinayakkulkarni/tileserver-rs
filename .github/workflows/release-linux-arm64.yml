@@ -58,7 +58,8 @@ jobs:
             libwebp-dev \
             libsqlite3-dev \
             libopengl-dev \
-            libgl-dev
+            libgl-dev \
+            libgdal-dev
 
       - name: Cache MapLibre Native build
         uses: actions/cache@v5
