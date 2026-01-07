@@ -70,7 +70,7 @@ moka = { version = "0.12", features = ["future"], optional = true }
 # aws-sdk-s3 = { version = "1.65", optional = true }
 
 [features]
-default = []
+default = ["postgres", "raster"]
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "moka"]
 postgres-integration = ["postgres"]
 raster = ["gdal"]
