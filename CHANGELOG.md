@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.0.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v1.0.0...tileserver-rs-v2.0.0) (2026-01-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **raster:** Requires 'raster' feature flag to enable COG support
+
+### Features
+
+* enable postgres and raster features by default ([7c545e6](https://github.com/vinayakkulkarni/tileserver-rs/commit/7c545e6fa9c5a003b4dc41ab33907053b8dc3153))
+* **postgres:** add out-of-database raster source support ([b6068c2](https://github.com/vinayakkulkarni/tileserver-rs/commit/b6068c2aa2ea7ef3433641cafbd8fbca9871aaa5))
+* **raster:** add Cloud Optimized GeoTIFF (COG) tile serving ([c529c25](https://github.com/vinayakkulkarni/tileserver-rs/commit/c529c25557ddf70e14f6700bfe75e25656a7fe55))
+
+
+### Bug Fixes
+
+* **ci:** add GDAL dependency for raster feature in CI and Docker ([609e58e](https://github.com/vinayakkulkarni/tileserver-rs/commit/609e58e213da6b613c8b371d69362618da15e96f))
+* **ci:** add libclang-dev and pkg-config to all workflows ([930f13b](https://github.com/vinayakkulkarni/tileserver-rs/commit/930f13bd2f0aba8f92053f0c01bb2ac006c66a53))
+* **deps:** Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 ([a79c2cf](https://github.com/vinayakkulkarni/tileserver-rs/commit/a79c2cf12a43e0a87db56ba941a9d42e3e6f331a))
+* **deps:** Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 ([e90f004](https://github.com/vinayakkulkarni/tileserver-rs/commit/e90f00444efae12bae26300a11ccd0e132e5ee3f))
+* **docker:** add libclang-dev for gdal-sys bindgen ([2e07a00](https://github.com/vinayakkulkarni/tileserver-rs/commit/2e07a00a0f16d25ae9d49e673699296e8b070b41))
+* **docker:** add pkg-config for gdal-sys header discovery ([838d234](https://github.com/vinayakkulkarni/tileserver-rs/commit/838d2344c631adc97f662da74cbb9237d5391e71))
+* **postgres:** forward URL query parameters to PostgreSQL function sources ([f348757](https://github.com/vinayakkulkarni/tileserver-rs/commit/f348757d522794866b66baab5c0871ecbc24aa88))
+* resolve all clippy warnings in tests and postgres sources ([ad4b4a2](https://github.com/vinayakkulkarni/tileserver-rs/commit/ad4b4a23e0883b43f0fc03a630d8390403efebf0))
+* update postgres test signatures and resolve clippy warnings ([ce311d6](https://github.com/vinayakkulkarni/tileserver-rs/commit/ce311d615a9ef66d9c917ea3eaef59c2e532e621))
+* use derive macro for ColorMapType default and remove unused colormap method ([04ee086](https://github.com/vinayakkulkarni/tileserver-rs/commit/04ee086ef0eb10de30aee480c36df0077b029805))
+
+
+### Performance Improvements
+
+* only serialize query params to JSON for PostgreSQL sources ([f2913f0](https://github.com/vinayakkulkarni/tileserver-rs/commit/f2913f0adf1582efe8bb2243e62deb14c455630a))
+
+
+### Miscellaneous
+
+* **deps-dev:** Update @commitlint/cli requirement from ^20.2.0 to ^20.3.0 ([#487](https://github.com/vinayakkulkarni/tileserver-rs/issues/487)) ([ba200d8](https://github.com/vinayakkulkarni/tileserver-rs/commit/ba200d821450659f507b022aa161982bf81e4d2e))
+* **deps-dev:** Update @commitlint/config-conventional requirement from ^20.2.0 to ^20.3.0 ([#486](https://github.com/vinayakkulkarni/tileserver-rs/issues/486)) ([c3eeb40](https://github.com/vinayakkulkarni/tileserver-rs/commit/c3eeb409d83210b208fd14998073158f065e893d))
+* **deps:** update frontend dependencies ([f8dfd52](https://github.com/vinayakkulkarni/tileserver-rs/commit/f8dfd52437ce2bfd9e66a2c7247452248e0750f1))
+* **homebrew:** update formula to v1.0.0 ([58f5914](https://github.com/vinayakkulkarni/tileserver-rs/commit/58f5914d14355f8211702863c3ce3015d9277b49))
+* **homebrew:** update formula to v1.0.0 ([949fedb](https://github.com/vinayakkulkarni/tileserver-rs/commit/949fedbacd0f7ea5bc52dd709dfddf54843b1100))
+* **homebrew:** update formula to v1.0.0 ([1f11ec4](https://github.com/vinayakkulkarni/tileserver-rs/commit/1f11ec498c67d85af5b166ccc8c90e438b6dcdc0))
+* **homebrew:** update formula to v1.0.0 ([912fb18](https://github.com/vinayakkulkarni/tileserver-rs/commit/912fb18c60e9d2bbd3cdc4439c32662f35df53c4))
+
 ## [1.0.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v0.2.1...tileserver-rs-v1.0.0) (2025-12-31)
 
 
