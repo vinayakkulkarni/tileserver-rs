@@ -567,16 +567,10 @@ impl TileParams {
     }
 }
 
-#[derive(Debug, serde::Deserialize, Default)]
-struct TileQueryParams {
-    #[cfg(feature = "raster")]
-    resampling: Option<String>,
-}
-
 async fn get_tile(
     State(state): State<AppState>,
     Path(params): Path<TileParams>,
-    Query(query): Query<TileQueryParams>,
+    Query(query): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Response, TileServerError> {
     let (y, format) = params
         .parse_y_and_format()
@@ -589,13 +583,22 @@ async fn get_tile(
     #[cfg(feature = "raster")]
     let tile = {
         let resampling = query
-            .resampling
-            .as_ref()
+            .get("resampling")
             .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
+
+        let query_params: serde_json::Value = serde_json::to_value(&query).unwrap_or_default();
 
         state
             .sources
-            .get_raster_tile(&params.source, params.z, params.x, y, 256, resampling)
+            .get_raster_tile_with_params(
+                &params.source,
+                params.z,
+                params.x,
+                y,
+                256,
+                resampling,
+                Some(query_params),
+            )
             .await?
             .ok_or(TileServerError::TileNotFound {
                 z: params.z,
@@ -606,20 +609,45 @@ async fn get_tile(
 
     #[cfg(not(feature = "raster"))]
     let tile = {
-        let _ = query;
-        let source = state
-            .sources
-            .get(&params.source)
-            .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+        #[cfg(feature = "postgres")]
+        let tile = {
+            let query_params: serde_json::Value = serde_json::to_value(&query).unwrap_or_default();
+            state
+                .sources
+                .get_vector_tile_with_query_params(
+                    &params.source,
+                    params.z,
+                    params.x,
+                    y,
+                    &query_params,
+                )
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
+        };
 
-        source
-            .get_tile(params.z, params.x, y)
-            .await?
-            .ok_or(TileServerError::TileNotFound {
-                z: params.z,
-                x: params.x,
-                y,
-            })?
+        #[cfg(not(feature = "postgres"))]
+        let tile = {
+            let _ = query;
+            let source = state
+                .sources
+                .get(&params.source)
+                .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+
+            source
+                .get_tile(params.z, params.x, y)
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
+        };
+
+        tile
     };
 
     let mut headers = HeaderMap::new();

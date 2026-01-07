@@ -178,10 +178,78 @@ impl PostgresFunctionSource {
         }
     }
 
-    /// Returns whether this source supports query parameters.
     #[allow(dead_code)]
     pub fn supports_query_params(&self) -> bool {
         self.supports_query_params
+    }
+
+    /// Get a tile with query parameters passed to the PostgreSQL function.
+    ///
+    /// Query parameters are passed as a JSON object to the function's 4th parameter.
+    /// If the function doesn't support query params, they are ignored.
+    pub async fn get_tile_with_query_params(
+        &self,
+        z: u8,
+        x: u32,
+        y: u32,
+        query_params: &serde_json::Value,
+    ) -> Result<Option<TileData>> {
+        let max_tile = 1u32 << z;
+        if x >= max_tile || y >= max_tile {
+            return Err(TileServerError::InvalidCoordinates { z, x, y });
+        }
+
+        if z < self.metadata.minzoom || z > self.metadata.maxzoom {
+            return Ok(None);
+        }
+
+        let conn = self.pool.get().await?;
+
+        let param_types: &[Type] = if self.supports_query_params {
+            &[Type::INT4, Type::INT4, Type::INT4, Type::JSON]
+        } else {
+            &[Type::INT4, Type::INT4, Type::INT4]
+        };
+
+        let prep_query = conn
+            .prepare_typed_cached(&self.sql_query, param_types)
+            .await
+            .map_err(|e| {
+                TileServerError::PostgresError(format!(
+                    "Failed to prepare query for {}.{}: {}",
+                    self.schema, self.function, e
+                ))
+            })?;
+
+        let tile_data: Option<Vec<u8>> = if self.supports_query_params {
+            let params: &[&(dyn ToSql + Sync)] =
+                &[&(z as i32), &(x as i32), &(y as i32), query_params];
+            conn.query_opt(&prep_query, params).await
+        } else {
+            conn.query_opt(&prep_query, &[&(z as i32), &(x as i32), &(y as i32)])
+                .await
+        }
+        .map_err(|e| {
+            TileServerError::PostgresError(format!(
+                "Failed to execute query for {}.{} at z={}, x={}, y={}: {}",
+                self.schema, self.function, z, x, y, e
+            ))
+        })?
+        .and_then(|row| row.get::<_, Option<Vec<u8>>>(0));
+
+        Ok(tile_data.map(|data| {
+            let compression = if data.len() >= 2 && data[0] == 0x1f && data[1] == 0x8b {
+                TileCompression::Gzip
+            } else {
+                TileCompression::None
+            };
+
+            TileData {
+                data: Bytes::from(data),
+                format: TileFormat::Pbf,
+                compression,
+            }
+        }))
     }
 }
 

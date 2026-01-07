@@ -348,6 +348,46 @@ impl SourceManager {
             })
             .unwrap_or(false)
     }
+
+    #[cfg(feature = "postgres")]
+    pub async fn get_vector_tile_with_query_params(
+        &self,
+        id: &str,
+        z: u8,
+        x: u32,
+        y: u32,
+        query_params: &serde_json::Value,
+    ) -> crate::error::Result<Option<crate::sources::TileData>> {
+        let source = self
+            .sources
+            .get(id)
+            .ok_or_else(|| TileServerError::SourceNotFound(id.to_string()))?;
+
+        if let Some(pg_func) = source
+            .as_ref()
+            .as_any()
+            .downcast_ref::<PostgresFunctionSource>()
+        {
+            pg_func
+                .get_tile_with_query_params(z, x, y, query_params)
+                .await
+        } else {
+            source.get_tile(z, x, y).await
+        }
+    }
+
+    #[cfg(feature = "postgres")]
+    pub fn is_postgres_function_source(&self, id: &str) -> bool {
+        self.sources
+            .get(id)
+            .map(|s| {
+                s.as_ref()
+                    .as_any()
+                    .downcast_ref::<PostgresFunctionSource>()
+                    .is_some()
+            })
+            .unwrap_or(false)
+    }
 }
 
 impl Default for SourceManager {
