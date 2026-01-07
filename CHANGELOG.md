@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.0.0...tileserver-rs-v2.1.0) (2026-01-07)
+
+
+### Features
+
+* **ci:** enable Linux ARM64 release workflow ([b634eb1](https://github.com/vinayakkulkarni/tileserver-rs/commit/b634eb142fdbe42d90c867cc05ed828d364e98a3))
+
+
+### Bug Fixes
+
+* **build:** detect build-linux-opengl directory for MapLibre Native ([c57d7b9](https://github.com/vinayakkulkarni/tileserver-rs/commit/c57d7b9f4fedb77d2717730ec86ba4ed85325c2a))
+* **ci:** use correct ARM64 runner label ubuntu-24.04-arm ([be615f5](https://github.com/vinayakkulkarni/tileserver-rs/commit/be615f5ad3cc1c5c51a4d02210c2948e96440a2e))
+
 ## [2.0.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v1.0.0...tileserver-rs-v2.0.0) (2026-01-07)
 
 
