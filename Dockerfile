@@ -98,8 +98,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-dev \
     libuv1-dev \
     libglfw3-dev \
-    # GDAL for raster/COG support
+    # GDAL for raster/COG support (libclang-dev needed by bindgen for gdal-sys)
     libgdal-dev \
+    libclang-dev \
     # OpenGL/EGL
     libopengl-dev \
     libgl-dev \
