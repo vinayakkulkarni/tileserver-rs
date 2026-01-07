@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.2.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.1.1...tileserver-rs-v2.2.0) (2026-01-07)
+
+
+### Features
+
+* **docker:** build multi-arch images for linux/amd64 and linux/arm64 ([cac14d3](https://github.com/vinayakkulkarni/tileserver-rs/commit/cac14d3157c8d43de389f5a81f99768ec7032353))
+
+
+### Bug Fixes
+
+* **ci:** enable Linux ARM64 in Release Please trigger matrix ([21d2bc9](https://github.com/vinayakkulkarni/tileserver-rs/commit/21d2bc9f0289d74626652c4314935c4545dabb00))
+* **postgres:** route function sources to vector tile handler when raster enabled ([32a5c4e](https://github.com/vinayakkulkarni/tileserver-rs/commit/32a5c4efb2f933ff1e6c08843ceeca52da6958f1))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.1.1 ([cebcb19](https://github.com/vinayakkulkarni/tileserver-rs/commit/cebcb19b6e6b43cad3b54bb2b6229a371e118423))
+* **homebrew:** update formula to v2.1.1 ([76cf7ad](https://github.com/vinayakkulkarni/tileserver-rs/commit/76cf7adb7832c0a28efc4b31260aae241399e5c7))
+
 ## [2.1.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.1.0...tileserver-rs-v2.1.1) (2026-01-07)
 
 
