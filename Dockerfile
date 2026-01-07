@@ -89,6 +89,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     build-essential \
+    pkg-config \
     # Core libraries
     libcurl4-openssl-dev \
     libpng-dev \
