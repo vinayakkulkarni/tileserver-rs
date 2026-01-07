@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.2.0...tileserver-rs-v2.3.0) (2026-01-07)
+
+
+### Features
+
+* **postgres:** support dynamic rescaling from PostgreSQL function return values ([a787906](https://github.com/vinayakkulkarni/tileserver-rs/commit/a787906a2e6837b7e455848f0c23db7dd451b4a7)), closes [#506](https://github.com/vinayakkulkarni/tileserver-rs/issues/506)
+
+
+### Bug Fixes
+
+* **openapi:** consolidate duplicate tile endpoints into single documented path ([657d2c4](https://github.com/vinayakkulkarni/tileserver-rs/commit/657d2c4fad40849810ee7d8eeb9f59ccb16e8e80))
+
+
+### Miscellaneous
+
+* **ci:** rename docker workflow to release-docker.yml for consistency ([d676741](https://github.com/vinayakkulkarni/tileserver-rs/commit/d676741d0861ff002969889f1836b11e769f21ff))
+
 ## [2.2.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.1.1...tileserver-rs-v2.2.0) (2026-01-07)
 
 
