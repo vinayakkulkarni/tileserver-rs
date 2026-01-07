@@ -232,7 +232,7 @@ const apiEndpoints = [
               </h1>
 
               <!-- Description -->
-                <p
+              <p
                 class="
                   mx-auto mb-10 max-w-2xl text-lg text-muted-foreground
                   sm:text-xl
