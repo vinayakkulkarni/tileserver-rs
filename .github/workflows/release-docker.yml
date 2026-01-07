@@ -1,4 +1,4 @@
-name: 'Docker Build & Push'
+name: 'Release (Docker)'
 
 on:
   push:
