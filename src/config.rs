@@ -217,18 +217,12 @@ impl From<ResamplingMethod> for ResampleAlg {
 }
 
 #[cfg(feature = "raster")]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ColorMapType {
+    #[default]
     Discrete,
     Continuous,
-}
-
-#[cfg(feature = "raster")]
-impl Default for ColorMapType {
-    fn default() -> Self {
-        ColorMapType::Discrete
-    }
 }
 
 #[cfg(feature = "raster")]

@@ -81,10 +81,6 @@ impl CogSource {
         self.default_resampling
     }
 
-    pub fn colormap(&self) -> Option<&ColorMapConfig> {
-        self.colormap.as_ref()
-    }
-
     pub async fn get_tile_with_resampling(
         &self,
         z: u8,
