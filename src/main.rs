@@ -587,7 +587,9 @@ async fn get_tile(
             .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
 
         #[cfg(all(feature = "postgres", feature = "raster"))]
-        let query_params = if state.sources.is_outdb_raster_source(&params.source) {
+        let query_params = if state.sources.is_outdb_raster_source(&params.source)
+            || state.sources.is_postgres_function_source(&params.source)
+        {
             Some(serde_json::to_value(&query).unwrap_or_default())
         } else {
             None
