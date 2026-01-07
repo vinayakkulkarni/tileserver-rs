@@ -22,9 +22,7 @@ use utoipa::OpenApi;
     ),
     tags(
         (name = "Health", description = "Health check endpoints"),
-        (name = "Data", description = "Vector tile data sources (PMTiles, MBTiles)"),
-        (name = "Raster", description = "Raster/COG tile data sources (Cloud Optimized GeoTIFF)"),
-        (name = "OutDB Raster", description = "PostgreSQL Out-of-Database raster tile sources (VRT/COG via PostGIS)"),
+        (name = "Data", description = "Tile data sources: vector (PMTiles, MBTiles, PostgreSQL), raster (COG), and OutDB raster (PostGIS)"),
         (name = "Styles", description = "Map styles and raster tile rendering"),
         (name = "Fonts", description = "Font glyphs for map labels"),
         (name = "Files", description = "Static file serving")
@@ -35,8 +33,6 @@ use utoipa::OpenApi;
         list_data_sources,
         get_data_source,
         get_tile,
-        get_raster_data_tile,
-        get_outdb_raster_tile,
         list_styles,
         get_style_tilejson,
         get_style_json,
@@ -229,10 +225,22 @@ pub async fn list_data_sources() {}
 )]
 pub async fn get_data_source() {}
 
-/// Get a vector tile
+/// Get a tile from any data source
 ///
-/// Returns a vector tile in the requested format (pbf, mvt, or geojson).
-/// For vector sources (PMTiles, MBTiles), use pbf/mvt format.
+/// Returns a tile from the specified source. The response format depends on the source type:
+///
+/// **Vector sources** (PMTiles, MBTiles, PostgreSQL functions):
+/// - Formats: `pbf`, `mvt`, `geojson`
+/// - Returns Mapbox Vector Tiles or GeoJSON
+///
+/// **Raster/COG sources** (Cloud Optimized GeoTIFF):
+/// - Formats: `png`, `jpg`, `jpeg`, `webp`
+/// - Query param `resampling`: nearest, bilinear, cubic, lanczos, average, etc.
+///
+/// **PostgreSQL Out-of-Database raster sources** (VRT/COG via PostGIS):
+/// - Formats: `png`, `jpg`, `jpeg`, `webp`
+/// - Query params are passed to the PostgreSQL function for dynamic filtering
+/// - See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters
 #[utoipa::path(
     get,
     path = "/data/{source}/{z}/{x}/{y}.{format}",
@@ -242,68 +250,17 @@ pub async fn get_data_source() {}
         ("z" = u8, Path, description = "Zoom level (0-22)"),
         ("x" = u32, Path, description = "Tile X coordinate"),
         ("y" = u32, Path, description = "Tile Y coordinate"),
-        ("format" = String, Path, description = "Tile format (pbf, mvt, geojson)")
+        ("format" = String, Path, description = "Tile format: pbf, mvt, geojson (vector) or png, jpg, webp (raster)"),
+        ("resampling" = Option<String>, Query, description = "Resampling method for COG sources: nearest, bilinear, cubic, cubicspline, lanczos, average, mode, max, min, med, q1, q3")
     ),
     responses(
         (status = 200, description = "Vector tile data", content_type = "application/x-protobuf"),
         (status = 200, description = "GeoJSON tile data", body = GeoJSON, content_type = "application/geo+json"),
-        (status = 404, description = "Tile not found")
+        (status = 200, description = "Raster tile image", content_type = "image/png"),
+        (status = 404, description = "Tile or source not found")
     )
 )]
 pub async fn get_tile() {}
-
-/// Get a raster tile from COG source
-///
-/// Returns a raster tile from a Cloud Optimized GeoTIFF (COG) source.
-/// Supports PNG, JPEG, and WebP output formats with optional resampling.
-#[utoipa::path(
-    get,
-    path = "/data/{source}/{z}/{x}/{y}.{format}",
-    tag = "Raster",
-    operation_id = "get_raster_data_tile",
-    params(
-        ("source" = String, Path, description = "COG source ID"),
-        ("z" = u8, Path, description = "Zoom level (0-22)"),
-        ("x" = u32, Path, description = "Tile X coordinate"),
-        ("y" = u32, Path, description = "Tile Y coordinate"),
-        ("format" = String, Path, description = "Image format (png, jpg, jpeg, webp)"),
-        ("resampling" = Option<String>, Query, description = "Resampling method: nearest, bilinear, cubic, cubicspline, lanczos, average, mode, max, min, med, q1, q3")
-    ),
-    responses(
-        (status = 200, description = "Raster tile image", content_type = "image/png"),
-        (status = 404, description = "Tile not found or source not found")
-    )
-)]
-pub async fn get_raster_data_tile() {}
-
-/// Get a raster tile from PostgreSQL Out-of-Database source
-///
-/// Returns a raster tile from VRT/COG files referenced in PostgreSQL.
-/// The source uses a PostgreSQL function to lookup file paths based on tile coordinates
-/// and query parameters. Supports dynamic filtering via query parameters passed to the function.
-/// See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters
-#[utoipa::path(
-    get,
-    path = "/data/{source}/{z}/{x}/{y}.{format}",
-    tag = "OutDB Raster",
-    operation_id = "get_outdb_raster_tile",
-    params(
-        ("source" = String, Path, description = "OutDB raster source ID"),
-        ("z" = u8, Path, description = "Zoom level (0-22)"),
-        ("x" = u32, Path, description = "Tile X coordinate"),
-        ("y" = u32, Path, description = "Tile Y coordinate"),
-        ("format" = String, Path, description = "Image format (png, jpg, jpeg, webp)"),
-        ("satellite" = Option<String>, Query, description = "Filter by satellite (passed to PostgreSQL function)"),
-        ("date_from" = Option<String>, Query, description = "Filter by start date (passed to PostgreSQL function)"),
-        ("date_to" = Option<String>, Query, description = "Filter by end date (passed to PostgreSQL function)"),
-        ("cloud_cover" = Option<f64>, Query, description = "Maximum cloud cover percentage (passed to PostgreSQL function)")
-    ),
-    responses(
-        (status = 200, description = "Raster tile image", content_type = "image/png"),
-        (status = 404, description = "Tile not found or no matching rasters")
-    )
-)]
-pub async fn get_outdb_raster_tile() {}
 
 /// List all styles
 ///
@@ -571,8 +528,8 @@ mod tests {
         assert!(spec.tags.is_some(), "Tags should be defined");
         assert_eq!(
             spec.tags.as_ref().unwrap().len(),
-            7,
-            "Should have 7 tags defined"
+            5,
+            "Should have 5 tags defined"
         );
     }
 
