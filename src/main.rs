@@ -582,39 +582,82 @@ async fn get_tile(
 
     #[cfg(feature = "raster")]
     let tile = {
-        let resampling = query
-            .get("resampling")
-            .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
-
-        #[cfg(all(feature = "postgres", feature = "raster"))]
-        let query_params = if state.sources.is_outdb_raster_source(&params.source)
-            || state.sources.is_postgres_function_source(&params.source)
-        {
-            Some(serde_json::to_value(&query).unwrap_or_default())
+        #[cfg(feature = "postgres")]
+        if state.sources.is_postgres_function_source(&params.source) {
+            let query_params = serde_json::to_value(&query).unwrap_or_default();
+            state
+                .sources
+                .get_vector_tile_with_query_params(
+                    &params.source,
+                    params.z,
+                    params.x,
+                    y,
+                    &query_params,
+                )
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
         } else {
-            None
-        };
+            let resampling = query
+                .get("resampling")
+                .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
 
-        #[cfg(not(all(feature = "postgres", feature = "raster")))]
-        let query_params: Option<serde_json::Value> = None;
+            #[cfg(all(feature = "postgres", feature = "raster"))]
+            let query_params = if state.sources.is_outdb_raster_source(&params.source) {
+                Some(serde_json::to_value(&query).unwrap_or_default())
+            } else {
+                None
+            };
 
-        state
-            .sources
-            .get_raster_tile_with_params(
-                &params.source,
-                params.z,
-                params.x,
-                y,
-                256,
-                resampling,
-                query_params,
-            )
-            .await?
-            .ok_or(TileServerError::TileNotFound {
-                z: params.z,
-                x: params.x,
-                y,
-            })?
+            #[cfg(not(all(feature = "postgres", feature = "raster")))]
+            let query_params: Option<serde_json::Value> = None;
+
+            state
+                .sources
+                .get_raster_tile_with_params(
+                    &params.source,
+                    params.z,
+                    params.x,
+                    y,
+                    256,
+                    resampling,
+                    query_params,
+                )
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
+        }
+
+        #[cfg(not(feature = "postgres"))]
+        {
+            let resampling = query
+                .get("resampling")
+                .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
+
+            state
+                .sources
+                .get_raster_tile_with_params(
+                    &params.source,
+                    params.z,
+                    params.x,
+                    y,
+                    256,
+                    resampling,
+                    None,
+                )
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
+        }
     };
 
     #[cfg(not(feature = "raster"))]
