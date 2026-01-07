@@ -17,28 +17,32 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/maplibre_c_stub.c");
     println!("cargo:rerun-if-changed=build.rs");
 
-    // Also rerun if the MapLibre Native build output changes (or appears)
-    // This ensures we switch from stub to real implementation when libraries are built
     #[cfg(target_os = "macos")]
     println!("cargo:rerun-if-changed=vendor/maplibre-native/build-macos-metal/libmbgl-core.a");
     #[cfg(target_os = "linux")]
-    println!("cargo:rerun-if-changed=vendor/maplibre-native/build-linux/libmbgl-core.a");
+    {
+        println!("cargo:rerun-if-changed=vendor/maplibre-native/build-linux-opengl/libmbgl-core.a");
+        println!("cargo:rerun-if-changed=vendor/maplibre-native/build-linux/libmbgl-core.a");
+    }
 
     // Check if the native libraries are built
-    // Try platform-specific build directories
+    // Try platform-specific build directories (in order of preference)
     #[cfg(target_os = "macos")]
-    let build_dir_name = "build-macos-metal";
+    let build_dir_candidates = &["build-macos-metal"];
     #[cfg(target_os = "linux")]
-    let build_dir_name = "build-linux";
+    let build_dir_candidates = &["build-linux-opengl", "build-linux"];
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    let build_dir_name = "build";
+    let build_dir_candidates = &["build"];
 
-    let maplibre_build_dir = manifest_dir
-        .join("vendor/maplibre-native")
-        .join(build_dir_name);
-    let mbgl_core = maplibre_build_dir.join("libmbgl-core.a");
+    let maplibre_base = manifest_dir.join("vendor/maplibre-native");
 
-    if mbgl_core.exists() {
+    // Find the first build directory that contains libmbgl-core.a
+    let maplibre_build_dir = build_dir_candidates
+        .iter()
+        .map(|dir| maplibre_base.join(dir))
+        .find(|dir| dir.join("libmbgl-core.a").exists());
+
+    if let Some(maplibre_build_dir) = maplibre_build_dir {
         println!("cargo:warning=Building with real MapLibre Native renderer");
         build_with_maplibre_native(&manifest_dir, &out_dir, &maplibre_build_dir);
     } else {
@@ -55,9 +59,9 @@ fn main() {
         #[cfg(target_os = "linux")]
         {
             println!("cargo:warning=  cd maplibre-native-sys/vendor/maplibre-native");
-            println!("cargo:warning=  cmake -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release");
+            println!("cargo:warning=  cmake --preset linux-opengl");
             println!(
-                "cargo:warning=  cmake --build build-linux --target mbgl-core mlt-cpp -j$(nproc)"
+                "cargo:warning=  cmake --build build-linux-opengl --target mbgl-core mlt-cpp -j$(nproc)"
             );
         }
         build_stub(&out_dir);
