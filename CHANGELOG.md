@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.1.0...tileserver-rs-v2.1.1) (2026-01-07)
+
+
+### Bug Fixes
+
+* **postgres:** pass query params to function sources when raster feature enabled ([346c603](https://github.com/vinayakkulkarni/tileserver-rs/commit/346c603988aeb2cfb4d6291c80f353fd87a98fa4))
+
+
+### Miscellaneous
+
+* **main:** release tileserver-rs 2.1.0 ([fc6603a](https://github.com/vinayakkulkarni/tileserver-rs/commit/fc6603ae2651505236e988fda129c8a931c6a032))
+* **main:** release tileserver-rs 2.1.0 ([3baa666](https://github.com/vinayakkulkarni/tileserver-rs/commit/3baa666b7f20d82427b60a7faa509c5e85359d9f))
+
 ## [2.1.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.0.0...tileserver-rs-v2.1.0) (2026-01-07)
 
 
