@@ -12,6 +12,8 @@ use crate::sources::cog::CogSource;
 use crate::sources::mbtiles::MbTilesSource;
 use crate::sources::pmtiles::http::HttpPmTilesSource;
 use crate::sources::pmtiles::local::LocalPmTilesSource;
+#[cfg(all(feature = "postgres", feature = "raster"))]
+use crate::sources::postgres::PostgresOutDbRasterSource;
 #[cfg(feature = "postgres")]
 use crate::sources::postgres::{
     PoolSettings, PostgresFunctionSource, PostgresPool, PostgresTableSource, TileCache,
@@ -154,6 +156,30 @@ impl SourceManager {
             }
         }
 
+        #[cfg(feature = "raster")]
+        let mut outdb_raster_sources: Vec<PostgresOutDbRasterSource> = Vec::new();
+        #[cfg(feature = "raster")]
+        for outdb_config in &config.outdb_rasters {
+            match PostgresOutDbRasterSource::new(pool.clone(), outdb_config).await {
+                Ok(source) => {
+                    tracing::info!(
+                        "Loaded PostgreSQL out-db raster source: {} ({}.{})",
+                        outdb_config.id,
+                        outdb_config.schema,
+                        outdb_config.function.as_ref().unwrap_or(&outdb_config.id)
+                    );
+                    outdb_raster_sources.push(source);
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to load PostgreSQL out-db raster source {}: {}",
+                        outdb_config.id,
+                        e
+                    );
+                }
+            }
+        }
+
         if pool_settings.pre_warm {
             let tile_param_types: &[Type] = &[Type::INT4, Type::INT4, Type::INT4];
             let mut queries: Vec<(&str, &[Type])> = Vec::new();
@@ -164,6 +190,12 @@ impl SourceManager {
             for source in &table_sources {
                 queries.push((source.tile_query(), tile_param_types));
             }
+            #[cfg(feature = "raster")]
+            for source in &outdb_raster_sources {
+                let outdb_param_types: &[Type] =
+                    &[Type::INT4, Type::INT4, Type::INT4, Type::TEXT, Type::JSONB];
+                queries.push((source.tile_query(), outdb_param_types));
+            }
 
             pool.warmup(&queries).await?;
         }
@@ -173,6 +205,11 @@ impl SourceManager {
                 .insert(source.metadata().id.clone(), Arc::new(source));
         }
         for source in table_sources {
+            self.sources
+                .insert(source.metadata().id.clone(), Arc::new(source));
+        }
+        #[cfg(feature = "raster")]
+        for source in outdb_raster_sources {
             self.sources
                 .insert(source.metadata().id.clone(), Arc::new(source));
         }
@@ -261,6 +298,22 @@ impl SourceManager {
         tile_size: u32,
         resampling: Option<ResamplingMethod>,
     ) -> crate::error::Result<Option<crate::sources::TileData>> {
+        self.get_raster_tile_with_params(id, z, x, y, tile_size, resampling, None)
+            .await
+    }
+
+    #[cfg(feature = "raster")]
+    #[allow(clippy::too_many_arguments)]
+    pub async fn get_raster_tile_with_params(
+        &self,
+        id: &str,
+        z: u8,
+        x: u32,
+        y: u32,
+        tile_size: u32,
+        resampling: Option<ResamplingMethod>,
+        query_params: Option<serde_json::Value>,
+    ) -> crate::error::Result<Option<crate::sources::TileData>> {
         let source = self
             .sources
             .get(id)
@@ -270,9 +323,30 @@ impl SourceManager {
             let resample = resampling.unwrap_or(cog.resampling());
             cog.get_tile_with_resampling(z, x, y, tile_size, resample)
                 .await
+        } else if let Some(outdb) = source
+            .as_ref()
+            .as_any()
+            .downcast_ref::<PostgresOutDbRasterSource>()
+        {
+            outdb
+                .get_tile_with_params(z, x, y, tile_size, resampling, query_params)
+                .await
         } else {
             source.get_tile(z, x, y).await
         }
+    }
+
+    #[cfg(all(feature = "postgres", feature = "raster"))]
+    pub fn is_outdb_raster_source(&self, id: &str) -> bool {
+        self.sources
+            .get(id)
+            .map(|s| {
+                s.as_ref()
+                    .as_any()
+                    .downcast_ref::<PostgresOutDbRasterSource>()
+                    .is_some()
+            })
+            .unwrap_or(false)
     }
 }
 

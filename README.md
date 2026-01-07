@@ -12,6 +12,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 - **PMTiles Support** - Serve tiles from local and remote PMTiles archives
 - **MBTiles Support** - Serve tiles from SQLite-based MBTiles files
 - **Native Raster Rendering** - Generate PNG/JPEG/WebP tiles using MapLibre Native (C++ FFI)
+- **PostgreSQL Out-DB Rasters** - Serve VRT/COG tiles via PostGIS functions with dynamic filtering
 - **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler Static API)
 - **High Performance** - ~100ms per tile (warm cache), ~800ms cold cache
 - **TileJSON 3.0** - Full TileJSON metadata API
@@ -225,6 +226,16 @@ name = "Terrain Data"
 [[styles]]
 id = "osm-bright"
 path = "/data/styles/osm-bright/style.json"
+
+# PostgreSQL Out-of-Database Rasters (optional)
+[postgres]
+connection_string = "postgresql://user:pass@localhost:5432/gis"
+
+[[postgres.outdb_rasters]]
+id = "imagery"                    # Also used as function name if 'function' is omitted
+schema = "public"
+# function = "get_raster_paths"   # Optional: defaults to 'id' value
+name = "Satellite Imagery"
 ```
 
 See [config.example.toml](./config.example.toml) for a complete example, or [config.offline.toml](./config.offline.toml) for a local development setup.
@@ -263,6 +274,13 @@ See [config.example.toml](./config.example.toml) for a complete example, or [con
 |----------|-------------|
 | `GET /files/{filepath}` | Serve static files (GeoJSON, icons, etc.) |
 | `GET /index.json` | Combined TileJSON for all sources and styles |
+
+### PostgreSQL Out-DB Raster Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}` | Raster tile from PostgreSQL-referenced VRT/COG |
+| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}?satellite=...` | With dynamic filtering via query params |
 
 ### Rendering Endpoints (Native MapLibre)
 
@@ -443,3 +461,4 @@ Authored and maintained by Vinayak Kulkarni with help from contributors ([list](
 - [tileserver-gl](https://github.com/maptiler/tileserver-gl) - Inspiration for this project
 - [MapLibre](https://maplibre.org/) - Open-source mapping library
 - [PMTiles](https://github.com/protomaps/PMTiles) - Cloud-optimized tile archive format
+- [PostGIS](https://postgis.net/) - Spatial database extension for PostgreSQL

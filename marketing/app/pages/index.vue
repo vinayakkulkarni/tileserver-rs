@@ -13,6 +13,7 @@ import {
   Sparkles,
   Database,
   MapIcon,
+  HardDrive,
 } from 'lucide-vue-next';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -61,6 +62,12 @@ const features = [
       'Serve raster tiles from COG files with on-the-fly reprojection and colormap support.',
   },
   {
+    icon: HardDrive,
+    title: 'PostgreSQL Out-DB Rasters',
+    description:
+      'Dynamic VRT/COG tile serving via PostGIS functions with query-based filtering.',
+  },
+  {
     icon: Layers,
     title: 'Vector & Raster',
     description:
@@ -93,6 +100,12 @@ const apiEndpoints = [
     endpoints: [
       { method: 'GET', path: '/data/{cog}/{z}/{x}/{y}.png' },
       { method: 'GET', path: '/data/{cog}/{z}/{x}/{y}.webp' },
+    ],
+  },
+  {
+    title: 'PostgreSQL Out-DB Rasters',
+    endpoints: [
+      { method: 'GET', path: '/data/{source}/{z}/{x}/{y}.png?satellite=...' },
     ],
   },
   {

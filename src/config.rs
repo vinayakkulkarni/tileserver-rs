@@ -348,6 +348,10 @@ pub struct PostgresConfig {
     /// Tile cache configuration (optional, disabled by default)
     #[serde(default)]
     pub cache: Option<PostgresCacheConfig>,
+    /// Out-of-database raster sources (VRT/COG files referenced from PostgreSQL)
+    #[cfg(feature = "raster")]
+    #[serde(default)]
+    pub outdb_rasters: Vec<PostgresOutDbRasterConfig>,
 }
 
 /// Tile cache configuration for PostgreSQL sources
@@ -483,6 +487,27 @@ pub struct PostgresTableConfig {
     pub buffer: u32,
     /// Maximum features per tile (default: unlimited)
     pub max_features: Option<u32>,
+}
+
+#[cfg(all(feature = "postgres", feature = "raster"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostgresOutDbRasterConfig {
+    pub id: String,
+    #[serde(default = "default_schema")]
+    pub schema: String,
+    pub function: Option<String>,
+    pub name: Option<String>,
+    pub attribution: Option<String>,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub minzoom: u8,
+    #[serde(default = "default_maxzoom")]
+    pub maxzoom: u8,
+    pub bounds: Option<[f64; 4]>,
+    #[serde(default)]
+    pub resampling: Option<ResamplingMethod>,
+    #[serde(default)]
+    pub colormap: Option<ColorMapConfig>,
 }
 
 /// Configuration for a map style
@@ -818,6 +843,94 @@ mod tests {
             assert_eq!(table2.buffer, 64);
             assert!(table2.geometry_column.is_none());
             assert!(table2.max_features.is_none());
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_parse_postgres_outdb_raster_config() {
+            let toml = r#"
+                [postgres]
+                connection_string = "postgresql://user:pass@localhost:5432/gis"
+
+                [[postgres.outdb_rasters]]
+                id = "imagery"
+                schema = "public"
+                function = "get_raster_paths"
+                name = "Satellite Imagery"
+                minzoom = 0
+                maxzoom = 18
+                bounds = [-180.0, -85.0, 180.0, 85.0]
+
+                [[postgres.outdb_rasters]]
+                id = "dem"
+                function = "get_dem_paths"
+            "#;
+
+            let config: Config = toml::from_str(toml).unwrap();
+            let pg = config.postgres.expect("postgres config should be present");
+            assert_eq!(pg.outdb_rasters.len(), 2);
+
+            let outdb1 = &pg.outdb_rasters[0];
+            assert_eq!(outdb1.id, "imagery");
+            assert_eq!(outdb1.schema, "public");
+            assert_eq!(outdb1.function, Some("get_raster_paths".to_string()));
+            assert_eq!(outdb1.name, Some("Satellite Imagery".to_string()));
+            assert_eq!(outdb1.minzoom, 0);
+            assert_eq!(outdb1.maxzoom, 18);
+            assert!(outdb1.bounds.is_some());
+            assert_eq!(outdb1.bounds.unwrap(), [-180.0, -85.0, 180.0, 85.0]);
+
+            let outdb2 = &pg.outdb_rasters[1];
+            assert_eq!(outdb2.id, "dem");
+            assert_eq!(outdb2.schema, "public");
+            assert_eq!(outdb2.function, Some("get_dem_paths".to_string()));
+            assert!(outdb2.name.is_none());
+            assert_eq!(outdb2.minzoom, 0);
+            assert_eq!(outdb2.maxzoom, 22);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_outdb_raster_with_resampling() {
+            let toml = r#"
+                [postgres]
+                connection_string = "postgresql://localhost/db"
+
+                [[postgres.outdb_rasters]]
+                id = "elevation"
+                function = "get_dem_paths"
+                resampling = "bilinear"
+            "#;
+
+            let config: Config = toml::from_str(toml).unwrap();
+            let pg = config.postgres.unwrap();
+            assert_eq!(pg.outdb_rasters.len(), 1);
+
+            let outdb = &pg.outdb_rasters[0];
+            assert_eq!(outdb.id, "elevation");
+            assert_eq!(
+                outdb.resampling,
+                Some(crate::config::ResamplingMethod::Bilinear)
+            );
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_outdb_raster_function_defaults_to_id() {
+            let toml = r#"
+                [postgres]
+                connection_string = "postgresql://localhost/db"
+
+                [[postgres.outdb_rasters]]
+                id = "imagery"
+            "#;
+
+            let config: Config = toml::from_str(toml).unwrap();
+            let pg = config.postgres.unwrap();
+            let outdb = &pg.outdb_rasters[0];
+            assert_eq!(outdb.id, "imagery");
+            assert!(outdb.function.is_none());
+            assert_eq!(outdb.function.as_ref().unwrap_or(&outdb.id), "imagery");
         }
     }
 }

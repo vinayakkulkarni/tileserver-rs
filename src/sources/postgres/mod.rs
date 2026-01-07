@@ -18,11 +18,15 @@
 //! using `ST_TileEnvelope` for spatial filtering that utilizes spatial indexes.
 
 mod cache;
+#[cfg(feature = "raster")]
+mod outdb;
 mod pool;
 mod source;
 mod table;
 
 pub use cache::{TileCache, TileCacheKey};
+#[cfg(feature = "raster")]
+pub use outdb::PostgresOutDbRasterSource;
 pub use pool::{PoolSettings, PostgresPool};
 pub use source::PostgresFunctionSource;
 pub use table::PostgresTableSource;

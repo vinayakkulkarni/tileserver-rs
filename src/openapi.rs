@@ -24,6 +24,7 @@ use utoipa::OpenApi;
         (name = "Health", description = "Health check endpoints"),
         (name = "Data", description = "Vector tile data sources (PMTiles, MBTiles)"),
         (name = "Raster", description = "Raster/COG tile data sources (Cloud Optimized GeoTIFF)"),
+        (name = "OutDB Raster", description = "PostgreSQL Out-of-Database raster tile sources (VRT/COG via PostGIS)"),
         (name = "Styles", description = "Map styles and raster tile rendering"),
         (name = "Fonts", description = "Font glyphs for map labels"),
         (name = "Files", description = "Static file serving")
@@ -35,6 +36,7 @@ use utoipa::OpenApi;
         get_data_source,
         get_tile,
         get_raster_data_tile,
+        get_outdb_raster_tile,
         list_styles,
         get_style_tilejson,
         get_style_json,
@@ -273,6 +275,35 @@ pub async fn get_tile() {}
     )
 )]
 pub async fn get_raster_data_tile() {}
+
+/// Get a raster tile from PostgreSQL Out-of-Database source
+///
+/// Returns a raster tile from VRT/COG files referenced in PostgreSQL.
+/// The source uses a PostgreSQL function to lookup file paths based on tile coordinates
+/// and query parameters. Supports dynamic filtering via query parameters passed to the function.
+/// See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters
+#[utoipa::path(
+    get,
+    path = "/data/{source}/{z}/{x}/{y}.{format}",
+    tag = "OutDB Raster",
+    operation_id = "get_outdb_raster_tile",
+    params(
+        ("source" = String, Path, description = "OutDB raster source ID"),
+        ("z" = u8, Path, description = "Zoom level (0-22)"),
+        ("x" = u32, Path, description = "Tile X coordinate"),
+        ("y" = u32, Path, description = "Tile Y coordinate"),
+        ("format" = String, Path, description = "Image format (png, jpg, jpeg, webp)"),
+        ("satellite" = Option<String>, Query, description = "Filter by satellite (passed to PostgreSQL function)"),
+        ("date_from" = Option<String>, Query, description = "Filter by start date (passed to PostgreSQL function)"),
+        ("date_to" = Option<String>, Query, description = "Filter by end date (passed to PostgreSQL function)"),
+        ("cloud_cover" = Option<f64>, Query, description = "Maximum cloud cover percentage (passed to PostgreSQL function)")
+    ),
+    responses(
+        (status = 200, description = "Raster tile image", content_type = "image/png"),
+        (status = 404, description = "Tile not found or no matching rasters")
+    )
+)]
+pub async fn get_outdb_raster_tile() {}
 
 /// List all styles
 ///
@@ -540,8 +571,8 @@ mod tests {
         assert!(spec.tags.is_some(), "Tags should be defined");
         assert_eq!(
             spec.tags.as_ref().unwrap().len(),
-            6,
-            "Should have 6 tags defined"
+            7,
+            "Should have 7 tags defined"
         );
     }
 
