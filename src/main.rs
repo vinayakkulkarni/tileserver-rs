@@ -586,7 +586,15 @@ async fn get_tile(
             .get("resampling")
             .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
 
-        let query_params: serde_json::Value = serde_json::to_value(&query).unwrap_or_default();
+        #[cfg(all(feature = "postgres", feature = "raster"))]
+        let query_params = if state.sources.is_outdb_raster_source(&params.source) {
+            Some(serde_json::to_value(&query).unwrap_or_default())
+        } else {
+            None
+        };
+
+        #[cfg(not(all(feature = "postgres", feature = "raster")))]
+        let query_params: Option<serde_json::Value> = None;
 
         state
             .sources
@@ -597,7 +605,7 @@ async fn get_tile(
                 y,
                 256,
                 resampling,
-                Some(query_params),
+                query_params,
             )
             .await?
             .ok_or(TileServerError::TileNotFound {
@@ -610,7 +618,7 @@ async fn get_tile(
     #[cfg(not(feature = "raster"))]
     let tile = {
         #[cfg(feature = "postgres")]
-        let tile = {
+        let tile = if state.sources.is_postgres_function_source(&params.source) {
             let query_params: serde_json::Value = serde_json::to_value(&query).unwrap_or_default();
             state
                 .sources
@@ -621,6 +629,19 @@ async fn get_tile(
                     y,
                     &query_params,
                 )
+                .await?
+                .ok_or(TileServerError::TileNotFound {
+                    z: params.z,
+                    x: params.x,
+                    y,
+                })?
+        } else {
+            let source = state
+                .sources
+                .get(&params.source)
+                .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+            source
+                .get_tile(params.z, params.x, y)
                 .await?
                 .ok_or(TileServerError::TileNotFound {
                     z: params.z,
