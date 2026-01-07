@@ -12,6 +12,7 @@ import {
   Terminal,
   Sparkles,
   Database,
+  MapIcon,
 } from 'lucide-vue-next';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -54,6 +55,12 @@ const features = [
       'Serve vector tiles directly from PostGIS tables with optimized spatial queries.',
   },
   {
+    icon: MapIcon,
+    title: 'Cloud Optimized GeoTIFF',
+    description:
+      'Serve raster tiles from COG files with on-the-fly reprojection and colormap support.',
+  },
+  {
     icon: Layers,
     title: 'Vector & Raster',
     description:
@@ -82,7 +89,14 @@ const apiEndpoints = [
     ],
   },
   {
-    title: 'Raster Tiles',
+    title: 'COG/Raster Tiles',
+    endpoints: [
+      { method: 'GET', path: '/data/{cog}/{z}/{x}/{y}.png' },
+      { method: 'GET', path: '/data/{cog}/{z}/{x}/{y}.webp' },
+    ],
+  },
+  {
+    title: 'Style Rendering',
     endpoints: [
       { method: 'GET', path: '/styles/{style}/{z}/{x}/{y}.png' },
       { method: 'GET', path: '/styles/{style}/{z}/{x}/{y}@2x.png' },
@@ -95,13 +109,6 @@ const apiEndpoints = [
         method: 'GET',
         path: '/styles/{style}/static/{lon},{lat},{zoom}/{w}x{h}.png',
       },
-    ],
-  },
-  {
-    title: 'Metadata',
-    endpoints: [
-      { method: 'GET', path: '/styles/{style}/style.json' },
-      { method: 'GET', path: '/health' },
     ],
   },
 ];
@@ -225,15 +232,15 @@ const apiEndpoints = [
               </h1>
 
               <!-- Description -->
-              <p
+                <p
                 class="
                   mx-auto mb-10 max-w-2xl text-lg text-muted-foreground
                   sm:text-xl
                 "
               >
-                High-performance vector tile server built in
+                High-performance tile server built in
                 <span class="font-semibold text-primary">Rust</span>. Serve
-                PMTiles, MBTiles, and PostGIS with native MapLibre rendering for
+                PMTiles, MBTiles, PostGIS, and Cloud Optimized GeoTIFF with native MapLibre rendering for
                 static images.
               </p>
 
@@ -420,7 +427,7 @@ const apiEndpoints = [
                     >
                       <div class="size-1.5 rounded-full bg-primary"></div>
                     </div>
-                    <span class="text-foreground">Multiple tile sources (PMTiles, MBTiles, PostGIS)</span>
+                    <span class="text-foreground">Multiple tile sources (PMTiles, MBTiles, PostGIS, COG)</span>
                   </li>
                   <li class="flex items-center gap-3">
                     <div

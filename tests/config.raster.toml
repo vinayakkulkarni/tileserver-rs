@@ -1,0 +1,84 @@
+fonts = "data/fonts"
+
+[server]
+host = "127.0.0.1"
+port = 0
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+[raster]
+default_resampling = "bilinear"
+tile_size = 256
+
+[[sources]]
+id = "test-rgb"
+type = "cog"
+path = "data/raster/test-rgb.cog.tif"
+name = "Test RGB COG"
+attribution = "Test Data"
+resampling = "bilinear"
+
+[[sources]]
+id = "test-dem"
+type = "cog"
+path = "data/raster/test-dem.cog.tif"
+name = "Test DEM COG"
+attribution = "Test Data"
+resampling = "cubic"
+
+[sources.colormap]
+map_type = "continuous"
+nodata_color = "#00000000"
+
+[[sources.colormap.entries]]
+value = 0.0
+color = "#0000ff"
+
+[[sources.colormap.entries]]
+value = 250.0
+color = "#00ff00"
+
+[[sources.colormap.entries]]
+value = 500.0
+color = "#ffff00"
+
+[[sources.colormap.entries]]
+value = 750.0
+color = "#ff8800"
+
+[[sources.colormap.entries]]
+value = 1000.0
+color = "#ff0000"
+
+[[sources]]
+id = "test-dem-discrete"
+type = "cog"
+path = "data/raster/test-dem.cog.tif"
+name = "Test DEM Discrete"
+attribution = "Test Data"
+
+[sources.colormap]
+map_type = "discrete"
+nodata_color = "#00000000"
+
+[[sources.colormap.entries]]
+value = 100.0
+color = "#0000ff"
+
+[[sources.colormap.entries]]
+value = 300.0
+color = "#00ff00"
+
+[[sources.colormap.entries]]
+value = 500.0
+color = "#ffff00"
+
+[[sources.colormap.entries]]
+value = 700.0
+color = "#ff8800"
+
+[[sources.colormap.entries]]
+value = 900.0
+color = "#ff0000"

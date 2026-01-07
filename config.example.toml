@@ -73,6 +73,75 @@ sample_rate = 1.0
 # name = "Terrain RGB"
 
 # ============================================================================
+# RASTER SOURCES (requires --features raster and GDAL system library)
+# Supports COG (Cloud Optimized GeoTIFF) and VRT (Virtual Raster) files
+# ============================================================================
+
+# Example: Cloud Optimized GeoTIFF with continuous colormap (elevation gradient)
+# [[sources]]
+# id = "elevation"
+# type = "cog"
+# path = "/data/dem.tif"
+# name = "Digital Elevation Model"
+# attribution = "© USGS"
+# resampling = "cubic"
+# [sources.colormap]
+# map_type = "continuous"
+# nodata_color = "#00000000"
+# entries = [
+#   { value = 0.0, color = "#0000ff" },
+#   { value = 500.0, color = "#00ff00" },
+#   { value = 1000.0, color = "#ffff00" },
+#   { value = 2000.0, color = "#ff0000" },
+#   { value = 4000.0, color = "#ffffff" },
+# ]
+
+# Example: Land cover with discrete colormap (categorical data)
+# [[sources]]
+# id = "landcover"
+# type = "cog"
+# path = "/data/nlcd.tif"
+# name = "Land Cover Classification"
+# resampling = "nearest"
+# [sources.colormap]
+# map_type = "discrete"
+# nodata_color = "#00000000"
+# entries = [
+#   { value = 11.0, color = "#466b9f" },
+#   { value = 21.0, color = "#d99282" },
+#   { value = 22.0, color = "#eb0000" },
+#   { value = 23.0, color = "#ab0000" },
+#   { value = 41.0, color = "#68ab5f" },
+#   { value = 42.0, color = "#1c5f2c" },
+#   { value = 43.0, color = "#b5c58f" },
+#   { value = 52.0, color = "#ccb879" },
+#   { value = 71.0, color = "#dfdfc2" },
+#   { value = 81.0, color = "#dcd939" },
+#   { value = 82.0, color = "#ab6c28" },
+#   { value = 90.0, color = "#b8d9eb" },
+#   { value = 95.0, color = "#6c9fb8" },
+# ]
+
+# Example: VRT (Virtual Raster) for mosaics
+# [[sources]]
+# id = "imagery"
+# type = "vrt"
+# path = "/data/mosaic.vrt"
+# name = "Satellite Imagery"
+# resampling = "lanczos"
+
+# Query parameter override:
+# Tiles served from raster sources support ?resampling=<method> to override default
+# Example: /data/elevation/14/8192/5461.png?resampling=nearest
+
+# ============================================================================
+# GLOBAL RASTER SETTINGS (optional, requires --features raster)
+# ============================================================================
+# [raster]
+# default_resampling = "bilinear"  # Default for all raster sources
+# tile_size = 256                  # Tile size in pixels (256 or 512)
+
+# ============================================================================
 # POSTGRESQL FUNCTION SOURCES (requires --features postgres)
 # ============================================================================
 # PostgreSQL function sources allow serving vector tiles directly from

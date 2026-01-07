@@ -6,6 +6,7 @@
 # - tileserver-gl: http://127.0.0.1:8900
 # - tileserver-rs: http://127.0.0.1:8901
 # - martin:        http://127.0.0.1:8902
+# - titiler:       http://127.0.0.1:8903
 # - postgres:      127.0.0.1:5432
 #
 # Build tileserver-rs first:
@@ -83,6 +84,23 @@ services:
       - "calc"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    ports:
+      - "8903:8000"
+    volumes:
+      - ../data:/data:ro
+    environment:
+      TITILER_API_DISABLE_DOC: "false"
+      TITILER_API_ROOT_PATH: ""
+      WORKERS_PER_CORE: "1"
+      MAX_WORKERS: "4"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 5s
       timeout: 3s
       retries: 3

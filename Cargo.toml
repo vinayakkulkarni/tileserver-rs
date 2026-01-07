@@ -27,6 +27,7 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg",
 mime_guess = "2.0.5"
 pmtiles = { version = "0.18.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"] }
+shellexpand = { version = "3.1", default-features = false, features = ["base-0"] }
 rust-embed = { version = "8.9", features = ["axum"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.147"
@@ -54,6 +55,9 @@ tracing-opentelemetry = "0.28"
 # MBTiles support (SQLite)
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# Raster/COG support (optional, requires GDAL system library)
+gdal = { version = "0.19", features = ["bindgen"], optional = true }
+
 # PostgreSQL support (optional)
 deadpool-postgres = { version = "0.14", optional = true }
 tokio-postgres = { version = "0.7", optional = true, features = ["with-serde_json-1"] }
@@ -69,6 +73,7 @@ moka = { version = "0.12", features = ["future"], optional = true }
 default = []
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "moka"]
 postgres-integration = ["postgres"]
+raster = ["gdal"]
 # s3 = ["aws-config", "aws-sdk-s3"]
 
 [dev-dependencies]

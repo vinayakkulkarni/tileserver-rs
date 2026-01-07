@@ -23,6 +23,7 @@ use utoipa::OpenApi;
     tags(
         (name = "Health", description = "Health check endpoints"),
         (name = "Data", description = "Vector tile data sources (PMTiles, MBTiles)"),
+        (name = "Raster", description = "Raster/COG tile data sources (Cloud Optimized GeoTIFF)"),
         (name = "Styles", description = "Map styles and raster tile rendering"),
         (name = "Fonts", description = "Font glyphs for map labels"),
         (name = "Files", description = "Static file serving")
@@ -33,6 +34,7 @@ use utoipa::OpenApi;
         list_data_sources,
         get_data_source,
         get_tile,
+        get_raster_data_tile,
         list_styles,
         get_style_tilejson,
         get_style_json,
@@ -227,7 +229,8 @@ pub async fn get_data_source() {}
 
 /// Get a vector tile
 ///
-/// Returns a vector tile in the requested format (pbf, mvt, or geojson)
+/// Returns a vector tile in the requested format (pbf, mvt, or geojson).
+/// For vector sources (PMTiles, MBTiles), use pbf/mvt format.
 #[utoipa::path(
     get,
     path = "/data/{source}/{z}/{x}/{y}.{format}",
@@ -246,6 +249,30 @@ pub async fn get_data_source() {}
     )
 )]
 pub async fn get_tile() {}
+
+/// Get a raster tile from COG source
+///
+/// Returns a raster tile from a Cloud Optimized GeoTIFF (COG) source.
+/// Supports PNG, JPEG, and WebP output formats with optional resampling.
+#[utoipa::path(
+    get,
+    path = "/data/{source}/{z}/{x}/{y}.{format}",
+    tag = "Raster",
+    operation_id = "get_raster_data_tile",
+    params(
+        ("source" = String, Path, description = "COG source ID"),
+        ("z" = u8, Path, description = "Zoom level (0-22)"),
+        ("x" = u32, Path, description = "Tile X coordinate"),
+        ("y" = u32, Path, description = "Tile Y coordinate"),
+        ("format" = String, Path, description = "Image format (png, jpg, jpeg, webp)"),
+        ("resampling" = Option<String>, Query, description = "Resampling method: nearest, bilinear, cubic, cubicspline, lanczos, average, mode, max, min, med, q1, q3")
+    ),
+    responses(
+        (status = 200, description = "Raster tile image", content_type = "image/png"),
+        (status = 404, description = "Tile not found or source not found")
+    )
+)]
+pub async fn get_raster_data_tile() {}
 
 /// List all styles
 ///
@@ -510,12 +537,11 @@ mod tests {
     #[test]
     fn test_openapi_has_tags() {
         let spec = ApiDoc::openapi();
-        // Verify tags are present
         assert!(spec.tags.is_some(), "Tags should be defined");
         assert_eq!(
             spec.tags.as_ref().unwrap().len(),
-            5,
-            "Should have 5 tags defined"
+            6,
+            "Should have 6 tags defined"
         );
     }
 

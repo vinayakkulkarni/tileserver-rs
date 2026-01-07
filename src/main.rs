@@ -560,7 +560,6 @@ struct TileParams {
 }
 
 impl TileParams {
-    /// Parse y coordinate and format from "123.pbf" style string
     fn parse_y_and_format(&self) -> Option<(u32, &str)> {
         let (y_str, format) = self.y_fmt.rsplit_once('.')?;
         let y = y_str.parse().ok()?;
@@ -568,26 +567,51 @@ impl TileParams {
     }
 }
 
-/// Get a tile from a source
+#[derive(Debug, serde::Deserialize, Default)]
+struct TileQueryParams {
+    #[cfg(feature = "raster")]
+    resampling: Option<String>,
+}
+
 async fn get_tile(
     State(state): State<AppState>,
     Path(params): Path<TileParams>,
+    Query(query): Query<TileQueryParams>,
 ) -> Result<Response, TileServerError> {
     let (y, format) = params
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
 
-    // Handle GeoJSON format separately
     if format == "geojson" {
         return get_tile_as_geojson(&state, &params.source, params.z, params.x, y).await;
     }
 
-    let source = state
-        .sources
-        .get(&params.source)
-        .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+    #[cfg(feature = "raster")]
+    let tile = {
+        let resampling = query
+            .resampling
+            .as_ref()
+            .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
 
-    let tile =
+        state
+            .sources
+            .get_raster_tile(&params.source, params.z, params.x, y, 256, resampling)
+            .await?
+            .ok_or(TileServerError::TileNotFound {
+                z: params.z,
+                x: params.x,
+                y,
+            })?
+    };
+
+    #[cfg(not(feature = "raster"))]
+    let tile = {
+        let _ = query;
+        let source = state
+            .sources
+            .get(&params.source)
+            .ok_or_else(|| TileServerError::SourceNotFound(params.source.clone()))?;
+
         source
             .get_tile(params.z, params.x, y)
             .await?
@@ -595,7 +619,8 @@ async fn get_tile(
                 z: params.z,
                 x: params.x,
                 y,
-            })?;
+            })?
+    };
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -604,7 +629,6 @@ async fn get_tile(
     );
     headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
 
-    // Add content-encoding if tile is compressed
     if let Some(encoding) = tile.compression.content_encoding() {
         headers.insert(CONTENT_ENCODING, HeaderValue::from_static(encoding));
     }

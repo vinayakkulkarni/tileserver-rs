@@ -164,4 +164,8 @@ impl TileSource for LocalPmTilesSource {
     fn metadata(&self) -> &TileMetadata {
         &self.metadata
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }

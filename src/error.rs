@@ -45,6 +45,10 @@ pub enum TileServerError {
     #[error("MBTiles error: {0}")]
     MbTilesError(String),
 
+    #[cfg(feature = "raster")]
+    #[error("Raster error: {0}")]
+    RasterError(String),
+
     #[cfg(feature = "postgres")]
     #[error("PostgreSQL error: {0}")]
     PostgresError(String),
@@ -88,6 +92,10 @@ impl IntoResponse for TileServerError {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::MbTilesError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "raster")]
+            TileServerError::RasterError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             #[cfg(feature = "postgres")]

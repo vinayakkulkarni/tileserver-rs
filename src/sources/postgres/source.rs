@@ -274,6 +274,10 @@ impl TileSource for PostgresFunctionSource {
     fn metadata(&self) -> &TileMetadata {
         &self.metadata
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]

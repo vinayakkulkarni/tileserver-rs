@@ -63,3 +63,10 @@ name = "Benchmark Points (Table Source)"
 minzoom = 0
 maxzoom = 14
 bounds = [8.45, 47.32, 8.63, 47.44]
+
+[[sources]]
+id = "cog-rgb"
+type = "cog"
+path = "/data/raster/benchmark-rgb.cog.tif"
+name = "Benchmark RGB COG"
+attribution = "© tileserver-rs benchmarks"

@@ -353,6 +353,244 @@ mod json_snapshots {
 }
 
 // ============================================================
+// Raster Rendering Snapshot Tests
+// ============================================================
+
+#[cfg(feature = "raster")]
+mod raster_snapshots {
+    use super::*;
+    use tileserver_rs::config::ResamplingMethod;
+    use tileserver_rs::sources::cog::CogSource;
+    use tileserver_rs::{Config, SourceManager};
+
+    const RASTER_TEST_CONFIG: &str = "tests/config.raster.toml";
+
+    #[tokio::test]
+    async fn test_rgb_tile_snapshot() {
+        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
+            .expect("Should load raster test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let rgb_source = sources
+            .get("test-rgb")
+            .expect("Should have test-rgb source");
+
+        let tile = rgb_source
+            .get_tile(0, 0, 0)
+            .await
+            .expect("Should get tile")
+            .expect("Should have tile data");
+
+        let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_rgb_z0.png");
+        fs::create_dir_all(SNAPSHOTS_DIR).ok();
+        fs::write(&output_path, &tile.data).expect("Should write RGB tile");
+
+        assert!(output_path.exists(), "RGB tile snapshot should be created");
+
+        let img = image::load_from_memory(&tile.data).expect("Should decode PNG");
+        assert_eq!(img.width(), 256);
+        assert_eq!(img.height(), 256);
+    }
+
+    #[tokio::test]
+    async fn test_dem_colormap_tile_snapshot() {
+        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
+            .expect("Should load raster test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let dem_source = sources
+            .get("test-dem")
+            .expect("Should have test-dem source");
+
+        let tile = dem_source
+            .get_tile(0, 0, 0)
+            .await
+            .expect("Should get tile")
+            .expect("Should have tile data");
+
+        let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_dem_colormap_z0.png");
+        fs::create_dir_all(SNAPSHOTS_DIR).ok();
+        fs::write(&output_path, &tile.data).expect("Should write DEM tile");
+
+        assert!(
+            output_path.exists(),
+            "DEM colormap tile snapshot should be created"
+        );
+
+        let img = image::load_from_memory(&tile.data).expect("Should decode PNG");
+        let rgb = img.to_rgb8();
+
+        let mut has_blue = false;
+        let mut has_green = false;
+        let mut has_yellow = false;
+        let mut has_red = false;
+
+        for pixel in rgb.pixels() {
+            if pixel[2] > 200 && pixel[0] < 100 && pixel[1] < 100 {
+                has_blue = true;
+            }
+            if pixel[1] > 200 && pixel[0] < 100 && pixel[2] < 100 {
+                has_green = true;
+            }
+            if pixel[0] > 200 && pixel[1] > 200 && pixel[2] < 100 {
+                has_yellow = true;
+            }
+            if pixel[0] > 200 && pixel[1] < 100 && pixel[2] < 100 {
+                has_red = true;
+            }
+        }
+
+        assert!(
+            has_blue || has_green || has_yellow || has_red,
+            "Colormap should produce colored output"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_dem_discrete_colormap_snapshot() {
+        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
+            .expect("Should load raster test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let dem_discrete = sources
+            .get("test-dem-discrete")
+            .expect("Should have test-dem-discrete source");
+
+        let tile = dem_discrete
+            .get_tile(0, 0, 0)
+            .await
+            .expect("Should get tile")
+            .expect("Should have tile data");
+
+        let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_dem_discrete_z0.png");
+        fs::create_dir_all(SNAPSHOTS_DIR).ok();
+        fs::write(&output_path, &tile.data).expect("Should write discrete DEM tile");
+
+        assert!(output_path.exists());
+    }
+
+    #[tokio::test]
+    async fn test_rgb_tile_512_snapshot() {
+        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
+            .expect("Should load raster test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let rgb_source = sources
+            .get("test-rgb")
+            .expect("Should have test-rgb source");
+
+        if let Some(cog) = rgb_source.as_any().downcast_ref::<CogSource>() {
+            let tile = cog
+                .get_tile_with_resampling(0, 0, 0, 512, ResamplingMethod::Bilinear)
+                .await
+                .expect("Should get 512px tile")
+                .expect("Should have data");
+
+            let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_rgb_512_z0.png");
+            fs::create_dir_all(SNAPSHOTS_DIR).ok();
+            fs::write(&output_path, &tile.data).expect("Should write 512px tile");
+
+            let img = image::load_from_memory(&tile.data).expect("Should decode PNG");
+            assert_eq!(img.width(), 512);
+            assert_eq!(img.height(), 512);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_resampling_comparison_snapshots() {
+        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
+            .expect("Should load raster test config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let rgb_source = sources
+            .get("test-rgb")
+            .expect("Should have test-rgb source");
+
+        if let Some(cog) = rgb_source.as_any().downcast_ref::<CogSource>() {
+            let methods = [
+                (ResamplingMethod::Nearest, "nearest"),
+                (ResamplingMethod::Bilinear, "bilinear"),
+                (ResamplingMethod::Cubic, "cubic"),
+            ];
+
+            for (method, name) in methods {
+                let tile = cog
+                    .get_tile_with_resampling(5, 5, 10, 256, method)
+                    .await
+                    .expect("Should get tile")
+                    .expect("Should have data");
+
+                let output_path =
+                    PathBuf::from(SNAPSHOTS_DIR).join(format!("raster_resample_{}.png", name));
+                fs::create_dir_all(SNAPSHOTS_DIR).ok();
+                fs::write(&output_path, &tile.data).expect("Should write resampled tile");
+
+                assert!(output_path.exists());
+            }
+        }
+    }
+}
+
+// ============================================================
+// Raster JSON Snapshot Tests
+// ============================================================
+
+#[cfg(feature = "raster")]
+mod raster_json_snapshots {
+    use std::path::PathBuf;
+    use tileserver_rs::{Config, SourceManager};
+
+    const RASTER_TEST_CONFIG: &str = "tests/config.raster.toml";
+
+    #[tokio::test]
+    async fn test_cog_tilejson_snapshot() {
+        let config =
+            Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG))).expect("Should load config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let rgb_source = sources.get("test-rgb").expect("Should have test-rgb");
+        let tilejson = rgb_source.metadata().to_tilejson("http://localhost:8080");
+
+        let json = serde_json::to_value(&tilejson).expect("Should serialize");
+
+        insta::assert_json_snapshot!("tilejson_cog_rgb", json);
+    }
+
+    #[tokio::test]
+    async fn test_raster_sources_list_snapshot() {
+        let config =
+            Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG))).expect("Should load config");
+        let sources = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("Should load sources");
+
+        let mut all_metadata: Vec<_> = sources
+            .all_metadata()
+            .iter()
+            .map(|m| m.to_tilejson("http://localhost:8080"))
+            .collect();
+
+        all_metadata.sort_by(|a, b| a.id.cmp(&b.id));
+
+        let json = serde_json::to_value(&all_metadata).expect("Should serialize");
+
+        insta::assert_json_snapshot!("raster_sources_list", json);
+    }
+}
+
+// ============================================================
 // Snapshot Comparison Helpers
 // ============================================================
 

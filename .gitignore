@@ -159,3 +159,5 @@ bun.lockb
 # Environment file(s)
 .env
 config.toml
+data/raster/benchmark-rgb.cog.tif
+*.aux.xml

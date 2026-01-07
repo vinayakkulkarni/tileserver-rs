@@ -3,8 +3,12 @@ use std::sync::Arc;
 
 #[cfg(feature = "postgres")]
 use crate::config::PostgresConfig;
+#[cfg(feature = "raster")]
+use crate::config::ResamplingMethod;
 use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
+#[cfg(feature = "raster")]
+use crate::sources::cog::CogSource;
 use crate::sources::mbtiles::MbTilesSource;
 use crate::sources::pmtiles::http::HttpPmTilesSource;
 use crate::sources::pmtiles::local::LocalPmTilesSource;
@@ -205,11 +209,12 @@ impl SourceManager {
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),
             #[cfg(feature = "postgres")]
             SourceType::Postgres => {
-                // PostgreSQL sources are loaded separately via load_postgres_sources
                 return Err(TileServerError::ConfigError(
                     "PostgreSQL sources should be configured in the [postgres] section, not as regular sources".to_string(),
                 ));
             }
+            #[cfg(feature = "raster")]
+            SourceType::Cog | SourceType::Vrt => Arc::new(CogSource::from_file(config).await?),
         };
 
         self.sources.insert(config.id.clone(), source);
@@ -244,6 +249,30 @@ impl SourceManager {
     /// Check if there are no sources
     pub fn is_empty(&self) -> bool {
         self.sources.is_empty()
+    }
+
+    #[cfg(feature = "raster")]
+    pub async fn get_raster_tile(
+        &self,
+        id: &str,
+        z: u8,
+        x: u32,
+        y: u32,
+        tile_size: u32,
+        resampling: Option<ResamplingMethod>,
+    ) -> crate::error::Result<Option<crate::sources::TileData>> {
+        let source = self
+            .sources
+            .get(id)
+            .ok_or_else(|| TileServerError::SourceNotFound(id.to_string()))?;
+
+        if let Some(cog) = source.as_ref().as_any().downcast_ref::<CogSource>() {
+            let resample = resampling.unwrap_or(cog.resampling());
+            cog.get_tile_with_resampling(z, x, y, tile_size, resample)
+                .await
+        } else {
+            source.get_tile(z, x, y).await
+        }
     }
 }
 

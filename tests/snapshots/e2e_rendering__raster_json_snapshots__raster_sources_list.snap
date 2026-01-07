@@ -1,0 +1,72 @@
+---
+source: tests/e2e_rendering.rs
+expression: json
+---
+[
+  {
+    "attribution": "Test Data",
+    "bounds": [
+      -122.5,
+      37.699999999999996,
+      -122.3,
+      37.9
+    ],
+    "center": [
+      -122.4,
+      37.8,
+      10.0
+    ],
+    "id": "test-dem",
+    "maxzoom": 22,
+    "minzoom": 0,
+    "name": "Test DEM COG",
+    "tilejson": "3.0.0",
+    "tiles": [
+      "http://localhost:8080/data/test-dem/{z}/{x}/{y}.png"
+    ]
+  },
+  {
+    "attribution": "Test Data",
+    "bounds": [
+      -122.5,
+      37.699999999999996,
+      -122.3,
+      37.9
+    ],
+    "center": [
+      -122.4,
+      37.8,
+      10.0
+    ],
+    "id": "test-dem-discrete",
+    "maxzoom": 22,
+    "minzoom": 0,
+    "name": "Test DEM Discrete",
+    "tilejson": "3.0.0",
+    "tiles": [
+      "http://localhost:8080/data/test-dem-discrete/{z}/{x}/{y}.png"
+    ]
+  },
+  {
+    "attribution": "Test Data",
+    "bounds": [
+      -122.5,
+      37.699999999999996,
+      -122.3,
+      37.9
+    ],
+    "center": [
+      -122.4,
+      37.8,
+      10.0
+    ],
+    "id": "test-rgb",
+    "maxzoom": 22,
+    "minzoom": 0,
+    "name": "Test RGB COG",
+    "tilejson": "3.0.0",
+    "tiles": [
+      "http://localhost:8080/data/test-rgb/{z}/{x}/{y}.png"
+    ]
+  }
+]

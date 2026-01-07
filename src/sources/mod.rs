@@ -3,6 +3,8 @@ use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+#[cfg(feature = "raster")]
+pub mod cog;
 pub mod manager;
 pub mod mbtiles;
 pub mod pmtiles;
@@ -190,4 +192,6 @@ pub trait TileSource: Send + Sync {
     fn format(&self) -> TileFormat {
         self.metadata().format
     }
+
+    fn as_any(&self) -> &dyn std::any::Any;
 }
