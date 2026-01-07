@@ -529,7 +529,7 @@ mod reprojection_tests {
 }
 
 mod config_parsing {
-    use tileserver_rs::config::{ColorMapConfig, ColorMapType, ResamplingMethod};
+    use tileserver_rs::config::{ColorMapConfig, ColorMapType, ResamplingMethod, RescaleMode};
 
     #[test]
     fn test_resampling_method_parsing() {
@@ -563,21 +563,43 @@ mod config_parsing {
 
     #[test]
     fn test_colormap_color_parsing() {
-        // Test 6-digit hex
         let color = ColorMapConfig::parse_color("#ff0000");
         assert_eq!(color, Some([255, 0, 0, 255]));
 
-        // Test 8-digit hex with alpha
         let color_alpha = ColorMapConfig::parse_color("#ff000080");
         assert_eq!(color_alpha, Some([255, 0, 0, 128]));
 
-        // Test without # prefix
         let color_no_hash = ColorMapConfig::parse_color("00ff00");
         assert_eq!(color_no_hash, Some([0, 255, 0, 255]));
 
-        // Test invalid
         let invalid = ColorMapConfig::parse_color("invalid");
         assert_eq!(invalid, None);
+    }
+
+    #[test]
+    fn test_rescale_mode_serialization() {
+        let static_mode = RescaleMode::Static;
+        let dynamic_mode = RescaleMode::Dynamic;
+
+        let json_static = serde_json::to_string(&static_mode).unwrap();
+        let json_dynamic = serde_json::to_string(&dynamic_mode).unwrap();
+
+        assert_eq!(json_static, "\"static\"");
+        assert_eq!(json_dynamic, "\"dynamic\"");
+    }
+
+    #[test]
+    fn test_rescale_mode_deserialization() {
+        let static_mode: RescaleMode = serde_json::from_str("\"static\"").unwrap();
+        let dynamic_mode: RescaleMode = serde_json::from_str("\"dynamic\"").unwrap();
+
+        assert_eq!(static_mode, RescaleMode::Static);
+        assert_eq!(dynamic_mode, RescaleMode::Dynamic);
+    }
+
+    #[test]
+    fn test_rescale_mode_default() {
+        assert_eq!(RescaleMode::default(), RescaleMode::Static);
     }
 }
 

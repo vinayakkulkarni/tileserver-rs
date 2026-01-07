@@ -15,11 +15,18 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio_postgres::types::Type;
 
-use crate::config::{ColorMapConfig, PostgresOutDbRasterConfig, ResamplingMethod};
+use crate::config::{ColorMapConfig, PostgresOutDbRasterConfig, ResamplingMethod, RescaleMode};
 use crate::error::{Result, TileServerError};
 use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
 
 use super::PostgresPool;
+
+#[derive(Debug, Clone)]
+struct RasterPathResult {
+    filepath: String,
+    rescale_min: Option<f64>,
+    rescale_max: Option<f64>,
+}
 
 const WEB_MERCATOR_EXTENT: f64 = 20_037_508.342_789_244;
 
@@ -223,12 +230,19 @@ impl PostgresOutDbRasterSource {
             return Ok(None);
         }
 
-        let filepaths: Vec<String> = rows
+        let results: Vec<RasterPathResult> = rows
             .iter()
-            .filter_map(|row| row.try_get::<_, String>("filepath").ok())
+            .filter_map(|row| {
+                let filepath = row.try_get::<_, String>("filepath").ok()?;
+                Some(RasterPathResult {
+                    filepath,
+                    rescale_min: row.try_get::<_, f64>("rescale_min").ok(),
+                    rescale_max: row.try_get::<_, f64>("rescale_max").ok(),
+                })
+            })
             .collect();
 
-        if filepaths.is_empty() {
+        if results.is_empty() {
             return Ok(None);
         }
 
@@ -236,7 +250,7 @@ impl PostgresOutDbRasterSource {
         let colormap = self.colormap.clone();
 
         let tile_data = self
-            .render_tile_from_files(&filepaths, min_x, min_y, max_x, max_y, tile_size, colormap)
+            .render_tile_from_files(&results, min_x, min_y, max_x, max_y, tile_size, colormap)
             .await?;
 
         Ok(tile_data)
@@ -245,7 +259,7 @@ impl PostgresOutDbRasterSource {
     #[allow(clippy::too_many_arguments)]
     async fn render_tile_from_files(
         &self,
-        filepaths: &[String],
+        results: &[RasterPathResult],
         min_x: f64,
         min_y: f64,
         max_x: f64,
@@ -255,8 +269,8 @@ impl PostgresOutDbRasterSource {
     ) -> Result<Option<TileData>> {
         let mut composite_image: Option<RgbaImage> = None;
 
-        for filepath in filepaths {
-            let dataset = self.get_or_open_dataset(filepath).await?;
+        for result in results {
+            let dataset = self.get_or_open_dataset(&result.filepath).await?;
             let dataset_guard = dataset.lock().await;
 
             let tile_image = Self::render_single_dataset(
@@ -267,6 +281,8 @@ impl PostgresOutDbRasterSource {
                 max_y,
                 tile_size,
                 colormap.as_ref(),
+                result.rescale_min,
+                result.rescale_max,
             )?;
 
             if let Some(img) = tile_image {
@@ -312,6 +328,8 @@ impl PostgresOutDbRasterSource {
         max_y: f64,
         tile_size: u32,
         colormap: Option<&ColorMapConfig>,
+        rescale_min: Option<f64>,
+        rescale_max: Option<f64>,
     ) -> Result<Option<RgbaImage>> {
         let band_count = dataset.raster_count();
 
@@ -377,13 +395,23 @@ impl PostgresOutDbRasterSource {
 
             let nodata = band.no_data_value();
 
+            let use_dynamic_rescale = cmap.rescale_mode == RescaleMode::Dynamic
+                && rescale_min.is_some()
+                && rescale_max.is_some();
+            let (dyn_min, dyn_max) = if use_dynamic_rescale {
+                (rescale_min.unwrap(), rescale_max.unwrap())
+            } else {
+                (0.0, 1.0)
+            };
+            let dyn_range = dyn_max - dyn_min;
+
             for y in 0..tile_size {
                 for x in 0..tile_size {
                     let idx = (y * tile_size + x) as usize;
-                    let value = buffer.data()[idx];
+                    let raw_value = buffer.data()[idx];
 
                     let color = if nodata
-                        .map(|nd| (value - nd).abs() < f64::EPSILON)
+                        .map(|nd| (raw_value - nd).abs() < f64::EPSILON)
                         .unwrap_or(false)
                     {
                         cmap.nodata_color
@@ -391,6 +419,11 @@ impl PostgresOutDbRasterSource {
                             .and_then(|c| ColorMapConfig::parse_color(c))
                             .unwrap_or([0, 0, 0, 0])
                     } else {
+                        let value = if use_dynamic_rescale && dyn_range.abs() > f64::EPSILON {
+                            ((raw_value - dyn_min) / dyn_range).clamp(0.0, 1.0)
+                        } else {
+                            raw_value
+                        };
                         cmap.get_color(value)
                     };
 

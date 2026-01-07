@@ -226,6 +226,15 @@ pub enum ColorMapType {
 }
 
 #[cfg(feature = "raster")]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum RescaleMode {
+    #[default]
+    Static,
+    Dynamic,
+}
+
+#[cfg(feature = "raster")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorMapEntry {
     pub value: f64,
@@ -237,6 +246,8 @@ pub struct ColorMapEntry {
 pub struct ColorMapConfig {
     #[serde(default)]
     pub map_type: ColorMapType,
+    #[serde(default)]
+    pub rescale_mode: RescaleMode,
     pub entries: Vec<ColorMapEntry>,
     #[serde(default)]
     pub nodata_color: Option<String>,

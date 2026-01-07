@@ -128,6 +128,29 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE;
 
 -- =============================================================================
+-- Out-DB Raster function with dynamic rescaling
+-- Signature: get_raster_dynamic(z int, x int, y int, bounds geometry, params jsonb)
+-- Returns: TABLE(filepath text, rescale_min float8, rescale_max float8)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION get_raster_dynamic(
+    z integer,
+    x integer, 
+    y integer,
+    bounds geometry,
+    params jsonb DEFAULT '{}'::jsonb
+)
+RETURNS TABLE(filepath text, rescale_min float8, rescale_max float8) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        '/data/raster/test-dem.cog.tif'::text AS filepath,
+        (params->>'min')::float8 AS rescale_min,
+        (params->>'max')::float8 AS rescale_max;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT PARALLEL SAFE;
+
+-- =============================================================================
 -- Verify setup
 -- =============================================================================
 
@@ -145,5 +168,5 @@ BEGIN
     RAISE NOTICE '  PostgreSQL version: %', pg_version;
     RAISE NOTICE '  PostGIS version: %', postgis_version;
     RAISE NOTICE '  Points inserted: %', point_count;
-    RAISE NOTICE '  Functions created: get_benchmark_tiles, get_filtered_tiles';
+    RAISE NOTICE '  Functions created: get_benchmark_tiles, get_filtered_tiles, get_raster_dynamic';
 END $$;
