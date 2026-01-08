@@ -50,5 +50,9 @@
   },
   "engines": {
     "node": ">=22.0.0"
-  }
+  },
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "unrs-resolver"
+  ]
 }
