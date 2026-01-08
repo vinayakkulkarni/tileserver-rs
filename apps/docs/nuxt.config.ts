@@ -20,6 +20,22 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-07-18',
 
+  nitro: {
+    preset: 'cloudflare-pages',
+    cloudflare: {
+      nodeCompat: true,
+    },
+    rollupConfig: {
+      output: {
+        generatedCode: {
+          constBindings: true,
+        },
+      },
+    },
+    replace: {
+      'process.stdout': 'undefined',
+    },
+  },
   typescript: {
     strict: true,
   },
