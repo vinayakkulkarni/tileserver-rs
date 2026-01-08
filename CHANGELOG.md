@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.4.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.3.0...tileserver-rs-v2.4.0) (2026-01-08)
+
+
+### Features
+
+* **raster:** add rescale_mode="none" for discrete class colormaps ([c675b80](https://github.com/vinayakkulkarni/tileserver-rs/commit/c675b809b4030fbe0df72406ce39d73d14b18b5a)), closes [#514](https://github.com/vinayakkulkarni/tileserver-rs/issues/514)
+* workflows updated 🤷‍♂️ ([82f9e12](https://github.com/vinayakkulkarni/tileserver-rs/commit/82f9e12fcdd8fdf576138f8530e2366995286c50))
+
+
+### Bug Fixes
+
+* add public_url config for Docker port mapping and fix docs build ([aa90e5c](https://github.com/vinayakkulkarni/tileserver-rs/commit/aa90e5c1469b4b4751038e88a913742c4ae2c0e8))
+* **deps:** Bump @tanstack/vue-db from 0.0.92 to 0.0.93 ([8991b31](https://github.com/vinayakkulkarni/tileserver-rs/commit/8991b31945bdde4e9b12669bf67221bc71335b6a))
+* **deps:** Bump @tanstack/vue-db from 0.0.92 to 0.0.93 ([7a44b47](https://github.com/vinayakkulkarni/tileserver-rs/commit/7a44b47a4502aaf9693afc930b441987190fa3b0))
+* **deps:** Bump actions/download-artifact from 4 to 7 ([#507](https://github.com/vinayakkulkarni/tileserver-rs/issues/507)) ([3fc7de6](https://github.com/vinayakkulkarni/tileserver-rs/commit/3fc7de64763a5113ada862d22a750dfe3a929ce2))
+* **deps:** Bump actions/upload-artifact from 4 to 6 ([#508](https://github.com/vinayakkulkarni/tileserver-rs/issues/508)) ([6dd9168](https://github.com/vinayakkulkarni/tileserver-rs/commit/6dd91680b45e2e5d69081a9177c8da97f73335db))
+* **docs:** prerendering causign bugs ([f05d6b3](https://github.com/vinayakkulkarni/tileserver-rs/commit/f05d6b36b1a8c1e12cfee99257dcd069ea76c61a))
+* update nuxt config ([de045d2](https://github.com/vinayakkulkarni/tileserver-rs/commit/de045d2c61f940e2157927bc1708c3f7a6de73d5))
+
+
+### Miscellaneous
+
+* lockfile updated ([90d4e74](https://github.com/vinayakkulkarni/tileserver-rs/commit/90d4e746a6ee63d52697b9dcd26fc7b8198936f8))
+* update docs repo ([756ec67](https://github.com/vinayakkulkarni/tileserver-rs/commit/756ec673cde0895b4f58abb2c1df5bbee7534317))
+* update root lockfile for agents dependency ([f4d7752](https://github.com/vinayakkulkarni/tileserver-rs/commit/f4d775201f91ceff13aa7d05567dcf57373f3e76))
+
+
+### Code Refactoring
+
+* move docs/ and marketing/ into apps/ directory ([261e2f9](https://github.com/vinayakkulkarni/tileserver-rs/commit/261e2f9a500f982ef8a55b87107f425e7f5c6376))
+
 ## [2.3.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.2.0...tileserver-rs-v2.3.0) (2026-01-07)
 
 
