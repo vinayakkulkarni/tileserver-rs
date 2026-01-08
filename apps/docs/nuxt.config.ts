@@ -15,7 +15,7 @@ export default defineNuxtConfig({
   site: {
     name: 'Tileserver RS',
     description: 'High-performance vector tile server built in Rust',
-    url: 'https://tileserver-rs.vinayakkulkarni.dev',
+    url: 'https://tileserver.app',
   },
 
   compatibilityDate: '2025-07-18',

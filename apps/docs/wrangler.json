@@ -3,5 +3,12 @@
   "name": "tileserver-rs-docs",
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": "dist"
+  "pages_build_output_dir": "dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tileserver-rs-docs-db",
+      "database_id": "97d9634c-9939-4be6-a34b-5a4d825ed72d"
+    }
+  ]
 }
