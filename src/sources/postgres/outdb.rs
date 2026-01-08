@@ -398,6 +398,7 @@ impl PostgresOutDbRasterSource {
             let use_dynamic_rescale = cmap.rescale_mode == RescaleMode::Dynamic
                 && rescale_min.is_some()
                 && rescale_max.is_some();
+            let use_no_rescale = cmap.rescale_mode == RescaleMode::None;
             let (dyn_min, dyn_max) = if use_dynamic_rescale {
                 (rescale_min.unwrap(), rescale_max.unwrap())
             } else {
@@ -418,13 +419,13 @@ impl PostgresOutDbRasterSource {
                             .as_ref()
                             .and_then(|c| ColorMapConfig::parse_color(c))
                             .unwrap_or([0, 0, 0, 0])
+                    } else if use_no_rescale {
+                        cmap.get_color(raw_value)
+                    } else if use_dynamic_rescale && dyn_range.abs() > f64::EPSILON {
+                        let normalized = ((raw_value - dyn_min) / dyn_range).clamp(0.0, 1.0);
+                        cmap.get_color(normalized)
                     } else {
-                        let value = if use_dynamic_rescale && dyn_range.abs() > f64::EPSILON {
-                            ((raw_value - dyn_min) / dyn_range).clamp(0.0, 1.0)
-                        } else {
-                            raw_value
-                        };
-                        cmap.get_color(value)
+                        cmap.get_color(raw_value)
                     };
 
                     img.put_pixel(x, y, image::Rgba(color));

@@ -239,6 +239,10 @@ pub enum RescaleMode {
     #[default]
     Static,
     Dynamic,
+    /// No rescaling - use raw pixel values directly for colormap lookup.
+    /// Ideal for categorical/classified rasters (land cover, crop types, etc.)
+    /// where pixel values represent discrete classes.
+    None,
 }
 
 #[cfg(feature = "raster")]
@@ -949,6 +953,104 @@ mod tests {
             assert_eq!(outdb.id, "imagery");
             assert!(outdb.function.is_none());
             assert_eq!(outdb.function.as_ref().unwrap_or(&outdb.id), "imagery");
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_rescale_mode_none_parsing() {
+            let toml = r##"
+[postgres]
+connection_string = "postgresql://localhost/db"
+
+[[postgres.outdb_rasters]]
+id = "landcover"
+function = "get_landcover_paths"
+
+[postgres.outdb_rasters.colormap]
+map_type = "discrete"
+rescale_mode = "none"
+nodata_color = "#00000000"
+entries = [
+    { value = 0.0, color = "#00000000" },
+    { value = 1.0, color = "#FD080C" },
+    { value = 2.0, color = "#1D90FF" },
+    { value = 3.0, color = "#22FDD5" },
+]
+"##;
+
+            let config: Config = toml::from_str(toml).unwrap();
+            let pg = config.postgres.unwrap();
+            let outdb = &pg.outdb_rasters[0];
+            let colormap = outdb.colormap.as_ref().unwrap();
+
+            assert_eq!(colormap.rescale_mode, RescaleMode::None);
+            assert_eq!(colormap.map_type, ColorMapType::Discrete);
+            assert_eq!(colormap.entries.len(), 4);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_rescale_mode_serialization() {
+            assert_eq!(
+                serde_json::to_string(&RescaleMode::Static).unwrap(),
+                "\"static\""
+            );
+            assert_eq!(
+                serde_json::to_string(&RescaleMode::Dynamic).unwrap(),
+                "\"dynamic\""
+            );
+            assert_eq!(
+                serde_json::to_string(&RescaleMode::None).unwrap(),
+                "\"none\""
+            );
+
+            let parsed: RescaleMode = serde_json::from_str("\"none\"").unwrap();
+            assert_eq!(parsed, RescaleMode::None);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_discrete_colormap_with_raw_values() {
+            let colormap = ColorMapConfig {
+                map_type: ColorMapType::Discrete,
+                rescale_mode: RescaleMode::None,
+                entries: vec![
+                    ColorMapEntry {
+                        value: 0.0,
+                        color: "#00000000".to_string(),
+                    },
+                    ColorMapEntry {
+                        value: 1.0,
+                        color: "#FF0000FF".to_string(),
+                    },
+                    ColorMapEntry {
+                        value: 2.0,
+                        color: "#00FF00FF".to_string(),
+                    },
+                    ColorMapEntry {
+                        value: 3.0,
+                        color: "#0000FFFF".to_string(),
+                    },
+                ],
+                nodata_color: Some("#00000000".to_string()),
+            };
+
+            assert_eq!(colormap.get_color(1.0), [255, 0, 0, 255]);
+            assert_eq!(colormap.get_color(2.0), [0, 255, 0, 255]);
+            assert_eq!(colormap.get_color(3.0), [0, 0, 255, 255]);
+            assert_eq!(colormap.get_color(0.0), [0, 0, 0, 0]);
+
+            assert_eq!(colormap.get_color(1.2), [255, 0, 0, 255]);
+            assert_eq!(colormap.get_color(0.8), [255, 0, 0, 255]);
+
+            assert_eq!(colormap.get_color(99.0), [0, 0, 0, 0]);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_rescale_mode_default_is_static() {
+            let mode = RescaleMode::default();
+            assert_eq!(mode, RescaleMode::Static);
         }
     }
 }
