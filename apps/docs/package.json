@@ -2,18 +2,14 @@
   "name": "@tileserver-rs/docs",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "nuxt dev",
-    "build": "nuxt build",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
+    "dev": "nuxt dev --extends docus",
+    "build": "nuxt build --extends docus",
     "lint": "oxlint && eslint .",
     "lint:fix": "oxlint --fix && eslint . --fix",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "agents": "^0.3.3",
     "better-sqlite3": "^12.5.0",
     "docus": "^5.4.2",
     "nuxt": "^4.2.2"
@@ -21,22 +17,15 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.12.1",
     "@nuxtjs/plausible": "^2.0.1",
+    "agents": "^0.3.3",
     "eslint": "^9.39.2",
     "eslint-plugin-oxlint": "^1.38.0",
     "oxlint": "^1.38.0",
-    "typescript": "^5.9.3",
     "wrangler": "^4.58.0"
-  },
-  "overrides": {
-    "@tiptap/core": "3.14.0",
-    "@tiptap/pm": "3.14.0"
   },
   "author": {
     "name": "Vinayak Kulkarni",
     "email": "inbox.vinayak@gmail.com",
     "url": "https://vinayakkulkarni.dev"
-  },
-  "engines": {
-    "node": ">=24.0.0"
   }
 }

@@ -18,6 +18,17 @@ export default defineNuxtConfig({
     url: 'https://tileserver.app',
   },
 
+  content: {
+    database: {
+      type: 'd1',
+      bindingName: 'DB',
+    },
+  },
+
+  routeRules: {
+    '/**': { prerender: false },
+  },
+
   compatibilityDate: '2025-07-18',
 
   nitro: {
@@ -25,18 +36,37 @@ export default defineNuxtConfig({
     cloudflare: {
       nodeCompat: true,
     },
+    prerender: {
+      crawlLinks: false,
+      routes: [],
+      ignore: ['/**'],
+    },
+    experimental: {
+      legacyExternals: true,
+    },
+    unenv: {
+      external: ['cloudflare:workers'],
+    },
     rollupConfig: {
       output: {
         generatedCode: {
           constBindings: true,
         },
       },
+      external: [/^cloudflare:/],
     },
     replace: {
       'process.stdout': 'undefined',
     },
   },
+
   typescript: {
     strict: true,
+  },
+
+  hooks: {
+    'prerender:routes': ({ routes }) => {
+      routes.clear();
+    },
   },
 });
