@@ -24,7 +24,8 @@
     "eslint": "^9.39.2",
     "eslint-plugin-oxlint": "^1.38.0",
     "oxlint": "^1.38.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.58.0"
   },
   "overrides": {
     "@tiptap/core": "3.14.0",
@@ -36,6 +37,6 @@
     "url": "https://vinayakkulkarni.dev"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   }
 }

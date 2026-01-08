@@ -33,11 +33,12 @@ jobs:
       - name: Build marketing site
         working-directory: apps/marketing
         run: bun run build
+        env:
+          NITRO_PRESET: cloudflare-pages
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=tileserver-marketing
-          workingDirectory: apps/marketing
+        working-directory: apps/marketing
+        run: bun x wrangler pages deploy dist --project-name=tileserver-marketing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -45,7 +45,7 @@
     "url": "https://github.com/vinayakkulkarni/tileserver-rs/issues"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "homepage": "https://tileserver.app"
 }
