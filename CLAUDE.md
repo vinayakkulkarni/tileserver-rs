@@ -285,8 +285,15 @@ tileserver-rs/
 │   │   ├── nuxt.config.ts             # Nuxt configuration
 │   │   └── package.json               # @tileserver-rs/client
 │   │
-│   └── docs/                          # Docus v3 documentation (planned)
-│       └── package.json               # @tileserver-rs/docs
+│   ├── docs/                          # Docus v3 documentation site
+│   │   ├── content/                   # Markdown documentation files
+│   │   ├── nuxt.config.ts             # Nuxt/Docus configuration
+│   │   └── package.json               # @tileserver-rs/docs (excluded from workspace)
+│   │
+│   └── marketing/                     # Marketing landing page
+│       ├── app/                       # Nuxt 4 app directory
+│       ├── nuxt.config.ts             # Nuxt configuration
+│       └── package.json               # @tileserver-rs/marketing (excluded from workspace)
 │
 ├── maplibre-native-sys/               # FFI bindings to MapLibre Native
 │   ├── cpp/                           # C/C++ wrapper code

@@ -4,15 +4,17 @@
   "private": true,
   "description": "Tileserver for serving vector maps from data source(s)",
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "!apps/docs",
+    "!apps/marketing"
   ],
   "scripts": {
     "dev:client": "bun run --filter @tileserver-rs/client dev",
-    "dev:docs": "cd docs && bun run dev",
-    "dev:marketing": "cd marketing && bun run dev",
+    "dev:docs": "cd apps/docs && bun run dev",
+    "dev:marketing": "cd apps/marketing && bun run dev",
     "build:client": "bun run --filter @tileserver-rs/client build",
-    "build:docs": "cd docs && bun run build",
-    "build:marketing": "cd marketing && bun run build",
+    "build:docs": "cd apps/docs && bun run build",
+    "build:marketing": "cd apps/marketing && bun run build",
     "lint": "bun run --filter @tileserver-rs/client lint:fix",
     "prepare": "husky"
   },

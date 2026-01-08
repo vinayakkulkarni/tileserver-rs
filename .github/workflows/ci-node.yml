@@ -39,11 +39,11 @@ jobs:
           bun-version: latest
 
       - name: Install docs dependencies
-        working-directory: docs
+        working-directory: apps/docs
         run: bun install
 
       - name: Lint docs
-        working-directory: docs
+        working-directory: apps/docs
         run: bun run lint
 
   build-client:
@@ -77,11 +77,11 @@ jobs:
           bun-version: latest
 
       - name: Install docs dependencies
-        working-directory: docs
+        working-directory: apps/docs
         run: bun install
 
       - name: Build docs
-        working-directory: docs
+        working-directory: apps/docs
         run: bun run build
 
   lint-marketing:
@@ -97,11 +97,11 @@ jobs:
           bun-version: latest
 
       - name: Install marketing dependencies
-        working-directory: marketing
+        working-directory: apps/marketing
         run: bun install
 
       - name: Lint marketing
-        working-directory: marketing
+        working-directory: apps/marketing
         run: bun run lint
 
   build-marketing:
@@ -117,9 +117,9 @@ jobs:
           bun-version: latest
 
       - name: Install marketing dependencies
-        working-directory: marketing
+        working-directory: apps/marketing
         run: bun install
 
       - name: Build marketing
-        working-directory: marketing
+        working-directory: apps/marketing
         run: bun run build
