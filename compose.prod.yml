@@ -20,6 +20,7 @@ services:
       - RUST_LOG=${RUST_LOG:-info}
       - HOST=0.0.0.0
       - PORT=8080
+      - TILESERVER_PUBLIC_URL=${TILESERVER_PUBLIC_URL:-}
 
     # Resource limits
     deploy:

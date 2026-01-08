@@ -31,6 +31,11 @@ host = "0.0.0.0"
 port = 8080
 # Allowed CORS origins (use ["*"] for all origins)
 cors_origins = ["*"]
+# Public URL for tile URLs in TileJSON responses (optional)
+# Use this when running behind a reverse proxy or Docker with port mapping
+# Example: If Docker maps 4000:8080, set public_url = "http://localhost:4000"
+# If not set, auto-generated from host:port
+# public_url = "http://localhost:4000"
 
 # ============================================================================
 # OPENTELEMETRY CONFIGURATION

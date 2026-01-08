@@ -93,6 +93,9 @@ async fn main() -> anyhow::Result<()> {
     if let Some(port) = cli.port {
         config.server.port = port;
     }
+    if let Some(public_url) = cli.public_url {
+        config.server.public_url = Some(public_url);
+    }
 
     // Load tile sources
     #[cfg(feature = "postgres")]
@@ -123,14 +126,17 @@ async fn main() -> anyhow::Result<()> {
         None
     };
 
-    // Build base URL
-    // Convert 0.0.0.0 to localhost for a valid fetchable URL
-    let host_for_url = if config.server.host == "0.0.0.0" {
-        "localhost"
+    // Build base URL - use public_url if configured, otherwise auto-generate
+    let base_url = if let Some(ref public_url) = config.server.public_url {
+        public_url.trim_end_matches('/').to_string()
     } else {
-        &config.server.host
+        let host_for_url = if config.server.host == "0.0.0.0" {
+            "localhost"
+        } else {
+            &config.server.host
+        };
+        format!("http://{}:{}", host_for_url, config.server.port)
     };
-    let base_url = format!("http://{}:{}", host_for_url, config.server.port);
 
     // Log fonts directory if configured
     if let Some(ref fonts_path) = config.fonts {

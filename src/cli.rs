@@ -17,6 +17,10 @@ pub struct Cli {
     #[arg(short, long, env = "TILESERVER_PORT")]
     pub port: Option<u16>,
 
+    /// Public URL for tile URLs in TileJSON (e.g., http://localhost:4000)
+    #[arg(long, env = "TILESERVER_PUBLIC_URL")]
+    pub public_url: Option<String>,
+
     /// Enable the web UI (enabled by default)
     #[arg(long, env = "TILESERVER_UI", default_value = "true")]
     pub ui: bool,

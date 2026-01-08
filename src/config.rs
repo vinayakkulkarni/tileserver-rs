@@ -63,6 +63,12 @@ pub struct ServerConfig {
     pub port: u16,
     #[serde(default)]
     pub cors_origins: Vec<String>,
+    /// Public URL for tile URLs in TileJSON responses.
+    /// Use this when running behind a reverse proxy or Docker port mapping.
+    /// Example: "http://localhost:4000" when Docker maps 4000:8080
+    /// If not set, auto-generated from host:port
+    #[serde(default)]
+    pub public_url: Option<String>,
 }
 
 fn default_host() -> String {
@@ -79,6 +85,7 @@ impl Default for ServerConfig {
             host: default_host(),
             port: default_port(),
             cors_origins: vec!["*".to_string()],
+            public_url: None,
         }
     }
 }

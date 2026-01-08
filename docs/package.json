@@ -13,6 +13,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "agents": "^0.3.3",
     "better-sqlite3": "^12.5.0",
     "docus": "^5.4.1",
     "nuxt": "^4.2.2"
