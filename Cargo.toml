@@ -1,6 +1,6 @@
 [package]
 name = "tileserver-rs"
-version = "2.4.0"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Vinayak Kulkarni <inbox.vinayak@gmail.com>"]
