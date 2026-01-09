@@ -34,6 +34,7 @@ jobs:
     strategy:
       matrix:
         workflow:
+          - release-docker.yml
           - release-macos-arm64.yml
           - release-linux-amd64.yml
           - release-linux-arm64.yml
