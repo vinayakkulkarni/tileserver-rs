@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.1...v2.4.2) (2026-01-09)
+
+
+### Bug Fixes
+
+* **ci:** add major version tag to Docker releases ([f5b013d](https://github.com/vinayakkulkarni/tileserver-rs/commit/f5b013de901e6b8079433352e8e9bf53654485fb))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.4.1 ([3dabab1](https://github.com/vinayakkulkarni/tileserver-rs/commit/3dabab1412b60b876919abe17b816de84762e0a8))
+
 ## [2.4.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.0...v2.4.1) (2026-01-09)
 
 
