@@ -22,7 +22,7 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -34,12 +34,12 @@ jobs:
     strategy:
       matrix:
         workflow:
-          - release-docker.yml
           - release-macos-arm64.yml
           - release-linux-amd64.yml
           - release-linux-arm64.yml
           # macOS AMD64 disabled - Intel runners retired, paid runners required
           # - release-macos-amd64.yml
+          # Docker is triggered automatically by tag push (using RELEASE_PAT)
     steps:
       - name: Trigger ${{ matrix.workflow }}
         uses: actions/github-script@v8

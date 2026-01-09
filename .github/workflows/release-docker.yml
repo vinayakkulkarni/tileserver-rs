@@ -120,19 +120,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine version from tag
-        id: version
-        run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          # Strip 'v' prefix if present
-          VERSION="${TAG#v}"
-          # Extract major.minor
-          MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1,2)
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
-          echo "is_release=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '' || startsWith(github.ref, 'refs/tags/v') }}" >> $GITHUB_OUTPUT
-
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -142,10 +129,8 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=${{ steps.version.outputs.version }},enable=${{ steps.version.outputs.is_release == 'true' }}
-            type=raw,value=${{ steps.version.outputs.major_minor }},enable=${{ steps.version.outputs.is_release == 'true' }}
             type=sha
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || steps.version.outputs.is_release == 'true' }}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
