@@ -10,7 +10,7 @@ class TileserverRs < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
-      sha256 "acd0c164893618e41e35d32c436ca6fee544c6c3dfa98ea74e78fe88e57de23a"
+      sha256 "8c06f04516cdde8ae84c431d9acf0abec57a5d8459d46bf71cd38a28d859f42f"
     elsif Hardware::CPU.intel?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
       sha256 "TODO"
