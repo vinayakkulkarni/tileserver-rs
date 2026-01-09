@@ -4,26 +4,26 @@
 class TileserverRs < Formula
   desc "High-performance vector tile server with native MapLibre rendering"
   homepage "https://github.com/vinayakkulkarni/tileserver-rs"
-  version "2.1.1"
+  version "2.4.1"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
-      sha256 "62c207c9dae671df439696640acc82a9af5d7a3f35f9dc3d70d1fac1151e47b3"
+      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
+      sha256 "acd0c164893618e41e35d32c436ca6fee544c6c3dfa98ea74e78fe88e57de23a"
     elsif Hardware::CPU.intel?
-      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
+      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
       sha256 "TODO"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "fa010b972355502245077a6afefd8f19c5e9ab3dbfcd2e59e5c93ec11bf1ad57"
+      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "a026c8660c036d327d79e696cd7d00f1258889f3105a660823e1322c8c2c0163"
     elsif Hardware::CPU.intel?
-      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "73d3be30330a8bdf4dcd6dcc35a0a82586dc83279454f262da9857f41b598606"
+      url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "ac56ed6e08aa928f5e39570e81146b3278d520c350960af764522360b0d096d6"
     end
   end
 
