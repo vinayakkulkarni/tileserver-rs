@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.0...v2.4.1) (2026-01-09)
+
+
+### Bug Fixes
+
+* **client:** hide Inspect and Services for non-vector data sources ([097e815](https://github.com/vinayakkulkarni/tileserver-rs/commit/097e8157b5d8de562234e79bf80c4bbef8e7e2dc))
+
+
+### Miscellaneous
+
+* **deps:** bump dependencies ([b6877ed](https://github.com/vinayakkulkarni/tileserver-rs/commit/b6877edcfb1a6d91d13185bcf43704c8398d5e2c))
+
 ## [2.4.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/tileserver-rs-v2.3.0...tileserver-rs-v2.4.0) (2026-01-08)
 
 
