@@ -23,7 +23,7 @@ class TileserverRs < Formula
       sha256 "a026c8660c036d327d79e696cd7d00f1258889f3105a660823e1322c8c2c0163"
     elsif Hardware::CPU.intel?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "ac56ed6e08aa928f5e39570e81146b3278d520c350960af764522360b0d096d6"
+      sha256 "da9e945ce3596b7db43f3dc82fd7444be8ec9ab6a77484e6b5eb12ba0cb15be3"
     end
   end
 
