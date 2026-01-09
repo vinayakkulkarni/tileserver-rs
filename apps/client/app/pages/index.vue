@@ -535,6 +535,7 @@
                         </div>
 
                         <Button
+                          v-if="source.vector_layers?.length"
                           as-child
                           variant="secondary"
                           size="sm"
@@ -547,69 +548,73 @@
                         </Button>
                       </div>
 
-                      <!-- Service links -->
-                      <div
-                        class="
-                          mt-3 flex flex-wrap items-center gap-x-2 gap-y-1
-                          text-xs
-                        "
-                      >
-                        <span class="text-muted-foreground">Services:</span>
-                        <a
-                          :href="`/data/${source.id}.json`"
-                          target="_blank"
+                      <!-- Service links (vector sources only) -->
+                      <!-- TODO: Support raster sources - need to handle format (.png/.webp/.jpg) dynamically -->
+                      <template v-if="source.vector_layers?.length">
+                        <div
                           class="
-                            text-primary
-                            hover:underline
+                            mt-3 flex flex-wrap items-center gap-x-2 gap-y-1
+                            text-xs
                           "
                         >
-                          TileJSON
-                        </a>
-                        <span class="text-muted-foreground/30">•</span>
-                        <button
-                          class="
-                            text-primary
-                            hover:underline
-                          "
-                          @click="toggleDataXyz(source.id)"
-                        >
-                          XYZ URL
-                        </button>
-                      </div>
-
-                      <!-- XYZ URL -->
-                      <div
-                        v-if="expandedDataXyz.has(source.id)"
-                        class="
-                          mt-2 flex items-center gap-2 rounded-lg bg-muted/50
-                          p-2
-                        "
-                      >
-                        <code
-                          class="flex-1 truncate text-xs text-muted-foreground"
-                        >
-                          {{ baseUrl }}/data/{{ source.id }}/{z}/{x}/{y}.pbf
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="size-7 shrink-0 rounded-lg"
-                          @click="
-                            copyUrl(
-                              `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`,
-                            )
-                          "
-                        >
-                          <Check
-                            v-if="
-                              copiedUrl
-                                === `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`
+                          <span class="text-muted-foreground">Services:</span>
+                          <a
+                            :href="`/data/${source.id}.json`"
+                            target="_blank"
+                            class="
+                              text-primary
+                              hover:underline
                             "
-                            class="size-3.5 text-green-500"
-                          />
-                          <Copy v-else class="size-3.5" />
-                        </Button>
-                      </div>
+                          >
+                            TileJSON
+                          </a>
+                          <span class="text-muted-foreground/30">•</span>
+                          <button
+                            class="
+                              text-primary
+                              hover:underline
+                            "
+                            @click="toggleDataXyz(source.id)"
+                          >
+                            XYZ URL
+                          </button>
+                        </div>
+
+                        <div
+                          v-if="expandedDataXyz.has(source.id)"
+                          class="
+                            mt-2 flex items-center gap-2 rounded-lg bg-muted/50
+                            p-2
+                          "
+                        >
+                          <code
+                            class="
+                              flex-1 truncate text-xs text-muted-foreground
+                            "
+                          >
+                            {{ baseUrl }}/data/{{ source.id }}/{z}/{x}/{y}.pbf
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 shrink-0 rounded-lg"
+                            @click="
+                              copyUrl(
+                                `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`,
+                              )
+                            "
+                          >
+                            <Check
+                              v-if="
+                                copiedUrl
+                                  === `${baseUrl}/data/${source.id}/{z}/{x}/{y}.pbf`
+                              "
+                              class="size-3.5 text-green-500"
+                            />
+                            <Copy v-else class="size-3.5" />
+                          </Button>
+                        </div>
+                      </template>
                     </div>
                   </div>
                 </div>

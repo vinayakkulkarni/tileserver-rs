@@ -19,7 +19,8 @@ export interface Data {
   maxzoom: number;
   bounds: number[];
   center: number[];
-  vector_layers: VectorLayer[];
+  /** Vector layers - only present for vector tile sources (PMTiles, MBTiles) */
+  vector_layers?: VectorLayer[];
 }
 
 export interface LayerColor {
