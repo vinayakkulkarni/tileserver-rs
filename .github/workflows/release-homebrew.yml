@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g., tileserver-rs-v0.2.0)"
+        description: "Release tag (e.g., v2.4.0)"
         required: true
         type: string
   # Also trigger when any release workflow completes - will check if all assets exist
@@ -57,7 +57,7 @@ jobs:
             echo "No tag found, skipping"
             exit 0
           fi
-          VERSION="${TAG#tileserver-rs-v}"
+          VERSION="${TAG#v}"
           
           echo "Updating Homebrew formula for version ${VERSION}"
           
@@ -122,20 +122,20 @@ jobs:
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"
                 sha256 "${SHA_AARCH64_DARWIN}"
               elsif Hardware::CPU.intel?
-                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-apple-darwin.tar.gz"
                 sha256 "${SHA_X86_64_DARWIN}"
               end
             end
 
             on_linux do
               if Hardware::CPU.arm?
-                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_AARCH64_LINUX}"
               elsif Hardware::CPU.intel?
-                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/tileserver-rs-v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-x86_64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_X86_64_LINUX}"
               end
             end
@@ -164,7 +164,7 @@ jobs:
             echo "No tag found, skipping"
             exit 0
           fi
-          VERSION="${TAG#tileserver-rs-v}"
+          VERSION="${TAG#v}"
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

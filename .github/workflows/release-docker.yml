@@ -6,14 +6,13 @@ on:
       - main
     tags:
       - 'v*'
-      - 'tileserver-rs-v*'
   pull_request:
     branches:
       - main
   workflow_dispatch:
     inputs:
       tag:
-        description: "Git tag to build (e.g., tileserver-rs-v0.2.0)"
+        description: "Git tag to build (e.g., v2.4.0)"
         required: false
         type: string
 
@@ -128,11 +127,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=match,pattern=tileserver-rs-v(.*),group=1
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 

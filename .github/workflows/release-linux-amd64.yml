@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g., tileserver-rs-v0.1.0)"
+        description: "Release tag (e.g., v2.4.0)"
         required: true
         type: string
   push:
     tags:
-      - "tileserver-rs-v*"
+      - "v*"
 
 env:
   CARGO_INCREMENTAL: 0
