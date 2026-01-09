@@ -11,9 +11,6 @@ import type { Data, LayerColor } from '~/types/data';
 
 export function useDataInspector(dataId: Ref<string>) {
   const layerColors = ref<LayerColor[]>([]);
-  const { isDark } = useThemeToggle();
-
-  const basemapStyle = computed(() => (isDark.value ? 'dark_all' : 'light_all'));
 
   const mapOptions = computed<MapOptions>(() => ({
     container: 'data-inspector-map',
@@ -21,31 +18,12 @@ export function useDataInspector(dataId: Ref<string>) {
     style: {
       version: 8,
       sources: {
-        basemap: {
-          type: 'raster',
-          tiles: [
-            `https://a.basemaps.cartocdn.com/${basemapStyle.value}/{z}/{x}/{y}@2x.png`,
-            `https://b.basemaps.cartocdn.com/${basemapStyle.value}/{z}/{x}/{y}@2x.png`,
-            `https://c.basemaps.cartocdn.com/${basemapStyle.value}/{z}/{x}/{y}@2x.png`,
-          ],
-          tileSize: 256,
-          attribution:
-            '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        },
         vector_layer_: {
           type: 'vector',
           url: `/data/${dataId.value}.json`,
         },
       },
-      layers: [
-        {
-          id: 'basemap',
-          type: 'raster',
-          source: 'basemap',
-          minzoom: 0,
-          maxzoom: 22,
-        },
-      ],
+      layers: [],
     },
   }));
 
