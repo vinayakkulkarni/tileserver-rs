@@ -18,7 +18,7 @@
     "@geoql/v-maplibre": "^1.2.1",
     "@nuxtjs/color-mode": "^4.0.0",
     "@tanstack/query-db-collection": "^1.0.13",
-    "@tanstack/vue-db": "^0.0.93",
+    "@tanstack/vue-db": "^0.0.94",
     "@tanstack/vue-query": "^5.92.5",
     "@vueuse/core": "^14.1.0",
     "@vueuse/nuxt": "^14.1.0",
