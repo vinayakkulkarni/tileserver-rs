@@ -32,7 +32,7 @@
     "@nuxt/eslint-config": "^1.12.1",
     "@nuxtjs/plausible": "^2.0.1",
     "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.0.6",
     "eslint": "^9.39.2",
     "eslint-plugin-better-tailwindcss": "^4.0.0-beta.6",
     "eslint-plugin-oxlint": "^1.38.0",
