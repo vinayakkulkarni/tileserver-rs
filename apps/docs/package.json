@@ -19,7 +19,7 @@
     "@nuxtjs/plausible": "^2.0.1",
     "agents": "^0.3.4",
     "eslint": "^9.39.2",
-    "eslint-plugin-oxlint": "^1.38.0",
+    "eslint-plugin-oxlint": "^1.39.0",
     "oxlint": "^1.38.0",
     "wrangler": "^4.58.0"
   },
