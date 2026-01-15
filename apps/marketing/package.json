@@ -32,17 +32,17 @@
     "@nuxt/eslint-config": "^1.12.1",
     "@nuxtjs/plausible": "^2.0.1",
     "@tailwindcss/postcss": "^4.1.18",
-    "@types/node": "^25.0.3",
+    "@types/node": "^25.0.9",
     "eslint": "^9.39.2",
-    "eslint-plugin-better-tailwindcss": "^4.0.0-beta.6",
-    "eslint-plugin-oxlint": "^1.38.0",
-    "oxlint": "^1.38.0",
+    "eslint-plugin-better-tailwindcss": "^4.0.1",
+    "eslint-plugin-oxlint": "^1.39.0",
+    "oxlint": "^1.39.0",
     "shadcn-nuxt": "^2.4.3",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vue-tsc": "^3.2.2",
-    "wrangler": "^4.58.0"
+    "wrangler": "^4.59.2"
   },
   "author": {
     "name": "Vinayak Kulkarni",

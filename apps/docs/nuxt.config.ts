@@ -69,4 +69,8 @@ export default defineNuxtConfig({
       routes.clear();
     },
   },
+
+  llms: {
+    domain: 'tileserver.app',
+  },
 });
