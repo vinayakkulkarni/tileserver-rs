@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.4.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.2...v2.4.3) (2026-01-19)
+
+
+### Bug Fixes
+
+* **client:** match tileserver-gl data inspector style ([fb74d7b](https://github.com/vinayakkulkarni/tileserver-rs/commit/fb74d7be4cb8fe47b948eea1da40b4f98f91f5cb))
+* **deps:** bump @tanstack/vue-db from 0.0.93 to 0.0.94 ([76aec48](https://github.com/vinayakkulkarni/tileserver-rs/commit/76aec48f56425a10fcb1927532a22dd4f5dd9ea6))
+* **deps:** bump @tanstack/vue-db from 0.0.93 to 0.0.94 ([009fb82](https://github.com/vinayakkulkarni/tileserver-rs/commit/009fb82f3cff9d83c17fcb18d8fe5789e9f9ab7b))
+* **deps:** bump @tanstack/vue-db from 0.0.96 to 0.0.97 ([f32adb1](https://github.com/vinayakkulkarni/tileserver-rs/commit/f32adb1b144a933653ed95d0dd58490dd1b98c3d))
+* **deps:** bump @tanstack/vue-db from 0.0.96 to 0.0.97 ([fffeadf](https://github.com/vinayakkulkarni/tileserver-rs/commit/fffeadf45729838b6d98301b6362ae34906431cd))
+
+
+### Miscellaneous
+
+* bump dependencies 🤷‍♂️ ([2d7dad3](https://github.com/vinayakkulkarni/tileserver-rs/commit/2d7dad3c70e72abcb5bf5f226dbce2ae77ded80d))
+* **homebrew:** update formula to v2.4.2 ([cd9d0ed](https://github.com/vinayakkulkarni/tileserver-rs/commit/cd9d0ed3fbd31586b959b03d734200cc9a5d4b14))
+
 ## [2.4.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.1...v2.4.2) (2026-01-09)
 
 
