@@ -15,7 +15,7 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "@geoql/v-maplibre": "^1.2.1",
+    "@geoql/v-maplibre": "^1.5.0",
     "@nuxtjs/color-mode": "^4.0.0",
     "@tanstack/query-db-collection": "^1.0.16",
     "@tanstack/vue-db": "^0.0.96",
