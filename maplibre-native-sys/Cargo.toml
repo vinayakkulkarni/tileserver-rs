@@ -1,6 +1,6 @@
 [package]
 name = "maplibre-native-sys"
-version = "2.4.2"
+version = "2.5.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Low-level FFI bindings to MapLibre GL Native"
