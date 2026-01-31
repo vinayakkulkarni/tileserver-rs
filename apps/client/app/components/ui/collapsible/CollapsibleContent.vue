@@ -8,11 +8,7 @@
 <template>
   <CollapsibleContent
     v-bind="props"
-    class="
-      overflow-hidden transition-all
-      data-[state=closed]:animate-collapsible-up
-      data-[state=open]:animate-collapsible-down
-    "
+    class="overflow-hidden transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down"
   >
     <slot></slot>
   </CollapsibleContent>

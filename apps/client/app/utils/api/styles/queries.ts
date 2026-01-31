@@ -41,7 +41,9 @@ export async function fetchStyles(): Promise<Style[]> {
 export async function fetchVectorStyle(
   id: string,
 ): Promise<StyleSpecification> {
-  const styleSpec = await $fetch<StyleSpecification>(`/styles/${id}/style.json`);
+  const styleSpec = await $fetch<StyleSpecification>(
+    `/styles/${id}/style.json`,
+  );
   return styleSpec ?? defaultStyle;
 }
 

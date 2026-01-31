@@ -21,14 +21,7 @@
     <NuxtLink
       v-if="!isScreenshot"
       to="/"
-      class="
-        absolute top-4 left-4 z-10 flex items-center gap-2 rounded-lg border
-        border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium
-        text-slate-700 shadow-lg backdrop-blur-sm transition-colors
-        hover:bg-white
-        dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200
-        dark:hover:bg-slate-800
-      "
+      class="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
     >
       <ArrowLeft class="size-4" />
       <Palette class="size-4" />
@@ -38,17 +31,9 @@
     <!-- Loading -->
     <div
       v-if="isLoading"
-      class="
-        flex size-full items-center justify-center bg-slate-100
-        dark:bg-slate-900
-      "
+      class="flex size-full items-center justify-center bg-slate-100 dark:bg-slate-900"
     >
-      <span
-        class="
-          text-slate-500
-          dark:text-slate-400
-        "
-      > Loading style... </span>
+      <span class="text-slate-500 dark:text-slate-400"> Loading style... </span>
     </div>
 
     <!-- Map - VMap wrapped in ClientOnly -->
