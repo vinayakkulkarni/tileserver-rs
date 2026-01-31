@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.4.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.2...v2.4.3) (2026-01-31)
+
+
+### Bug Fixes
+
+* **client:** match tileserver-gl data inspector style ([fb74d7b](https://github.com/vinayakkulkarni/tileserver-rs/commit/fb74d7be4cb8fe47b948eea1da40b4f98f91f5cb))
+* **deps:** bump @tanstack/vue-db from 0.0.93 to 0.0.94 ([76aec48](https://github.com/vinayakkulkarni/tileserver-rs/commit/76aec48f56425a10fcb1927532a22dd4f5dd9ea6))
+* **deps:** bump @tanstack/vue-db from 0.0.93 to 0.0.94 ([009fb82](https://github.com/vinayakkulkarni/tileserver-rs/commit/009fb82f3cff9d83c17fcb18d8fe5789e9f9ab7b))
+* **deps:** bump @tanstack/vue-db from 0.0.96 to 0.0.97 ([f32adb1](https://github.com/vinayakkulkarni/tileserver-rs/commit/f32adb1b144a933653ed95d0dd58490dd1b98c3d))
+* **deps:** bump @tanstack/vue-db from 0.0.96 to 0.0.97 ([fffeadf](https://github.com/vinayakkulkarni/tileserver-rs/commit/fffeadf45729838b6d98301b6362ae34906431cd))
+
+
+### Miscellaneous
+
+* add VS Code workspace settings for OXC toolchain ([c619919](https://github.com/vinayakkulkarni/tileserver-rs/commit/c619919a04af6e14ecc5c6cc24323f601b755b54))
+* adopt Bun workspace catalogs for dependency management ([f03c458](https://github.com/vinayakkulkarni/tileserver-rs/commit/f03c458dab63a1a79eb579187812f595be7ec581))
+* bump dependencies 🤷‍♂️ ([2d7dad3](https://github.com/vinayakkulkarni/tileserver-rs/commit/2d7dad3c70e72abcb5bf5f226dbce2ae77ded80d))
+* **client:** clean up static assets ([1d56598](https://github.com/vinayakkulkarni/tileserver-rs/commit/1d56598349bb35e52a83d37cb310df2a46c7aeda))
+* **deps:** upgrade Cargo dependencies with breaking changes ([6f349a3](https://github.com/vinayakkulkarni/tileserver-rs/commit/6f349a3dc7c4b27b4b158a8c532d4905ac12823d))
+* enable-beta-ecosystems for latest deps w/ lockfiles ([2b69535](https://github.com/vinayakkulkarni/tileserver-rs/commit/2b69535750c0e1b8e25efc9f99f1eebeff0f1aca))
+* **homebrew:** update formula to v2.4.2 ([cd9d0ed](https://github.com/vinayakkulkarni/tileserver-rs/commit/cd9d0ed3fbd31586b959b03d734200cc9a5d4b14))
+
+
+### Code Refactoring
+
+* **client:** migrate from Prettier to OXC toolchain ([0b14adb](https://github.com/vinayakkulkarni/tileserver-rs/commit/0b14adb722771282f5bfdee9329b535b5e031bd2))
+* **marketing:** migrate from Prettier/stylistic to OXC toolchain ([b9f92f5](https://github.com/vinayakkulkarni/tileserver-rs/commit/b9f92f58653bc54cdcef33faca1bde4a47ff2bd1))
+
 ## [2.4.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.1...v2.4.2) (2026-01-09)
 
 
