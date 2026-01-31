@@ -145,9 +145,17 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .bg-grid {
-  background-image: 
-    linear-gradient(to right, oklch(0.702 0.183 293.541 / 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.702 0.183 293.541 / 0.03) 1px, transparent 1px);
+  background-image:
+    linear-gradient(
+      to right,
+      oklch(0.702 0.183 293.541 / 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      oklch(0.702 0.183 293.541 / 0.03) 1px,
+      transparent 1px
+    );
   background-size: 48px 48px;
 }
 
@@ -180,8 +188,13 @@
 }
 
 @keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -214,25 +227,46 @@
 }
 
 .orb-primary {
-  background: radial-gradient(circle, oklch(0.702 0.183 293.541 / 0.6) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    oklch(0.702 0.183 293.541 / 0.6) 0%,
+    transparent 70%
+  );
 }
 
 .orb-secondary {
-  background: radial-gradient(circle, oklch(0.627 0.265 303.9 / 0.5) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    oklch(0.627 0.265 303.9 / 0.5) 0%,
+    transparent 70%
+  );
   animation-delay: -12s;
   animation-direction: reverse;
 }
 
 .orb-accent {
-  background: radial-gradient(circle, oklch(0.541 0.281 293.009 / 0.4) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    oklch(0.541 0.281 293.009 / 0.4) 0%,
+    transparent 70%
+  );
   animation-delay: -6s;
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(5%, 5%) scale(1.05); }
-  50% { transform: translate(-3%, 10%) scale(0.98); }
-  75% { transform: translate(-5%, 3%) scale(1.02); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(5%, 5%) scale(1.05);
+  }
+  50% {
+    transform: translate(-3%, 10%) scale(0.98);
+  }
+  75% {
+    transform: translate(-5%, 3%) scale(1.02);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -317,8 +351,15 @@
 }
 
 @keyframes pulse-status {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
 }
 
 .hud-label {

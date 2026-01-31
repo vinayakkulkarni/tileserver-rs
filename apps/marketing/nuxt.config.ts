@@ -34,7 +34,10 @@ export default defineNuxtConfig({
             'tileserver, vector tiles, pmtiles, mbtiles, maplibre, rust, gis, mapping, tile server',
         },
         { name: 'theme-color', content: '#3b82f6' },
-        { property: 'og:title', content: 'Tileserver RS - High-Performance Vector Tile Server' },
+        {
+          property: 'og:title',
+          content: 'Tileserver RS - High-Performance Vector Tile Server',
+        },
         {
           property: 'og:description',
           content:
@@ -43,7 +46,10 @@ export default defineNuxtConfig({
         { property: 'og:type', content: 'website' },
         { property: 'og:url', content: 'https://tileserver.app' },
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'Tileserver RS - High-Performance Vector Tile Server' },
+        {
+          name: 'twitter:title',
+          content: 'Tileserver RS - High-Performance Vector Tile Server',
+        },
         {
           name: 'twitter:description',
           content:

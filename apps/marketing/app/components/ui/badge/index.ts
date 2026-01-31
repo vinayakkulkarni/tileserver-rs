@@ -12,18 +12,15 @@ export const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          `
+        default: `
             border-transparent bg-primary text-primary-foreground shadow-sm
             hover:bg-primary/80
           `,
-        secondary:
-          `
+        secondary: `
             border-transparent bg-secondary text-secondary-foreground
             hover:bg-secondary/80
           `,
-        destructive:
-          `
+        destructive: `
             text-destructive-foreground border-transparent bg-destructive
             shadow-sm
             hover:bg-destructive/80
