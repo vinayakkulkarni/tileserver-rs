@@ -105,6 +105,12 @@ pub struct TelemetryConfig {
     /// Sampling rate (0.0 to 1.0, where 1.0 = 100% of traces)
     #[serde(default = "default_sample_rate")]
     pub sample_rate: f64,
+    /// Enable OpenTelemetry metrics (requires `enabled = true`)
+    #[serde(default = "default_metrics_enabled")]
+    pub metrics_enabled: bool,
+    /// Metrics export interval in seconds
+    #[serde(default = "default_metrics_export_interval_secs")]
+    pub metrics_export_interval_secs: u64,
 }
 
 fn default_otlp_endpoint() -> String {
@@ -119,6 +125,14 @@ fn default_sample_rate() -> f64 {
     1.0
 }
 
+fn default_metrics_enabled() -> bool {
+    true
+}
+
+fn default_metrics_export_interval_secs() -> u64 {
+    60
+}
+
 impl Default for TelemetryConfig {
     fn default() -> Self {
         Self {
@@ -126,6 +140,8 @@ impl Default for TelemetryConfig {
             endpoint: default_otlp_endpoint(),
             service_name: default_service_name(),
             sample_rate: default_sample_rate(),
+            metrics_enabled: default_metrics_enabled(),
+            metrics_export_interval_secs: default_metrics_export_interval_secs(),
         }
     }
 }
