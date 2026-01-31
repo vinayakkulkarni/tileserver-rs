@@ -8,7 +8,7 @@
   import { ArrowLeft, Palette } from 'lucide-vue-next';
 
   const route = useRoute('styles-style');
-  const styleId = computed(() => route.params.style);
+  const styleId = computed(() => String(route.params.style));
   const isRaster = computed(() => 'raster' in route.query);
   const isScreenshot = computed(() => 'screenshot' in route.query);
 

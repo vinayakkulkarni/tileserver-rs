@@ -3,7 +3,7 @@
   import { ArrowLeft, Layers } from 'lucide-vue-next';
 
   const route = useRoute('data-data');
-  const dataId = computed(() => route.params.data);
+  const dataId = computed(() => String(route.params.data));
   const { mapOptions, layerColors, onMapLoaded } = useDataInspector(dataId);
 </script>
 
