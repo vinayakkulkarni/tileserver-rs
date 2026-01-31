@@ -161,3 +161,4 @@ config.toml
 data/raster/benchmark-rgb.cog.tif
 *.aux.xml
 apps/docs/.data
+.sisyphus
