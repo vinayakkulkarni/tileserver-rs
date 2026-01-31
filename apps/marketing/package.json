@@ -2,6 +2,11 @@
   "name": "@tileserver-rs/marketing",
   "version": "1.0.0",
   "private": true,
+  "author": {
+    "name": "Vinayak Kulkarni",
+    "email": "inbox.vinayak@gmail.com",
+    "url": "https://vinayakkulkarni.dev"
+  },
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
@@ -9,6 +14,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "format": "oxfmt --write .",
     "lint": "oxlint && eslint .",
     "lint:fix": "oxlint --fix && eslint . --fix"
   },
@@ -44,11 +50,6 @@
     "vite": "catalog:",
     "vue-tsc": "catalog:",
     "wrangler": "catalog:marketing"
-  },
-  "author": {
-    "name": "Vinayak Kulkarni",
-    "email": "inbox.vinayak@gmail.com",
-    "url": "https://vinayakkulkarni.dev"
   },
   "engines": {
     "node": ">=24.0.0"

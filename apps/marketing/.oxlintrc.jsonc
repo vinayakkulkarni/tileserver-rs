@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Plugins: https://oxc.rs/docs/guide/usage/linter/config#plugins
+  // - typescript: TS-specific rules
+  // - vue: Vue SFC support
+  // - import: import/export validation
+  "plugins": ["typescript", "vue", "import"],
+  "ignorePatterns": [
+    ".nuxt",
+    ".output",
+    "dist",
+    "node_modules",
+    ".wrangler",
+    "coverage",
+    "*.min.js",
+    "*.min.css",
+  ],
+}

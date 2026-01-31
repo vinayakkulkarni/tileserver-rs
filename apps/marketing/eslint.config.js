@@ -5,26 +5,13 @@ import oxlint from 'eslint-plugin-oxlint';
 
 export default createConfigForNuxt({
   features: {
-    stylistic: {
-      semi: true,
-    },
+    stylistic: false,
     tooling: true,
     typescript: true,
   },
 })
-  .override('nuxt/stylistic', {
-    rules: {
-      '@stylistic/arrow-parens': 'off',
-      '@stylistic/brace-style': 'off',
-      '@stylistic/indent': 'off',
-      '@stylistic/indent-binary-ops': 'off',
-      '@stylistic/operator-linebreak': 'off',
-    },
-  })
   .override('nuxt/vue/rules', {
     rules: {
-      'vue/max-attributes-per-line': ['error', { singleline: 5, multiline: 1 }],
-      'vue/html-indent': ['error', 2],
       'vue/html-self-closing': [
         'error',
         {
