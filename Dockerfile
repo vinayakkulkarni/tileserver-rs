@@ -68,8 +68,8 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/client ./apps/client
 
-# Install dependencies
-RUN bun install --frozen-lockfile
+# Install only client dependencies
+RUN bun install --frozen-lockfile --filter '@tileserver-rs/client'
 
 # Build the client as static SPA
 RUN bun run --filter @tileserver-rs/client generate
