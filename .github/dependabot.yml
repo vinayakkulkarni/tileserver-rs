@@ -27,7 +27,7 @@ updates:
       prefix-development: chore
       include: scope
 
-  # Bun - Root workspace
+  # Bun - Root workspace (catalogs define all dep versions)
   - package-ecosystem: npm
     versioning-strategy: increase
     directory: "/"
@@ -41,24 +41,10 @@ updates:
       prefix-development: chore
       include: scope
 
-  # Bun - Nuxt client app
+  # Bun - Documentation (isolated from workspace, has own lockfile)
   - package-ecosystem: npm
     versioning-strategy: increase
-    directory: "/apps/client"
-    schedule:
-      interval: daily
-      time: "00:00"
-    assignees:
-      - vinayakkulkarni
-    commit-message:
-      prefix: fix
-      prefix-development: chore
-      include: scope
-
-  # Bun - Documentation
-  - package-ecosystem: npm
-    versioning-strategy: increase
-    directory: "/docs"
+    directory: "/apps/docs"
     schedule:
       interval: daily
       time: "00:00"
