@@ -151,7 +151,6 @@ bun.lockb
 
 # User Settings
 .idea
-.vscode
 
 # macOS
 *.DS_Store

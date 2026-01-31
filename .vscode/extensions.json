@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "oxc.oxc-vscode",
+    "Vue.volar",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "mikestead.dotenv",
+    "Nuxt.mdc"
+  ],
+  "unwantedRecommendations": [
+    "heybourn.headwind",
+    "esbenp.prettier-vscode"
+  ]
+}

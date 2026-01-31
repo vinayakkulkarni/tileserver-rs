@@ -1,0 +1,67 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "oxc.enable": true,
+  "oxc.lint.run": "onType",
+  "oxc.trace.server": "off",
+  "oxc.fixKind": "safe_fix",
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "vscode.markdown-language-features"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
+  "eslint.enable": true,
+  "eslint.workingDirectories": [
+    "apps/client",
+    "apps/marketing"
+  ],
+  "eslint.run": "onSave",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "vue"
+  ],
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "files.associations": {
+    "*.vue": "vue",
+    ".env*": "dotenv",
+    ".oxlintrc.jsonc": "jsonc",
+    ".oxfmtrc.jsonc": "jsonc"
+  },
+  "javascript.format.enable": false,
+  "typescript.format.enable": false,
+  "headwind.runOnSave": false
+}
