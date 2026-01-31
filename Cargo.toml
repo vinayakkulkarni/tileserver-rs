@@ -25,17 +25,17 @@ dotenvy = "0.15.7"
 futures = "0.3"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 mime_guess = "2.0.5"
-pmtiles = { version = "0.18.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
-reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls"] }
+pmtiles = { version = "0.19.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
+reqwest = { version = "0.13.1", default-features = false, features = ["rustls"] }
 shellexpand = { version = "3.1", default-features = false, features = ["base-0"] }
-rust-embed = { version = "8.9", features = ["axum"] }
+rust-embed = { version = "8.11", features = ["axum"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.147"
-thiserror = "2.0.17"
+serde_json = "1.0.149"
+thiserror = "2.0.18"
 geozero = { version = "0.14", features = ["with-mvt", "with-geojson"] }
 flate2 = "1.1"
-tokio = { version = "1.48", features = ["full"] }
-toml = "0.8.23"
+tokio = { version = "1.49", features = ["full"] }
+toml = "0.9.6"
 tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
 urlencoding = "2.1"
 tracing = "0.1.44"
@@ -46,14 +46,14 @@ utoipa = { version = "5", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 
 # OpenTelemetry
-opentelemetry = "0.27"
-opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.27", features = ["tonic", "metrics", "logs"] }
-opentelemetry-semantic-conventions = "0.27"
-tracing-opentelemetry = "0.28"
+opentelemetry = "0.31"
+opentelemetry_sdk = { version = "0.31", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.31"
+tracing-opentelemetry = "0.32"
 
 # MBTiles support (SQLite)
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.38", features = ["bundled"] }
 
 # Raster/COG support (optional, requires GDAL system library)
 gdal = { version = "0.19", features = ["bindgen"], optional = true }
@@ -80,7 +80,7 @@ raster = ["gdal"]
 tower = { version = "0.5", features = ["util"] }
 axum-test = "17"
 tempfile = "3"
-insta = { version = "1.42", features = ["json"] }
+insta = { version = "1.46", features = ["json"] }
 
 [profile.release]
 lto = true
