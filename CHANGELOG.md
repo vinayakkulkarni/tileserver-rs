@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.5.0...v2.5.1) (2026-02-01)
+
+
+### Bug Fixes
+
+* always start Xvfb and return empty PBF for missing font ranges ([0104bfd](https://github.com/vinayakkulkarni/tileserver-rs/commit/0104bfd7be02316b6f90f4363decc97ccfb8c8b3))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.5.0 ([94e278c](https://github.com/vinayakkulkarni/tileserver-rs/commit/94e278cc133e8ca853fd6a35df2c380737874fde))
+
 ## [2.5.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.4.2...v2.5.0) (2026-01-31)
 
 
