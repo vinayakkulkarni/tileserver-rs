@@ -20,7 +20,7 @@
     "agents": "^0.3.6",
     "eslint": "^9.39.2",
     "eslint-plugin-oxlint": "^1.42.0",
-    "oxlint": "^1.42.0",
+    "oxlint": "^1.43.0",
     "wrangler": "^4.61.1"
   },
   "author": {
