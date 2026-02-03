@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.0",
-    "@commitlint/config-conventional": "^20.4.0",
+    "@commitlint/config-conventional": "^20.4.1",
     "husky": "^9.1.7",
     "is-ci": "^4.1.0",
     "lint-staged": "^16.2.7",
