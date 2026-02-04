@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.6.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.5.1...v2.6.0) (2026-02-04)
+
+
+### Features
+
+* **client:** add motion-v with collapsible layers panel ([c665459](https://github.com/vinayakkulkarni/tileserver-rs/commit/c665459c1bc03130fd0c53a0d31713f7109456ed))
+
+
+### Bug Fixes
+
+* **client:** clear map hash before back navigation ([0219311](https://github.com/vinayakkulkarni/tileserver-rs/commit/02193114ee5761dad976455025c03e9b10884261))
+
+
+### Documentation
+
+* document thin-template rule for Vue components ([5640e71](https://github.com/vinayakkulkarni/tileserver-rs/commit/5640e71cdc7f34f8614b51b305fb2e081307cf92))
+
+
+### Miscellaneous
+
+* **deps:** add motion-v and bump workspace dependencies ([0e116b3](https://github.com/vinayakkulkarni/tileserver-rs/commit/0e116b39af389aea3f2e28e3a1df984656a1fa1f))
+* **deps:** bump docs dependencies ([5081bbc](https://github.com/vinayakkulkarni/tileserver-rs/commit/5081bbc0264b5a3f4e9a43a581108d0d4c8d4d59))
+* **deps:** bump workspace catalog dependencies ([698ee1a](https://github.com/vinayakkulkarni/tileserver-rs/commit/698ee1a11b7d4fe4a820a3ae226441f8740401a4))
+* **homebrew:** update formula to v2.5.1 ([41fc252](https://github.com/vinayakkulkarni/tileserver-rs/commit/41fc252eb725ff1b3d8eaed4e3227446c7d1c74d))
+* **homebrew:** update formula to v2.5.1 ([c6be3ca](https://github.com/vinayakkulkarni/tileserver-rs/commit/c6be3cac06041f2319e177c0357f05018cb2417c))
+* ignore dirty content in maplibre-native submodule ([fa7d91f](https://github.com/vinayakkulkarni/tileserver-rs/commit/fa7d91f7c3fb1bf165f3969eccaa97254203974c))
+
+
+### Code Refactoring
+
+* **client:** move logic from components to composables ([53e5930](https://github.com/vinayakkulkarni/tileserver-rs/commit/53e593021d9e7e1acd20e304c71ed7d5b206266e))
+
 ## [2.5.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.5.0...v2.5.1) (2026-02-01)
 
 
