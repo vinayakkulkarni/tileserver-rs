@@ -4,6 +4,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@nuxt/eslint',
     '@nuxtjs/color-mode',
+    'motion-v/nuxt',
   ],
 
   // SPA mode - embedded in Rust binary
