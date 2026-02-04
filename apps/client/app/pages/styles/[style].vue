@@ -13,20 +13,27 @@
   const isScreenshot = computed(() => 'screenshot' in route.query);
 
   const { mapOptions, isLoading } = useStyleViewer(styleId, isRaster);
+
+  function navigateBack() {
+    if (import.meta.client) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+    navigateTo('/');
+  }
 </script>
 
 <template>
   <div class="relative h-dvh w-full">
     <!-- Floating back button (hidden for screenshots) -->
-    <NuxtLink
+    <button
       v-if="!isScreenshot"
-      to="/"
-      class="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 text-sm font-medium text-slate-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
+      class="absolute top-4 left-4 z-10 flex items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm font-medium shadow-lg backdrop-blur-sm transition-colors hover:bg-accent"
+      @click="navigateBack"
     >
       <ArrowLeft class="size-4" />
       <Palette class="size-4" />
       <span>{{ styleId }}</span>
-    </NuxtLink>
+    </button>
 
     <!-- Loading -->
     <div
