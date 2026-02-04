@@ -19,6 +19,7 @@
       "@nuxtjs/color-mode": "^4.0.0",
       "@vueuse/core": "^14.2.0",
       "@vueuse/nuxt": "^14.2.0",
+      "motion-v": "^1.10.2",
       "class-variance-authority": "^0.7.1",
       "clsx": "^2.1.1",
       "lucide-vue-next": "^0.563.0",
@@ -72,8 +73,8 @@
     "prepare": "is-ci || husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.0",
-    "@commitlint/config-conventional": "^20.4.0",
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
     "husky": "^9.1.7",
     "is-ci": "^4.1.0",
     "lint-staged": "^16.2.7",
