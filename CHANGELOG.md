@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.6.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.6.0...v2.6.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* **ci:** remove duplicate dependabot config for docs ([6b076df](https://github.com/vinayakkulkarni/tileserver-rs/commit/6b076df99a1539f152a7d26f89a3fc9fe9ca5999))
+* **client:** remove hardcoded hash from navigation links ([c5b9270](https://github.com/vinayakkulkarni/tileserver-rs/commit/c5b9270ffc9a32fb7853d61fee4aec6d14aa52a1))
+
+
+### Miscellaneous
+
+* **deps:** bump agents to v0.3.10 ([531d450](https://github.com/vinayakkulkarni/tileserver-rs/commit/531d4502bfc1c5544b1207582e2ef1f3ba54e80c))
+* **homebrew:** update formula to v2.6.0 ([69a2aec](https://github.com/vinayakkulkarni/tileserver-rs/commit/69a2aec66793d0f6a3cb0c8619d89f242c79a166))
+* **homebrew:** update formula to v2.6.0 ([db2ffe3](https://github.com/vinayakkulkarni/tileserver-rs/commit/db2ffe3c7829ffc4964adfb11c39a94ebbbad321))
+
 ## [2.6.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.5.1...v2.6.0) (2026-02-04)
 
 
