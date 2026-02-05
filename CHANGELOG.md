@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.7.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.6.1...v2.7.0) (2026-02-05)
+
+
+### Features
+
+* **client:** add layer visibility toggle to data inspector ([4398edb](https://github.com/vinayakkulkarni/tileserver-rs/commit/4398edb29c9176ee700361f5de6651f58b5c3f99))
+
+
+### Bug Fixes
+
+* **client:** clear URL hash on back navigation ([4d27e87](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d27e87bea32c6442ae7e5176a78a2fd8d6ddf12))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.6.1 ([478c065](https://github.com/vinayakkulkarni/tileserver-rs/commit/478c0651d0c000cc7328a07828d32e8db4185106))
+
 ## [2.6.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.6.0...v2.6.1) (2026-02-05)
 
 
