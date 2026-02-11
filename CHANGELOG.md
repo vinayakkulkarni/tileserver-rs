@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.7.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.7.0...v2.7.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* **build:** add `frontend` cargo feature to gate rust-embed dependency ([f8416ce](https://github.com/vinayakkulkarni/tileserver-rs/commit/f8416ce133939f86a2764055841d5b3fe9463d77)), closes [#582](https://github.com/vinayakkulkarni/tileserver-rs/issues/582)
+* **build:** allow backend compilation without frontend via `frontend` feature flag ([#583](https://github.com/vinayakkulkarni/tileserver-rs/issues/583)) ([e5e1b67](https://github.com/vinayakkulkarni/tileserver-rs/commit/e5e1b672fd43f568325dc59d33ac13a37d91099e))
+* **build:** gate embedded SPA behind `frontend` feature flag ([6251599](https://github.com/vinayakkulkarni/tileserver-rs/commit/6251599e031acf20744f49ef84c46b4d352424f3))
+* **docker:** add --fix-missing to all apt-get install commands ([5003713](https://github.com/vinayakkulkarni/tileserver-rs/commit/50037139dff1f55d60f8bd512fcfcf48af4cf668))
+
+
+### Documentation
+
+* document `frontend` feature flag and cargo features ([e388489](https://github.com/vinayakkulkarni/tileserver-rs/commit/e38848917adcd16eb75f91d32fc9fe6013f309be))
+
+
+### Miscellaneous
+
+* bump internal devDeps ([abd70ac](https://github.com/vinayakkulkarni/tileserver-rs/commit/abd70aceaadf7977969d8d65e892423659c037cc))
+* **deps-dev:** bump agents from 0.3.10 to 0.4.0 ([7be30b0](https://github.com/vinayakkulkarni/tileserver-rs/commit/7be30b0a6195c6c92722981c7c12ecdf5d3d68de))
+* **deps-dev:** bump agents from 0.3.10 to 0.4.0 ([4cc7df5](https://github.com/vinayakkulkarni/tileserver-rs/commit/4cc7df50b4fed3195575ff32550737ab625f1f37))
+* **deps:** update cargo, node, and benchmark dependencies ([e9ad6ac](https://github.com/vinayakkulkarni/tileserver-rs/commit/e9ad6ac2b10daabbc5e4ad141cc1121932f5e0cb))
+* **homebrew:** update formula to v2.7.0 ([b4d1619](https://github.com/vinayakkulkarni/tileserver-rs/commit/b4d16191a7f99f9a81c5f19d855c98e44d54e930))
+
 ## [2.7.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.6.1...v2.7.0) (2026-02-05)
 
 
