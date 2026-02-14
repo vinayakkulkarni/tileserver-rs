@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.7.1...v2.7.2) (2026-02-14)
+
+
+### Miscellaneous
+
+* **deps:** update cargo and bun dependencies ([d464658](https://github.com/vinayakkulkarni/tileserver-rs/commit/d464658701e13bdedb1b823470ff08837cd9e4b1))
+* **homebrew:** update formula to v2.7.1 ([51729de](https://github.com/vinayakkulkarni/tileserver-rs/commit/51729de46a699adc161951804607a1d86152a95e))
+
 ## [2.7.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.7.0...v2.7.1) (2026-02-11)
 
 
