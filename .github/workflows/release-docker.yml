@@ -22,7 +22,7 @@ env:
 
 jobs:
   build:
-    name: Build ${{ matrix.platform }}
+    name: Build ${{ matrix.platform }} (${{ matrix.variant }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     permissions:
@@ -35,9 +35,23 @@ jobs:
           - runner: ubuntu-latest
             platform: linux/amd64
             arch: amd64
+            variant: full
+            dockerfile: Dockerfile
           - runner: ubuntu-24.04-arm
             platform: linux/arm64
             arch: arm64
+            variant: full
+            dockerfile: Dockerfile
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            arch: amd64
+            variant: headless
+            dockerfile: Dockerfile.headless
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            arch: arm64
+            variant: headless
+            dockerfile: Dockerfile.headless
 
     steps:
       - name: Checkout repository
@@ -68,11 +82,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.arch }}-${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}-${{ matrix.variant }}
           provenance: false
           sbom: false
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
@@ -88,13 +103,13 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v6
         with:
-          name: digests-${{ matrix.arch }}
+          name: digests-${{ matrix.variant }}-${{ matrix.arch }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
-    name: Create Multi-Arch Manifest
+    name: Create Multi-Arch Manifest (Full)
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     needs: build
@@ -107,7 +122,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-full-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -142,3 +157,53 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+  merge-headless:
+    name: Create Multi-Arch Manifest (Headless)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: digests-headless-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=-headless
+            type=semver,pattern={{version}},suffix=-headless
+            type=semver,pattern={{major}}.{{minor}},suffix=-headless
+            type=semver,pattern={{major}},suffix=-headless,enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=sha,suffix=-headless
+            type=raw,value=latest-headless,enable={{is_default_branch}}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}-headless
