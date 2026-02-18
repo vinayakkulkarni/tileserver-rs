@@ -161,8 +161,8 @@ mod url_parameters {
     fn test_api_key_parameter_format() {
         let valid_keys = [
             "abc123",
-            "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw",
-            "sk_test_123456789",
+            "pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJleGFtcGxlX2tleV8xMjM0NTY3ODkwIn0.example-signature",
+            "sk_test_example_key_123456789",
         ];
 
         for key in valid_keys {
