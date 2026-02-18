@@ -29,6 +29,7 @@ use utoipa::OpenApi;
     ),
     paths(
         health_check,
+        ping_check,
         get_index,
         list_data_sources,
         get_data_source,
@@ -50,6 +51,7 @@ use utoipa::OpenApi;
         VectorLayer,
         StyleInfo,
         GeoJSON,
+        PingResponse,
         ApiError,
     ))
 )]
@@ -155,6 +157,27 @@ pub struct ApiError {
     pub error: String,
 }
 
+/// Ping response
+#[derive(utoipa::ToSchema)]
+#[schema(example = json!({
+    "status": "ok",
+    "config_hash": "abc123",
+    "loaded_at_unix": 1739583264,
+    "loaded_sources": 2,
+    "loaded_styles": 1,
+    "renderer_enabled": true,
+    "version": "2.7.0"
+}))]
+pub struct PingResponse {
+    pub status: String,
+    pub config_hash: String,
+    pub loaded_at_unix: u64,
+    pub loaded_sources: usize,
+    pub loaded_styles: usize,
+    pub renderer_enabled: bool,
+    pub version: String,
+}
+
 // ============================================================
 // Path operations (documentation only - actual handlers in main.rs)
 // ============================================================
@@ -171,6 +194,17 @@ pub struct ApiError {
     )
 )]
 pub async fn health_check() {}
+
+/// Ping endpoint with extended runtime health metadata.
+#[utoipa::path(
+    get,
+    path = "/ping",
+    tag = "Health",
+    responses(
+        (status = 200, description = "Server runtime health metadata", body = PingResponse)
+    )
+)]
+pub async fn ping_check() {}
 
 /// Get all sources and styles
 ///
@@ -483,6 +517,7 @@ mod tests {
         // Check that paths exist
         let paths = spec.paths.paths;
         assert!(paths.contains_key("/health"));
+        assert!(paths.contains_key("/ping"));
         assert!(paths.contains_key("/data.json"));
         assert!(paths.contains_key("/styles.json"));
         assert!(paths.contains_key("/fonts.json"));
@@ -496,6 +531,7 @@ mod tests {
         // All expected endpoints
         let expected_paths = [
             "/health",
+            "/ping",
             "/index.json",
             "/data.json",
             "/data/{source}",
@@ -542,6 +578,7 @@ mod tests {
         assert!(schemas.contains_key("StyleInfo"));
         assert!(schemas.contains_key("VectorLayer"));
         assert!(schemas.contains_key("GeoJSON"));
+        assert!(schemas.contains_key("PingResponse"));
         assert!(schemas.contains_key("ApiError"));
     }
 }

@@ -1,8 +1,10 @@
+#[cfg(feature = "frontend")]
+use axum::http::StatusCode;
 use axum::{
     extract::{Path, Query, State},
     http::{
         header::{ACCEPT, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE},
-        HeaderMap, HeaderValue, Method, StatusCode,
+        HeaderMap, HeaderValue, Method,
     },
     response::{IntoResponse, Response},
     routing::get,
@@ -22,21 +24,28 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+mod admin;
 mod cache_control;
 mod cli;
 mod config;
 mod error;
 mod logging;
 mod openapi;
+mod reload;
 mod render;
 mod sources;
 mod styles;
 mod telemetry;
 mod wmts;
 
+use admin::{admin_router, ping_check};
 use cli::Cli;
 use config::Config;
 use error::TileServerError;
+use reload::{
+    build_app_state, now_unix_seconds, reload_signal, ReloadController, ReloadMeta,
+    RuntimeSettings, SharedState,
+};
 use render::{ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
 use sources::{SourceManager, TileJson};
 use styles::{StyleInfo, StyleManager, UrlQueryParams};
@@ -69,7 +78,13 @@ async fn main() -> anyhow::Result<()> {
     let verbose = cli.verbose;
 
     // Load configuration early to get telemetry settings
-    let mut config = Config::load(cli.config)?;
+    let config_load = Config::load_with_metadata(cli.config.clone())?;
+    if let Some(path) = config_load.source_path.as_ref() {
+        tracing::info!("Loaded configuration from {}", path.display());
+    } else {
+        tracing::info!("No configuration file found, using defaults");
+    }
+    let mut config = config_load.config;
 
     // Initialize tracing with OpenTelemetry
     // Filter out verbose MapLibre Native logs unless explicitly requested
@@ -97,78 +112,33 @@ async fn main() -> anyhow::Result<()> {
     if let Some(port) = cli.port {
         config.server.port = port;
     }
-    if let Some(public_url) = cli.public_url {
-        config.server.public_url = Some(public_url);
+    if let Some(ref public_url) = cli.public_url {
+        config.server.public_url = Some(public_url.clone());
     }
 
-    // Load tile sources
-    #[cfg(feature = "postgres")]
-    let sources =
-        SourceManager::from_configs_with_postgres(&config.sources, config.postgres.as_ref())
-            .await?;
-    #[cfg(not(feature = "postgres"))]
-    let sources = SourceManager::from_configs(&config.sources).await?;
-    tracing::info!("Loaded {} tile source(s)", sources.len());
-
-    // Load styles
-    let styles = StyleManager::from_configs(&config.styles)?;
-    tracing::info!("Loaded {} style(s)", styles.len());
-
-    // Initialize native renderer for rendering (if styles are configured)
-    let renderer = if !styles.is_empty() {
-        match Renderer::new() {
-            Ok(r) => {
-                tracing::info!("Native MapLibre renderer initialized");
-                Some(Arc::new(r))
-            }
-            Err(e) => {
-                tracing::warn!("Failed to initialize renderer: {}. Rendering disabled.", e);
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    // Build base URL - use public_url if configured, otherwise auto-generate
-    let base_url = if let Some(ref public_url) = config.server.public_url {
-        public_url.trim_end_matches('/').to_string()
-    } else {
-        let host_for_url = if config.server.host == "0.0.0.0" {
-            "localhost"
-        } else {
-            &config.server.host
-        };
-        format!("http://{}:{}", host_for_url, config.server.port)
-    };
-
-    // Log fonts directory if configured
-    if let Some(ref fonts_path) = config.fonts {
-        if fonts_path.exists() {
-            tracing::info!("Fonts directory: {}", fonts_path.display());
-        } else {
-            tracing::warn!("Fonts directory not found: {}", fonts_path.display());
-        }
-    }
-
-    // Log files directory if configured
-    if let Some(ref files_path) = config.files {
-        if files_path.exists() {
-            tracing::info!("Files directory: {}", files_path.display());
-        } else {
-            tracing::warn!("Files directory not found: {}", files_path.display());
-        }
-    }
-
-    let state = AppState {
-        sources: Arc::new(sources),
-        styles: Arc::new(styles),
-        renderer,
-        base_url,
+    let runtime = RuntimeSettings {
         ui_enabled,
-        fonts_dir: config.fonts,
-        files_dir: config.files,
+        runtime_host: config.server.host.clone(),
+        runtime_port: config.server.port,
+        public_url_override: cli.public_url.clone(),
     };
+
+    let state = build_app_state(&config, &runtime).await?;
+    let meta = ReloadMeta {
+        config_hash: config_load.content_hash,
+        loaded_at_unix: now_unix_seconds(),
+        loaded_sources: state.sources.len(),
+        loaded_styles: state.styles.len(),
+        renderer_enabled: state.renderer.is_some(),
+    };
+
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        cli.config.clone(),
+        runtime,
+    ));
+    let shared = SharedState::new(controller.clone());
 
     if ui_enabled {
         tracing::info!("Web UI enabled at /");
@@ -216,7 +186,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     // Build router
-    let mut router = Router::new().merge(api_router(state.clone()));
+    let mut router = Router::new().merge(api_router(shared.clone()));
 
     // Add Swagger UI at /_openapi with bundled assets (works in air-gapped environments)
     router =
@@ -245,10 +215,51 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = TcpListener::bind(addr).await?;
 
+    let admin_handle = if let Ok(admin_addr) = config.server.admin_bind.parse::<SocketAddr>() {
+        if admin_addr.port() == 0 {
+            tracing::info!("Admin endpoint disabled (server.admin_bind port is 0)");
+            None
+        } else {
+            if !admin_addr.ip().is_loopback() {
+                tracing::warn!(
+                    "Admin endpoint bound to a non-loopback address: {}",
+                    admin_addr
+                );
+            }
+            let admin_router = admin_router(shared.clone());
+            let admin_listener = TcpListener::bind(admin_addr).await?;
+            let admin_addr = admin_listener.local_addr()?;
+            tracing::info!("Admin endpoint listening on http://{}", admin_addr);
+            Some(tokio::spawn(async move {
+                if let Err(err) = axum::serve(admin_listener, admin_router)
+                    .with_graceful_shutdown(shutdown_signal())
+                    .await
+                {
+                    tracing::error!("Admin server error: {}", err);
+                }
+            }))
+        }
+    } else {
+        tracing::warn!(
+            "Invalid admin bind address '{}', admin endpoint disabled",
+            config.server.admin_bind
+        );
+        None
+    };
+
+    let reload_controller = controller.clone();
+    tokio::spawn(async move {
+        reload_signal(reload_controller).await;
+    });
+
     // Run the server with graceful shutdown
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    if let Some(handle) = admin_handle {
+        handle.abort();
+    }
 
     // Shutdown OpenTelemetry
     telemetry::shutdown_telemetry();
@@ -315,9 +326,10 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not Found").into_response()
 }
 
-fn api_router(state: AppState) -> Router {
+fn api_router(state: SharedState) -> Router {
     Router::new()
         .route("/health", get(health_check))
+        .route("/ping", get(ping_check))
         // Note: /openapi.json and /_openapi/* are handled by SwaggerUi merge
         .route("/index.json", get(get_index_json))
         // Style endpoints
@@ -347,9 +359,9 @@ fn api_router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// Health check endpoint
-async fn health_check() -> (StatusCode, &'static str) {
-    (StatusCode::OK, "OK")
+/// Health check endpoint (legacy compatibility)
+async fn health_check() -> &'static str {
+    "OK"
 }
 
 /// Combined index entry for /index.json
@@ -372,9 +384,10 @@ struct IndexQueryParams {
 /// Query parameters:
 /// - `key`: Optional API key to append to all tile URLs
 async fn get_index_json(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Query(query): Query<IndexQueryParams>,
 ) -> Json<Vec<IndexEntry>> {
+    let state = shared.load();
     let mut entries = Vec::with_capacity(state.sources.len() + state.styles.len());
 
     // Build key query string
@@ -422,9 +435,10 @@ struct StylesQueryParams {
 /// Query parameters:
 /// - `key`: Optional API key to append to style URLs
 async fn get_all_styles(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Query(query): Query<StylesQueryParams>,
 ) -> Json<Vec<StyleInfo>> {
+    let state = shared.load();
     Json(
         state
             .styles
@@ -443,10 +457,11 @@ struct StyleQueryParams {
 /// Returns the style with all relative URLs rewritten to absolute URLs
 /// Query parameters (like `?key=API_KEY`) are forwarded to all rewritten URLs
 async fn get_style_json(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(style_id): Path<String>,
     Query(query): Query<StyleQueryParams>,
 ) -> Result<Json<serde_json::Value>, TileServerError> {
+    let state = shared.load();
     let style = state
         .styles
         .get(&style_id)
@@ -487,10 +502,11 @@ struct StyleTileJsonQueryParams {
 /// Query parameters:
 /// - `key`: Optional API key to append to tile URLs
 async fn get_style_tilejson(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(style_json): Path<String>,
     Query(query): Query<StyleTileJsonQueryParams>,
 ) -> Result<Json<RasterTileJson>, TileServerError> {
+    let state = shared.load();
     // Only handle requests ending with .json
     let style_id = style_json
         .strip_suffix(".json")
@@ -535,9 +551,10 @@ struct DataSourceQueryParams {
 /// Query parameters:
 /// - `key`: Optional API key to append to tile URLs
 async fn get_all_sources(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Query(query): Query<DataSourceQueryParams>,
 ) -> Json<Vec<TileJson>> {
+    let state = shared.load();
     let sources: Vec<TileJson> = state
         .sources
         .all_metadata()
@@ -553,10 +570,11 @@ async fn get_all_sources(
 /// Query parameters:
 /// - `key`: Optional API key to append to tile URLs
 async fn get_source_tilejson(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(source): Path<String>,
     Query(query): Query<DataSourceQueryParams>,
 ) -> Result<Json<TileJson>, TileServerError> {
+    let state = shared.load();
     // Strip .json extension if present
     let source_id = source.strip_suffix(".json").unwrap_or(&source);
 
@@ -589,16 +607,17 @@ impl TileParams {
 }
 
 async fn get_tile(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<TileParams>,
     Query(query): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     let (y, format) = params
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
 
     if format == "geojson" {
-        return get_tile_as_geojson(&state, &params.source, params.z, params.x, y).await;
+        return get_tile_as_geojson(state.as_ref(), &params.source, params.z, params.x, y).await;
     }
 
     #[cfg(feature = "raster")]
@@ -887,9 +906,10 @@ impl RasterTileParams {
 /// Get a raster tile (rendered from style)
 /// Route: GET /styles/{style}/{z}/{x}/{y}[@{scale}x].{format}
 async fn get_raster_tile(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<RasterTileParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Check if rendering is available
     let renderer = state
         .renderer
@@ -972,9 +992,10 @@ impl RasterTileWithSizeParams {
 /// Get a raster tile with variable tile size
 /// Route: GET /styles/{style}/{tile_size}/{z}/{x}/{y}[@{scale}x].{format}
 async fn get_raster_tile_with_size(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<RasterTileWithSizeParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Validate tile size (only 256 and 512 are supported)
     if params.tile_size != 256 && params.tile_size != 512 {
         return Err(TileServerError::RenderError(format!(
@@ -1075,10 +1096,11 @@ impl StaticImageParams {
 /// Get a static image
 /// Route: GET /styles/{style}/static/{static_type}/{width}x{height}[@{scale}x].{format}
 async fn get_static_image(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<StaticImageParams>,
     Query(query): Query<StaticQueryParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Check if rendering is available
     let renderer = state
         .renderer
@@ -1147,9 +1169,10 @@ struct SpriteParams {
 /// Get sprite image or metadata for a style
 /// Route: GET /styles/{style}/sprite[@{scale}x].{format}
 async fn get_sprite(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<SpriteParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Security: Strict validation of sprite file name
     // Only allow: sprite.png, sprite.json, sprite@2x.png, sprite@2x.json, sprite@3x.png, etc.
     if !params.sprite_file.starts_with("sprite") {
@@ -1223,10 +1246,11 @@ struct WmtsQueryParams {
 /// Query parameters:
 /// - `key`: Optional API key to append to all tile URLs (e.g., `?key=my_api_key`)
 async fn get_wmts_capabilities(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(style_id): Path<String>,
     Query(query): Query<WmtsQueryParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Get style
     let style = state
         .styles
@@ -1256,8 +1280,9 @@ async fn get_wmts_capabilities(
 /// Get list of available fonts
 /// Route: GET /fonts.json
 async fn get_fonts_list(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
 ) -> Result<Json<Vec<String>>, TileServerError> {
+    let state = shared.load();
     let fonts_dir = match &state.fonts_dir {
         Some(dir) => dir,
         None => return Ok(Json(Vec::new())),
@@ -1313,9 +1338,10 @@ struct FontParams {
 /// Get font glyphs (PBF format)
 /// Route: GET /fonts/{fontstack}/{start}-{end}.pbf
 async fn get_font_glyphs(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(params): Path<FontParams>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Check if fonts directory is configured
     let fonts_dir = state.fonts_dir.as_ref().ok_or_else(|| {
         TileServerError::FontNotFound("Fonts directory not configured".to_string())
@@ -1388,9 +1414,10 @@ async fn get_font_glyphs(
 /// Get a static file from the files directory
 /// Route: GET /files/{*filepath}
 async fn get_static_file(
-    State(state): State<AppState>,
+    State(shared): State<SharedState>,
     Path(filepath): Path<String>,
 ) -> Result<Response, TileServerError> {
+    let state = shared.load();
     // Check if files directory is configured
     let files_dir = state
         .files_dir
@@ -1440,4 +1467,93 @@ async fn get_static_file(
     );
 
     Ok((headers, data).into_response())
+}
+
+#[cfg(test)]
+mod reload_tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::http::StatusCode;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+    use tower::ServiceExt;
+
+    /// Build a minimal config string with an optional style.
+    fn config_with_style(style_path: Option<&std::path::Path>) -> String {
+        let mut config = String::from(
+            r#"
+[server]
+host = "127.0.0.1"
+port = 0
+cors_origins = ["*"]
+"#,
+        );
+
+        if let Some(path) = style_path {
+            config.push_str(&format!(
+                r#"
+
+[[styles]]
+id = "test-style"
+path = "{}"
+"#,
+                path.display()
+            ));
+        }
+
+        config
+    }
+
+    /// Build a SharedState backed by the given config path.
+    async fn build_shared_state(config_path: &std::path::Path) -> SharedState {
+        let load = Config::load_with_metadata(Some(config_path.to_path_buf())).unwrap();
+        let runtime = RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: load.config.server.host.clone(),
+            runtime_port: load.config.server.port,
+            public_url_override: None,
+        };
+        let state = build_app_state(&load.config, &runtime).await.unwrap();
+        let meta = ReloadMeta {
+            config_hash: load.content_hash,
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: state.sources.len(),
+            loaded_styles: state.styles.len(),
+            renderer_enabled: state.renderer.is_some(),
+        };
+
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            Some(config_path.to_path_buf()),
+            runtime,
+        ));
+
+        SharedState::new(controller)
+    }
+
+    /// Ensure the admin endpoint is not exposed on the public router.
+    #[tokio::test]
+    async fn admin_endpoint_is_not_on_public_router() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        let config = config_with_style(None);
+        config_file.write_all(config.as_bytes()).unwrap();
+
+        let shared = build_shared_state(config_file.path()).await;
+        let router = api_router(shared);
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/__admin/reload")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
 }

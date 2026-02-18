@@ -19,6 +19,7 @@ maplibre-native-sys = { path = "maplibre-native-sys" }
 anyhow = "1.0.101"
 async-trait = "0.1.89"
 axum = "0.8.8"
+arc-swap = "1.7.1"
 bytes = "1.11.1"
 clap = { version = "4.5.59", features = ["derive", "env"] }
 dotenvy = "0.15.7"
@@ -31,6 +32,7 @@ shellexpand = { version = "3.1.1", default-features = false, features = ["base-0
 rust-embed = { version = "8.11.0", features = ["axum"], optional = true }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+sha2 = "0.10.9"
 thiserror = "2.0.18"
 geozero = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2 = "1.1.9"

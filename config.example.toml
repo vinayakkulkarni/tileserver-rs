@@ -37,6 +37,10 @@ cors_origins = ["*"]
 # If not set, auto-generated from host:port
 # public_url = "http://localhost:4000"
 
+# Admin reload endpoint bind address (disabled by default)
+# Use port 0 to disable (default). Recommended to keep on 127.0.0.1 only.
+# admin_bind = "127.0.0.1:9099"
+
 # ============================================================================
 # OPENTELEMETRY CONFIGURATION
 # ============================================================================

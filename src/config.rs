@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
 #[cfg(feature = "raster")]
@@ -63,6 +64,10 @@ pub struct ServerConfig {
     pub port: u16,
     #[serde(default)]
     pub cors_origins: Vec<String>,
+    /// Optional admin bind address for the reload endpoint.
+    /// Use "127.0.0.1:0" (default) to disable.
+    #[serde(default = "default_admin_bind")]
+    pub admin_bind: String,
     /// Public URL for tile URLs in TileJSON responses.
     /// Use this when running behind a reverse proxy or Docker port mapping.
     /// Example: "http://localhost:4000" when Docker maps 4000:8080
@@ -79,12 +84,17 @@ fn default_port() -> u16 {
     8080
 }
 
+fn default_admin_bind() -> String {
+    "127.0.0.1:0".to_string()
+}
+
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             host: default_host(),
             port: default_port(),
             cors_origins: vec!["*".to_string()],
+            admin_bind: default_admin_bind(),
             public_url: None,
         }
     }
@@ -563,25 +573,47 @@ pub struct StyleConfig {
     pub name: Option<String>,
 }
 
+/// Configuration with source metadata and content hash
+pub struct ConfigLoadMetadata {
+    pub config: Config,
+    pub source_path: Option<PathBuf>,
+    pub content_hash: String,
+}
+
 impl Config {
+    /// Compute a stable hash of the expanded config content
+    fn hash_content(content: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(content.as_bytes());
+        let digest = hasher.finalize();
+        digest.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    /// Expand environment variables in the config content
     fn substitute_env_vars(content: &str) -> String {
         shellexpand::env_with_context_no_errors(content, |var| std::env::var(var).ok()).to_string()
     }
 
-    /// Load configuration from a TOML file
-    pub fn from_file(path: &PathBuf) -> anyhow::Result<Self> {
+    /// Load configuration from a TOML file and return metadata
+    fn from_file_with_metadata(path: &PathBuf) -> anyhow::Result<ConfigLoadMetadata> {
         let content = std::fs::read_to_string(path)?;
         let content = Self::substitute_env_vars(&content);
         let config: Config = toml::from_str(&content)?;
-        Ok(config)
+        Ok(ConfigLoadMetadata {
+            config,
+            source_path: Some(path.clone()),
+            content_hash: Self::hash_content(&content),
+        })
     }
 
-    /// Load configuration from environment or file
-    pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
+    /// Load configuration from environment or file, returning metadata
+    pub fn load_with_metadata(config_path: Option<PathBuf>) -> anyhow::Result<ConfigLoadMetadata> {
+        let _ = Self::load as fn(Option<PathBuf>) -> anyhow::Result<Self>;
+
         // Try loading from provided path
         if let Some(path) = config_path {
             if path.exists() {
-                return Self::from_file(&path);
+                return Self::from_file_with_metadata(&path);
             }
         }
 
@@ -593,12 +625,23 @@ impl Config {
 
         for path in default_paths {
             if path.exists() {
-                return Self::from_file(&path);
+                return Self::from_file_with_metadata(&path);
             }
         }
 
         // Return default config if no file found
-        Ok(Config::default())
+        let config = Config::default();
+        let content = toml::to_string(&config).unwrap_or_default();
+        Ok(ConfigLoadMetadata {
+            config,
+            source_path: None,
+            content_hash: Self::hash_content(&content),
+        })
+    }
+
+    /// Load configuration from environment or file
+    pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
+        Ok(Self::load_with_metadata(config_path)?.config)
     }
 }
 

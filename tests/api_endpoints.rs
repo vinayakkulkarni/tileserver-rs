@@ -25,9 +25,30 @@ mod health_tests {
     #[test]
     fn test_health_response_format() {
         // Health endpoint should return plain text "OK"
-        let expected_response = "OK";
-        assert_eq!(expected_response, "OK");
-        assert_eq!(expected_response.len(), 2);
+        let health_body = "OK";
+        assert_eq!(health_body, "OK");
+    }
+
+    #[test]
+    fn test_ping_response_format() {
+        // /ping should return JSON with runtime metadata fields
+        let response = serde_json::json!({
+            "status": "ok",
+            "config_hash": "abc123",
+            "loaded_at_unix": 1739583264,
+            "loaded_sources": 1,
+            "loaded_styles": 1,
+            "renderer_enabled": true,
+            "version": "2.7.0"
+        });
+
+        assert_eq!(response["status"], "ok");
+        assert!(response.get("config_hash").is_some());
+        assert!(response.get("loaded_at_unix").is_some());
+        assert!(response.get("loaded_sources").is_some());
+        assert!(response.get("loaded_styles").is_some());
+        assert!(response.get("renderer_enabled").is_some());
+        assert!(response.get("version").is_some());
     }
 }
 
@@ -69,6 +90,7 @@ mod openapi_tests {
         // All endpoints that should be documented
         let required_paths = [
             "/health",
+            "/ping",
             "/index.json",
             "/data.json",
             "/data/{source}",
@@ -124,6 +146,7 @@ mod openapi_tests {
             "VectorLayer",
             "StyleInfo",
             "GeoJSON",
+            "PingResponse",
             "ApiError",
         ];
 
@@ -553,7 +576,7 @@ mod content_type_tests {
     fn test_json_endpoints_content_type() {
         // JSON endpoints should return application/json
         let json_endpoints = [
-            "/health", // Returns text/plain
+            "/health", // Returns JSON
             "/index.json",
             "/data.json",
             "/styles.json",
