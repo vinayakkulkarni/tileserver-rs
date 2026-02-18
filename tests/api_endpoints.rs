@@ -574,9 +574,9 @@ mod content_type_tests {
 
     #[test]
     fn test_json_endpoints_content_type() {
-        // JSON endpoints should return application/json
+        // JSON endpoints should return application/json.
         let json_endpoints = [
-            "/health", // Returns JSON
+            "/health", // Returns text/plain
             "/index.json",
             "/data.json",
             "/styles.json",
