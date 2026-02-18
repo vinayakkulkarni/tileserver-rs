@@ -26,7 +26,11 @@ dotenvy = "0.15.7"
 futures = "0.3"
 image = { version = "0.25.9", default-features = false, features = ["png", "jpeg", "webp"] }
 mime_guess = "2.0.5"
-pmtiles = { version = "0.19.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
+pmtiles = { version = "0.19.2", default-features = false, features = [
+	"http-async",
+	"mmap-async-tokio",
+	"tilejson",
+] }
 reqwest = { version = "0.13.2", default-features = false, features = ["rustls"] }
 shellexpand = { version = "3.1.1", default-features = false, features = ["base-0"] }
 rust-embed = { version = "8.11.0", features = ["axum"], optional = true }
@@ -38,7 +42,14 @@ geozero = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2 = "1.1.9"
 tokio = { version = "1.49", features = ["full"] }
 toml = "0.9.12"
-tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
+tower-http = { version = "0.6.8", features = [
+	"fs",
+	"cors",
+	"compression-gzip",
+	"compression-br",
+	"trace",
+	"set-header",
+] }
 urlencoding = "2.1"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
