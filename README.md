@@ -53,6 +53,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 Native raster tile rendering requires building MapLibre Native. If you don't need raster tiles, the server runs without it (stub implementation returns placeholder images).
 
 **macOS (Apple Silicon/Intel):**
+
 ```bash
 # Install build dependencies
 brew install ninja ccache libuv glfw bazelisk cmake
@@ -65,6 +66,7 @@ cmake --build build-macos-metal --target mbgl-core mlt-cpp -j8
 ```
 
 **Linux:**
+
 ```bash
 # Install build dependencies (Ubuntu/Debian)
 apt-get install ninja-build ccache libuv1-dev libglfw3-dev cmake
@@ -77,6 +79,7 @@ cmake --build build-linux --target mbgl-core mlt-cpp -j8
 ```
 
 **After building MapLibre Native:**
+
 ```bash
 # Clear Cargo's cached build to detect the new libraries
 cd /path/to/tileserver-rs
@@ -114,12 +117,12 @@ tileserver-rs --config config.toml
 
 Download the latest release from [GitHub Releases](https://github.com/vinayakkulkarni/tileserver-rs/releases).
 
-| Platform | Architecture | Download |
-|----------|--------------|----------|
-| macOS | Apple Silicon (ARM64) | `tileserver-rs-aarch64-apple-darwin.tar.gz` |
-| macOS | Intel (x86_64) | `tileserver-rs-x86_64-apple-darwin.tar.gz` |
-| Linux | x86_64 | `tileserver-rs-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux | ARM64 | `tileserver-rs-aarch64-unknown-linux-gnu.tar.gz` |
+| Platform | Architecture          | Download                                         |
+| -------- | --------------------- | ------------------------------------------------ |
+| macOS    | Apple Silicon (ARM64) | `tileserver-rs-aarch64-apple-darwin.tar.gz`      |
+| macOS    | Intel (x86_64)        | `tileserver-rs-x86_64-apple-darwin.tar.gz`       |
+| Linux    | x86_64                | `tileserver-rs-x86_64-unknown-linux-gnu.tar.gz`  |
+| Linux    | ARM64                 | `tileserver-rs-aarch64-unknown-linux-gnu.tar.gz` |
 
 ```bash
 # macOS ARM64 (Apple Silicon)
@@ -206,6 +209,7 @@ files = "/data/files"
 host = "0.0.0.0"
 port = 8080
 cors_origins = ["*", "https://example.com"]  # Supports multiple origins
+admin_bind = "127.0.0.1:0"  # 0 disables the admin reload endpoint (default)
 
 [telemetry]
 enabled = false
@@ -244,63 +248,72 @@ See [config.example.toml](./config.example.toml) for a complete example, or [con
 
 ### Data Endpoints (Vector Tiles)
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /health` | Health check |
-| `GET /data.json` | List all tile sources |
-| `GET /data/{source}.json` | TileJSON for a source |
-| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile (`.pbf`, `.mvt`) |
-| `GET /data/{source}/{z}/{x}/{y}.geojson` | Get tile as GeoJSON (for debugging) |
+| Endpoint                                  | Description                                      |
+| ----------------------------------------- | ------------------------------------------------ |
+| `GET /health`                             | Health check (JSON with config hash + load time) |
+| `GET /data.json`                          | List all tile sources                            |
+| `GET /data/{source}.json`                 | TileJSON for a source                            |
+| `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile (`.pbf`, `.mvt`)               |
+| `GET /data/{source}/{z}/{x}/{y}.geojson`  | Get tile as GeoJSON (for debugging)              |
 
 ### Style Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /styles.json` | List all styles |
-| `GET /styles/{style}/style.json` | Get MapLibre GL style JSON |
-| `GET /styles/{style}/sprite[@2x].{png,json}` | Get sprite image/metadata |
-| `GET /styles/{style}/wmts.xml` | WMTS capabilities (for QGIS/ArcGIS) |
+| Endpoint                                     | Description                         |
+| -------------------------------------------- | ----------------------------------- |
+| `GET /styles.json`                           | List all styles                     |
+| `GET /styles/{style}/style.json`             | Get MapLibre GL style JSON          |
+| `GET /styles/{style}/sprite[@2x].{png,json}` | Get sprite image/metadata           |
+| `GET /styles/{style}/wmts.xml`               | WMTS capabilities (for QGIS/ArcGIS) |
 
 ### Font Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /fonts.json` | List available font families |
+| Endpoint                             | Description                  |
+| ------------------------------------ | ---------------------------- |
+| `GET /fonts.json`                    | List available font families |
 | `GET /fonts/{fontstack}/{range}.pbf` | Get font glyphs (PBF format) |
 
 ### Other Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /files/{filepath}` | Serve static files (GeoJSON, icons, etc.) |
-| `GET /index.json` | Combined TileJSON for all sources and styles |
+| Endpoint                | Description                                  |
+| ----------------------- | -------------------------------------------- |
+| `GET /files/{filepath}` | Serve static files (GeoJSON, icons, etc.)    |
+| `GET /index.json`       | Combined TileJSON for all sources and styles |
+
+### Admin Endpoints (localhost-only)
+
+| Endpoint               | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `POST /__admin/reload` | Reload config and swap state (requires `server.admin_bind`) |
 
 ### PostgreSQL Out-DB Raster Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}` | Raster tile from PostgreSQL-referenced VRT/COG |
-| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}?satellite=...` | With dynamic filtering via query params |
+| Endpoint                                                      | Description                                    |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}`               | Raster tile from PostgreSQL-referenced VRT/COG |
+| `GET /data/{outdb_source}/{z}/{x}/{y}.{format}?satellite=...` | With dynamic filtering via query params        |
 
 ### Rendering Endpoints (Native MapLibre)
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /styles/{style}/{z}/{x}/{y}[@{scale}x].{format}` | Raster tile (PNG/JPEG/WebP) |
-| `GET /styles/{style}/static/{type}/{size}[@{scale}x].{format}` | Static map image |
+| Endpoint                                                       | Description                 |
+| -------------------------------------------------------------- | --------------------------- |
+| `GET /styles/{style}/{z}/{x}/{y}[@{scale}x].{format}`          | Raster tile (PNG/JPEG/WebP) |
+| `GET /styles/{style}/static/{type}/{size}[@{scale}x].{format}` | Static map image            |
 
 **Raster Tile Examples:**
+
 ```
 /styles/protomaps-light/14/8192/5461.png          # 512x512 PNG @ 1x
 /styles/protomaps-light/14/8192/5461@2x.webp      # 1024x1024 WebP @ 2x (retina)
 ```
 
 **Performance:**
+
 - Warm cache: ~100ms per tile
 - Cold cache: ~700-800ms per tile (includes tile fetching)
 - Static images: ~3s for 800x600
 
 **Static Image Types:**
+
 - **Center**: `{lon},{lat},{zoom}[@{bearing}[,{pitch}]]`
   ```
   /styles/protomaps-light/static/-122.4,37.8,12/800x600.png
@@ -316,8 +329,36 @@ See [config.example.toml](./config.example.toml) for a complete example, or [con
   ```
 
 **Static Image Limits:**
+
 - Maximum dimensions: 4096x4096 pixels
 - Maximum scale: 4x
+
+## Reloading Config at Runtime
+
+tileserver-rs can hot-reload its configuration without a process restart.
+
+**SIGHUP (Unix):**
+
+```bash
+kill -HUP <pid>
+```
+
+**Admin endpoint (localhost-only):**
+
+```bash
+curl -X POST "http://127.0.0.1:9099/__admin/reload"
+```
+
+Optional query param to force a rebuild even if the config hash is unchanged:
+
+```bash
+curl -X POST "http://127.0.0.1:9099/__admin/reload?flush=true"
+```
+
+Notes:
+
+- If reload fails, the previous state stays active.
+- The admin endpoint is disabled by default; set `server.admin_bind` to a loopback address.
 
 ## Development
 
@@ -400,16 +441,19 @@ Deployments are triggered on push to `main` when files in `marketing/` change.
 This project uses [Release Please](https://github.com/googleapis/release-please) for automated releases. The release process is fully automated based on [Conventional Commits](https://www.conventionalcommits.org/).
 
 **How it works:**
+
 1. Commits to `main` with conventional commit messages (`feat:`, `fix:`, etc.) trigger Release Please
 2. Release Please creates/updates a **Release PR** with version bumps and changelog
 3. Merging the Release PR creates a GitHub Release and triggers platform builds
 
 **Version bumping:**
+
 - `feat:` commits → minor version (0.1.0 → 0.2.0)
 - `fix:` commits → patch version (0.1.0 → 0.1.1)
 - `feat!:` or `BREAKING CHANGE:` → major version (0.1.0 → 1.0.0)
 
 **Release artifacts:**
+
 - GitHub Release with changelog
 - macOS ARM64 binary (`.tar.gz`)
 - Docker image (`ghcr.io/vinayakkulkarni/tileserver-rs`)
@@ -454,7 +498,7 @@ git submodule update --init --depth 1
 
 Authored and maintained by Vinayak Kulkarni with help from contributors ([list](https://github.com/vinayakkulkarni/tileserver-rs/contributors)).
 
-> [vinayakkulkarni.dev](https://vinayakkulkarni.dev) · GitHub [@vinayakkulkarni](https://github.com/vinayakkulkarni) · Twitter [@_vinayak_k](https://twitter.com/_vinayak_k)
+> [vinayakkulkarni.dev](https://vinayakkulkarni.dev) · GitHub [@vinayakkulkarni](https://github.com/vinayakkulkarni) · Twitter [@\_vinayak_k](https://twitter.com/_vinayak_k)
 
 ### Special Thanks
 
