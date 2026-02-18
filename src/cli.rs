@@ -5,6 +5,10 @@ use std::path::PathBuf;
 #[command(name = "tileserver-rs")]
 #[command(author, version, about = "A high-performance tile server for PMTiles and MBTiles", long_about = None)]
 pub struct Cli {
+    /// Path to a tile file or directory to auto-detect sources/styles from
+    #[arg(value_name = "PATH")]
+    pub path: Option<PathBuf>,
+
     /// Path to configuration file
     #[arg(short, long, value_name = "FILE", env = "TILESERVER_CONFIG")]
     pub config: Option<PathBuf>,

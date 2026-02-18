@@ -2,12 +2,14 @@
 //!
 //! This module exposes the core functionality for testing and embedding.
 
+pub mod autodetect;
 pub mod cache_control;
 pub mod config;
 pub mod error;
 pub mod openapi;
 pub mod render;
 pub mod sources;
+pub mod startup;
 pub mod styles;
 pub mod wmts;
 

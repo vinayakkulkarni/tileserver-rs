@@ -22,6 +22,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+mod autodetect;
 mod cache_control;
 mod cli;
 mod config;
@@ -30,12 +31,13 @@ mod logging;
 mod openapi;
 mod render;
 mod sources;
+mod startup;
 mod styles;
 mod telemetry;
 mod wmts;
 
+use autodetect::AutoDetectReport;
 use cli::Cli;
-use config::Config;
 use error::TileServerError;
 use render::{ImageFormat, RenderOptions, Renderer, StaticQueryParams, StaticType};
 use sources::{SourceManager, TileJson};
@@ -69,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
     let verbose = cli.verbose;
 
     // Load configuration early to get telemetry settings
-    let mut config = Config::load(cli.config)?;
+    let (mut config, auto_detect_report) = startup::load_runtime_config(cli.config, cli.path)?;
 
     // Initialize tracing with OpenTelemetry
     // Filter out verbose MapLibre Native logs unless explicitly requested
@@ -99,6 +101,10 @@ async fn main() -> anyhow::Result<()> {
     }
     if let Some(public_url) = cli.public_url {
         config.server.public_url = Some(public_url);
+    }
+
+    if let Some(report) = auto_detect_report.as_ref() {
+        log_auto_detect_report(report);
     }
 
     // Load tile sources
@@ -254,6 +260,71 @@ async fn main() -> anyhow::Result<()> {
     telemetry::shutdown_telemetry();
 
     Ok(())
+}
+
+fn log_auto_detect_report(report: &AutoDetectReport) {
+    tracing::info!("Auto-detect path: {}", report.target.display());
+
+    if report.sources.is_empty() {
+        tracing::info!("Auto-detected sources: 0");
+    } else {
+        tracing::info!("Auto-detected sources: {}", report.sources.len());
+        for source in &report.sources {
+            let kind = match source.source_type {
+                config::SourceType::PMTiles => "pmtiles",
+                config::SourceType::MBTiles => "mbtiles",
+                #[cfg(feature = "postgres")]
+                config::SourceType::Postgres => "postgres",
+                #[cfg(feature = "raster")]
+                config::SourceType::Cog => "cog",
+                #[cfg(feature = "raster")]
+                config::SourceType::Vrt => "vrt",
+            };
+            tracing::info!(
+                "Auto-detected source: {} ({}) [{}]",
+                source.id,
+                kind,
+                source.path.display()
+            );
+        }
+    }
+
+    if report.styles.is_empty() {
+        tracing::info!("Auto-detected styles: 0");
+    } else {
+        tracing::info!("Auto-detected styles: {}", report.styles.len());
+        for style in &report.styles {
+            tracing::info!(
+                "Auto-detected style: {} [{}]",
+                style.id,
+                style.path.display()
+            );
+        }
+    }
+
+    if report.geojson_files.is_empty() {
+        tracing::info!("Auto-detected GeoJSON files: 0");
+    } else {
+        tracing::info!(
+            "Auto-detected GeoJSON files: {}",
+            report.geojson_files.len()
+        );
+        for path in &report.geojson_files {
+            tracing::info!("Auto-detected GeoJSON file: {}", path.display());
+        }
+    }
+
+    if let Some(fonts_dir) = &report.fonts_dir {
+        tracing::info!("Auto-detected fonts directory: {}", fonts_dir.display());
+    }
+
+    if let Some(sprites_dir) = &report.sprites_dir {
+        tracing::info!("Auto-detected sprites directory: {}", sprites_dir.display());
+    }
+
+    for warning in &report.conflicts {
+        tracing::warn!("{}", warning);
+    }
 }
 
 /// Signal handler for graceful shutdown
