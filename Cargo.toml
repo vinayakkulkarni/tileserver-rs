@@ -19,14 +19,14 @@ maplibre-native-sys = { path = "maplibre-native-sys" }
 anyhow = "1.0.102"
 arc-swap = "1.7.1"
 async-trait = "0.1.89"
-axum = "0.8.8"
+axum = { version = "0.8.8", features = [] }
 bytes = "1.11.1"
 clap = { version = "4.5.60", features = ["derive", "env"] }
 dotenvy = "0.15.7"
 futures = "0.3"
 image = { version = "0.25.9", default-features = false, features = ["png", "jpeg", "webp"] }
 mime_guess = "2.0.5"
-pmtiles = { version = "0.19.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
+pmtiles = { version = "0.19.2", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson", "write"] }
 reqwest = { version = "0.13.2", default-features = false, features = ["rustls"] }
 shellexpand = { version = "3.1.1", default-features = false, features = ["base-0"] }
 rust-embed = { version = "8.11.0", features = ["axum"], optional = true }
@@ -34,7 +34,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.9"
 thiserror = "2.0.18"
-geozero = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
+geozero = { version = "0.15.1", features = ["with-mvt", "with-geojson", "with-geo"] }
 flate2 = "1.1.9"
 tokio = { version = "1.49", features = ["full"] }
 toml = "0.9.12"
@@ -71,12 +71,20 @@ moka = { version = "0.12", features = ["future"], optional = true }
 # aws-config = { version = "1.5", optional = true }
 # aws-sdk-s3 = { version = "1.65", optional = true }
 
+# Geospatial conversion (optional, enabled with `convert` feature)
+geo = { version = "0.28", optional = true }
+indicatif = { version = "0.17", optional = true }
+geojson = { version = "0.24", optional = true }
+uuid = { version = "1.17", features = ["v4"], optional = true }
+rayon = { version = "1", optional = true }
+
 [features]
 default = ["postgres", "raster"]
 frontend = ["rust-embed"]
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "moka"]
 postgres-integration = ["postgres"]
 raster = ["gdal"]
+convert = ["geo", "indicatif", "geojson", "uuid", "axum/multipart", "rayon"]
 # s3 = ["aws-config", "aws-sdk-s3"]
 
 [dev-dependencies]

@@ -26,7 +26,7 @@ mod cli;
 mod logging;
 mod telemetry;
 
-use cli::Cli;
+use cli::{Cli, Commands};
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
 use tileserver_rs::cache_control;
@@ -53,9 +53,37 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     // Parse CLI arguments
-    let cli = Cli::parse_args();
+    let mut cli = Cli::parse_args();
     let ui_enabled = cli.ui_enabled();
     let verbose = cli.verbose;
+
+    // --- Convert subcommand (feature-gated) ---
+    // Runs conversion synchronously (CPU-bound, no async needed).
+    // If --serve is requested, override cli.path with the output file so that
+    // the normal server startup auto-detects and serves it.
+    #[cfg(feature = "convert")]
+    {
+        // Clone the args out of cli.command to avoid borrow conflicts when we
+        // need to mutate cli (cli.path, cli.port, cli.command) afterward.
+        let convert_args = if let Some(Commands::Convert(ref a)) = cli.command {
+            Some(a.clone())
+        } else {
+            None
+        };
+        if let Some(args) = convert_args {
+            let result = tileserver_rs::convert::run_cli(&args)?;
+
+            if args.serve {
+                // Override the positional path so the server auto-detects the output.
+                cli.path = Some(result.output_path);
+                cli.port = Some(args.port);
+                // Clear the subcommand so we fall through to normal server startup.
+                cli.command = None;
+            } else {
+                return Ok(());
+            }
+        }
+    }
 
     // Resolve configuration via startup priority chain:
     // 1. --config path (explicit)
@@ -180,6 +208,14 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     let mut router = Router::new().merge(api_router(shared.clone()));
+
+    // Mount convert routes when the feature is enabled
+    #[cfg(feature = "convert")]
+    {
+        let convert_state = tileserver_rs::convert::ConvertState::new();
+        router = router.merge(tileserver_rs::convert::router(convert_state));
+        tracing::info!("Convert endpoint enabled at POST /convert");
+    }
 
     // Add Swagger UI at /_openapi with bundled assets (works in air-gapped environments)
     let mut openapi_spec = openapi::ApiDoc::openapi();

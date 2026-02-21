@@ -2,6 +2,9 @@
 //!
 //! This module exposes the core functionality for testing and embedding.
 
+#[cfg(feature = "convert")]
+pub mod convert;
+
 pub mod admin;
 pub mod autodetect;
 pub mod cache_control;

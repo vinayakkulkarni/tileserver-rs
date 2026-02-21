@@ -11,6 +11,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - **PMTiles Support** - Serve tiles from local and remote PMTiles archives
 - **MBTiles Support** - Serve tiles from SQLite-based MBTiles files
+- **GeoJSON → PMTiles Conversion** - Convert GeoJSON to PMTiles in-process via CLI or HTTP upload (`--features convert`)
 - **Native Raster Rendering** - Generate PNG/JPEG/WebP tiles using MapLibre Native (C++ FFI)
 - **PostgreSQL Out-DB Rasters** - Serve VRT/COG tiles via PostGIS functions with dynamic filtering
 - **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler Static API)
@@ -39,6 +40,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
   - [Using Docker](#using-docker)
   - [Building from Source](#building-from-source)
 - [Configuration](#configuration)
+- [GeoJSON Conversion](#geojson-conversion)
 - [API Endpoints](#api-endpoints)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -190,6 +192,9 @@ bun install
 # Build the Rust backend
 cargo build --release
 
+# Build with GeoJSON conversion support (optional)
+cargo build --release --features convert
+
 # Build the frontend
 bun run build:client
 
@@ -259,6 +264,81 @@ This exposes `POST /__admin/reload` on a separate port for reloading configurati
 
 See [config.example.toml](./config.example.toml) for a complete example, or [config.offline.toml](./config.offline.toml) for a local development setup.
 
+## GeoJSON Conversion
+
+tileserver-rs can convert GeoJSON files to PMTiles archives directly — no external tools like tippecanoe required. Enable the feature at build time:
+
+```bash
+cargo build --release --features convert
+```
+
+### CLI Usage
+
+```bash
+# Basic conversion
+tileserver-rs convert input.geojson
+
+# With options
+tileserver-rs convert input.geojson \
+  --output output.pmtiles \
+  --min-zoom 0 \
+  --max-zoom 14 \
+  --layer-name my_layer
+
+# Convert and immediately serve
+tileserver-rs convert input.geojson --serve --port 8080
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `<INPUT>` | *(required)* | GeoJSON file to convert |
+| `-o, --output <FILE>` | `<input>.pmtiles` | Output PMTiles path |
+| `--min-zoom <N>` | `0` | Minimum zoom level |
+| `--max-zoom <N>` | `14` | Maximum zoom level |
+| `--layer-name <NAME>` | input filename stem | MVT layer name |
+| `--simplification <TOL>` | auto | Douglas-Peucker tolerance at z0 |
+| `--serve` | *(flag)* | Start tile server after conversion |
+| `-p, --port <PORT>` | `8080` | Port for `--serve` |
+
+### HTTP Upload
+
+When the server is built with `--features convert`, three additional endpoints are available:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/convert` | Upload GeoJSON (multipart), returns job ID |
+| `GET` | `/convert/{id}/status` | Poll job progress |
+| `GET` | `/convert/{id}/download` | Download finished PMTiles archive |
+
+```bash
+# Upload and start conversion
+curl -X POST http://localhost:8080/convert \
+  -F "file=@input.geojson" \
+  -F "min_zoom=0" \
+  -F "max_zoom=10"
+# → {"id":"<uuid>","status":"Processing"}
+
+# Poll status
+curl http://localhost:8080/convert/<id>/status
+# → {"id":"<uuid>","status":"Done","progress":1.0}
+
+# Download result
+curl -o result.pmtiles http://localhost:8080/convert/<id>/download
+```
+
+Jobs are cleaned up automatically after 1 hour.
+
+### How It Works
+
+The conversion pipeline runs entirely in-process:
+
+1. **Read** — GeoJSON features are loaded and geometries converted to WGS-84
+2. **Tile** — Features are distributed across (z, x, y) tiles using Web Mercator math
+3. **Clip** — Each feature is clipped to the tile's bounding box with a small buffer
+4. **Simplify** — Douglas-Peucker simplification is applied (tolerance scales with zoom)
+5. **Encode** — Clipped features are encoded as Mapbox Vector Tiles (MVT/protobuf)
+6. **Write** — Tiles are written to a PMTiles archive in Hilbert-curve order for optimal read performance
+
 ## API Endpoints
 
 ### Health & Admin Endpoints
@@ -301,6 +381,14 @@ See [config.example.toml](./config.example.toml) for a complete example, or [con
 |----------|-------------|
 | `GET /files/{filepath}` | Serve static files (GeoJSON, icons, etc.) |
 | `GET /index.json` | Combined TileJSON for all sources and styles |
+
+### Conversion Endpoints (`--features convert`)
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /convert` | Upload GeoJSON, start async conversion job |
+| `GET /convert/{id}/status` | Poll job progress (`{status, progress, error}`) |
+| `GET /convert/{id}/download` | Download finished PMTiles archive |
 
 ### PostgreSQL Out-DB Raster Endpoints
 
@@ -398,6 +486,13 @@ tileserver-rs/
 │   │   ├── renderer.rs      # High-level render API
 │   │   ├── native.rs        # Safe Rust wrappers around FFI
 │   │   └── types.rs         # RenderOptions, ImageFormat, etc.
+│   ├── convert/             # GeoJSON → PMTiles pipeline (--features convert)
+│   │   ├── pipeline.rs      # Orchestrates read → tile → encode → write
+│   │   ├── tiler.rs         # Web Mercator tile math
+│   │   ├── mvt_builder.rs   # MVT encoding via geozero/prost
+│   │   ├── writer.rs        # PMTiles archive writer
+│   │   ├── http.rs          # Axum HTTP handlers (/convert/*)
+│   │   └── input/           # Format readers (GeoJSON)
 │   ├── sources/             # Tile source implementations
 │   └── styles/              # Style management + rewriting
 ├── compose.yml              # Docker Compose (development)

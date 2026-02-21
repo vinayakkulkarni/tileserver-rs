@@ -1,10 +1,22 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+
+/// Subcommands (optional — no subcommand runs the tile server).
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Convert geospatial data to PMTiles archives
+    #[cfg(feature = "convert")]
+    Convert(tileserver_rs::convert::ConvertArgs),
+}
 
 #[derive(Parser, Debug)]
 #[command(name = "tileserver-rs")]
 #[command(author, version, about = "A high-performance tile server for PMTiles and MBTiles", long_about = None)]
 pub struct Cli {
+    /// Subcommand to run (omit to start the tile server)
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+
     /// Path to a tile file or directory to auto-detect sources/styles from
     #[arg(value_name = "PATH")]
     pub path: Option<PathBuf>,
