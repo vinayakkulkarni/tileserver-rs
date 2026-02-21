@@ -145,10 +145,10 @@ mod tests {
         // Test via read_features dispatch (wrong extension)
         use super::super::read_features;
         let mut f = Builder::new()
-            .suffix(".csv")
+            .suffix(".xlsx")
             .tempfile()
             .expect("create tempfile");
-        f.write_all(b"lon,lat\n13.4,52.5").expect("write");
+        f.write_all(b"dummy").expect("write");
         let result = read_features(f.path());
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Unsupported"));

@@ -3,6 +3,7 @@ use geo::Geometry;
 use serde_json::{Map, Value};
 use std::path::Path;
 
+pub mod csv;
 pub mod geojson;
 
 /// A single geospatial feature with WGS-84 geometry and JSON properties.
@@ -15,6 +16,7 @@ pub struct Feature {
 /// Supported input formats (for future extension).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputFormat {
+    Csv,
     GeoJson,
 }
 
@@ -23,6 +25,7 @@ impl InputFormat {
     pub fn from_path(path: &Path) -> Option<Self> {
         let ext = path.extension()?.to_str()?.to_ascii_lowercase();
         match ext.as_str() {
+            "csv" => Some(Self::Csv),
             "geojson" | "json" => Some(Self::GeoJson),
             _ => None,
         }
@@ -35,6 +38,7 @@ pub fn read_features(path: &Path) -> Result<Vec<Feature>> {
         .ok_or_else(|| anyhow::anyhow!("Unsupported file extension: {}", path.display()))?;
 
     match fmt {
+        InputFormat::Csv => csv::read(path),
         InputFormat::GeoJson => geojson::read(path),
     }
 }
