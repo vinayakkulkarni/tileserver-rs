@@ -21,7 +21,7 @@
     "eslint": "^10.0.0",
     "eslint-plugin-oxlint": "^1.49.0",
     "oxlint": "^1.49.0",
-    "wrangler": "^4.67.0"
+    "wrangler": "^4.68.0"
   },
   "author": {
     "name": "Vinayak Kulkarni",
