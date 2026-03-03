@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.10.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.9.1...v2.10.0) (2026-03-03)
+
+
+### Features
+
+* add dark/light mode toggle to marketing and docs ([696cf73](https://github.com/vinayakkulkarni/tileserver-rs/commit/696cf73160eb645e86fe7d89a7860724a3a47013))
+* **client:** add @maplibre/mlt dependency ([44d5fb5](https://github.com/vinayakkulkarni/tileserver-rs/commit/44d5fb51cc3a10ea77c6c2a71a9899dc0d7e3038))
+* **docs:** add copy-to-clipboard button for code blocks ([8ef4b1c](https://github.com/vinayakkulkarni/tileserver-rs/commit/8ef4b1cc665db580d9cb6f69cf456da0f9c775b5))
+* **docs:** add edit/report buttons and improved prev/next navigation ([34f0ba4](https://github.com/vinayakkulkarni/tileserver-rs/commit/34f0ba4b048c8fb37fd0ac7f245fe9478edc13e3))
+* **docs:** migrate from Docus to @nuxt/content ([8301847](https://github.com/vinayakkulkarni/tileserver-rs/commit/83018474063cefa36aa90f5e82f06c1eca213c45))
+* **marketing:** add GlareHover to Live Demo button, remove GradientText ([4d840cb](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d840cb7b635b85d48f46941873d5b2a7801dd8d))
+* **marketing:** add ShinyText component for hero heading ([d2d53df](https://github.com/vinayakkulkarni/tileserver-rs/commit/d2d53df9d0d71b43abb6f209cf43aa4becc92625))
+* **marketing:** replace static bg-grid with animated Squares component ([41aa1a4](https://github.com/vinayakkulkarni/tileserver-rs/commit/41aa1a4a8032377a0ec67053ff64ca15a67998bb))
+
+
+### Bug Fixes
+
+* **ci:** add build retry for flaky font provider fetches ([c2a413c](https://github.com/vinayakkulkarni/tileserver-rs/commit/c2a413ca2c091fdc6ebfc1aab497c0a71a0e9e95))
+* **client:** sharp design for style viewer and data inspector ([1789536](https://github.com/vinayakkulkarni/tileserver-rs/commit/178953623b27e9aedeb7fcc5ac433dd80ddae2b8))
+* **client:** use min-h-dvh for dynamic viewport height ([517bd8c](https://github.com/vinayakkulkarni/tileserver-rs/commit/517bd8c85c7a24f621f9df9a2a03b99701277b5e))
+* **docs:** add missing closing div in homepage nav ([5396d7d](https://github.com/vinayakkulkarni/tileserver-rs/commit/5396d7ddef5079e9ffeaf96e8727106b26658529))
+* **docs:** add theme toggle to homepage (layout: false bypass) ([e18dbe8](https://github.com/vinayakkulkarni/tileserver-rs/commit/e18dbe80df36c1766eec8803870f1ce41d3eec06))
+* **docs:** full-width homepage nav and refined scrollbar styles ([a90ec46](https://github.com/vinayakkulkarni/tileserver-rs/commit/a90ec46c333d46ed1cae47493c97e4f597f8deb7))
+* **docs:** remove duplicate border above edit/report buttons ([4bee9b0](https://github.com/vinayakkulkarni/tileserver-rs/commit/4bee9b0382b136b6c782f562e7ab4654a3f73cbe))
+* **docs:** resolve eslint/oxfmt conflicts and lint warnings ([a98ae1f](https://github.com/vinayakkulkarni/tileserver-rs/commit/a98ae1f25441bb94636146f65aa26b606af8aa46))
+* **docs:** use min-h-dvh and prevent horizontal overflow ([2ffe3d3](https://github.com/vinayakkulkarni/tileserver-rs/commit/2ffe3d34e70507180090238c9a6d984c6764d4ac))
+* **marketing:** use min-h-dvh, prevent horizontal overflow, fix code block overflow ([742bd35](https://github.com/vinayakkulkarni/tileserver-rs/commit/742bd35c495f9577fb71b92208ee026a79a00c15))
+* **marketing:** use theme-aware colors for light mode support ([885d87d](https://github.com/vinayakkulkarni/tileserver-rs/commit/885d87dfbc822b5faa0f2d152ddf0c394f686b26))
+
+
+### Miscellaneous
+
+* update lockfiles ([d30621e](https://github.com/vinayakkulkarni/tileserver-rs/commit/d30621e89b5079e17f58fb8f7cbd61528919f24b))
+* update lockfiles and dependencies ([44d8d3e](https://github.com/vinayakkulkarni/tileserver-rs/commit/44d8d3e64cf8de9b7afa7a024f34c90f10efe820))
+
+
+### Code Refactoring
+
+* **client:** extract composables and home sub-components ([cff2a00](https://github.com/vinayakkulkarni/tileserver-rs/commit/cff2a00cbf67fc8b33c51aaf5877d08387bce52e))
+* **marketing:** extract types, composables, and sub-components ([6d8bbf3](https://github.com/vinayakkulkarni/tileserver-rs/commit/6d8bbf3dfa11277dd1f248df5bf725509427db0b))
+
 ## [2.9.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.9.0...v2.9.1) (2026-03-03)
 
 

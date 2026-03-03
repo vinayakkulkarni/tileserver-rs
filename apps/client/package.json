@@ -1,6 +1,6 @@
 {
   "name": "@tileserver-rs/client",
-  "version": "2.9.1",
+  "version": "2.10.0",
   "private": true,
   "author": {
     "name": "Vinayak Kulkarni",
