@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.9.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.8.0...v2.9.0) (2026-03-03)
+
+
+### Features
+
+* **marketing:** add MLT transcoding feature card and config example ([c679913](https://github.com/vinayakkulkarni/tileserver-rs/commit/c679913fa895fde3dbdf75a4abca66fbf607f9bd))
+* **mlt:** add MLT transcoding error types ([75a091c](https://github.com/vinayakkulkarni/tileserver-rs/commit/75a091caf9a46f70a63ad77fd8589c8c4f6279cb))
+* **mlt:** add MLT-to-MVT transcoding module ([b26782e](https://github.com/vinayakkulkarni/tileserver-rs/commit/b26782ec4dc92002c2c43c69b7eb6e8d4efd79dc))
+* **mlt:** add serve_as config field for format transcoding ([02cdbc2](https://github.com/vinayakkulkarni/tileserver-rs/commit/02cdbc287123f9dd5635f118c39876ec0fbbc521))
+* **mlt:** wire transcoding into lib exports and tile handler ([00ae7df](https://github.com/vinayakkulkarni/tileserver-rs/commit/00ae7df1be8cc8df427daddf791ff4196a2fff98))
+* **styles:** inject MLT encoding hint in rewritten styles ([e57557f](https://github.com/vinayakkulkarni/tileserver-rs/commit/e57557f48e58465f4b50eea29ae3babe74f03912))
+
+
+### Bug Fixes
+
+* **ci:** prevent headless manifest from overwriting :latest tag ([#621](https://github.com/vinayakkulkarni/tileserver-rs/issues/621)) ([3603d25](https://github.com/vinayakkulkarni/tileserver-rs/commit/3603d25c7c82009d55424e8b97cd39791c809b14)), closes [#620](https://github.com/vinayakkulkarni/tileserver-rs/issues/620)
+* **deps:** bump actions/download-artifact from 7 to 8 ([bcf45d8](https://github.com/vinayakkulkarni/tileserver-rs/commit/bcf45d8453f0edf90d0d834d754af5b27a804e26))
+* **deps:** bump actions/download-artifact from 7 to 8 ([68ea5f7](https://github.com/vinayakkulkarni/tileserver-rs/commit/68ea5f713177e73a8e75e95bdeea677c25b6d251))
+* **deps:** bump actions/upload-artifact from 6 to 7 ([10c6cb2](https://github.com/vinayakkulkarni/tileserver-rs/commit/10c6cb253cd1c5b11fb11c0b3698c5bf176f662a))
+* **docker:** copy benches directory for Cargo manifest validation ([888ecb3](https://github.com/vinayakkulkarni/tileserver-rs/commit/888ecb38de6856a4d1b3853aa1557fc23d1c8661))
+
+
+### Documentation
+
+* add MLT transcoding feature card to docs landing page ([2518c0d](https://github.com/vinayakkulkarni/tileserver-rs/commit/2518c0d195c7d299633cd1908cc323e163039f67))
+* **mlt:** add MLT guide with benchmark results and config examples ([8f6b93c](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f6b93cf80c3b8b45e3766e4b815a69925b6893b))
+* **site:** add /ping, /__admin/reload, zero-config, and admin_bind to docs ([a5373ba](https://github.com/vinayakkulkarni/tileserver-rs/commit/a5373bac40ca6687314f325c09916965388d90bb))
+* update README, ARCHITECTURE, and CLAUDE.md with MLT support ([2aa6f2c](https://github.com/vinayakkulkarni/tileserver-rs/commit/2aa6f2c488dbfb9f1ed1016ac8507bda3e0af50f))
+* update README, ARCHITECTURE, and CLAUDE.md with new endpoints and features ([b6a7dea](https://github.com/vinayakkulkarni/tileserver-rs/commit/b6a7deac12390479a0d5e3b6183af8ff3a25b808))
+
+
+### Miscellaneous
+
+* **deps-dev:** update wrangler requirement from ^4.67.0 to ^4.68.0 ([#628](https://github.com/vinayakkulkarni/tileserver-rs/issues/628)) ([3cd43c3](https://github.com/vinayakkulkarni/tileserver-rs/commit/3cd43c386bc00c3ebe63aaef485fc8d6e7671958))
+* **deps:** update agents to v0.7.1 in docs ([0efa344](https://github.com/vinayakkulkarni/tileserver-rs/commit/0efa344ece11d46d6cf41f304928750040c6e149))
+* **deps:** update cargo and bun dependencies ([06c71c9](https://github.com/vinayakkulkarni/tileserver-rs/commit/06c71c91b5d7dc0d0f2755f79240858205b6d128))
+* **deps:** update oxfmt, lucide-vue-next, and @tanstack/vue-db ([becb1ed](https://github.com/vinayakkulkarni/tileserver-rs/commit/becb1edb0e0a92e530cefbd76bc88944f0fc1d53))
+
+
+### Code Refactoring
+
+* remove git_hash from ping response and delete build.rs ([442c692](https://github.com/vinayakkulkarni/tileserver-rs/commit/442c6929885c8bda99aad6df187a82381392b3e6))
+
 ## [2.8.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.7.1...v2.8.0) (2026-02-20)
 
 
