@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.9.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.9.0...v2.9.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **ci:** dispatch release-linux.yml instead of nonexistent per-arch files ([8efe293](https://github.com/vinayakkulkarni/tileserver-rs/commit/8efe2938cbcc74926717edbf0a105c187988850c))
+* **sources:** apply serve_as format override in source loading ([#637](https://github.com/vinayakkulkarni/tileserver-rs/issues/637)) ([df0ab70](https://github.com/vinayakkulkarni/tileserver-rs/commit/df0ab7009478b700f52a34a201cca4954974a582))
+
+
+### Documentation
+
+* add TiTiler benchmarks, demo link, and performance highlights ([e603011](https://github.com/vinayakkulkarni/tileserver-rs/commit/e60301198a3c2165af3c4bdd7ce20596721fa480))
+
+
+### Miscellaneous
+
+* **docs:** update agents dep ✨ ([7fb0d8e](https://github.com/vinayakkulkarni/tileserver-rs/commit/7fb0d8ed7464fa6dcd289c54a0e6cc6450be9363))
+
 ## [2.9.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.8.0...v2.9.0) (2026-03-03)
 
 
