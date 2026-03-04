@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.0...v2.11.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* **build:** enable mlt feature by default in Cargo.toml and Dockerfile ([#647](https://github.com/vinayakkulkarni/tileserver-rs/issues/647)) ([7044b7c](https://github.com/vinayakkulkarni/tileserver-rs/commit/7044b7cfeeef0724aa695999a2a4e31f10f36b98)), closes [#646](https://github.com/vinayakkulkarni/tileserver-rs/issues/646)
+
 ## [2.11.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.10.0...v2.11.0) (2026-03-04)
 
 
