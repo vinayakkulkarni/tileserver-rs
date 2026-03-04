@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.12.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.3...v2.12.0) (2026-03-04)
+
+
+### Features
+
+* **api:** add spatial API endpoints for LLM tool integration ([a4e080e](https://github.com/vinayakkulkarni/tileserver-rs/commit/a4e080ed73bc0ff9d51f2f56d6c62952894726a8))
+* **client:** add command palette UI and robust tool intent parser ([639c974](https://github.com/vinayakkulkarni/tileserver-rs/commit/639c974fc6bc250d4a86abafa0f8e61b93c1bfcc))
+* **client:** add landing page redesign + browser-local LLM chat panel ([b7c5f9a](https://github.com/vinayakkulkarni/tileserver-rs/commit/b7c5f9a135fff165009043a80cb8a6c92b7daf19))
+* **client:** add proper tool calling with TanStack AI toolDefinition ([bf44ee2](https://github.com/vinayakkulkarni/tileserver-rs/commit/bf44ee2090839841d9cfa15adf48899b22eb100e))
+* **client:** add server tools, chat persistence, and model selection ([962e508](https://github.com/vinayakkulkarni/tileserver-rs/commit/962e5083f9d96b634669709dc372b8cd26685e61))
+* **client:** browser-local LLM chat panel for map viewer ([aa5b3f7](https://github.com/vinayakkulkarni/tileserver-rs/commit/aa5b3f76123f9bddf5f66fa7a2d321996a524d3a))
+
+
+### Bug Fixes
+
+* **client:** enable scroll in command palette messages area ([994d120](https://github.com/vinayakkulkarni/tileserver-rs/commit/994d120ec646f4d60754a9bb13e9f3a30d9f2cfe))
+* **client:** inject real map state when tool calling fails ([f0c7f77](https://github.com/vinayakkulkarni/tileserver-rs/commit/f0c7f77fb391a59a22289e90e7ff52fafd5a1a4e))
+* **client:** polish LLM chat panel UI and fix X button overlap + duplicate messages ([4b7fb61](https://github.com/vinayakkulkarni/tileserver-rs/commit/4b7fb61c4afffda676bb484c6dc4820e422150b4))
+* **client:** remove backdrop blur from command palette scrim ([d91dce3](https://github.com/vinayakkulkarni/tileserver-rs/commit/d91dce3669ed3a5d3bb60081f94966e3eb5c2faa))
+* **client:** remove max-w-5xl container constraint for full-width layout ([2853fdb](https://github.com/vinayakkulkarni/tileserver-rs/commit/2853fdb2347fa68271113adf25d82e1c303510eb))
+* **client:** restore scroll position when reopening command palette ([5ff58c3](https://github.com/vinayakkulkarni/tileserver-rs/commit/5ff58c39bee994766777750dd9efad70936d514d))
+* **client:** suppress internal WebLLM errors from end users ([449f1d0](https://github.com/vinayakkulkarni/tileserver-rs/commit/449f1d0e16a24f71756a350ca01f653e5324e4d7))
+* **client:** use catalog for reka-ui instead of hardcoded ^2.8.2 ([e9768d2](https://github.com/vinayakkulkarni/tileserver-rs/commit/e9768d2478420c2acef3c9c239a8878265d54f22))
+* **client:** use native scroll for command palette messages ([2440553](https://github.com/vinayakkulkarni/tileserver-rs/commit/24405538bf46bf5b49573f55fba67339696957e0))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.11.3 ([3490329](https://github.com/vinayakkulkarni/tileserver-rs/commit/3490329312f00e8e18e927b41acb765db1b9c05a))
+
 ## [2.11.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.2...v2.11.3) (2026-03-04)
 
 
