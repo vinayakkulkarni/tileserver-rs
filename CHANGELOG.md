@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.11.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.10.0...v2.11.0) (2026-03-04)
+
+
+### Features
+
+* **marketing:** add responsive hamburger menu for mobile navigation ([b302791](https://github.com/vinayakkulkarni/tileserver-rs/commit/b30279117cb08caa4d4c07b6ec6c855d1491fa10))
+* **transcode:** implement MVT to MLT encoding via mlt-core ([1e7ec77](https://github.com/vinayakkulkarni/tileserver-rs/commit/1e7ec77716cb81383e0d97c1507e7d1389812fdd)), closes [#641](https://github.com/vinayakkulkarni/tileserver-rs/issues/641)
+* **transcode:** implement MVT to MLT encoding via mlt-core ([#644](https://github.com/vinayakkulkarni/tileserver-rs/issues/644)) ([27277f7](https://github.com/vinayakkulkarni/tileserver-rs/commit/27277f7e1c7fe499dd6cc3bde1fa443fb41c5876))
+
+
+### Bug Fixes
+
+* **serve:** return error on transcode failure instead of wrong-format data ([6788fc4](https://github.com/vinayakkulkarni/tileserver-rs/commit/6788fc4ef7bb6105ef9e42c6db881b3d10c09e0d))
+* **transcode:** resolve clippy approx_constant and useless_vec warnings ([91d7138](https://github.com/vinayakkulkarni/tileserver-rs/commit/91d7138c1b082aa9610f84a02a8ce47da2e6a05d))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.10.0 ([207cefe](https://github.com/vinayakkulkarni/tileserver-rs/commit/207cefe6cf169cfe8abbabb94551f5a5b3674dc6))
+
 ## [2.10.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.9.1...v2.10.0) (2026-03-03)
 
 
