@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.1...v2.11.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* **docker:** add cmake to rust-builder for mlt-core/fastpfor build ([319059a](https://github.com/vinayakkulkarni/tileserver-rs/commit/319059a5ae59ef54e204027e89dcd9241a249920))
+
 ## [2.11.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.0...v2.11.1) (2026-03-04)
 
 
