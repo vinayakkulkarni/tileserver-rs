@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.11.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.2...v2.11.3) (2026-03-04)
+
+
+### Bug Fixes
+
+* **transcode:** catch mlt-core panics during MVT→MLT encoding ([194a6d4](https://github.com/vinayakkulkarni/tileserver-rs/commit/194a6d4c03dda72115ae814538b03227d5bd2e47)), closes [#651](https://github.com/vinayakkulkarni/tileserver-rs/issues/651)
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.11.2 ([620c28d](https://github.com/vinayakkulkarni/tileserver-rs/commit/620c28d088c1b40eb9524e85bb6a3134a8a96b11))
+
 ## [2.11.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.1...v2.11.2) (2026-03-04)
 
 
