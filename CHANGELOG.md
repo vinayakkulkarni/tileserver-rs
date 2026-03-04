@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.11.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.10.0...v2.11.0) (2026-03-04)
+
+
+### Features
+
+* **marketing:** add responsive hamburger menu for mobile navigation ([b302791](https://github.com/vinayakkulkarni/tileserver-rs/commit/b30279117cb08caa4d4c07b6ec6c855d1491fa10))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.10.0 ([207cefe](https://github.com/vinayakkulkarni/tileserver-rs/commit/207cefe6cf169cfe8abbabb94551f5a5b3674dc6))
+
 ## [2.10.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.9.1...v2.10.0) (2026-03-03)
 
 
