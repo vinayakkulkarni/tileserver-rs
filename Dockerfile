@@ -62,7 +62,7 @@ RUN cmake --preset linux-opengl \
 # =============================================================================
 FROM oven/bun:1 AS node-builder
 
-ARG FEATURES="frontend"
+ARG FEATURES="frontend mlt"
 
 WORKDIR /app
 
@@ -139,8 +139,8 @@ RUN mkdir -p src benches && echo "fn main() {}" > src/main.rs && echo "fn main()
 # Copy the embedded SPA
 COPY --from=node-builder /app/apps/client/.output/public ./apps/client/.output/public
 
-# Features are now enabled by default in Cargo.toml (postgres, raster)
-ARG FEATURES="frontend"
+# Features are now enabled by default in Cargo.toml (postgres, raster, mlt)
+ARG FEATURES="frontend mlt"
 
 # Build dependencies only (may fail on first try, that's ok)
 RUN if [ -n "$FEATURES" ]; then \
