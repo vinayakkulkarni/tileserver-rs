@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.12.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.12.0...v2.12.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* **deps:** bump lucide-vue-next from 0.576.0 to 0.577.0 ([c930440](https://github.com/vinayakkulkarni/tileserver-rs/commit/c9304407794c9493ef601f6e5407d1cfdef1e3a0))
+* **deps:** bump lucide-vue-next from 0.576.0 to 0.577.0 ([3027cba](https://github.com/vinayakkulkarni/tileserver-rs/commit/3027cbaa628c613a81b922b397b7d05b5c8153c2))
+* **server:** graceful MVT fallback on transcode errors ([eb2be93](https://github.com/vinayakkulkarni/tileserver-rs/commit/eb2be935d40d95319114488bbf0d0cf067e77716))
+* **transcode:** upgrade mlt-core to 0.2.0 and adapt encoding API ([c17de25](https://github.com/vinayakkulkarni/tileserver-rs/commit/c17de25de0ec0c3fbda6274153de50ca9bf05591))
+
+
+### Miscellaneous
+
+* **deps:** upgrade zod v3 to v4, update outdated packages ([efb863b](https://github.com/vinayakkulkarni/tileserver-rs/commit/efb863b2b41d68ed123d2adb5af9e24072dded2c))
+* **docs:** bump dependencies ✨ ([0a96dac](https://github.com/vinayakkulkarni/tileserver-rs/commit/0a96dac18a24dc3416134c11ef6103d1d5e1f80c))
+* **marketing:** bump dependencies ✨ ([aa33191](https://github.com/vinayakkulkarni/tileserver-rs/commit/aa33191a450d0fbea3c66af296839914d84946c7))
+
 ## [2.12.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.11.3...v2.12.0) (2026-03-04)
 
 
