@@ -44,7 +44,7 @@
     "clsx": "catalog:",
     "lucide-vue-next": "catalog:",
     "maplibre-gl": "catalog:",
-    "markstream-vue": "^0.0.8-beta.1",
+    "markstream-vue": "^0.0.8-beta.2",
     "motion-v": "catalog:",
     "nuxt": "catalog:",
     "radix-vue": "catalog:",
