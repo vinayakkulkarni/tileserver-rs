@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.13.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.0...v2.13.1) (2026-03-06)
+
+
+### Miscellaneous
+
+* **deps:** regenerate lockfiles with latest compatible versions ([b9760ef](https://github.com/vinayakkulkarni/tileserver-rs/commit/b9760efb6a83939c5dae2a3e0de68ba8637fe3f6))
+* **deps:** restructure bun workspace catalogs to named-only ([#669](https://github.com/vinayakkulkarni/tileserver-rs/issues/669)) ([32bad16](https://github.com/vinayakkulkarni/tileserver-rs/commit/32bad16432afc616670a2b35c41389d0a44c6fe3))
+* **deps:** update cargo dependencies and refresh lockfiles ([91683b9](https://github.com/vinayakkulkarni/tileserver-rs/commit/91683b98a07663290d0d4542441097a7b4e5184d))
+
 ## [2.13.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.12.1...v2.13.0) (2026-03-06)
 
 
