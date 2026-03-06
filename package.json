@@ -33,7 +33,7 @@
         "@nuxt/eslint": "^1.15.2",
         "@nuxt/eslint-config": "^1.15.2",
         "@tailwindcss/postcss": "^4.2.1",
-        "@types/node": "^25.3.3",
+        "@types/node": "^25.3.5",
         "eslint": "^10.0.2",
         "eslint-plugin-better-tailwindcss": "^4.3.2",
         "eslint-plugin-oxlint": "^1.51.0",
@@ -42,12 +42,12 @@
         "vite": "^7.3.1"
       },
       "client": {
-        "@deck.gl/aggregation-layers": "^9.2.10",
-        "@deck.gl/core": "^9.2.10",
-        "@deck.gl/geo-layers": "^9.2.10",
-        "@deck.gl/layers": "^9.2.10",
-        "@deck.gl/mapbox": "^9.2.10",
-        "@deck.gl/mesh-layers": "^9.2.10",
+        "@deck.gl/aggregation-layers": "^9.2.11",
+        "@deck.gl/core": "^9.2.11",
+        "@deck.gl/geo-layers": "^9.2.11",
+        "@deck.gl/layers": "^9.2.11",
+        "@deck.gl/mapbox": "^9.2.11",
+        "@deck.gl/mesh-layers": "^9.2.11",
         "@geoql/v-maplibre": "^1.6.1",
         "@luma.gl/engine": "^9.2.6",
         "@maplibre/maplibre-gl-inspect": "^1.8.2",
@@ -58,12 +58,12 @@
         "@tanstack/ai": "^0.6.1",
         "@tanstack/ai-vue": "^0.6.1",
         "@mlc-ai/web-llm": "^0.2.81",
-        "markstream-vue": "^0.0.8-beta.1",
+        "markstream-vue": "^0.0.8-beta.2",
         "zod": "^4.3.6"
       },
       "marketing": {
         "@nuxtjs/plausible": "^3.0.2",
-        "wrangler": "^4.70.0"
+        "wrangler": "^4.71.0"
       }
     }
   },
