@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.13.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.12.1...v2.13.0) (2026-03-06)
+
+
+### Features
+
+* one-click deploy buttons for cloud platforms ([9950e0d](https://github.com/vinayakkulkarni/tileserver-rs/commit/9950e0d6dddb2234dd65bc54f0b5a56ee60a4f47))
+* one-click deploy with automatic sample data download ([1a649d5](https://github.com/vinayakkulkarni/tileserver-rs/commit/1a649d57ee5d30daa9ebe0c00dbda35be6d3b2b3)), closes [#603](https://github.com/vinayakkulkarni/tileserver-rs/issues/603)
+* **readme:** add Railway deploy button with live template URL ([0b05ade](https://github.com/vinayakkulkarni/tileserver-rs/commit/0b05ade676c1a402932736d098c5ebff6b4230c9))
+
+
+### Bug Fixes
+
+* **deps:** bump docker/build-push-action from 6 to 7 ([#664](https://github.com/vinayakkulkarni/tileserver-rs/issues/664)) ([ba07d53](https://github.com/vinayakkulkarni/tileserver-rs/commit/ba07d53ed3f101fa8adcc37ee65f8012481796bf))
+* **deps:** bump docker/metadata-action from 5 to 6 ([239614e](https://github.com/vinayakkulkarni/tileserver-rs/commit/239614eaff03307f022c531b9404b2e2fcc2019b))
+* **deps:** bump docker/metadata-action from 5 to 6 ([#663](https://github.com/vinayakkulkarni/tileserver-rs/issues/663)) ([239614e](https://github.com/vinayakkulkarni/tileserver-rs/commit/239614eaff03307f022c531b9404b2e2fcc2019b))
+* **deps:** bump docker/setup-buildx-action from 3 to 4 ([#662](https://github.com/vinayakkulkarni/tileserver-rs/issues/662)) ([0a2d9e0](https://github.com/vinayakkulkarni/tileserver-rs/commit/0a2d9e018770115fb17c24aabf09be42bc347cb3))
+
 ## [2.12.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.12.0...v2.12.1) (2026-03-05)
 
 
