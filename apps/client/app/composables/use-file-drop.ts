@@ -3,12 +3,13 @@ import type { FeatureCollection, GeoJSON } from 'geojson';
 import type { ShallowRef } from 'vue';
 import type {
   FileDropError,
+  FileDropSuccess,
   FileDropStatus,
   OverlayLayer,
 } from '~/types/file-upload';
 import type { Data } from '~/types/data';
 import { SERVER_SIDE_FORMATS } from '~/types/file-upload';
-import { validateFile, parseFile, terminateParseWorker } from '~/lib/file-parsers';
+import { validateFile, parseFile } from '~/lib/file-parsers';
 import { createOverlayConfig, nextOverlayColor, resetOverlayColors } from '~/lib/auto-style';
 import { useUploadFileMutation } from '~/utils/api/upload/use-upload-file.mutation';
 import { useDeleteUploadMutation } from '~/utils/api/upload/use-delete-upload.mutation';
@@ -27,6 +28,8 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
   const status = ref<FileDropStatus>('idle');
   const overlays = ref<OverlayLayer[]>([]);
   const lastError = ref<FileDropError | null>(null);
+  const lastSuccess = ref<FileDropSuccess | null>(null);
+  let successTimer: ReturnType<typeof setTimeout> | null = null;
 
   // TanStack mutations must be called at setup scope (not inside async handlers)
   const uploadMutation = useUploadFileMutation();
@@ -83,6 +86,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
       const color = nextOverlayColor();
       const config = createOverlayConfig(parsed, color);
       addClientOverlay(config, parsed, color);
+      notifySuccess(parsed.fileName, parsed.featureCount, parsed.format);
     }
   }
 
@@ -129,6 +133,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
         uploadId: response.id,
         bounds: tileJson?.bounds,
       });
+      notifySuccess(file.name, 0, format as FileDropSuccess['format']);
     }
     else {
       // MBTiles / SQLite = vector source
@@ -150,6 +155,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
         uploadId: response.id,
         bounds: tileJson?.bounds,
       });
+      notifySuccess(file.name, featureCount, format as FileDropSuccess['format']);
     }
   }
 
@@ -380,16 +386,22 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
     });
   }
 
-  // Clean up worker thread when composable scope is disposed
-  onScopeDispose(() => {
-    terminateParseWorker();
-  });
+  /** Show a success notification that auto-dismisses after 4 seconds */
+  function notifySuccess(fileName: string, featureCount: number, format: FileDropSuccess['format']) {
+    if (successTimer) clearTimeout(successTimer);
+    lastSuccess.value = { fileName, featureCount, format };
+    successTimer = setTimeout(() => {
+      lastSuccess.value = null;
+    }, 4000);
+  }
+
 
   return {
     dropZoneRef,
     status,
     overlays,
     lastError,
+    lastSuccess,
     isOverDropZone,
     hasOverlays,
     toggleOverlay,

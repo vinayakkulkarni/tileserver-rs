@@ -2,56 +2,6 @@ import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
 import type { GeometryType, ParsedFile, SupportedFormat } from '~/types/file-upload';
 import { FORMAT_EXTENSIONS, CLIENT_SIDE_FORMATS, MAX_FILE_SIZE_BYTES } from '~/types/file-upload';
 
-// ---------------------------------------------------------------------------
-// Worker management
-// ---------------------------------------------------------------------------
-
-/** Formats offloaded to the web worker (heavy parsing, no DOMParser needed) */
-const WORKER_FORMATS = new Set<SupportedFormat>(['geojson', 'csv', 'shapefile']);
-
-let worker: Worker | null = null;
-
-/** Get or create the file parse worker (lazy singleton) */
-function getWorker(): Worker {
-  if (!worker) {
-    worker = new Worker(new URL('./file-parse-worker.ts', import.meta.url), {
-      type: 'module',
-    });
-  }
-  return worker;
-}
-
-/** Send a parse request to the worker and await the result */
-function parseInWorker(
-  format: 'geojson' | 'csv' | 'shapefile',
-  fileName: string,
-  data: string | ArrayBuffer,
-): Promise<ParsedFile> {
-  return new Promise((resolve, reject) => {
-    const id = crypto.randomUUID();
-    const w = getWorker();
-
-    function handler(event: MessageEvent) {
-      if (event.data.id !== id) return;
-      w.removeEventListener('message', handler);
-
-      if (event.data.success) {
-        resolve(event.data.result as ParsedFile);
-      } else {
-        reject(new Error(event.data.error as string));
-      }
-    }
-
-    w.addEventListener('message', handler);
-
-    // Transfer ArrayBuffer for zero-copy (Shapefile)
-    if (data instanceof ArrayBuffer) {
-      w.postMessage({ id, format, fileName, data }, [data]);
-    } else {
-      w.postMessage({ id, format, fileName, data });
-    }
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -98,25 +48,28 @@ export function validateFile(file: File): { format: SupportedFormat } {
 /**
  * Parse a dropped file into a ParsedFile result.
  *
- * Heavy formats (GeoJSON, CSV, Shapefile) are offloaded to a web worker
- * to prevent blocking the main thread and freezing the map UI.
+ * Heavy formats (GeoJSON, CSV, Shapefile) are offloaded to web workers
+ * via nuxt-workers — auto-imported, zero config, SSR-safe.
  *
  * KML/GPX stay on main thread — they need DOMParser (unavailable in workers).
  * PMTiles stays on main thread — creates an object URL for MapLibre.
  */
 export async function parseFile(file: File, format: SupportedFormat): Promise<ParsedFile> {
-  // Offload heavy parsing to web worker
-  if (WORKER_FORMATS.has(format)) {
-    if (format === 'shapefile') {
-      const buffer = await file.arrayBuffer();
-      return parseInWorker(format, file.name, buffer);
-    }
-    const text = await file.text();
-    return parseInWorker(format as 'geojson' | 'csv', file.name, text);
-  }
-
-  // Main-thread parsing for formats that need browser APIs
   switch (format) {
+    // Worker-offloaded formats (nuxt-workers auto-imports)
+    case 'geojson': {
+      const text = await file.text();
+      return parseGeoJSON(file.name, text);
+    }
+    case 'csv': {
+      const text = await file.text();
+      return parseCSV(file.name, text);
+    }
+    case 'shapefile': {
+      const buffer = await file.arrayBuffer();
+      return parseShapefile(file.name, buffer);
+    }
+    // Main-thread parsing (require browser APIs not available in workers)
     case 'kml':
       return parseKML(file);
     case 'gpx':
@@ -125,17 +78,6 @@ export async function parseFile(file: File, format: SupportedFormat): Promise<Pa
       return parsePMTiles(file);
     default:
       throw new Error(`Format "${format}" requires server-side processing.`);
-  }
-}
-
-/**
- * Terminate the file parse worker.
- * Call on page unmount to free the worker thread.
- */
-export function terminateParseWorker(): void {
-  if (worker) {
-    worker.terminate();
-    worker = null;
   }
 }
 

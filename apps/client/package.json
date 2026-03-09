@@ -49,6 +49,7 @@
     "markstream-vue": "catalog:client",
     "motion-v": "catalog:default",
     "nuxt": "catalog:default",
+    "nuxt-workers": "^0.1.0",
     "papaparse": "^5.5.3",
     "pmtiles": "^4.4.0",
     "radix-vue": "catalog:default",

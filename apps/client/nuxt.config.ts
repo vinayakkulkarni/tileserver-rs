@@ -6,6 +6,7 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxtjs/color-mode',
     'motion-v/nuxt',
+    'nuxt-workers',
   ],
 
   fonts: {
@@ -87,11 +88,11 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    worker: {
-      format: 'es',
-    },
     optimizeDeps: {
       include: ['maplibre-gl', '@geoql/v-maplibre'],
+    },
+    worker: {
+      format: 'es',
     },
     ssr: {
       external: ['maplibre-gl', '@geoql/v-maplibre', 'markstream-vue', '@tanstack/vue-db', '@tanstack/db'],
