@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.14.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.14.0...v2.14.1) (2026-03-09)
+
+
+### Bug Fixes
+
+* **client:** reject standalone .shp files with clear error message ([a70349f](https://github.com/vinayakkulkarni/tileserver-rs/commit/a70349f69c0b69c099f80e731aad62d203af3060))
+
 ## [2.14.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.2...v2.14.0) (2026-03-09)
 
 
