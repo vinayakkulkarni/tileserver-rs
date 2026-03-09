@@ -8,7 +8,7 @@ import type {
 } from '~/types/file-upload';
 import type { Data } from '~/types/data';
 import { SERVER_SIDE_FORMATS } from '~/types/file-upload';
-import { validateFile, parseFile } from '~/lib/file-parsers';
+import { validateFile, parseFile, terminateParseWorker } from '~/lib/file-parsers';
 import { createOverlayConfig, nextOverlayColor, resetOverlayColors } from '~/lib/auto-style';
 import { useUploadFileMutation } from '~/utils/api/upload/use-upload-file.mutation';
 import { useDeleteUploadMutation } from '~/utils/api/upload/use-delete-upload.mutation';
@@ -379,6 +379,11 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
       duration: 1000,
     });
   }
+
+  // Clean up worker thread when composable scope is disposed
+  onScopeDispose(() => {
+    terminateParseWorker();
+  });
 
   return {
     dropZoneRef,

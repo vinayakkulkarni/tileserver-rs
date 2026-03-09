@@ -87,6 +87,9 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    worker: {
+      format: 'es',
+    },
     optimizeDeps: {
       include: ['maplibre-gl', '@geoql/v-maplibre'],
     },
@@ -110,6 +113,8 @@ export default defineNuxtConfig({
         '^/fonts/': 'http://localhost:8080',
         // Spatial API for LLM tool integration
         '^/api/spatial/': 'http://localhost:8080',
+        // Upload API for drag-and-drop file visualization
+        '^/api/upload': 'http://localhost:8080',
       },
     },
   },

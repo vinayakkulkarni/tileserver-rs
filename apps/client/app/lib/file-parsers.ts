@@ -1,6 +1,61 @@
-import type { FeatureCollection, GeoJSON, Geometry, Feature } from 'geojson';
+import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
 import type { GeometryType, ParsedFile, SupportedFormat } from '~/types/file-upload';
 import { FORMAT_EXTENSIONS, CLIENT_SIDE_FORMATS, MAX_FILE_SIZE_BYTES } from '~/types/file-upload';
+
+// ---------------------------------------------------------------------------
+// Worker management
+// ---------------------------------------------------------------------------
+
+/** Formats offloaded to the web worker (heavy parsing, no DOMParser needed) */
+const WORKER_FORMATS = new Set<SupportedFormat>(['geojson', 'csv', 'shapefile']);
+
+let worker: Worker | null = null;
+
+/** Get or create the file parse worker (lazy singleton) */
+function getWorker(): Worker {
+  if (!worker) {
+    worker = new Worker(new URL('./file-parse-worker.ts', import.meta.url), {
+      type: 'module',
+    });
+  }
+  return worker;
+}
+
+/** Send a parse request to the worker and await the result */
+function parseInWorker(
+  format: 'geojson' | 'csv' | 'shapefile',
+  fileName: string,
+  data: string | ArrayBuffer,
+): Promise<ParsedFile> {
+  return new Promise((resolve, reject) => {
+    const id = crypto.randomUUID();
+    const w = getWorker();
+
+    function handler(event: MessageEvent) {
+      if (event.data.id !== id) return;
+      w.removeEventListener('message', handler);
+
+      if (event.data.success) {
+        resolve(event.data.result as ParsedFile);
+      } else {
+        reject(new Error(event.data.error as string));
+      }
+    }
+
+    w.addEventListener('message', handler);
+
+    // Transfer ArrayBuffer for zero-copy (Shapefile)
+    if (data instanceof ArrayBuffer) {
+      w.postMessage({ id, format, fileName, data }, [data]);
+    } else {
+      w.postMessage({ id, format, fileName, data });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /**
  * Detect the geospatial format of a file from its extension.
@@ -42,21 +97,30 @@ export function validateFile(file: File): { format: SupportedFormat } {
 
 /**
  * Parse a dropped file into a ParsedFile result.
- * Only handles client-side formats. Server-side formats (MBTiles, SQLite, COG)
- * should be uploaded to the backend.
+ *
+ * Heavy formats (GeoJSON, CSV, Shapefile) are offloaded to a web worker
+ * to prevent blocking the main thread and freezing the map UI.
+ *
+ * KML/GPX stay on main thread — they need DOMParser (unavailable in workers).
+ * PMTiles stays on main thread — creates an object URL for MapLibre.
  */
 export async function parseFile(file: File, format: SupportedFormat): Promise<ParsedFile> {
+  // Offload heavy parsing to web worker
+  if (WORKER_FORMATS.has(format)) {
+    if (format === 'shapefile') {
+      const buffer = await file.arrayBuffer();
+      return parseInWorker(format, file.name, buffer);
+    }
+    const text = await file.text();
+    return parseInWorker(format as 'geojson' | 'csv', file.name, text);
+  }
+
+  // Main-thread parsing for formats that need browser APIs
   switch (format) {
-    case 'geojson':
-      return parseGeoJSON(file);
     case 'kml':
       return parseKML(file);
     case 'gpx':
       return parseGPX(file);
-    case 'csv':
-      return parseCSV(file);
-    case 'shapefile':
-      return parseShapefile(file);
     case 'pmtiles':
       return parsePMTiles(file);
     default:
@@ -64,22 +128,22 @@ export async function parseFile(file: File, format: SupportedFormat): Promise<Pa
   }
 }
 
-/** Parse a GeoJSON file */
-async function parseGeoJSON(file: File): Promise<ParsedFile> {
-  const text = await file.text();
-  const data = JSON.parse(text) as GeoJSON;
-  const { featureCount, geometryTypes } = analyzeGeoJSON(data);
-
-  return {
-    fileName: file.name,
-    format: 'geojson',
-    data,
-    featureCount,
-    geometryTypes,
-  };
+/**
+ * Terminate the file parse worker.
+ * Call on page unmount to free the worker thread.
+ */
+export function terminateParseWorker(): void {
+  if (worker) {
+    worker.terminate();
+    worker = null;
+  }
 }
 
-/** Parse a KML file using @tmcw/togeojson */
+// ---------------------------------------------------------------------------
+// Main-thread parsers (require browser APIs not available in workers)
+// ---------------------------------------------------------------------------
+
+/** Parse a KML file using @tmcw/togeojson (requires DOMParser) */
 async function parseKML(file: File): Promise<ParsedFile> {
   const { kml } = await import('@tmcw/togeojson');
   const text = await file.text();
@@ -102,7 +166,7 @@ async function parseKML(file: File): Promise<ParsedFile> {
   };
 }
 
-/** Parse a GPX file using @tmcw/togeojson */
+/** Parse a GPX file using @tmcw/togeojson (requires DOMParser) */
 async function parseGPX(file: File): Promise<ParsedFile> {
   const { gpx } = await import('@tmcw/togeojson');
   const text = await file.text();
@@ -125,77 +189,6 @@ async function parseGPX(file: File): Promise<ParsedFile> {
   };
 }
 
-/** Parse a CSV file using papaparse — expects lat/lon columns */
-async function parseCSV(file: File): Promise<ParsedFile> {
-  const Papa = await import('papaparse');
-  const text = await file.text();
-
-  return new Promise((resolve, reject) => {
-    Papa.default.parse<Record<string, string>>(text, {
-      header: true,
-      skipEmptyLines: true,
-      complete(results) {
-        if (results.errors.length > 0 && results.data.length === 0) {
-          reject(new Error(`CSV parse error: ${results.errors[0]?.message}`));
-          return;
-        }
-
-        const features = csvToFeatures(results.data, results.meta.fields ?? []);
-
-        if (features.length === 0) {
-          reject(
-            new Error(
-              'No coordinates found. CSV must have columns named lat/latitude/y and lon/longitude/lng/x.',
-            ),
-          );
-          return;
-        }
-
-        const data: FeatureCollection = {
-          type: 'FeatureCollection',
-          features,
-        };
-
-        resolve({
-          fileName: file.name,
-          format: 'csv',
-          data,
-          featureCount: features.length,
-          geometryTypes: ['Point'],
-        });
-      },
-      error(err: Error) {
-        reject(new Error(`CSV parse error: ${err.message}`));
-      },
-    });
-  });
-}
-
-/** Parse a Shapefile (.zip) using shpjs */
-async function parseShapefile(file: File): Promise<ParsedFile> {
-  const shp = await import('shpjs');
-  const buffer = await file.arrayBuffer();
-  const result = await shp.default(buffer);
-
-  // shpjs can return a single FeatureCollection or an array of them
-  const data: FeatureCollection = Array.isArray(result)
-    ? {
-        type: 'FeatureCollection',
-        features: result.flatMap((fc) => fc.features),
-      }
-    : result;
-
-  const { featureCount, geometryTypes } = analyzeGeoJSON(data);
-
-  return {
-    fileName: file.name,
-    format: 'shapefile',
-    data,
-    featureCount,
-    geometryTypes,
-  };
-}
-
 /** Handle PMTiles — create an object URL for MapLibre's pmtiles protocol */
 async function parsePMTiles(file: File): Promise<ParsedFile> {
   const objectUrl = URL.createObjectURL(file);
@@ -210,7 +203,7 @@ async function parsePMTiles(file: File): Promise<ParsedFile> {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (needed on main thread for KML/GPX analysis)
 // ---------------------------------------------------------------------------
 
 /** Analyze GeoJSON data to extract feature count and geometry types */
@@ -260,50 +253,4 @@ function addGeometryType(geometry: Geometry | null, types: Set<GeometryType>): v
       }
       break;
   }
-}
-
-/** Known column name aliases for latitude */
-const LAT_ALIASES = new Set(['lat', 'latitude', 'y', 'lat_y', 'point_y']);
-
-/** Known column name aliases for longitude */
-const LON_ALIASES = new Set(['lon', 'lng', 'longitude', 'x', 'long', 'lon_x', 'point_x']);
-
-/** Convert CSV rows to GeoJSON Point features */
-function csvToFeatures(
-  rows: Record<string, string>[],
-  fields: string[],
-): Feature[] {
-  const latField = fields.find((f) => LAT_ALIASES.has(f.toLowerCase().trim()));
-  const lonField = fields.find((f) => LON_ALIASES.has(f.toLowerCase().trim()));
-
-  if (!latField || !lonField) return [];
-
-  const features: Feature[] = [];
-
-  for (const row of rows) {
-    const lat = Number.parseFloat(row[latField] ?? '');
-    const lon = Number.parseFloat(row[lonField] ?? '');
-
-    if (Number.isNaN(lat) || Number.isNaN(lon)) continue;
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
-
-    // All non-coordinate fields become properties
-    const properties: Record<string, string> = {};
-    for (const field of fields) {
-      if (field !== latField && field !== lonField) {
-        properties[field] = row[field] ?? '';
-      }
-    }
-
-    features.push({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [lon, lat],
-      },
-      properties,
-    });
-  }
-
-  return features;
 }
