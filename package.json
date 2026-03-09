@@ -59,7 +59,16 @@
         "@tanstack/ai-vue": "^0.6.2",
         "@mlc-ai/web-llm": "^0.2.81",
         "markstream-vue": "^0.0.8-beta.3",
-        "zod": "^4.3.6"
+        "zod": "^4.3.6",
+        "@tmcw/togeojson": "^7.1.2",
+        "destr": "^2.0.5",
+        "nuxt-workers": "^0.1.0",
+        "papaparse": "^5.5.3",
+        "pmtiles": "^4.4.0",
+        "shpjs": "^6.2.0",
+        "@types/geojson": "^7946.0.16",
+        "@types/papaparse": "^5.5.2",
+        "@types/shpjs": "^3.4.7"
       },
       "marketing": {
         "@nuxtjs/plausible": "^3.0.2",
