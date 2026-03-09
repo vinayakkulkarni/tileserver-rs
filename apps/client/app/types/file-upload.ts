@@ -70,6 +70,13 @@ export interface FileDropError {
   message: string;
 }
 
+/** Success info from file drop processing */
+export interface FileDropSuccess {
+  fileName: string;
+  featureCount: number;
+  format: SupportedFormat;
+}
+
 /** File extension to format mapping */
 export const FORMAT_EXTENSIONS: Record<string, SupportedFormat> = {
   '.geojson': 'geojson',

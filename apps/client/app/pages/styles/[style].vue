@@ -24,6 +24,7 @@
     status: dropStatus,
     overlays,
     lastError: dropError,
+    lastSuccess: dropSuccess,
     isOverDropZone,
     hasOverlays,
     toggleOverlay,
@@ -95,8 +96,8 @@
       </ClientOnly>
     </div>
 
-    <!-- File drop overlay + error toast -->
-    <MapDropOverlay :status="dropStatus" :is-over="isOverDropZone" :error="dropError" />
+    <!-- File drop overlay + toast notifications -->
+    <MapDropOverlay :status="dropStatus" :is-over="isOverDropZone" :error="dropError" :success="dropSuccess" />
 
     <!-- Overlay layer panel -->
     <MapOverlayPanel
