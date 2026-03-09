@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.14.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.2...v2.14.0) (2026-03-09)
+
+
+### Features
+
+* **client:** drag-and-drop file visualization in the built-in viewer ([#672](https://github.com/vinayakkulkarni/tileserver-rs/issues/672)) ([6756add](https://github.com/vinayakkulkarni/tileserver-rs/commit/6756add236b8bdf977a4195e4fbae794c48d1fcb))
+
 ## [2.13.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.1...v2.13.2) (2026-03-09)
 
 
