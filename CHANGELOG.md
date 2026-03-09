@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.13.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.1...v2.13.2) (2026-03-09)
+
+
+### Bug Fixes
+
+* **bench:** replace deprecated criterion::black_box with std::hint::black_box ([3829ba1](https://github.com/vinayakkulkarni/tileserver-rs/commit/3829ba108c934c07890da0472ab4799e3aecda4e))
+
+
+### Miscellaneous
+
+* **deps:** upgrade mlt-core 0.3, toml 1.0, criterion 0.8 and bump npm deps ([2775425](https://github.com/vinayakkulkarni/tileserver-rs/commit/2775425612454b8a9111635e580040ade03c428e))
+* **docs:** bump dependencies ✨ ([4cd63e5](https://github.com/vinayakkulkarni/tileserver-rs/commit/4cd63e5adaa47d0fd17b705a0c2eb5601c81ce52))
+* **docs:** bump eslint and install better-sqlite3 ✨ ([e253660](https://github.com/vinayakkulkarni/tileserver-rs/commit/e25366079138194f58417d15c54f520e8ebc608d))
+
+
+### Code Refactoring
+
+* **client:** replace @maplibre/maplibre-gl-inspect with maplibre-gl-inspect ([b9e238a](https://github.com/vinayakkulkarni/tileserver-rs/commit/b9e238ac446393d9a33894b42326b59a745bae37))
+
 ## [2.13.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.13.0...v2.13.1) (2026-03-06)
 
 
