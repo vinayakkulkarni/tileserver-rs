@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.15.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.14.1...v2.15.0) (2026-03-09)
+
+
+### Features
+
+* **client:** add get_overlays tool for Map AI overlay awareness ([0a113f5](https://github.com/vinayakkulkarni/tileserver-rs/commit/0a113f55877362e828eb60b3305549eb1872a5d3))
+
 ## [2.14.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.14.0...v2.14.1) (2026-03-09)
 
 
