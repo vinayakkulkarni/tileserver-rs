@@ -17,3 +17,13 @@ export type {
   ReadonlyUIMessage,
   SuggestedPrompt,
 } from './llm';
+export type {
+  FileDropError,
+  FileDropStatus,
+  GeometryType,
+  OverlayLayer,
+  OverlaySourceConfig,
+  ParsedFile,
+  SupportedFormat,
+  UploadResponse,
+} from './file-upload';
