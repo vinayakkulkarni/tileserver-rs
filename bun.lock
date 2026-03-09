@@ -17,7 +17,7 @@
     },
     "apps/client": {
       "name": "@tileserver-rs/client",
-      "version": "2.13.1",
+      "version": "2.13.2",
       "dependencies": {
         "@deck.gl/aggregation-layers": "catalog:client",
         "@deck.gl/core": "catalog:client",
@@ -41,6 +41,7 @@
         "@vueuse/nuxt": "catalog:default",
         "class-variance-authority": "catalog:default",
         "clsx": "catalog:default",
+        "destr": "^2.0.5",
         "lucide-vue-next": "catalog:default",
         "maplibre-gl": "catalog:default",
         "maplibre-gl-inspect": "catalog:client",

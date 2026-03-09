@@ -42,6 +42,7 @@
     "@vueuse/nuxt": "catalog:default",
     "class-variance-authority": "catalog:default",
     "clsx": "catalog:default",
+    "destr": "^2.0.5",
     "lucide-vue-next": "catalog:default",
     "maplibre-gl": "catalog:default",
     "maplibre-gl-inspect": "catalog:client",
