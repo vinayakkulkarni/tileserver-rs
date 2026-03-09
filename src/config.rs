@@ -74,6 +74,13 @@ pub struct ServerConfig {
     /// If not set, auto-generated from host:port
     #[serde(default)]
     pub public_url: Option<String>,
+    /// Directory for uploaded files (temporary sources).
+    /// Defaults to system temp dir + "tileserver-uploads" if not set.
+    #[serde(default)]
+    pub upload_dir: Option<PathBuf>,
+    /// Maximum upload file size in megabytes (default: 500 MB)
+    #[serde(default = "default_upload_max_size_mb")]
+    pub upload_max_size_mb: u32,
 }
 
 fn default_host() -> String {
@@ -88,6 +95,10 @@ fn default_admin_bind() -> String {
     "127.0.0.1:0".to_string()
 }
 
+fn default_upload_max_size_mb() -> u32 {
+    500
+}
+
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
@@ -96,6 +107,8 @@ impl Default for ServerConfig {
             cors_origins: vec!["*".to_string()],
             admin_bind: default_admin_bind(),
             public_url: None,
+            upload_dir: None,
+            upload_max_size_mb: default_upload_max_size_mb(),
         }
     }
 }

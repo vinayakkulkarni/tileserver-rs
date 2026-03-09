@@ -19,7 +19,7 @@ maplibre-native-sys = { path = "maplibre-native-sys" }
 anyhow = "1.0.102"
 arc-swap = "1.8.2"
 async-trait = "0.1.89"
-axum = "0.8.8"
+axum = { version = "0.8.8", features = ["multipart"] }
 bytes = "1.11.1"
 clap = { version = "4.5.60", features = ["derive", "env"] }
 dotenvy = "0.15.7"
@@ -44,6 +44,7 @@ tokio = { version = "1.50", features = ["full"] }
 toml = "1.0"
 tower-http = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
 urlencoding = "2.1.3"
+uuid = { version = "1", features = ["v4"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 

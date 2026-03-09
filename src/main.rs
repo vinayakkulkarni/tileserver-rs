@@ -5,7 +5,7 @@ use axum::{
         HeaderMap, HeaderValue, Method, StatusCode,
     },
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 #[cfg(feature = "frontend")]
@@ -41,6 +41,7 @@ use tileserver_rs::render::{ImageFormat, RenderOptions, StaticQueryParams, Stati
 use tileserver_rs::sources::{self, TileJson};
 use tileserver_rs::startup;
 use tileserver_rs::styles::{self, StyleInfo, UrlQueryParams};
+use tileserver_rs::upload;
 use tileserver_rs::wmts;
 
 #[cfg(feature = "frontend")]
@@ -366,6 +367,14 @@ fn api_router(state: SharedState) -> Router {
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(get_tile))
         // Static files endpoint
         .route("/files/{*filepath}", get(get_static_file))
+        // Upload endpoints (streaming, large body limit)
+        .route(
+            "/api/upload",
+            post(upload::upload_file)
+                .get(upload::list_uploads)
+                .layer(axum::extract::DefaultBodyLimit::max(500 * 1024 * 1024)),
+        )
+        .route("/api/upload/{id}", delete(upload::delete_upload))
         // Spatial API endpoints (for LLM tool integration)
         .route("/api/spatial/schema/{source}", get(get_spatial_schema))
         .route("/api/spatial/stats/{source}", get(get_spatial_stats))

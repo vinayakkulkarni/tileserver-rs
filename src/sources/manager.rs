@@ -290,6 +290,27 @@ impl SourceManager {
         self.sources.is_empty()
     }
 
+    /// Clone the internal sources map (values are `Arc`, cheap to clone)
+    pub fn clone_sources(&self) -> HashMap<String, Arc<dyn TileSource>> {
+        self.sources.clone()
+    }
+
+    /// Create a SourceManager from an existing sources map
+    pub fn from_sources(sources: HashMap<String, Arc<dyn TileSource>>) -> Self {
+        Self {
+            sources,
+            #[cfg(feature = "postgres")]
+            postgres_pool: None,
+            #[cfg(feature = "postgres")]
+            tile_cache: None,
+        }
+    }
+
+    /// Remove a source by ID. Returns `true` if it existed.
+    pub fn remove_source(&mut self, id: &str) -> bool {
+        self.sources.remove(id).is_some()
+    }
+
     #[cfg(feature = "raster")]
     pub async fn get_raster_tile(
         &self,

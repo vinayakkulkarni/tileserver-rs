@@ -71,6 +71,12 @@ pub enum TileServerError {
     #[error("PostgreSQL version error: {0}")]
     PostgresVersionError(String),
 
+    #[error("upload error: {0}")]
+    UploadError(String),
+
+    #[error("file too large")]
+    UploadTooLarge,
+
     #[error("Internal error: {0}")]
     Internal(#[from] anyhow::Error),
 }
@@ -129,6 +135,8 @@ impl IntoResponse for TileServerError {
             TileServerError::PostgresVersionError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
+            TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            TileServerError::UploadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, self.to_string()),
             TileServerError::Internal(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".to_string(),

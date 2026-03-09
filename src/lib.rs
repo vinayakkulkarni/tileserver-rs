@@ -15,6 +15,7 @@ pub mod startup;
 pub mod styles;
 #[cfg(feature = "mlt")]
 pub mod transcode;
+pub mod upload;
 pub mod wmts;
 
 pub use config::Config;

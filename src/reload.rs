@@ -1,10 +1,11 @@
 use arc_swap::ArcSwap;
 use std::{
+    collections::HashMap,
     path::PathBuf,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{config::Config, render::Renderer, sources::SourceManager, styles::StyleManager};
 
@@ -17,17 +18,34 @@ pub struct AppState {
     pub ui_enabled: bool,
     pub fonts_dir: Option<PathBuf>,
     pub files_dir: Option<PathBuf>,
+    pub upload_dir: Option<PathBuf>,
 }
+
+/// Tracking info for an uploaded file source.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct UploadInfo {
+    pub id: String,
+    pub file_name: String,
+    pub format: String,
+    pub file_path: PathBuf,
+}
+
+/// Registry of uploaded sources, keyed by source ID.
+pub type UploadRegistry = Arc<RwLock<HashMap<String, UploadInfo>>>;
 
 /// Shared handle for accessing the active application state.
 #[derive(Clone)]
 pub struct SharedState {
     controller: Arc<ReloadController>,
+    uploads: UploadRegistry,
 }
 
 impl SharedState {
     pub fn new(controller: Arc<ReloadController>) -> Self {
-        Self { controller }
+        Self {
+            controller,
+            uploads: Arc::new(RwLock::new(HashMap::new())),
+        }
     }
 
     pub fn load(&self) -> Arc<AppState> {
@@ -40,6 +58,16 @@ impl SharedState {
 
     pub async fn reload(&self, flush: bool) -> anyhow::Result<ReloadResult> {
         self.controller.reload(flush).await
+    }
+
+    /// Access the upload registry (for upload/delete handlers)
+    pub fn uploads(&self) -> &UploadRegistry {
+        &self.uploads
+    }
+
+    /// Store a new AppState (used by upload/delete to swap sources at runtime)
+    pub fn store(&self, state: Arc<AppState>) {
+        self.controller.app.store(state);
     }
 }
 
@@ -213,6 +241,21 @@ pub async fn build_app_state(
         }
     }
 
+    // Resolve upload directory
+    let upload_dir = if let Some(ref dir) = config.server.upload_dir {
+        Some(dir.clone())
+    } else {
+        Some(std::env::temp_dir().join("tileserver-uploads"))
+    };
+
+    if let Some(ref dir) = upload_dir {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            tracing::warn!("Failed to create upload directory {}: {}", dir.display(), e);
+        } else {
+            tracing::info!("Upload directory: {}", dir.display());
+        }
+    }
+
     Ok(AppState {
         sources: Arc::new(sources),
         styles: Arc::new(styles),
@@ -221,6 +264,7 @@ pub async fn build_app_state(
         ui_enabled: runtime.ui_enabled,
         fonts_dir: config.fonts.clone(),
         files_dir: config.files.clone(),
+        upload_dir,
     })
 }
 
