@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.15.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.15.0...v2.15.1) (2026-03-10)
+
+
+### Bug Fixes
+
+* **ci:** use node --stack-size for Nuxt builds to fix @mlc-ai/web-llm CJS resolver stack overflow ([6da1aaa](https://github.com/vinayakkulkarni/tileserver-rs/commit/6da1aaa2998f2be1c9625cf166c808bde0b149a5))
+* **ci:** use ulimit -s unlimited with bun run instead of node --stack-size hack ([1fca05a](https://github.com/vinayakkulkarni/tileserver-rs/commit/1fca05ab60505dcf8d886a488babbe1f7b8dfa98))
+* **docs:** add deploy and file-drop guides to sidebar navigation ([d76376c](https://github.com/vinayakkulkarni/tileserver-rs/commit/d76376c69881ea27ce657385d6135783c19762e5))
+* **tests:** update tag count assertion for new Upload and Spatial tags ([909ae12](https://github.com/vinayakkulkarni/tileserver-rs/commit/909ae1281bf861e9405c71aabbe541e040202bc2))
+
+
+### Documentation
+
+* update docs, marketing, and openapi for v2.15.1 ([a7e2e5f](https://github.com/vinayakkulkarni/tileserver-rs/commit/a7e2e5f5d04a7a279234481f7b5d5027bbbba379))
+
+
+### Miscellaneous
+
+* **deps:** update all Cargo.toml version specifiers to latest, upgrade mlt-core 0.3→0.4 ([19da5d3](https://github.com/vinayakkulkarni/tileserver-rs/commit/19da5d389e7675383daa071ca4f5cb853a0be4ac))
+* **deps:** update cargo and bun dependencies ([89ef82d](https://github.com/vinayakkulkarni/tileserver-rs/commit/89ef82d76f77b22749c44c831623911e290e9d89))
+
 ## [2.15.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.14.1...v2.15.0) (2026-03-09)
 
 
