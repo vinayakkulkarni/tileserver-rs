@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.1...v2.16.2) (2026-03-11)
+
+
+### Miscellaneous
+
+* add 7 marketing skills from coreyhaines31/marketingskills ([57c26c0](https://github.com/vinayakkulkarni/tileserver-rs/commit/57c26c001fe710224a19cf3ce93ccb8363e1e03e))
+
 ## [2.16.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.0...v2.16.1) (2026-03-11)
 
 
