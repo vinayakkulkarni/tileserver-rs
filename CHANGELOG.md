@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.16.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.15.1...v2.16.0) (2026-03-11)
+
+
+### Features
+
+* **docs:** add Galaxy WebGL starfield background to landing page ([47a781f](https://github.com/vinayakkulkarni/tileserver-rs/commit/47a781f9cd42e164b3edb34d80e5d352083a284b))
+* **docs:** add SEO, rename composables, and update navigation ([ed9daa3](https://github.com/vinayakkulkarni/tileserver-rs/commit/ed9daa356c8d8cb9eb9015ca56972979346baa21))
+* **marketing:** add ogl dependency for Galaxy starfield background ([545d3cb](https://github.com/vinayakkulkarni/tileserver-rs/commit/545d3cbb5ba71f3cc6e7c3fb28da466bdab57cf6))
+* **marketing:** add SEO, AI section, and rename composables ([a19b124](https://github.com/vinayakkulkarni/tileserver-rs/commit/a19b1240bbcf4457b7513984e3e3125c7bf65279))
+* **marketing:** highlight OpenAPI spec in API section with link to live docs ([e02bea3](https://github.com/vinayakkulkarni/tileserver-rs/commit/e02bea3f6c9d045a9521ee6cdffacda290f4cb49))
+* **marketing:** replace Squares with Galaxy WebGL starfield ([d5fdd8c](https://github.com/vinayakkulkarni/tileserver-rs/commit/d5fdd8c716e54d9314153f149fdb0331fb50fcd9))
+
+
+### Bug Fixes
+
+* **ci:** allow Release Please and Dependabot branches in lint-branch ([919363d](https://github.com/vinayakkulkarni/tileserver-rs/commit/919363d65fab5020e1f73fa1e2a189482ddab15e))
+* **ci:** wrap ulimit -s unlimited with error handling on macOS ([7a3e7a3](https://github.com/vinayakkulkarni/tileserver-rs/commit/7a3e7a392ac9ae5fd561c1c4ed147fce9b4eb8a7))
+* **docs:** resolve 211 eslint errors from stricter rule enforcement ([f19663c](https://github.com/vinayakkulkarni/tileserver-rs/commit/f19663c7c32dfe0ff7d8aa1e5a83015153cdb091))
+* **marketing:** prevent GlareHover from blocking button clicks ([952e10f](https://github.com/vinayakkulkarni/tileserver-rs/commit/952e10f5e2dcc2e2a033e94411b80055593f9f48))
+* **marketing:** remove max-w-6xl from nav for full-width consistency ([ca44459](https://github.com/vinayakkulkarni/tileserver-rs/commit/ca444595acc27632a0233f7ebc61df0d2812a552))
+
+
+### Documentation
+
+* **guides:** add browser-local AI chat guide ([c55c6db](https://github.com/vinayakkulkarni/tileserver-rs/commit/c55c6db206f2659d5d7935d8d0c01a0a0dbed1cb))
+
+
+### Miscellaneous
+
+* add project skills for marketing, SEO, and Vue/Nuxt ([3946a4f](https://github.com/vinayakkulkarni/tileserver-rs/commit/3946a4f1c2a75e8f009a0c29d306196e3f334ad4))
+* **deps:** update all dependencies to latest versions ([cb8af56](https://github.com/vinayakkulkarni/tileserver-rs/commit/cb8af56eb3e5f99731bc23935a550df053cdca30))
+
 ## [2.15.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.15.0...v2.15.1) (2026-03-10)
 
 
