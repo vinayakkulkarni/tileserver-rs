@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.0...v2.16.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* **ci:** add retry logic for web-llm stack overflow in release builds ([05b8ce4](https://github.com/vinayakkulkarni/tileserver-rs/commit/05b8ce44e47fb114c03a0a6f111912a437000b51))
+
 ## [2.16.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.15.1...v2.16.0) (2026-03-11)
 
 
