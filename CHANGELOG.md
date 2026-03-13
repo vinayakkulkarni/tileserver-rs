@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.17.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.2...v2.17.0) (2026-03-13)
+
+
+### Features
+
+* **apps:** redesign marketing and docs with geometric grid layout ([856ec05](https://github.com/vinayakkulkarni/tileserver-rs/commit/856ec05397f14a93109e9b43f4852952bb3ce8bb))
+* **marketing:** add geometric grid design to all sections ([ce724f1](https://github.com/vinayakkulkarni/tileserver-rs/commit/ce724f1daea51651f3cc08ea2f037a9b2f0a9a76))
+
+
+### Bug Fixes
+
+* add fade transition and fix left gutter sizing ([12f533a](https://github.com/vinayakkulkarni/tileserver-rs/commit/12f533a4319fa72b154f3944f11751c33619b797))
+* **docs:** add trailing newlines ([f226add](https://github.com/vinayakkulkarni/tileserver-rs/commit/f226add3f5a571e576bf5341e2228af58a0561a4))
+* pin oxfmt to 0.36.0 to avoid reformatting template strings ([d0b79fe](https://github.com/vinayakkulkarni/tileserver-rs/commit/d0b79fe2416823249a50d49d42d3f2cd11ebb12a))
+* properly implement geometric design for docs and marketing ([bb8141f](https://github.com/vinayakkulkarni/tileserver-rs/commit/bb8141f75a1c3e9b7c5cee97150372c9f37b9f84))
+* remove FadeContent wrappers to match geolith ([9892043](https://github.com/vinayakkulkarni/tileserver-rs/commit/989204326d146655305b3601e0fe6815ea0cf039))
+* **render:** resolve static rendering failures on GPU-less servers ([2986d5d](https://github.com/vinayakkulkarni/tileserver-rs/commit/2986d5d891de2ebdf72f09193e2931a6e2a02601))
+
+
+### Miscellaneous
+
+* pin oxfmt cause of the bug in oxfmt ([a341b03](https://github.com/vinayakkulkarni/tileserver-rs/commit/a341b03df30be48e03905da063107ae9850b8b4d))
+
 ## [2.16.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.1...v2.16.2) (2026-03-11)
 
 
