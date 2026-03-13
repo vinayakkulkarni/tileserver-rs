@@ -90,7 +90,7 @@
     "prepare": "is-ci || husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.3",
+    "@commitlint/cli": "^20.4.4",
     "@commitlint/config-conventional": "^20.4.3",
     "husky": "^9.1.7",
     "is-ci": "^4.1.0",
