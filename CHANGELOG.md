@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.17.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.17.0...v2.17.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* **docs:** move public/ to root level and pre-bundle Vite deps ([9547ac8](https://github.com/vinayakkulkarni/tileserver-rs/commit/9547ac8ed841376e4c9a239ced76a4f8e309bd1b))
+* **marketing:** mobile responsive layout and visual fixes ([08f7f7a](https://github.com/vinayakkulkarni/tileserver-rs/commit/08f7f7a4adc8870ffa46e9da462745d690909b1c))
+* **render:** rewrite renderer pool with concurrent worker threads ([96ed510](https://github.com/vinayakkulkarni/tileserver-rs/commit/96ed5107edba128db053abfab649db6fb63b6d1e)), closes [#692](https://github.com/vinayakkulkarni/tileserver-rs/issues/692)
+
+
+### Miscellaneous
+
+* **deps:** update workspace catalog dependencies ([1687af3](https://github.com/vinayakkulkarni/tileserver-rs/commit/1687af312918045bf7f4ff8cf1fb995b0b8b3ed1))
+* **docs:** update lockfile and dependency versions ([2c1b091](https://github.com/vinayakkulkarni/tileserver-rs/commit/2c1b091da2222fd6afdd0e79485f638a47186de1))
+
 ## [2.17.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.16.2...v2.17.0) (2026-03-13)
 
 
