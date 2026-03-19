@@ -223,6 +223,8 @@ pub struct SourceConfig {
     #[serde(default)]
     pub geometry_column: Option<String>,
     #[serde(default)]
+    pub query: Option<String>,
+    #[serde(default)]
     pub minzoom: Option<u8>,
     #[serde(default)]
     pub maxzoom: Option<u8>,
@@ -248,6 +250,8 @@ pub enum SourceType {
     Vrt,
     #[cfg(feature = "geoparquet")]
     GeoParquet,
+    #[cfg(feature = "duckdb")]
+    DuckDB,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]
