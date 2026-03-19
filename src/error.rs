@@ -143,7 +143,6 @@ impl IntoResponse for TileServerError {
             TileServerError::PostgresVersionError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
-<<<<<<< HEAD
             #[cfg(feature = "geoparquet")]
             TileServerError::GeoParquetError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())

@@ -57,6 +57,8 @@ fn source_type_label(st: &SourceType) -> &'static str {
         SourceType::Vrt => "vrt",
         #[cfg(feature = "geoparquet")]
         SourceType::GeoParquet => "geoparquet",
+#[cfg(feature = "duckdb")]
+        SourceType::DuckDB => "duckdb",
     }
 }
 
@@ -144,6 +146,7 @@ pub async fn upload_file(
         geometry_column: None,
         minzoom: None,
         maxzoom: None,
+        query: None,
         serve_as: None,
         #[cfg(feature = "raster")]
         colormap: None,

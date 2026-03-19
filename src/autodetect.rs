@@ -50,6 +50,8 @@ fn source_type_suffix(source_type: &SourceType) -> &'static str {
         SourceType::Vrt => "vrt",
         #[cfg(feature = "geoparquet")]
         SourceType::GeoParquet => "geoparquet",
+#[cfg(feature = "duckdb")]
+        SourceType::DuckDB => "duckdb",
     }
 }
 
@@ -60,6 +62,8 @@ fn detect_source_type(path: &Path) -> Option<SourceType> {
         "mbtiles" => Some(SourceType::MBTiles),
         #[cfg(feature = "geoparquet")]
         "parquet" | "geoparquet" => Some(SourceType::GeoParquet),
+#[cfg(feature = "duckdb")]
+        "duckdb" => Some(SourceType::DuckDB),
         _ => None,
     }
 }
@@ -149,6 +153,7 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
                 geometry_column: None,
                 minzoom: None,
                 maxzoom: None,
+                query: None,
                 serve_as: None,
                 #[cfg(feature = "raster")]
                 colormap: None,
@@ -283,6 +288,7 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
             geometry_column: None,
             minzoom: None,
             maxzoom: None,
+            query: None,
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,
