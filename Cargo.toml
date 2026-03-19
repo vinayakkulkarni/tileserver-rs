@@ -84,6 +84,9 @@ arrow-schema = { version = "58", optional = true }
 arrow-cast = { version = "58", optional = true }
 geo = { version = "0.29", optional = true }
 
+# DuckDB support (optional)
+duckdb = { version = "1.2", features = ["bundled"], optional = true }
+
 [features]
 default = ["postgres", "raster", "mlt"]
 frontend = ["rust-embed"]
@@ -93,6 +96,7 @@ raster = ["gdal"]
 # s3 = ["aws-config", "aws-sdk-s3"]
 mlt = ["mlt-core", "dep:prost", "geo-types"]
 geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast", "dep:geo", "dep:prost"]
+duckdb = ["dep:duckdb", "dep:prost"]
 
 [dev-dependencies]
 tower = { version = "0.5.3", features = ["util"] }
