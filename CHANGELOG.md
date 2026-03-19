@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.18.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.17.3...v2.18.0) (2026-03-19)
+
+
+### Features
+
+* **sources:** add duckdb source for sql-driven tile generation ([#707](https://github.com/vinayakkulkarni/tileserver-rs/issues/707)) ([97b8997](https://github.com/vinayakkulkarni/tileserver-rs/commit/97b8997808d854f0ce6227ff95a724a80d3bfb16))
+* **sources:** add geoparquet source for serving tiles from parquet files ([#706](https://github.com/vinayakkulkarni/tileserver-rs/issues/706)) ([7daa62d](https://github.com/vinayakkulkarni/tileserver-rs/commit/7daa62db73820540715ce8b5639fed254cd45f55))
+
+
+### Bug Fixes
+
+* allow payloadExtraction & clean up lockfile ([7170a7e](https://github.com/vinayakkulkarni/tileserver-rs/commit/7170a7e812384d4bcb5140a4a978f2bad273fac3))
+* **ci:** use Node.js for nuxi generate to avoid JSC stack overflow ([95fbe68](https://github.com/vinayakkulkarni/tileserver-rs/commit/95fbe68fe21bc715ae663ce0e276216886bff42e))
+
+
+### Performance Improvements
+
+* **render:** use proper PNG compression and eliminate unnecessary buffer clones ([4b33776](https://github.com/vinayakkulkarni/tileserver-rs/commit/4b33776268963f994022ffa55ba9e535dd39da09))
+
+
+### Documentation
+
+* add render pool configuration section ([46b65c2](https://github.com/vinayakkulkarni/tileserver-rs/commit/46b65c2560c56036de33298ade63dee00300b3fc))
+
+
+### Miscellaneous
+
+* **benchmarks:** add raster tile benchmark infrastructure ([9b6d219](https://github.com/vinayakkulkarni/tileserver-rs/commit/9b6d219e39df295f40dde69493804daa483e45db))
+* **deps:** update all dependencies ([3f4a3eb](https://github.com/vinayakkulkarni/tileserver-rs/commit/3f4a3eb252ed9a280e1bddd7e75a9fe3dbc72f10))
+* **homebrew:** update formula to v2.17.3 ([fe6a5f7](https://github.com/vinayakkulkarni/tileserver-rs/commit/fe6a5f74d547a2aca1275237c473d7f828e5ddc4))
+
 ## [2.17.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.17.2...v2.17.3) (2026-03-13)
 
 

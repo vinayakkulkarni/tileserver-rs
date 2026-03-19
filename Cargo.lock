@@ -2713,7 +2713,7 @@ dependencies = [
 
 [[package]]
 name = "maplibre-native-sys"
-version = "2.17.3"
+version = "2.18.0"
 dependencies = [
  "cc",
  "cmake",
@@ -4840,7 +4840,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.17.3"
+version = "2.18.0"
 dependencies = [
  "anyhow",
  "arc-swap",
