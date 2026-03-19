@@ -48,6 +48,8 @@ fn source_type_suffix(source_type: &SourceType) -> &'static str {
         SourceType::Cog => "cog",
         #[cfg(feature = "raster")]
         SourceType::Vrt => "vrt",
+        #[cfg(feature = "geoparquet")]
+        SourceType::GeoParquet => "geoparquet",
     }
 }
 
@@ -56,6 +58,8 @@ fn detect_source_type(path: &Path) -> Option<SourceType> {
     match ext.as_str() {
         "pmtiles" => Some(SourceType::PMTiles),
         "mbtiles" => Some(SourceType::MBTiles),
+        #[cfg(feature = "geoparquet")]
+        "parquet" | "geoparquet" => Some(SourceType::GeoParquet),
         _ => None,
     }
 }
@@ -141,6 +145,10 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
                 attribution: None,
                 description: None,
                 resampling: None,
+                layer_name: None,
+                geometry_column: None,
+                minzoom: None,
+                maxzoom: None,
                 serve_as: None,
                 #[cfg(feature = "raster")]
                 colormap: None,
@@ -271,6 +279,10 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
             attribution: None,
             description: None,
             resampling: None,
+            layer_name: None,
+            geometry_column: None,
+            minzoom: None,
+            maxzoom: None,
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,

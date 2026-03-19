@@ -54,6 +54,8 @@ fn source_type_label(st: &SourceType) -> &'static str {
         SourceType::Cog => "cog",
         #[cfg(feature = "raster")]
         SourceType::Vrt => "vrt",
+        #[cfg(feature = "geoparquet")]
+        SourceType::GeoParquet => "geoparquet",
     }
 }
 
@@ -137,6 +139,10 @@ pub async fn upload_file(
         attribution: None,
         description: Some(format!("Uploaded file: {file_name}")),
         resampling: None,
+        layer_name: None,
+        geometry_column: None,
+        minzoom: None,
+        maxzoom: None,
         serve_as: None,
         #[cfg(feature = "raster")]
         colormap: None,
