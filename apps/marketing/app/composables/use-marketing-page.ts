@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Puzzle,
   FileSpreadsheet,
+Braces,
 } from 'lucide-vue-next';
 import type {
   Feature,
@@ -128,6 +129,9 @@ export function useMarketingPage() {
         'Serve vector tiles directly from GeoParquet files — no preprocessing. Point at Overture Maps data and get instant tiles.',
     },
     {
+icon: Braces,
+      title: 'DuckDB Backend',
+        'Generate tiles from SQL queries against embedded DuckDB. Query GeoParquet, CSV, or any format DuckDB reads — PostGIS power, zero ops.',
       icon: BarChart3,
       title: 'OpenAPI & Analytics',
       description:
