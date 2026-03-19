@@ -7,6 +7,8 @@ use std::str::FromStr;
 pub mod cog;
 #[cfg(feature = "geoparquet")]
 pub mod geoparquet;
+#[cfg(feature = "duckdb")]
+pub mod duckdb_source;
 pub mod manager;
 pub mod mbtiles;
 pub mod pmtiles;
