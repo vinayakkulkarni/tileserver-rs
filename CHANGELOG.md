@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.19.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.18.0...v2.19.0) (2026-03-19)
+
+
+### Features
+
+* **geoparquet:** support directory of parquet files + duckdb bbox vars ([f1642b3](https://github.com/vinayakkulkarni/tileserver-rs/commit/f1642b3dca3ad31c3ac320b830eb03129f167273)), closes [#711](https://github.com/vinayakkulkarni/tileserver-rs/issues/711)
+
+
+### Bug Fixes
+
+* **configs:** use relative paths instead of absolute paths ([d06f275](https://github.com/vinayakkulkarni/tileserver-rs/commit/d06f275083ebb2c5b1fff98d66efcadf48afa5ef))
+* **deps:** bump actions/setup-node from 4 to 6 ([#697](https://github.com/vinayakkulkarni/tileserver-rs/issues/697)) ([a98875e](https://github.com/vinayakkulkarni/tileserver-rs/commit/a98875ef46e61ef75a7c9767883e6893a0710f94))
+* **deps:** bump marocchino/sticky-pull-request-comment from 2 to 3 ([#698](https://github.com/vinayakkulkarni/tileserver-rs/issues/698)) ([6c76753](https://github.com/vinayakkulkarni/tileserver-rs/commit/6c76753b949473d3846ca988dbccc5e7dbf8d67b))
+* **deps:** update better-sqlite3 requirement from ^12.6.2 to ^12.8.0 ([#701](https://github.com/vinayakkulkarni/tileserver-rs/issues/701)) ([0726308](https://github.com/vinayakkulkarni/tileserver-rs/commit/0726308f73e21c8a040bc33731277d36f363c773))
+* **duckdb:** read column names after query execution ([754c7bf](https://github.com/vinayakkulkarni/tileserver-rs/commit/754c7bf75db4cb77e6248590dae414f3ccf4a145))
+* **marketing:** fix malformed DuckDB feature card from rebase ([aa46b9a](https://github.com/vinayakkulkarni/tileserver-rs/commit/aa46b9acfb1af2b9692ec2030ecdcbef087f1316))
+
+
+### Miscellaneous
+
+* add overture styles and fix geoparquet config ([366ac4b](https://github.com/vinayakkulkarni/tileserver-rs/commit/366ac4b0785522519dc1b4519a96001e19386d91))
+* **configs:** add DuckDB test config with Overture data ([8e59515](https://github.com/vinayakkulkarni/tileserver-rs/commit/8e5951540dc81fc277cfb75fa775a4ede17b8b25))
+* **docs:** bump doc dependencies ✨ ([4b1754c](https://github.com/vinayakkulkarni/tileserver-rs/commit/4b1754ceb3793c352c21f02e623fc75e2a0bd1ca))
+* **homebrew:** update formula to v2.18.0 ([d1b631e](https://github.com/vinayakkulkarni/tileserver-rs/commit/d1b631e562319cb2ed32087c92929305b671b840))
+* update docs lockfile ([540beda](https://github.com/vinayakkulkarni/tileserver-rs/commit/540bedae20c0090183a7e945d0f1c445a7b06e0a))
+* update root lockfile ([db54797](https://github.com/vinayakkulkarni/tileserver-rs/commit/db5479714a2eb8b0ee826d6daadf53afc000bb75))
+
+
+### Code Refactoring
+
+* consolidate config files into configs/ directory ([028453b](https://github.com/vinayakkulkarni/tileserver-rs/commit/028453bb2047a06d9d05707782c2f38a051eb8e8))
+
 ## [2.18.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.17.3...v2.18.0) (2026-03-19)
 
 
