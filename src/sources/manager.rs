@@ -9,6 +9,8 @@ use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
 #[cfg(feature = "raster")]
 use crate::sources::cog::CogSource;
+#[cfg(feature = "geoparquet")]
+use crate::sources::geoparquet::GeoParquetSource;
 use crate::sources::mbtiles::MbTilesSource;
 use crate::sources::pmtiles::http::HttpPmTilesSource;
 use crate::sources::pmtiles::local::LocalPmTilesSource;
@@ -254,6 +256,8 @@ impl SourceManager {
             }
             #[cfg(feature = "raster")]
             SourceType::Cog | SourceType::Vrt => Arc::new(CogSource::from_file(config).await?),
+            #[cfg(feature = "geoparquet")]
+            SourceType::GeoParquet => Arc::new(GeoParquetSource::from_config(config).await?),
         };
 
         self.sources.insert(config.id.clone(), source);
