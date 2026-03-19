@@ -11,7 +11,8 @@ export type SupportedFormat =
   | 'pmtiles'
   | 'mbtiles'
   | 'sqlite'
-  | 'cog';
+  | 'cog'
+  | 'geoparquet';
 
 /** Result of parsing a dropped file */
 export interface ParsedFile {
@@ -101,6 +102,8 @@ export const FORMAT_EXTENSIONS: Record<string, SupportedFormat> = {
   '.db': 'sqlite',
   '.tif': 'cog',
   '.tiff': 'cog',
+  '.parquet': 'geoparquet',
+  '.geoparquet': 'geoparquet',
 };
 
 /** Formats that can be parsed entirely client-side */
@@ -118,6 +121,7 @@ export const SERVER_SIDE_FORMATS: ReadonlySet<SupportedFormat> = new Set([
   'mbtiles',
   'sqlite',
   'cog',
+  'geoparquet',
 ]);
 
 /** Maximum file size for client-side processing (50 MB) */

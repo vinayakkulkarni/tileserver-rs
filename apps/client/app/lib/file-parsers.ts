@@ -40,7 +40,7 @@ export function validateFile(file: File): { format: SupportedFormat } {
   if (!format) {
     const ext = file.name.slice(file.name.lastIndexOf('.'));
     throw new Error(
-      `Unsupported format "${ext}". Supported: GeoJSON, KML, GPX, CSV, Shapefile (.zip), PMTiles, MBTiles, COG (.tif).`,
+      `Unsupported format "${ext}". Supported: GeoJSON, KML, GPX, CSV, Shapefile (.zip), PMTiles, MBTiles, COG (.tif), GeoParquet (.parquet).`,
     );
   }
 

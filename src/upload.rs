@@ -33,10 +33,11 @@ fn detect_source_type(filename: &str) -> Result<SourceType, TileServerError> {
 
     match ext.as_str() {
         "mbtiles" => Ok(SourceType::MBTiles),
-        // SQLite databases are treated as MBTiles (same format under the hood)
         "sqlite" | "db" => Ok(SourceType::MBTiles),
         #[cfg(feature = "raster")]
         "tif" | "tiff" => Ok(SourceType::Cog),
+        #[cfg(feature = "geoparquet")]
+        "parquet" | "geoparquet" => Ok(SourceType::GeoParquet),
         _ => Err(TileServerError::UploadError(format!(
             "unsupported file format: .{ext}"
         ))),
