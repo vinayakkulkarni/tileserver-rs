@@ -218,6 +218,14 @@ pub struct SourceConfig {
     pub description: Option<String>,
     #[serde(default)]
     pub resampling: Option<ResamplingMethod>,
+    #[serde(default)]
+    pub layer_name: Option<String>,
+    #[serde(default)]
+    pub geometry_column: Option<String>,
+    #[serde(default)]
+    pub minzoom: Option<u8>,
+    #[serde(default)]
+    pub maxzoom: Option<u8>,
     /// Optional format transcoding: serve tiles as this format instead of native format.
     /// E.g., set `serve_as = "mlt"` on a PBF source to transcode MVT→MLT on the fly.
     #[serde(default)]
@@ -238,6 +246,8 @@ pub enum SourceType {
     Cog,
     #[cfg(feature = "raster")]
     Vrt,
+    #[cfg(feature = "geoparquet")]
+    GeoParquet,
 }
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq)]

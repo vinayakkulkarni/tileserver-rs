@@ -71,6 +71,10 @@ pub enum TileServerError {
     #[error("PostgreSQL version error: {0}")]
     PostgresVersionError(String),
 
+    #[cfg(feature = "geoparquet")]
+    #[error("GeoParquet error: {0}")]
+    GeoParquetError(String),
+
     #[error("upload error: {0}")]
     UploadError(String),
 
@@ -133,6 +137,10 @@ impl IntoResponse for TileServerError {
             }
             #[cfg(feature = "postgres")]
             TileServerError::PostgresVersionError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "geoparquet")]
+            TileServerError::GeoParquetError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
             TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
