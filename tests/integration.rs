@@ -1036,6 +1036,10 @@ mod mlt_mbtiles_tests {
             attribution: None,
             description: None,
             resampling: None,
+            layer_name: None,
+            geometry_column: None,
+            minzoom: None,
+            maxzoom: None,
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,

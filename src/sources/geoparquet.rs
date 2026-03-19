@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::PathBuf;
 
 use arrow_array::Array;
 use arrow_schema::DataType;
@@ -293,15 +292,6 @@ fn read_f64_le(buf: &[u8], offset: usize) -> f64 {
     ])
 }
 
-fn read_u32_le(buf: &[u8], offset: usize) -> u32 {
-    u32::from_le_bytes([
-        buf[offset],
-        buf[offset + 1],
-        buf[offset + 2],
-        buf[offset + 3],
-    ])
-}
-
 fn wkb_point_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
     if wkb.len() < 21 {
         return None;
@@ -314,8 +304,6 @@ fn wkb_point_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)>
 }
 
 fn encode_mvt_tile(features: &[MvtFeature], layer_name: &str) -> Vec<u8> {
-    use prost::Message;
-
     let mut keys: Vec<String> = Vec::new();
     let mut key_map: HashMap<String, u32> = HashMap::new();
     let mut values: Vec<Vec<u8>> = Vec::new();
