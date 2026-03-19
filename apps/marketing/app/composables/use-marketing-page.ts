@@ -18,6 +18,7 @@ import {
   Cpu,
   MessageSquare,
   Puzzle,
+  FileSpreadsheet,
 } from 'lucide-vue-next';
 import type {
   Feature,
@@ -119,6 +120,12 @@ export function useMarketingPage() {
       title: 'Browser-Local AI',
       description:
         'Talk to your maps with a built-in LLM. Runs entirely in your browser via WebGPU — no API keys, no cloud, no token costs.',
+    },
+    {
+      icon: FileSpreadsheet,
+      title: 'GeoParquet Source',
+      description:
+        'Serve vector tiles directly from GeoParquet files — no preprocessing. Point at Overture Maps data and get instant tiles.',
     },
     {
       icon: BarChart3,
