@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -63,7 +62,6 @@ fn lon_lat_to_tile_xy(lon: f64, lat: f64, tile_bbox: &[f64; 4], extent: u32) -> 
 enum PropValue {
     String(String),
     Int(i64),
-    Float(f32),
     Double(f64),
     Bool(bool),
 }
@@ -78,7 +76,6 @@ fn encode_mvt_value(val: &PropValue) -> Vec<u8> {
     let mut buf = Vec::new();
     match val {
         PropValue::String(s) => prost::encoding::string::encode(1, s, &mut buf),
-        PropValue::Float(f) => prost::encoding::float::encode(2, f, &mut buf),
         PropValue::Double(d) => prost::encoding::double::encode(3, d, &mut buf),
         PropValue::Int(i) => prost::encoding::int64::encode(4, i, &mut buf),
         PropValue::Bool(b) => prost::encoding::bool::encode(7, b, &mut buf),

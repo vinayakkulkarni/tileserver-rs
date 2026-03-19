@@ -623,6 +623,7 @@ mod error_handling {
             geometry_column: None,
             minzoom: None,
             maxzoom: None,
+            query: None,
             serve_as: None,
             colormap: None,
         };

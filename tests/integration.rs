@@ -1040,6 +1040,7 @@ mod mlt_mbtiles_tests {
             geometry_column: None,
             minzoom: None,
             maxzoom: None,
+            query: None,
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,
