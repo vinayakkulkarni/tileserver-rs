@@ -1,5 +1,46 @@
 # Changelog
 
+## [2.20.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.19.0...v2.20.0) (2026-03-23)
+
+
+### Features
+
+* **mbgl-sys:** add prebuilt feature and CI workflow for native library distribution ([6c0472d](https://github.com/vinayakkulkarni/tileserver-rs/commit/6c0472d698abc785b4383a5794b817be952183f6))
+
+
+### Bug Fixes
+
+* **ci:** normalize YAML indentation in release workflows ([7108613](https://github.com/vinayakkulkarni/tileserver-rs/commit/710861309e5d4c0f0033eec71865181347fe0a77))
+* **sources:** update duckdb import path after module rename ([0ae937a](https://github.com/vinayakkulkarni/tileserver-rs/commit/0ae937a4af5ffe857fa32233cbaf3878c0969ce9))
+
+
+### Performance Improvements
+
+* use Vec::with_capacity on hot allocation paths ([e853443](https://github.com/vinayakkulkarni/tileserver-rs/commit/e85344374fcf8c4875e4e0bf774b920af968783c))
+
+
+### Documentation
+
+* add crates.io badges and prebuilt feature docs to READMEs ([54c9b10](https://github.com/vinayakkulkarni/tileserver-rs/commit/54c9b107f39c1634992a56da454aa3bcd898d236))
+* add module-level documentation to source files ([d8a91f1](https://github.com/vinayakkulkarni/tileserver-rs/commit/d8a91f1c97162cad8e6268c24fcde9954fff981f))
+* update documentation for project restructure ([7e799ff](https://github.com/vinayakkulkarni/tileserver-rs/commit/7e799ff1929433b157c72cbbecc6ea5f0f433377))
+
+
+### Miscellaneous
+
+* **deps:** update all dependency versions in source files ([273f639](https://github.com/vinayakkulkarni/tileserver-rs/commit/273f639a8e56ec8ca3cc06f96b1cafe49d89bb16))
+* **homebrew:** update formula to v2.19.0 ([f9bb9b5](https://github.com/vinayakkulkarni/tileserver-rs/commit/f9bb9b551ac5252dac779bc47064108e41488e3e))
+
+
+### Code Refactoring
+
+* add #[must_use] on public pure functions ([f939663](https://github.com/vinayakkulkarni/tileserver-rs/commit/f939663fac3add4b2cc3f9c2351e8a4654553e62))
+* add #[non_exhaustive] on public enums ([f722303](https://github.com/vinayakkulkarni/tileserver-rs/commit/f722303d860a824661d568e844355a101df3af2f))
+* rename crate to mbgl-sys and restructure project layout ([4d292a6](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d292a63b256912c6f834a06de6e1f29cb399a4f))
+* replace index loop with windows(2) in draw_path ([d82b0b3](https://github.com/vinayakkulkarni/tileserver-rs/commit/d82b0b3013b8de64f2f7e4dc5dc1ce5735c6bcc4))
+* replace unwrap with expect for better panic messages ([495c85f](https://github.com/vinayakkulkarni/tileserver-rs/commit/495c85f1b0e17c0a9739f49edf71da0d487d47b4))
+* **routes:** extract route handlers from main.rs into modules ([6b3f8cb](https://github.com/vinayakkulkarni/tileserver-rs/commit/6b3f8cbb6200aaaa587fb762b7feb3c7e0b55dcb))
+
 ## [2.19.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.18.0...v2.19.0) (2026-03-19)
 
 
