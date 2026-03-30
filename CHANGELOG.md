@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.20.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.20.0...v2.20.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **ci:** use OIDC token exchange for crates.io trusted publishing ([def0bfb](https://github.com/vinayakkulkarni/tileserver-rs/commit/def0bfb65f2fd62ef2fd2e99180a184c102028f0))
+* **deps:** bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 ([5552388](https://github.com/vinayakkulkarni/tileserver-rs/commit/5552388b4810123250496e1e24b1d7bd3e8e81b4))
+* **deps:** bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 ([#725](https://github.com/vinayakkulkarni/tileserver-rs/issues/725)) ([5552388](https://github.com/vinayakkulkarni/tileserver-rs/commit/5552388b4810123250496e1e24b1d7bd3e8e81b4))
+
 ## [2.20.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.19.0...v2.20.0) (2026-03-30)
 
 

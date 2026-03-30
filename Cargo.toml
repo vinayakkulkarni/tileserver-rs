@@ -134,7 +134,7 @@ undocumented_unsafe_blocks = "warn"
 
 [package]
 name = "tileserver-rs"
-version = "2.20.0"
+version = "2.20.1"
 edition.workspace = true
 rust-version.workspace = true
 authors = ["Vinayak Kulkarni <inbox.vinayak@gmail.com>"]
