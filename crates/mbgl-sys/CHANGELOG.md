@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.1...mbgl-sys-v0.1.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* correct mbgl-sys version and prevent root version bleeding ([49e3120](https://github.com/vinayakkulkarni/tileserver-rs/commit/49e3120c8a6b1ca55c70cc7194140d732c923e2d))
+
+
+### Miscellaneous
+
+* release main ([a28550c](https://github.com/vinayakkulkarni/tileserver-rs/commit/a28550c7a7784c20b16507c4a5f3a766ea6dade0))
+
 ## [0.1.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.0...mbgl-sys-v0.1.1) (2026-03-30)
 
 
