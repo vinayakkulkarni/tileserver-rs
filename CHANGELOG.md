@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.21.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.20.1...v2.21.0) (2026-04-01)
+
+
+### Features
+
+* **client:** make AI chat panel draggable with minimize/close ([a103299](https://github.com/vinayakkulkarni/tileserver-rs/commit/a103299fe6e89dabcac43b6d320b232ba2550528))
+* **docs:** add Hot Reload, PostGIS, and GeoParquet features to landing page ([a405696](https://github.com/vinayakkulkarni/tileserver-rs/commit/a4056964aeb26131f8564c5a5a80692684a4a04f))
+* **marketing:** add Configurable Caching to features grid ([a3d5503](https://github.com/vinayakkulkarni/tileserver-rs/commit/a3d5503e42aafbd3c7ce44f063ed4bdea21b4f21))
+
+
+### Bug Fixes
+
+* **ci:** add workflow_dispatch to release-please for manual mbgl-sys publish ([9ea2424](https://github.com/vinayakkulkarni/tileserver-rs/commit/9ea2424fe609b5d76ec51695ff1953c3d9e19e64))
+* **ci:** allow publish-mbgl-sys to run when release-please fails ([274fe9f](https://github.com/vinayakkulkarni/tileserver-rs/commit/274fe9fd6f9c2e931f4c60bc055f43f428e6260e))
+* **ci:** use official crates-io-auth-action for trusted publishing ([65d03bd](https://github.com/vinayakkulkarni/tileserver-rs/commit/65d03bde56dc88958bd16c5e1c276ba3fc63a0bd))
+* **ci:** use POST with JSON body for crates.io OIDC token exchange ([c37eb11](https://github.com/vinayakkulkarni/tileserver-rs/commit/c37eb11cef591ad8d595326c2f95f4559b51fdad))
+* **docs:** update lockfile after dependency upgrades ([2ee54d6](https://github.com/vinayakkulkarni/tileserver-rs/commit/2ee54d60e3743799a2ddce70cb37fbd2da5c0170))
+
+
+### Documentation
+
+* eslint-plugin-oxlint/oxlint ^1.58.0, reka-ui ^2.9.3, wrangler ^4.79.0 ([928235b](https://github.com/vinayakkulkarni/tileserver-rs/commit/928235b792200166ecde56619efaba2f292b376b))
+
+
+### Miscellaneous
+
+* **deps:** update Rust and frontend dependencies ([928235b](https://github.com/vinayakkulkarni/tileserver-rs/commit/928235b792200166ecde56619efaba2f292b376b))
+
 ## [2.20.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.20.0...v2.20.1) (2026-03-30)
 
 
