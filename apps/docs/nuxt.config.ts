@@ -146,19 +146,29 @@ export default defineNuxtConfig({
   },
 
   fonts: {
+    providers: {
+      google: false,
+      fontshare: false,
+      bunny: false,
+      fontsource: false,
+      adobe: false,
+    },
     families: [
-      {
-        name: 'General Sans',
-        provider: 'fontshare',
-        weights: [200, 300, 400, 500, 600, 700],
-      },
-      {
-        name: 'Switzer',
-        provider: 'fontshare',
-        weights: [300, 400, 500, 600, 700],
-      },
-      { name: 'JetBrains Mono', provider: 'google' },
-      { name: 'Source Serif 4', provider: 'google' },
+      { name: 'General Sans', src: '/fonts/general-sans-200.woff2', weight: 200 },
+      { name: 'General Sans', src: '/fonts/general-sans-300.woff2', weight: 300 },
+      { name: 'General Sans', src: '/fonts/general-sans-400.woff2', weight: 400 },
+      { name: 'General Sans', src: '/fonts/general-sans-500.woff2', weight: 500 },
+      { name: 'General Sans', src: '/fonts/general-sans-600.woff2', weight: 600 },
+      { name: 'General Sans', src: '/fonts/general-sans-700.woff2', weight: 700 },
+      { name: 'Switzer', src: '/fonts/switzer-300.woff2', weight: 300 },
+      { name: 'Switzer', src: '/fonts/switzer-400.woff2', weight: 400 },
+      { name: 'Switzer', src: '/fonts/switzer-500.woff2', weight: 500 },
+      { name: 'Switzer', src: '/fonts/switzer-600.woff2', weight: 600 },
+      { name: 'Switzer', src: '/fonts/switzer-700.woff2', weight: 700 },
+      { name: 'JetBrains Mono', src: '/fonts/jetbrains-mono-latin.woff2', weight: [100, 800] },
+      { name: 'JetBrains Mono', src: '/fonts/jetbrains-mono-latin-italic.woff2', weight: [100, 800], style: 'italic' },
+      { name: 'Source Serif 4', src: '/fonts/source-serif-4-latin.woff2', weight: [200, 900] },
+      { name: 'Source Serif 4', src: '/fonts/source-serif-4-latin-italic.woff2', weight: [200, 900], style: 'italic' },
     ],
   },
 

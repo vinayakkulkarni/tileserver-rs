@@ -95,8 +95,18 @@ jobs:
         with:
           components: clippy
 
+      - name: Free disk space for cargo cache
+        run: rm -rf ~/.cargo/registry/src
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
+        with:
+          # Only save cache on main to prevent branch cache bloat (3.4GB+)
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Share cache across all branches
+          shared-key: rust-ci
+          # Don't cache build targets (saves ~2GB)
+          cache-targets: false
 
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings

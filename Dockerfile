@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 ARG TARGETARCH
 
-# Extract mbgl-sys version from Cargo.toml (no hardcoded version)
-COPY crates/mbgl-sys/Cargo.toml /tmp/mbgl-sys-cargo.toml
+# Extract mbgl-sys version from release-please manifest (immune to workspace version syncing)
+COPY .release-please-manifest.json /tmp/release-manifest.json
 
 WORKDIR /build
-RUN MBGL_VERSION=$(grep '^version' /tmp/mbgl-sys-cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/') && \
+RUN MBGL_VERSION=$(grep 'mbgl-sys' /tmp/release-manifest.json | sed 's/.*: *"\(.*\)".*/\1/') && \
     case "$TARGETARCH" in \
       amd64) MBGL_TARGET="x86_64-unknown-linux-gnu" ;; \
       arm64) MBGL_TARGET="aarch64-unknown-linux-gnu" ;; \
