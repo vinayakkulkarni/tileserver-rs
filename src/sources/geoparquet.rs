@@ -306,11 +306,11 @@ impl GeoParquetSource {
     }
 }
 
-fn bbox_intersects(feat_bbox: [f32; 4], tile_bbox: &[f64; 4]) -> bool {
-    feat_bbox[0] as f64 <= tile_bbox[2]
-        && feat_bbox[1] as f64 <= tile_bbox[3]
-        && feat_bbox[2] as f64 >= tile_bbox[0]
-        && feat_bbox[3] as f64 >= tile_bbox[1]
+fn bbox_intersects(feat_bbox: [f64; 4], tile_bbox: &[f64; 4]) -> bool {
+    feat_bbox[0] <= tile_bbox[2]
+        && feat_bbox[1] <= tile_bbox[3]
+        && feat_bbox[2] >= tile_bbox[0]
+        && feat_bbox[3] >= tile_bbox[1]
 }
 
 #[inline]
@@ -326,9 +326,24 @@ fn zigzag_encode(n: i32) -> u32 {
 #[inline]
 fn lon_lat_to_tile_xy(lon: f64, lat: f64, tile_bbox: &[f64; 4], extent: u32) -> (i32, i32) {
     let lon_range = tile_bbox[2] - tile_bbox[0];
-    let lat_range = tile_bbox[3] - tile_bbox[1];
     let x = ((lon - tile_bbox[0]) / lon_range * extent as f64) as i32;
-    let y = ((tile_bbox[3] - lat) / lat_range * extent as f64) as i32;
+
+    // Y: latitude must use Mercator (logarithmic) projection.
+    // Linear interpolation of WGS84 degrees causes large position errors at low zoom levels.
+    // The tile bbox latitudes from tile_to_bbox are inverse-Mercator of tile edges, so we
+    // round-trip them back to Mercator Y for correct linear interpolation in projected space.
+    #[inline]
+    fn lat_to_merc(lat_deg: f64) -> f64 {
+        let lat_rad = lat_deg.to_radians();
+        (std::f64::consts::FRAC_PI_4 + lat_rad / 2.0).tan().ln()
+    }
+
+    let merc_north = lat_to_merc(tile_bbox[3]);
+    let merc_south = lat_to_merc(tile_bbox[1]);
+    let merc_lat = lat_to_merc(lat);
+
+    // Tile Y increases downward; Mercator Y increases northward — invert.
+    let y = ((merc_north - merc_lat) / (merc_north - merc_south) * extent as f64) as i32;
     (x, y)
 }
 
@@ -345,6 +360,16 @@ fn read_f64_le(buf: &[u8], offset: usize) -> f64 {
     ])
 }
 
+#[inline]
+fn read_u32_le(buf: &[u8], offset: usize) -> u32 {
+    u32::from_le_bytes([
+        buf[offset],
+        buf[offset + 1],
+        buf[offset + 2],
+        buf[offset + 3],
+    ])
+}
+
 fn wkb_point_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
     if wkb.len() < 21 {
         return None;
@@ -354,6 +379,293 @@ fn wkb_point_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)>
     let (x, y) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
     let geom = vec![mvt_command(1, 1), zigzag_encode(x), zigzag_encode(y)];
     Some((geom, 1)) // GeomType::Point = 1
+}
+
+/// Encode a WKB LineString into MVT geometry commands.
+/// Returns (geometry_commands, geom_type=2) or None if invalid.
+fn wkb_linestring_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    // Header: 1 (byte order) + 4 (type) + 4 (num_points) = 9 bytes minimum
+    if wkb.len() < 9 {
+        return None;
+    }
+    let num_points = read_u32_le(wkb, 5) as usize;
+    if num_points < 2 {
+        return None;
+    }
+    // Each point is 16 bytes (two f64s)
+    let required = 9 + num_points * 16;
+    if wkb.len() < required {
+        return None;
+    }
+
+    let mut geom: Vec<u32> = Vec::with_capacity(3 + num_points * 2);
+    let mut cursor_x = 0i32;
+    let mut cursor_y = 0i32;
+
+    let lon = read_f64_le(wkb, 9);
+    let lat = read_f64_le(wkb, 17);
+    let (x0, y0) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
+    geom.push(mvt_command(1, 1));
+    geom.push(zigzag_encode(x0 - cursor_x));
+    geom.push(zigzag_encode(y0 - cursor_y));
+    cursor_x = x0;
+    cursor_y = y0;
+
+    geom.push(mvt_command(2, (num_points - 1) as u32));
+    for i in 1..num_points {
+        let offset = 9 + i * 16;
+        let lon = read_f64_le(wkb, offset);
+        let lat = read_f64_le(wkb, offset + 8);
+        let (px, py) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
+        geom.push(zigzag_encode(px - cursor_x));
+        geom.push(zigzag_encode(py - cursor_y));
+        cursor_x = px;
+        cursor_y = py;
+    }
+
+    Some((geom, 2)) // GeomType::LineString = 2
+}
+
+/// Encode a single polygon ring (starting at `ring_start` offset in `wkb`) into MVT commands.
+/// `cursor_x/cursor_y` are updated in-place to track delta encoding state.
+/// Returns the number of bytes consumed for this ring, or None if invalid.
+fn encode_wkb_ring(
+    wkb: &[u8],
+    ring_start: usize,
+    tile_bbox: &[f64; 4],
+    cursor_x: &mut i32,
+    cursor_y: &mut i32,
+    geom: &mut Vec<u32>,
+) -> Option<usize> {
+    if wkb.len() < ring_start + 4 {
+        return None;
+    }
+    let num_points = read_u32_le(wkb, ring_start) as usize;
+    // A valid ring has ≥4 WKB points (3 unique vertices + 1 closing duplicate)
+    if num_points < 4 {
+        return None;
+    }
+    let ring_data_len = 4 + num_points * 16;
+    if wkb.len() < ring_start + ring_data_len {
+        return None;
+    }
+
+    let coord_start = ring_start + 4;
+
+    let lon0 = read_f64_le(wkb, coord_start);
+    let lat0 = read_f64_le(wkb, coord_start + 8);
+    let (x0, y0) = lon_lat_to_tile_xy(lon0, lat0, tile_bbox, MVT_EXTENT);
+    let move_x = x0;
+    let move_y = y0;
+
+    geom.push(mvt_command(1, 1));
+    geom.push(zigzag_encode(x0 - *cursor_x));
+    geom.push(zigzag_encode(y0 - *cursor_y));
+    *cursor_x = x0;
+    *cursor_y = y0;
+
+    // num_points - 2: skip the first point (already in MoveTo) and last (WKB closing duplicate)
+    let line_count = num_points - 2;
+    geom.push(mvt_command(2, line_count as u32));
+    for i in 1..=line_count {
+        let offset = coord_start + i * 16;
+        let lon = read_f64_le(wkb, offset);
+        let lat = read_f64_le(wkb, offset + 8);
+        let (px, py) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
+        geom.push(zigzag_encode(px - *cursor_x));
+        geom.push(zigzag_encode(py - *cursor_y));
+        *cursor_x = px;
+        *cursor_y = py;
+    }
+
+    geom.push(mvt_command(7, 1));
+    // Per MVT spec, delta cursor resets to the ring's MoveTo position after ClosePath
+    *cursor_x = move_x;
+    *cursor_y = move_y;
+
+    Some(ring_data_len)
+}
+
+/// Encode a WKB Polygon into MVT geometry commands.
+/// Returns (geometry_commands, geom_type=3) or None if invalid.
+fn wkb_polygon_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    // Header: 1 (byte order) + 4 (type) + 4 (num_rings) = 9 bytes minimum
+    if wkb.len() < 9 {
+        return None;
+    }
+    let num_rings = read_u32_le(wkb, 5) as usize;
+    if num_rings == 0 {
+        return None;
+    }
+
+    let mut geom: Vec<u32> = Vec::with_capacity(num_rings * 10);
+    let mut cursor_x = 0i32;
+    let mut cursor_y = 0i32;
+    let mut offset = 9;
+
+    for _ in 0..num_rings {
+        let consumed = encode_wkb_ring(
+            wkb,
+            offset,
+            tile_bbox,
+            &mut cursor_x,
+            &mut cursor_y,
+            &mut geom,
+        )?;
+        offset += consumed;
+    }
+
+    Some((geom, 3)) // GeomType::Polygon = 3
+}
+
+fn wkb_multipoint_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    if wkb.len() < 9 {
+        return None;
+    }
+    let n_geoms = read_u32_le(wkb, 5) as usize;
+    if n_geoms == 0 {
+        return None;
+    }
+    // Each sub-WKB Point is 21 bytes: 1 (byte order) + 4 (type) + 8 (X) + 8 (Y)
+    if wkb.len() < 9 + n_geoms * 21 {
+        return None;
+    }
+
+    // MVT encodes MultiPoint as a single MoveTo(n) command followed by n delta pairs
+    let mut geom: Vec<u32> = Vec::with_capacity(1 + n_geoms * 2);
+    geom.push(mvt_command(1, n_geoms as u32));
+
+    let mut cursor_x = 0i32;
+    let mut cursor_y = 0i32;
+
+    for i in 0..n_geoms {
+        let sub_offset = 9 + i * 21;
+        let lon = read_f64_le(wkb, sub_offset + 5);
+        let lat = read_f64_le(wkb, sub_offset + 13);
+        let (px, py) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
+        geom.push(zigzag_encode(px - cursor_x));
+        geom.push(zigzag_encode(py - cursor_y));
+        cursor_x = px;
+        cursor_y = py;
+    }
+
+    Some((geom, 1))
+}
+
+fn wkb_multilinestring_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    if wkb.len() < 9 {
+        return None;
+    }
+    let n_geoms = read_u32_le(wkb, 5) as usize;
+    if n_geoms == 0 {
+        return None;
+    }
+
+    let mut geom: Vec<u32> = Vec::new();
+    let mut cursor_x = 0i32;
+    let mut cursor_y = 0i32;
+    let mut offset = 9;
+
+    for _ in 0..n_geoms {
+        if wkb.len() < offset + 9 {
+            return None;
+        }
+        let num_points = read_u32_le(wkb, offset + 5) as usize;
+        if num_points < 2 {
+            return None;
+        }
+        let sub_required = 9 + num_points * 16;
+        if wkb.len() < offset + sub_required {
+            return None;
+        }
+
+        let coord_start = offset + 9;
+
+        let lon0 = read_f64_le(wkb, coord_start);
+        let lat0 = read_f64_le(wkb, coord_start + 8);
+        let (x0, y0) = lon_lat_to_tile_xy(lon0, lat0, tile_bbox, MVT_EXTENT);
+        geom.push(mvt_command(1, 1));
+        geom.push(zigzag_encode(x0 - cursor_x));
+        geom.push(zigzag_encode(y0 - cursor_y));
+        cursor_x = x0;
+        cursor_y = y0;
+
+        geom.push(mvt_command(2, (num_points - 1) as u32));
+        for i in 1..num_points {
+            let pt_offset = coord_start + i * 16;
+            let lon = read_f64_le(wkb, pt_offset);
+            let lat = read_f64_le(wkb, pt_offset + 8);
+            let (px, py) = lon_lat_to_tile_xy(lon, lat, tile_bbox, MVT_EXTENT);
+            geom.push(zigzag_encode(px - cursor_x));
+            geom.push(zigzag_encode(py - cursor_y));
+            cursor_x = px;
+            cursor_y = py;
+        }
+
+        offset += sub_required;
+    }
+
+    Some((geom, 2))
+}
+
+fn wkb_multipolygon_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    if wkb.len() < 9 {
+        return None;
+    }
+    let n_geoms = read_u32_le(wkb, 5) as usize;
+    if n_geoms == 0 {
+        return None;
+    }
+
+    let mut geom: Vec<u32> = Vec::new();
+    let mut cursor_x = 0i32;
+    let mut cursor_y = 0i32;
+    let mut offset = 9;
+
+    for _ in 0..n_geoms {
+        if wkb.len() < offset + 9 {
+            return None;
+        }
+        let num_rings = read_u32_le(wkb, offset + 5) as usize;
+        if num_rings == 0 {
+            return None;
+        }
+        let ring_offset_start = offset + 9;
+        let mut ring_offset = ring_offset_start;
+
+        for _ in 0..num_rings {
+            let consumed = encode_wkb_ring(
+                wkb,
+                ring_offset,
+                tile_bbox,
+                &mut cursor_x,
+                &mut cursor_y,
+                &mut geom,
+            )?;
+            ring_offset += consumed;
+        }
+
+        offset = ring_offset;
+    }
+
+    Some((geom, 3))
+}
+
+fn wkb_to_mvt(wkb: &[u8], tile_bbox: &[f64; 4]) -> Option<(Vec<u32>, u32)> {
+    if wkb.len() < 5 {
+        return None;
+    }
+    // bytes 1-4 are the WKB geometry type (u32 LE); byte 0 is the byte-order marker
+    let geom_type = read_u32_le(wkb, 1);
+    match geom_type {
+        1 => wkb_point_to_mvt(wkb, tile_bbox),
+        2 => wkb_linestring_to_mvt(wkb, tile_bbox),
+        3 => wkb_polygon_to_mvt(wkb, tile_bbox),
+        4 => wkb_multipoint_to_mvt(wkb, tile_bbox),
+        5 => wkb_multilinestring_to_mvt(wkb, tile_bbox),
+        6 => wkb_multipolygon_to_mvt(wkb, tile_bbox),
+        _ => None,
+    }
 }
 
 fn encode_mvt_tile(features: &[MvtFeature], layer_name: &str) -> Vec<u8> {
@@ -556,7 +868,13 @@ impl TileSource for GeoParquetSource {
             return Ok(None);
         }
 
-        let tile_bbox = tile_to_bbox_with_buffer(z, x, y, 64);
+        // Buffered bbox: includes features slightly outside the tile for seamless edge rendering.
+        // Unbuffered bbox: used for coordinate projection so MVT coordinates align with the tile grid.
+        // Using the buffered bbox for projection causes coordinates to be compressed into a wider
+        // Mercator space — at z0 the 64-pixel buffer pushes latitude from ±85° to ±87.7°,
+        // which in Mercator is ~24% wider, causing visible misalignment with the basemap.
+        let filter_bbox = tile_to_bbox_with_buffer(z, x, y, 64);
+        let tile_bbox = tile_to_bbox(z, x, y);
         let file_paths = self.file_paths.clone();
         let geometry_column = self.geometry_column.clone();
         let has_bbox = self.has_bbox_column;
@@ -616,16 +934,16 @@ impl TileSource for GeoParquetSource {
                                 .downcast_ref::<arrow_array::StructArray>()
                         {
                             let xmin = struct_arr.column_by_name("xmin").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float32Array>()
+                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
                             });
                             let xmax = struct_arr.column_by_name("xmax").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float32Array>()
+                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
                             });
                             let ymin = struct_arr.column_by_name("ymin").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float32Array>()
+                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
                             });
                             let ymax = struct_arr.column_by_name("ymax").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float32Array>()
+                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
                             });
 
                             if let (Some(xmin), Some(xmax), Some(ymin), Some(ymax)) =
@@ -637,7 +955,7 @@ impl TileSource for GeoParquetSource {
                                     xmax.value(row),
                                     ymax.value(row),
                                 ];
-                                if !bbox_intersects(feat_bbox, &tile_bbox) {
+                                if !bbox_intersects(feat_bbox, &filter_bbox) {
                                     continue;
                                 }
                             }
@@ -672,7 +990,7 @@ impl TileSource for GeoParquetSource {
                             _ => continue,
                         };
 
-                        if let Some((geom, geom_type)) = wkb_point_to_mvt(wkb, &tile_bbox) {
+                        if let Some((geom, geom_type)) = wkb_to_mvt(wkb, &tile_bbox) {
                             let props = extract_row_properties(&batch, row, &property_fields);
                             mvt_features.push(MvtFeature {
                                 geom_type,
@@ -819,6 +1137,16 @@ mod tests {
         let (x, y) = lon_lat_to_tile_xy(0.0, 1.0, &[0.0, 0.0, 1.0, 1.0], 4096);
         assert_eq!(x, 0);
         assert_eq!(y, 0);
+    }
+
+    #[test]
+    fn test_lon_lat_to_tile_xy_mercator_z1() {
+        let bbox = tile_to_bbox(1, 0, 0);
+        let lat_mid = f64::atan(f64::sinh(std::f64::consts::FRAC_PI_2)).to_degrees();
+        let lon_mid = (bbox[0] + bbox[2]) / 2.0;
+        let (x, y) = lon_lat_to_tile_xy(lon_mid, lat_mid, &bbox, 4096);
+        assert_eq!(x, 2048);
+        assert!((y - 2048).abs() <= 1, "expected y≈2048, got {y}");
     }
 
     #[test]
@@ -970,5 +1298,124 @@ mod tests {
         assert!(config.sources[0].geometry_column.is_none());
         assert!(config.sources[0].minzoom.is_none());
         assert!(config.sources[0].maxzoom.is_none());
+    }
+
+    fn make_wkb_linestring(coords: &[(f64, f64)]) -> Vec<u8> {
+        let mut wkb = vec![1u8];
+        wkb.extend_from_slice(&2u32.to_le_bytes());
+        wkb.extend_from_slice(&(coords.len() as u32).to_le_bytes());
+        for (lon, lat) in coords {
+            wkb.extend_from_slice(&lon.to_le_bytes());
+            wkb.extend_from_slice(&lat.to_le_bytes());
+        }
+        wkb
+    }
+
+    fn make_wkb_polygon(rings: &[Vec<(f64, f64)>]) -> Vec<u8> {
+        let mut wkb = vec![1u8];
+        wkb.extend_from_slice(&3u32.to_le_bytes());
+        wkb.extend_from_slice(&(rings.len() as u32).to_le_bytes());
+        for ring in rings {
+            wkb.extend_from_slice(&(ring.len() as u32).to_le_bytes());
+            for (lon, lat) in ring {
+                wkb.extend_from_slice(&lon.to_le_bytes());
+                wkb.extend_from_slice(&lat.to_le_bytes());
+            }
+        }
+        wkb
+    }
+
+    #[test]
+    fn test_wkb_linestring_two_points() {
+        let wkb = make_wkb_linestring(&[(0.0, 1.0), (1.0, 0.0)]);
+        let result = wkb_linestring_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]);
+        assert!(result.is_some());
+        let (geom, geom_type) = result.unwrap();
+        assert_eq!(geom_type, 2);
+        assert_eq!(geom[0], mvt_command(1, 1));
+        assert_eq!(geom[3], mvt_command(2, 1));
+        assert_eq!(geom.len(), 6);
+    }
+
+    #[test]
+    fn test_wkb_linestring_too_short() {
+        assert!(wkb_linestring_to_mvt(&[1, 2, 0, 0, 0], &[0.0, 0.0, 1.0, 1.0]).is_none());
+    }
+
+    #[test]
+    fn test_wkb_linestring_single_point_rejected() {
+        let wkb = make_wkb_linestring(&[(0.5, 0.5)]);
+        assert!(wkb_linestring_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).is_none());
+    }
+
+    #[test]
+    fn test_wkb_polygon_simple_square() {
+        let ring = vec![(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.9), (0.1, 0.1)];
+        let wkb = make_wkb_polygon(&[ring]);
+        let result = wkb_polygon_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]);
+        assert!(result.is_some());
+        let (geom, geom_type) = result.unwrap();
+        assert_eq!(geom_type, 3);
+        assert_eq!(geom[0], mvt_command(1, 1));
+        assert!(geom.contains(&mvt_command(7, 1)));
+    }
+
+    #[test]
+    fn test_wkb_polygon_too_few_ring_points() {
+        let ring = vec![(0.0, 0.0), (1.0, 0.0), (0.5, 0.5)];
+        let wkb = make_wkb_polygon(&[ring]);
+        assert!(wkb_polygon_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).is_none());
+    }
+
+    #[test]
+    fn test_wkb_to_mvt_dispatches_point() {
+        let mut wkb = vec![1u8];
+        wkb.extend_from_slice(&1u32.to_le_bytes());
+        wkb.extend_from_slice(&0.5f64.to_le_bytes());
+        wkb.extend_from_slice(&0.5f64.to_le_bytes());
+        let (_, geom_type) = wkb_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).unwrap();
+        assert_eq!(geom_type, 1);
+    }
+
+    #[test]
+    fn test_wkb_to_mvt_dispatches_linestring() {
+        let wkb = make_wkb_linestring(&[(0.0, 1.0), (1.0, 0.0)]);
+        let (_, geom_type) = wkb_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).unwrap();
+        assert_eq!(geom_type, 2);
+    }
+
+    #[test]
+    fn test_wkb_to_mvt_dispatches_polygon() {
+        let ring = vec![(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.9), (0.1, 0.1)];
+        let wkb = make_wkb_polygon(&[ring]);
+        let (_, geom_type) = wkb_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).unwrap();
+        assert_eq!(geom_type, 3);
+    }
+
+    #[test]
+    fn test_wkb_to_mvt_unknown_type_returns_none() {
+        let mut wkb = vec![1u8];
+        wkb.extend_from_slice(&99u32.to_le_bytes());
+        wkb.extend_from_slice(&[0u8; 20]);
+        assert!(wkb_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]).is_none());
+    }
+
+    #[test]
+    fn test_wkb_to_mvt_too_short_returns_none() {
+        assert!(wkb_to_mvt(&[1, 0, 0], &[0.0, 0.0, 1.0, 1.0]).is_none());
+    }
+
+    #[test]
+    fn test_wkb_multipolygon_dispatches() {
+        let ring = vec![(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.9), (0.1, 0.1)];
+        let poly_wkb = make_wkb_polygon(std::slice::from_ref(&ring));
+        let mut wkb = vec![1u8];
+        wkb.extend_from_slice(&6u32.to_le_bytes());
+        wkb.extend_from_slice(&1u32.to_le_bytes());
+        wkb.extend_from_slice(&poly_wkb);
+        let result = wkb_to_mvt(&wkb, &[0.0, 0.0, 1.0, 1.0]);
+        assert!(result.is_some());
+        let (_, geom_type) = result.unwrap();
+        assert_eq!(geom_type, 3);
     }
 }

@@ -52,7 +52,7 @@
           }}
         </p>
         <p class="text-sm text-muted-foreground">
-          GeoJSON, KML, GPX, CSV, Shapefile, PMTiles, MBTiles, SQLite, COG
+          GeoJSON, KML, GPX, CSV, Shapefile, PMTiles, MBTiles, SQLite, COG, GeoParquet
         </p>
       </div>
     </div>
