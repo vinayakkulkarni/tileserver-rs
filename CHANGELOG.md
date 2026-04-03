@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.21.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.21.0...v2.21.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* **ci:** auto-build native libs on mbgl-sys tag and add download retries ([182ae29](https://github.com/vinayakkulkarni/tileserver-rs/commit/182ae291ecf4710cd4dec82ec49046c97d7c1385))
+* **geoparquet:** correct polygon rendering at low zoom levels ([#738](https://github.com/vinayakkulkarni/tileserver-rs/issues/738)) ([b594685](https://github.com/vinayakkulkarni/tileserver-rs/commit/b594685f03a3e4997525fe120257add146317b23)), closes [#736](https://github.com/vinayakkulkarni/tileserver-rs/issues/736)
+
+
+### Documentation
+
+* **ai-chat:** update available models from Hermes to Qwen3 ([5e0b48f](https://github.com/vinayakkulkarni/tileserver-rs/commit/5e0b48f8bd82795a89fbe4cf09e6ac447c8366c4))
+
 ## [2.21.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.20.1...v2.21.0) (2026-04-01)
 
 
