@@ -8,7 +8,10 @@ const PALETTE_HEIGHT_EXPANDED = 480;
 const PILL_WIDTH = 160;
 const PILL_HEIGHT = 40;
 
-function getDefaultPosition(windowWidth: number, windowHeight: number): LlmPalettePosition {
+function getDefaultPosition(
+  windowWidth: number,
+  windowHeight: number,
+): LlmPalettePosition {
   return {
     x: windowWidth - PALETTE_WIDTH - 24,
     y: windowHeight - PALETTE_HEIGHT_EXPANDED - 24,
@@ -33,7 +36,12 @@ export function useLlmPalette(
     getDefaultPosition(winWidth.value, winHeight.value),
   );
 
-  const { x, y, isDragging, style: dragStyle } = useDraggable(panelRef, {
+  const {
+    x,
+    y,
+    isDragging,
+    style: dragStyle,
+  } = useDraggable(panelRef, {
     initialValue: { x: savedPosition.value.x, y: savedPosition.value.y },
     handle: handleRef,
     onEnd: (pos) => {
@@ -43,7 +51,8 @@ export function useLlmPalette(
 
   function clampPosition() {
     const w = modeRef.value === 'expanded' ? PALETTE_WIDTH : PILL_WIDTH;
-    const h = modeRef.value === 'expanded' ? PALETTE_HEIGHT_EXPANDED : PILL_HEIGHT;
+    const h =
+      modeRef.value === 'expanded' ? PALETTE_HEIGHT_EXPANDED : PILL_HEIGHT;
     x.value = Math.max(0, Math.min(x.value, winWidth.value - w));
     y.value = Math.max(0, Math.min(y.value, winHeight.value - h));
   }

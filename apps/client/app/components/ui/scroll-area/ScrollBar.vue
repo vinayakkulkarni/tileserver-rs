@@ -6,7 +6,9 @@
   import { cn } from '@/lib/utils';
 
   const props = withDefaults(
-    defineProps<ScrollAreaScrollbarProps & { class?: HTMLAttributes['class'] }>(),
+    defineProps<
+      ScrollAreaScrollbarProps & { class?: HTMLAttributes['class'] }
+    >(),
     {
       orientation: 'vertical',
     },

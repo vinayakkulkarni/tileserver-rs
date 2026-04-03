@@ -7,7 +7,10 @@
     type ParsedNode,
   } from 'markstream-vue';
   import type { ReadonlyUIMessage } from '~/types/llm';
-  import { getTextContent, formatMessageTime } from '~/composables/use-llm-panel';
+  import {
+    getTextContent,
+    formatMessageTime,
+  } from '~/composables/use-llm-panel';
 
   const props = defineProps<{
     message: ReadonlyUIMessage;

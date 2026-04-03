@@ -47,12 +47,19 @@
 
       <!-- Fixed left gutter -->
       <div
-        class="fixed top-[72px] bottom-0 left-0 z-20 flex w-[48px] items-center justify-center border-r border-border bg-background lg:top-[80px] lg:w-[80px]"
+        class="
+          fixed top-[72px] bottom-0 left-0 z-20 flex w-[48px] items-center
+          justify-center border-r border-border bg-background
+          lg:top-[80px] lg:w-[80px]
+        "
       >
         <Transition name="fade" mode="out-in">
           <span
             :key="activeLabel"
-            class="vertical-text font-mono text-[10px] tracking-[0.3em] text-muted-foreground uppercase"
+            class="
+              vertical-text font-mono text-[10px] tracking-[0.3em]
+              text-muted-foreground uppercase
+            "
           >
             {{ activeLabel }}
           </span>
@@ -61,7 +68,10 @@
 
       <!-- Content with left margin -->
       <div
-        class="mt-[72px] ml-[48px] w-[calc(100vw-48px)] overflow-hidden lg:mt-[80px] lg:ml-[80px] lg:w-[calc(100vw-80px)]"
+        class="
+          mt-[72px] ml-[48px] w-[calc(100vw-48px)] overflow-hidden
+          lg:mt-[80px] lg:ml-[80px] lg:w-[calc(100vw-80px)]
+        "
       >
         <MarketingHeroSection />
         <MarketingFeaturesSection />

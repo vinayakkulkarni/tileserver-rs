@@ -216,7 +216,7 @@ function parseToolIntentsFromText(
 ): Array<{ action: string } & Record<string, unknown>> {
   const intents: Array<{ action: string } & Record<string, unknown>> = [];
 
-    // 1. Try <tool_call> JSON blocks (Hermes/Qwen3 format)
+  // 1. Try <tool_call> JSON blocks (Hermes/Qwen3 format)
   const toolCallRegex = /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/g;
   let tcMatch: RegExpExecArray | null;
   while ((tcMatch = toolCallRegex.exec(text)) !== null) {

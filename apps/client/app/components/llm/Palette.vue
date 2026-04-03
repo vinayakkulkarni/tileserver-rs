@@ -1,5 +1,11 @@
 <script setup lang="ts">
-  import { Bot, GripHorizontal, Maximize2, Minimize2, X } from 'lucide-vue-next';
+  import {
+    Bot,
+    GripHorizontal,
+    Maximize2,
+    Minimize2,
+    X,
+  } from 'lucide-vue-next';
   import type { Map as MaplibreMap } from 'maplibre-gl';
   import type { OverlayLayer } from '~/types/file-upload';
   import type { LlmPaletteMode } from '~/types/llm';

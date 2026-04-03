@@ -29,7 +29,9 @@
     "
   >
     <div
-      class="relative top-[60%] size-2 rotate-45 rounded-tl-sm bg-border shadow-md"
+      class="
+        relative top-[60%] size-2 rotate-45 rounded-tl-sm bg-border shadow-md
+      "
     ></div>
   </NavigationMenuIndicator>
 </template>

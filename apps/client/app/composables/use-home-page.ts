@@ -72,9 +72,13 @@ export function useHomePage() {
 
   // Copy with feedback
   const copiedUrl = ref<string | null>(null);
-  const { start: startCopyTimer } = useTimeoutFn(() => {
-    copiedUrl.value = null;
-  }, 2000, { immediate: false });
+  const { start: startCopyTimer } = useTimeoutFn(
+    () => {
+      copiedUrl.value = null;
+    },
+    2000,
+    { immediate: false },
+  );
 
   function copyUrl(url: string) {
     copy(url);
