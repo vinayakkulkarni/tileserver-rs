@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.22.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.21.1...v2.22.0) (2026-04-03)
+
+
+### Features
+
+* **docker:** enable geoparquet feature in Docker builds ([f6c7688](https://github.com/vinayakkulkarni/tileserver-rs/commit/f6c7688325974b065d4c17d11b585e3958e41f6e))
+
+
+### Miscellaneous
+
+* **docker:** remove redundant default features from FEATURES arg ([fd7593d](https://github.com/vinayakkulkarni/tileserver-rs/commit/fd7593dc48f54105257c4c7d51f1e6c2a1afb776))
+* **homebrew:** update formula to v2.21.1 ([678090b](https://github.com/vinayakkulkarni/tileserver-rs/commit/678090b51576d45c1c8f4acc12119bcd9b0c60c7))
+
 ## [2.21.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.21.0...v2.21.1) (2026-04-03)
 
 

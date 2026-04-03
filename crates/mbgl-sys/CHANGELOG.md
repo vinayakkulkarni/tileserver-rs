@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.2...mbgl-sys-v0.1.3) (2026-04-03)
+
+
+### Miscellaneous
+
+* optimize ci cache, bundle local fonts, fix docker mbgl-sys version ([#740](https://github.com/vinayakkulkarni/tileserver-rs/issues/740)) ([687f87b](https://github.com/vinayakkulkarni/tileserver-rs/commit/687f87bde867e8eb5c7b2ce685502776193e93b4))
+* release main ([#739](https://github.com/vinayakkulkarni/tileserver-rs/issues/739)) ([80965dd](https://github.com/vinayakkulkarni/tileserver-rs/commit/80965ddb8e8bad5f676ce68548bd2eb15a8b7d33))
+
 ## [0.1.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.1...mbgl-sys-v0.1.2) (2026-04-01)
 
 
