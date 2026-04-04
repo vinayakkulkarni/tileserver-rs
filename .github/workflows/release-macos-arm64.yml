@@ -7,9 +7,6 @@ on:
         description: "Release tag (e.g., v2.4.0)"
         required: true
         type: string
-  push:
-    tags:
-      - "v*"
 
 env:
   CARGO_INCREMENTAL: 0

@@ -15,8 +15,6 @@ on:
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/release-docker.yml'
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -35,6 +33,7 @@ env:
 jobs:
   build:
     name: Build ${{ matrix.platform }} (${{ matrix.variant }})
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(main)')
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     permissions:
@@ -149,6 +148,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute version from tag
+        id: version
+        if: inputs.tag != ''
+        run: |
+          TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -160,7 +171,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ inputs.tag != '' }}
+            type=raw,value=${{ steps.version.outputs.minor }},enable=${{ inputs.tag != '' }}
+            type=raw,value=${{ steps.version.outputs.major }},enable=${{ inputs.tag != '' && !startsWith(inputs.tag, 'v0.') }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -199,6 +213,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute version from tag
+        id: version
+        if: inputs.tag != ''
+        run: |
+          TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -212,7 +238,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},suffix=-headless
             type=semver,pattern={{major}},suffix=-headless,enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=sha,suffix=-headless
-            type=raw,value=latest-headless,enable={{is_default_branch}}
+            type=raw,value=latest-headless,enable=${{ github.ref_name == 'main' }}
+            type=raw,value=${{ steps.version.outputs.version }}-headless,enable=${{ inputs.tag != '' }}
+            type=raw,value=${{ steps.version.outputs.minor }}-headless,enable=${{ inputs.tag != '' }}
+            type=raw,value=${{ steps.version.outputs.major }}-headless,enable=${{ inputs.tag != '' && !startsWith(inputs.tag, 'v0.') }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests

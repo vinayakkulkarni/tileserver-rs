@@ -24,6 +24,7 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
+      mbgl_sys_released: ${{ steps.release.outputs['crates/mbgl-sys--release_created'] }}
     steps:
       - name: Release Please
         id: release
@@ -53,4 +54,30 @@ jobs:
 
       - name: Publish mbgl-sys to crates.io
         run: cargo publish -p mbgl-sys --token ${{ steps.auth.outputs.token }}
+
+  # When a release is created but mbgl-sys was NOT released,
+  # build-mbgl-native.yml won't run, so we dispatch release builds directly.
+  # When mbgl-sys IS released, build-mbgl-native.yml handles dispatching after assets are uploaded.
+  trigger-release-builds:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true' && needs.release-please.outputs.mbgl_sys_released != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch release workflows
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          echo "mbgl-sys unchanged — dispatching release builds for $TAG..."
+
+          gh workflow run release-docker.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-docker.yml"
+
+          gh workflow run release-linux.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-linux.yml"
+
+          gh workflow run release-macos-arm64.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-macos-arm64.yml"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

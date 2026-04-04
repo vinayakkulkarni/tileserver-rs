@@ -226,32 +226,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  retrigger-releases:
-    name: Re-trigger failed release builds
+  trigger-release-builds:
+    name: Trigger release builds
     runs-on: ubuntu-latest
     needs: [publish-release]
     timeout-minutes: 5
-    if: github.event_name == 'push'
     steps:
-      - name: Re-run failed downstream workflows
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Get latest release tag
+        id: tag
         run: |
-          sleep 30
+          TAG=$(gh release list --repo "${{ github.repository }}" --exclude-drafts --limit 10 --json tagName --jq '[.[] | select(.tagName | startswith("v"))][0].tagName // empty')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest release tag: $TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          for workflow in release-docker.yml release-linux.yml release-macos-arm64.yml; do
-            FAILED_RUN=$(gh run list \
-              --repo "${{ github.repository }}" \
-              --workflow="$workflow" \
-              --status=failure \
-              --limit=1 \
-              --json databaseId,createdAt \
-              --jq '.[0].databaseId // empty')
+      - name: Dispatch release workflows
+        if: steps.tag.outputs.tag != ''
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          echo "Dispatching release builds for $TAG..."
 
-            if [ -n "$FAILED_RUN" ]; then
-              echo "Re-running failed $workflow (run $FAILED_RUN)..."
-              gh run rerun "$FAILED_RUN" --repo "${{ github.repository }}" --failed || true
-            else
-              echo "No recent failures for $workflow"
-            fi
-          done
+          gh workflow run release-docker.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-docker.yml"
+
+          gh workflow run release-linux.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-linux.yml"
+
+          gh workflow run release-macos-arm64.yml --repo "${{ github.repository }}" -f tag="$TAG"
+          echo "✅ Dispatched release-macos-arm64.yml"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
