@@ -64,6 +64,19 @@ pool_size = 4
 render_timeout_secs = 30
 
 # ============================================================================
+# GLOBAL TILE CACHE
+# In-process byte-weighted cache shared by all non-PostgreSQL sources.
+# PostgreSQL sources have their own [postgres.cache] section.
+# ============================================================================
+[cache]
+# Enable the global tile cache (default: false)
+enabled = true
+# Maximum cache size in megabytes (default: 512)
+max_size_mb = 512
+# Cache entry time-to-live in seconds (default: 3600 = 1 hour)
+ttl_seconds = 3600
+
+# ============================================================================
 # TILE SOURCES
 # PMTiles and MBTiles files - add multiple sources, each with a unique ID
 # ============================================================================

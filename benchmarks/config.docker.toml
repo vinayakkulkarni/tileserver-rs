@@ -8,6 +8,11 @@ cors_origins = ["*"]
 [telemetry]
 enabled = false
 
+[cache]
+enabled = true
+max_size_mb = 256
+ttl_seconds = 3600
+
 [[sources]]
 id = "pmtiles"
 type = "pmtiles"
