@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.23.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.22.0...v2.23.0) (2026-04-06)
+
+
+### Features
+
+* **cache:** add [cache] config section and wire into SourceManager + admin ([a735f3a](https://github.com/vinayakkulkarni/tileserver-rs/commit/a735f3ada2c7276476b7ba216200619716c14a55))
+* **cache:** extract TileCache to src/cache.rs as always-available global cache ([8297359](https://github.com/vinayakkulkarni/tileserver-rs/commit/829735907e4d93ad39929e36237c44cafdac1f25))
+* **render,cache:** polygon fill, GeoJSON overlays, and global tile cache ([#749](https://github.com/vinayakkulkarni/tileserver-rs/issues/749)) ([c83897c](https://github.com/vinayakkulkarni/tileserver-rs/commit/c83897c717e44d694d1b965d43fe087ef88cda4f))
+
+
+### Bug Fixes
+
+* **ci:** add setup-node@v4 with Node 24 for ESLint 10.2 compatibility ([e56a1d5](https://github.com/vinayakkulkarni/tileserver-rs/commit/e56a1d5bcb6a8103af6361b448146a9e9e4e0797))
+* **ci:** eliminate race condition in release workflows ([#742](https://github.com/vinayakkulkarni/tileserver-rs/issues/742)) ([98697e0](https://github.com/vinayakkulkarni/tileserver-rs/commit/98697e08ebfba96c6a6a098d561d230cd1a36909))
+* **deps:** pin [@luma](https://github.com/luma).gl/engine to ~9.2.6 (tilde) to match deck.gl peer ([8f2ac2b](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f2ac2b3d990a3d97600fa4f292cba283f74d07b))
+* **deps:** revert [@luma](https://github.com/luma).gl/engine to ^9.2.6 to match deck.gl peer dep ([cc604d9](https://github.com/vinayakkulkarni/tileserver-rs/commit/cc604d950ac1211dfa9974d1a8f4e6e2aefdab4a))
+* **sources:** handle TileType::Mlt from pmtiles 0.21.0, bump deps ([a77d8e1](https://github.com/vinayakkulkarni/tileserver-rs/commit/a77d8e173d87760dc61fdc04ac060c07e111f085))
+
+
+### Miscellaneous
+
+* **deps:** update docs lockfile ([997ce55](https://github.com/vinayakkulkarni/tileserver-rs/commit/997ce55ec0e212b285397aa38bac500e459bbeff))
+* remove unused catalog section from root package.json ([34ba91e](https://github.com/vinayakkulkarni/tileserver-rs/commit/34ba91e4c55987e4ddc1dfd55528452f7168e3d5))
+
+
+### Code Refactoring
+
+* **render,sources:** remove stale #[allow(dead_code)] annotations ([9587bfa](https://github.com/vinayakkulkarni/tileserver-rs/commit/9587bfa6f0fa6f31f215fc9fd217f048cb2405b8))
+
 ## [2.22.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.21.1...v2.22.0) (2026-04-03)
 
 
