@@ -778,8 +778,8 @@ fn process_geojson_value(
                 .unwrap_or(Rgba([255, 0, 0, 255]));
             let marker_size = props
                 .and_then(|p| p.get("marker-size"))
-                .and_then(Value::as_f64)
-                .unwrap_or(12.0) as f32;
+                .map(parse_marker_size)
+                .unwrap_or(12.0);
 
             if let Some(geom) = value.get("geometry") {
                 process_geometry(
@@ -794,7 +794,9 @@ fn process_geojson_value(
                 );
             }
         }
-        Some("Point" | "LineString" | "MultiLineString" | "Polygon" | "MultiPolygon") => {
+        Some(
+            "Point" | "MultiPoint" | "LineString" | "MultiLineString" | "Polygon" | "MultiPolygon",
+        ) => {
             process_geometry(
                 value,
                 Rgba([0, 0, 255, 255]),
@@ -830,6 +832,25 @@ fn process_geometry(
                     label: None,
                     size: marker_size,
                 });
+            }
+        }
+        Some("MultiPoint") => {
+            if let Some(coords) = geom.get("coordinates").and_then(Value::as_array) {
+                for coord in coords {
+                    if let Some(arr) = coord.as_array()
+                        && let (Some(lon), Some(lat)) = (
+                            arr.first().and_then(Value::as_f64),
+                            arr.get(1).and_then(Value::as_f64),
+                        )
+                    {
+                        markers.push(MarkerOverlay {
+                            position: GeoPoint { lon, lat },
+                            color: marker_color,
+                            label: None,
+                            size: marker_size,
+                        });
+                    }
+                }
             }
         }
         Some("LineString") => {
@@ -897,6 +918,23 @@ fn process_geometry(
             }
         }
         _ => {}
+    }
+}
+
+/// Parse simplestyle-spec `marker-size`.
+///
+/// Accepts the string enum (`"small"`, `"medium"`, `"large"`) defined by the
+/// simplestyle spec **and** a raw numeric pixel value for convenience.
+fn parse_marker_size(value: &Value) -> f32 {
+    if let Some(s) = value.as_str() {
+        match s {
+            "small" => 8.0,
+            "medium" => 12.0,
+            "large" => 18.0,
+            _ => 12.0,
+        }
+    } else {
+        value.as_f64().unwrap_or(12.0) as f32
     }
 }
 
@@ -1878,5 +1916,85 @@ mod tests {
         assert!(paths.is_empty());
         assert_eq!(markers.len(), 1);
         assert!((markers[0].position.lon - (-74.0)).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_parse_geojson_multipoint() {
+        let geojson = r##"{
+            "type": "Feature",
+            "geometry": {
+                "type": "MultiPoint",
+                "coordinates": [[-74.0, 40.7], [-73.9, 40.8], [-74.1, 40.6]]
+            },
+            "properties": {"marker-color": "#00ff00"}
+        }"##;
+        let (paths, markers) = parse_geojson(geojson);
+        assert!(paths.is_empty());
+        assert_eq!(markers.len(), 3);
+        assert!((markers[0].position.lon - (-74.0)).abs() < 1e-9);
+        assert!((markers[1].position.lon - (-73.9)).abs() < 1e-9);
+        assert!((markers[2].position.lon - (-74.1)).abs() < 1e-9);
+        assert_eq!(markers[0].color, Rgba([0, 255, 0, 255]));
+    }
+
+    #[test]
+    fn test_parse_geojson_multilinestring() {
+        let geojson = r#"{
+            "type": "MultiLineString",
+            "coordinates": [
+                [[0.0, 0.0], [1.0, 1.0]],
+                [[2.0, 2.0], [3.0, 3.0], [4.0, 4.0]]
+            ]
+        }"#;
+        let (paths, markers) = parse_geojson(geojson);
+        assert!(markers.is_empty());
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0].points.len(), 2);
+        assert_eq!(paths[1].points.len(), 3);
+    }
+
+    #[test]
+    fn test_parse_geojson_multipolygon() {
+        let geojson = r##"{
+            "type": "Feature",
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [[[0.0,0.0],[1.0,0.0],[1.0,1.0],[0.0,0.0]]],
+                    [[[2.0,2.0],[3.0,2.0],[3.0,3.0],[2.0,2.0]]]
+                ]
+            },
+            "properties": {"fill": "#ff0000"}
+        }"##;
+        let (paths, markers) = parse_geojson(geojson);
+        assert!(markers.is_empty());
+        assert_eq!(paths.len(), 2);
+        assert_eq!(paths[0].fill_color, Some(Rgba([255, 0, 0, 255])));
+        assert_eq!(paths[1].fill_color, Some(Rgba([255, 0, 0, 255])));
+    }
+
+    #[test]
+    fn test_parse_geojson_marker_size_string() {
+        for (size_str, expected_px) in [("small", 8.0_f32), ("medium", 12.0), ("large", 18.0)] {
+            let geojson = format!(
+                r#"{{"type":"Feature","geometry":{{"type":"Point","coordinates":[0,0]}},"properties":{{"marker-size":"{}"}}}}"#,
+                size_str
+            );
+            let (_, markers) = parse_geojson(&geojson);
+            assert_eq!(markers.len(), 1, "failed for marker-size={size_str}");
+            assert!(
+                (markers[0].size - expected_px).abs() < 1e-3,
+                "marker-size=\"{size_str}\" should map to {expected_px}px, got {}",
+                markers[0].size
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_geojson_marker_size_numeric() {
+        let geojson = r#"{"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{"marker-size":24}}"#;
+        let (_, markers) = parse_geojson(geojson);
+        assert_eq!(markers.len(), 1);
+        assert!((markers[0].size - 24.0).abs() < 1e-3);
     }
 }
