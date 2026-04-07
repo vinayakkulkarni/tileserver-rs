@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.23.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.22.0...v2.23.0) (2026-04-07)
+
+
+### Features
+
+* **cache:** add [cache] config section and wire into SourceManager + admin ([a735f3a](https://github.com/vinayakkulkarni/tileserver-rs/commit/a735f3ada2c7276476b7ba216200619716c14a55))
+* **cache:** extract TileCache to src/cache.rs as always-available global cache ([8297359](https://github.com/vinayakkulkarni/tileserver-rs/commit/829735907e4d93ad39929e36237c44cafdac1f25))
+* **render,cache:** polygon fill, GeoJSON overlays, and global tile cache ([#749](https://github.com/vinayakkulkarni/tileserver-rs/issues/749)) ([c83897c](https://github.com/vinayakkulkarni/tileserver-rs/commit/c83897c717e44d694d1b965d43fe087ef88cda4f))
+
+
+### Bug Fixes
+
+* **ci:** add --no-default-features to coverage workflow ([2f34527](https://github.com/vinayakkulkarni/tileserver-rs/commit/2f345272e691d5bd7f609df21bedc3bdfd3f7aea))
+* **ci:** add setup-node@v4 with Node 24 for ESLint 10.2 compatibility ([e56a1d5](https://github.com/vinayakkulkarni/tileserver-rs/commit/e56a1d5bcb6a8103af6361b448146a9e9e4e0797))
+* **ci:** eliminate race condition in release workflows ([#742](https://github.com/vinayakkulkarni/tileserver-rs/issues/742)) ([98697e0](https://github.com/vinayakkulkarni/tileserver-rs/commit/98697e08ebfba96c6a6a098d561d230cd1a36909))
+* **ci:** remove nonexistent http feature and fix --ignore-filename-regex ([62ed0cf](https://github.com/vinayakkulkarni/tileserver-rs/commit/62ed0cf89671b8c4af2490b08c8621774407ae2e))
+* **ci:** run coverage across all feature combinations ([4d99da9](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d99da925226b23a35e61cce04936565edabfb6c))
+* **client:** all issues from vue and nuxt skills resolved ([38f38d9](https://github.com/vinayakkulkarni/tileserver-rs/commit/38f38d90de79c9c6c156d3d369b77af563cd6700))
+* **client:** externalize optional v-maplibre peer deps in rollup ([adec207](https://github.com/vinayakkulkarni/tileserver-rs/commit/adec207d5078d44159b138a55f9375dfd660040a))
+* **deps:** pin [@luma](https://github.com/luma).gl/engine to ~9.2.6 (tilde) to match deck.gl peer ([8f2ac2b](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f2ac2b3d990a3d97600fa4f292cba283f74d07b))
+* **deps:** revert [@luma](https://github.com/luma).gl/engine to ^9.2.6 to match deck.gl peer dep ([cc604d9](https://github.com/vinayakkulkarni/tileserver-rs/commit/cc604d950ac1211dfa9974d1a8f4e6e2aefdab4a))
+* **duckdb:** support all WKB geometry types, not just points ([c095bd0](https://github.com/vinayakkulkarni/tileserver-rs/commit/c095bd09a83c2b6b0314666454c1662dbf1f924c)), closes [#736](https://github.com/vinayakkulkarni/tileserver-rs/issues/736)
+* resolve 13 code review issues + duckdb geometry support ([#759](https://github.com/vinayakkulkarni/tileserver-rs/issues/759)) ([f74a545](https://github.com/vinayakkulkarni/tileserver-rs/commit/f74a5451a17f6268b582a219e6ac980d76d1b80b))
+* **sources:** handle TileType::Mlt from pmtiles 0.21.0, bump deps ([a77d8e1](https://github.com/vinayakkulkarni/tileserver-rs/commit/a77d8e173d87760dc61fdc04ac060c07e111f085))
+* **test:** remove needless borrow in cli test (clippy) ([e6ce338](https://github.com/vinayakkulkarni/tileserver-rs/commit/e6ce3385c3f59a71f93ccc019921bde3cc942d2f))
+* **test:** update error display tests to match lowercased messages ([4695f01](https://github.com/vinayakkulkarni/tileserver-rs/commit/4695f010fa28df830703d627d21cabdf338563af))
+
+
+### Miscellaneous
+
+* bump dependencies ✨ ([4f34b30](https://github.com/vinayakkulkarni/tileserver-rs/commit/4f34b30959ac43c1dcb4ad4569c1b192f2872a9e))
+* **deps:** bump actions/setup-node from v4 to v6 ([65b00a5](https://github.com/vinayakkulkarni/tileserver-rs/commit/65b00a549432cbe58d00c875d112c8115cf9aed7))
+* **deps:** bump oxlint ^1.59.0, oxfmt ^0.44.0, shadcn-nuxt ^2.5.3 ([3751370](https://github.com/vinayakkulkarni/tileserver-rs/commit/3751370dbded1770ccbd760a6e6ae5a47c0d39bb))
+* **deps:** update docs lockfile ([997ce55](https://github.com/vinayakkulkarni/tileserver-rs/commit/997ce55ec0e212b285397aa38bac500e459bbeff))
+* **docs:** bump dependencies ✨ ([dd6649d](https://github.com/vinayakkulkarni/tileserver-rs/commit/dd6649d3bbca0e88377c46bfffa5928cfc0ebe6b))
+* remove unused catalog section from root package.json ([34ba91e](https://github.com/vinayakkulkarni/tileserver-rs/commit/34ba91e4c55987e4ddc1dfd55528452f7168e3d5))
+
+
+### Code Refactoring
+
+* fix 13 Oracle code review issues across src/ ([019cb60](https://github.com/vinayakkulkarni/tileserver-rs/commit/019cb60076fb41105a165ed4a999fd44435f78dc))
+* **render,sources:** remove stale #[allow(dead_code)] annotations ([9587bfa](https://github.com/vinayakkulkarni/tileserver-rs/commit/9587bfa6f0fa6f31f215fc9fd217f048cb2405b8))
+
 ## [2.22.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.21.1...v2.22.0) (2026-04-03)
 
 
