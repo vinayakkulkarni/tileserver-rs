@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.23.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.23.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* **ci:** read mbgl-sys version from manifest, revert to 0.1.3 ([2db6ada](https://github.com/vinayakkulkarni/tileserver-rs/commit/2db6ada8a9d2de269e741512f58fe58d7282a832))
+
+
+### Miscellaneous
+
+* **deps:** bump reka-ui ^2.9.5, eslint-plugin-oxlint ^1.59.0, vite ^8.0.7 ([58c6b3b](https://github.com/vinayakkulkarni/tileserver-rs/commit/58c6b3b3da016eb1ca3232eb9df42323ef01e0ac))
+
 ## [2.23.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.22.0...v2.23.0) (2026-04-07)
 
 
