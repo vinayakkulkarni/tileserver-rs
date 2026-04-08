@@ -278,13 +278,17 @@ impl SourceManager {
     pub async fn load_source(&mut self, config: &SourceConfig) -> Result<()> {
         let source: Arc<dyn TileSource> = match config.source_type {
             SourceType::PMTiles => {
+                #[cfg(feature = "cloud")]
                 if crate::sources::pmtiles::cloud::is_cloud_url(&config.path) {
-                    Arc::new(
+                    let source = Arc::new(
                         crate::sources::pmtiles::cloud::CloudPmTilesSource::from_url(config)
                             .await?,
-                    )
-                } else if config.path.starts_with("http://") || config.path.starts_with("https://")
-                {
+                    );
+                    self.sources.insert(config.id.clone(), source);
+                    return Ok(());
+                }
+
+                if config.path.starts_with("http://") || config.path.starts_with("https://") {
                     let client = reqwest::Client::builder()
                         .user_agent("tileserver-rs/0.1.0")
                         .build()
