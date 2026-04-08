@@ -2647,7 +2647,7 @@ checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "mbgl-sys"
-version = "0.1.3"
+version = "2.24.0"
 dependencies = [
  "cc",
  "cmake",
@@ -4840,7 +4840,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.23.0"
+version = "2.24.0"
 dependencies = [
  "anyhow",
  "arc-swap",

@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.24.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.24.0) (2026-04-08)
+
+
+### Features
+
+* **api:** replace Swagger UI with Scalar API Reference ([#769](https://github.com/vinayakkulkarni/tileserver-rs/issues/769)) ([a220716](https://github.com/vinayakkulkarni/tileserver-rs/commit/a220716fc9e49df8115d3dde3f1268c222407dcc))
+* **sources:** add cloud object storage support (S3/Azure/GCS) ([#766](https://github.com/vinayakkulkarni/tileserver-rs/issues/766)) ([fac2924](https://github.com/vinayakkulkarni/tileserver-rs/commit/fac2924e40e75a50869bb2a6483dd9c44f889c68))
+
+
+### Bug Fixes
+
+* **ci:** change mbgl-sys release-type from rust to simple ([056873c](https://github.com/vinayakkulkarni/tileserver-rs/commit/056873c54e2a40326aefdbf9879afde36c26bc6f))
+* **ci:** disable cargo-workspace plugin merge to allow independent mbgl-sys versioning ([85093e0](https://github.com/vinayakkulkarni/tileserver-rs/commit/85093e08897bb8c0b52dfba8f920c28e9cda270e))
+* **ci:** read mbgl-sys version from manifest, revert to 0.1.3 ([2db6ada](https://github.com/vinayakkulkarni/tileserver-rs/commit/2db6ada8a9d2de269e741512f58fe58d7282a832))
+* **ci:** remove cargo-workspace plugin entirely to prevent mbgl-sys version collision ([6c4360f](https://github.com/vinayakkulkarni/tileserver-rs/commit/6c4360f581008e93f0950880f4c1170695895f99))
+* **ci:** remove mbgl-sys from release-please to prevent version collision ([e01ce92](https://github.com/vinayakkulkarni/tileserver-rs/commit/e01ce920baa0ed3b02d606e04bd635c8f5a5de11))
+
+
+### Miscellaneous
+
+* **deps:** bump reka-ui ^2.9.5, eslint-plugin-oxlint ^1.59.0, vite ^8.0.7 ([58c6b3b](https://github.com/vinayakkulkarni/tileserver-rs/commit/58c6b3b3da016eb1ca3232eb9df42323ef01e0ac))
+* **homebrew:** update formula to v2.23.0 ([ac4b769](https://github.com/vinayakkulkarni/tileserver-rs/commit/ac4b769e18e0d676454e95ff9a84c2901d450902))
+
 ## [2.23.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.22.0...v2.23.0) (2026-04-07)
 
 
