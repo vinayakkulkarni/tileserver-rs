@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.24.0...v2.24.1) (2026-04-08)
+
+
+### Miscellaneous
+
+* fix mbgl-sys version in Cargo.lock ([bdfa9e9](https://github.com/vinayakkulkarni/tileserver-rs/commit/bdfa9e9bac589c63dac0e6797283b7610ef81618))
+
 ## [2.24.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.24.0) (2026-04-08)
 
 
