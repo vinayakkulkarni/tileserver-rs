@@ -626,6 +626,7 @@ mod error_handling {
             query: None,
             serve_as: None,
             colormap: None,
+            options: None,
         };
 
         let result = CogSource::from_file(&config).await;

@@ -1046,6 +1046,7 @@ mod mlt_mbtiles_tests {
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,
+            options: None,
         }
     }
 
