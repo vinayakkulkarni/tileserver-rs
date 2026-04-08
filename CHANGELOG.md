@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.24.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.24.0) (2026-04-08)
+
+
+### Features
+
+* **sources:** add cloud object storage support (S3/Azure/GCS) ([#766](https://github.com/vinayakkulkarni/tileserver-rs/issues/766)) ([fac2924](https://github.com/vinayakkulkarni/tileserver-rs/commit/fac2924e40e75a50869bb2a6483dd9c44f889c68))
+
+
+### Bug Fixes
+
+* **ci:** read mbgl-sys version from manifest, revert to 0.1.3 ([2db6ada](https://github.com/vinayakkulkarni/tileserver-rs/commit/2db6ada8a9d2de269e741512f58fe58d7282a832))
+* **ci:** remove mbgl-sys from release-please to prevent version collision ([e01ce92](https://github.com/vinayakkulkarni/tileserver-rs/commit/e01ce920baa0ed3b02d606e04bd635c8f5a5de11))
+
+
+### Miscellaneous
+
+* **deps:** bump reka-ui ^2.9.5, eslint-plugin-oxlint ^1.59.0, vite ^8.0.7 ([58c6b3b](https://github.com/vinayakkulkarni/tileserver-rs/commit/58c6b3b3da016eb1ca3232eb9df42323ef01e0ac))
+* **homebrew:** update formula to v2.23.0 ([ac4b769](https://github.com/vinayakkulkarni/tileserver-rs/commit/ac4b769e18e0d676454e95ff9a84c2901d450902))
+
 ## [2.23.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.22.0...v2.23.0) (2026-04-07)
 
 
