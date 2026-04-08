@@ -22,7 +22,6 @@ use tower_http::{
 };
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 mod cli;
 mod logging;
@@ -173,10 +172,46 @@ async fn main() -> anyhow::Result<()> {
 
     let mut router = Router::new().merge(routes::api_router(shared.clone()));
 
-    // Swagger UI
+    // OpenAPI JSON endpoint (must be before SPA fallback)
     let mut openapi_spec = openapi::ApiDoc::openapi();
     openapi_spec.info.version = env!("CARGO_PKG_VERSION").to_string();
-    router = router.merge(SwaggerUi::new("/_openapi").url("/openapi.json", openapi_spec));
+    let openapi_json = openapi_spec.to_pretty_json().unwrap();
+    router = router.route(
+        "/openapi.json",
+        axum::routing::get(move || async move {
+            (
+                [(axum::http::header::CONTENT_TYPE, "application/json")],
+                openapi_json.clone(),
+            )
+        }),
+    );
+
+    // Scalar API Reference (self-hosted, no CDN)
+    let scalar_config = serde_json::json!({
+        "url": "/openapi.json",
+        "layout": "classic",
+    });
+    let scalar_html =
+        scalar_api_reference::axum::scalar_response(&scalar_config, Some("/_openapi/scalar.js"));
+    router = router
+        .route(
+            "/_openapi",
+            axum::routing::get(move || async move { scalar_html.clone() }),
+        )
+        .route(
+            "/_openapi/scalar.js",
+            axum::routing::get(|| async {
+                match scalar_api_reference::get_asset_with_mime("scalar.js") {
+                    Some((mime, content)) => (
+                        axum::http::StatusCode::OK,
+                        [(axum::http::header::CONTENT_TYPE, mime)],
+                        content,
+                    )
+                        .into_response(),
+                    None => axum::http::StatusCode::NOT_FOUND.into_response(),
+                }
+            }),
+        );
 
     #[cfg(feature = "frontend")]
     if ui_enabled {

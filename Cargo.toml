@@ -76,9 +76,9 @@ urlencoding      = "2.1.3"
 # Embedded frontend (optional)
 rust-embed       = { version = "8.11.0", features = ["axum"] }
 
-# OpenAPI / Swagger UI
+# OpenAPI / Scalar API Reference
 utoipa           = { version = "5.4.0", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+scalar_api_reference = { version = "0.2", features = ["axum"] }
 
 # OpenTelemetry
 opentelemetry    = "0.31.0"
@@ -187,9 +187,9 @@ uuid             = { workspace = true }
 tracing          = { workspace = true }
 tracing-subscriber = { workspace = true }
 
-# OpenAPI / Swagger UI (bundled, no external dependencies)
+# OpenAPI / Scalar API Reference (bundled, no external dependencies)
 utoipa           = { workspace = true }
-utoipa-swagger-ui = { workspace = true }
+scalar_api_reference = { workspace = true }
 
 # OpenTelemetry
 opentelemetry    = { workspace = true }
