@@ -89,12 +89,56 @@ ttl_seconds = 3600
 # name = "OpenStreetMap"
 # attribution = "<a href=\"https://www.openstreetmap.org/copyright\">© OpenStreetMap</a>"
 
-# Example: Remote PMTiles file (requires http feature)
+# Example: Remote PMTiles file (HTTP/HTTPS)
 # [[sources]]
 # id = "protomaps"
 # type = "pmtiles"
-# path = "https://example.com/tiles.pmtiles"
+# path = "https://build.protomaps.com/20260407.pmtiles"
 # name = "Protomaps Tiles"
+
+# Example: S3 PMTiles file
+# [[sources]]
+# id = "s3-tiles"
+# type = "pmtiles"
+# path = "s3://my-bucket/tiles.pmtiles"
+# name = "S3 Tiles"
+# [sources.options]
+# aws_region = "us-east-1"
+# # Credentials auto-detected from env (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+# # or IAM role. For explicit credentials:
+# # aws_access_key_id = "AKIA..."
+# # aws_secret_access_key = "..."
+
+# Example: Azure Blob Storage PMTiles file
+# [[sources]]
+# id = "azure-tiles"
+# type = "pmtiles"
+# path = "az://tiles-container/world.pmtiles"
+# name = "Azure Tiles"
+# [sources.options]
+# azure_storage_account_name = "mystorageaccount"
+# # azure_storage_access_key = "..." or use managed identity
+
+# Example: Google Cloud Storage PMTiles file
+# [[sources]]
+# id = "gcs-tiles"
+# type = "pmtiles"
+# path = "gs://my-bucket/tiles.pmtiles"
+# name = "GCS Tiles"
+# # Credentials auto-detected from GOOGLE_APPLICATION_CREDENTIALS or ADC
+
+# Example: S3-compatible (MinIO, Cloudflare R2, Ceph)
+# [[sources]]
+# id = "r2-tiles"
+# type = "pmtiles"
+# path = "s3://tiles-bucket/world.pmtiles"
+# name = "R2 Tiles"
+# [sources.options]
+# aws_endpoint = "https://ACCOUNT_ID.r2.cloudflarestorage.com"
+# aws_access_key_id = "..."
+# aws_secret_access_key = "..."
+# aws_virtual_hosted_style_request = "false"
+# aws_allow_http = "false"
 
 # Example: Local MBTiles file
 # [[sources]]

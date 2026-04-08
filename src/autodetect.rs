@@ -157,6 +157,7 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
                 serve_as: None,
                 #[cfg(feature = "raster")]
                 colormap: None,
+                options: None,
             });
             report.sources.push(AutoDetectedSource {
                 id,
@@ -292,6 +293,7 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
             serve_as: None,
             #[cfg(feature = "raster")]
             colormap: None,
+            options: None,
         });
         report.sources.push(AutoDetectedSource {
             id,

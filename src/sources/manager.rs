@@ -278,25 +278,23 @@ impl SourceManager {
     pub async fn load_source(&mut self, config: &SourceConfig) -> Result<()> {
         let source: Arc<dyn TileSource> = match config.source_type {
             SourceType::PMTiles => {
-                // Check if it's a URL or local file
-                if config.path.starts_with("http://") || config.path.starts_with("https://") {
+                if crate::sources::pmtiles::cloud::is_cloud_url(&config.path) {
+                    Arc::new(
+                        crate::sources::pmtiles::cloud::CloudPmTilesSource::from_url(config)
+                            .await?,
+                    )
+                } else if config.path.starts_with("http://") || config.path.starts_with("https://")
+                {
                     let client = reqwest::Client::builder()
                         .user_agent("tileserver-rs/0.1.0")
                         .build()
                         .map_err(|e| {
                             TileServerError::ConfigError(format!(
-                                "Failed to create HTTP client: {}",
-                                e
+                                "failed to create HTTP client: {e}"
                             ))
                         })?;
                     Arc::new(HttpPmTilesSource::from_url(config, client).await?)
-                } else if config.path.starts_with("s3://") {
-                    // S3 support placeholder - would require aws-sdk-s3
-                    return Err(TileServerError::ConfigError(
-                        "S3 PMTiles support not yet implemented".to_string(),
-                    ));
                 } else {
-                    // Local PMTiles file using memory-mapped I/O
                     Arc::new(LocalPmTilesSource::from_file(config).await?)
                 }
             }

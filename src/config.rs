@@ -276,6 +276,11 @@ pub struct SourceConfig {
     #[cfg(feature = "raster")]
     #[serde(default)]
     pub colormap: Option<ColorMapConfig>,
+    /// Provider-specific options for cloud object storage (S3/Azure/GCS).
+    /// Keys are passed directly to `object_store::parse_url_opts()`.
+    /// E.g., `aws_region`, `aws_access_key_id`, `azure_storage_account_name`.
+    #[serde(default)]
+    pub options: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

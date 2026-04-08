@@ -164,6 +164,7 @@ pub async fn upload_file(
         serve_as: None,
         #[cfg(feature = "raster")]
         colormap: None,
+        options: None,
     };
 
     let mut temp_manager = SourceManager::new();
