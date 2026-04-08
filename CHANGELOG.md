@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.24.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.24.0...v2.24.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* **docker:** add retry loop for pre-built mbgl-sys binary download ([8f752fa](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f752fa64e8c24463aac9b0647b7bd59c258ef9a))
+* **docker:** fail fast when mbgl-sys assets not yet available ([8f9c8a7](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f9c8a7a46005acc34a8681e1ac1336e3c4e7b34))
+* move IntoResponse import out of frontend feature gate ([8b1e49d](https://github.com/vinayakkulkarni/tileserver-rs/commit/8b1e49d73ed7cb8a6fa3dc3500a35375ad5cd68c))
+
 ## [2.24.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.24.0) (2026-04-08)
 
 
