@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.24.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.24.0...v2.24.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **client:** update API link description from Swagger UI to Scalar ([b69d007](https://github.com/vinayakkulkarni/tileserver-rs/commit/b69d007cca2acfc32d99fcce27be7c953757e1c3))
+* update bun.lock to resolve missing range-parser transitive dep ([e10e24c](https://github.com/vinayakkulkarni/tileserver-rs/commit/e10e24c43ebb498276767827150e684fb5252657))
+
+
+### Miscellaneous
+
+* **deps:** bump catalog and Cargo.toml versions to latest ([f2f37f4](https://github.com/vinayakkulkarni/tileserver-rs/commit/f2f37f4916e3ad09108f789a78ab261edbeceb82))
+* **deps:** update all Rust and JS dependencies ([650dfd0](https://github.com/vinayakkulkarni/tileserver-rs/commit/650dfd038841eab1d122d99b0d0e2859c86c8150))
+* fix mbgl-sys version in Cargo.lock ([bdfa9e9](https://github.com/vinayakkulkarni/tileserver-rs/commit/bdfa9e9bac589c63dac0e6797283b7610ef81618))
+* **homebrew:** update formula to v2.24.0 ([83fe61f](https://github.com/vinayakkulkarni/tileserver-rs/commit/83fe61fbed7e30ec4462fe50ee4eae9ef289ad86))
+
 ## [2.24.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.23.0...v2.24.0) (2026-04-08)
 
 
