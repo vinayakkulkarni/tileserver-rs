@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.26.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.25.1...v2.26.0) (2026-04-20)
+
+
+### Features
+
+* **raster:** add 8 pixel-selection methods + STAC metadata preservation ([689852a](https://github.com/vinayakkulkarni/tileserver-rs/commit/689852a84df65ef20285a388a1ca8f9b13ca8d40))
+* **raster:** band math via ?expression=... on raster tiles ([9f85baf](https://github.com/vinayakkulkarni/tileserver-rs/commit/9f85baff14577e7286e7fcada14352c37140471b))
+* **raster:** introduce RasterImage type for array-backed pipeline ([e87405f](https://github.com/vinayakkulkarni/tileserver-rs/commit/e87405fbaf68985699ab50886d7967ce12a79cd6))
+* **raster:** moka-cached GDAL Dataset handles across mosaic calls ([66ed174](https://github.com/vinayakkulkarni/tileserver-rs/commit/66ed174fb0448bc9dcde8edc4f188f47f0edd446))
+
+
+### Bug Fixes
+
+* **ci:** restore mbgl-sys as independent release-please package ([4d04e14](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d04e14798fd327836cabbd337a2ccd7b8b95928))
+* **stac:** remove useless .into_iter() call flagged by Rust 1.95 clippy ([0ed31a3](https://github.com/vinayakkulkarni/tileserver-rs/commit/0ed31a38b3827a3efe36ef495257f7f164479766))
+
+
+### Performance Improvements
+
+* **cog:** select pre-computed overview level to match tile resolution ([3852ff7](https://github.com/vinayakkulkarni/tileserver-rs/commit/3852ff7adfd416270e6a0245243dc2d5a343dcc8))
+* **stac:** parallelise mosaic asset rendering with futures::join_all ([b3e3eac](https://github.com/vinayakkulkarni/tileserver-rs/commit/b3e3eacf4392340dfdfa5d6f6961c4e2f740f02b))
+
+
+### Documentation
+
+* **benchmarks:** add end-to-end COG comparison vs titiler (post-commit-9) ([f043e50](https://github.com/vinayakkulkarni/tileserver-rs/commit/f043e50f0d04f674f0febc472ab49b2c53a57a66))
+* **raster:** document resampling + pixel selection; rustdoc every variant ([be551a1](https://github.com/vinayakkulkarni/tileserver-rs/commit/be551a1849cff8ca7977e32a879ab10dee810d5c))
+
+
+### Miscellaneous
+
+* **homebrew:** update formula to v2.25.1 ([c3019cc](https://github.com/vinayakkulkarni/tileserver-rs/commit/c3019cc8d24a82248d300dca7fbfe80062bfb656))
+
 ## [2.25.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.25.0...v2.25.1) - 2026-04-19
 
 ### Fixed

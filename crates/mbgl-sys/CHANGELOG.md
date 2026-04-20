@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.4...mbgl-sys-v0.1.5) (2026-04-20)
+
+
+### Miscellaneous
+
+* retrigger release-plz with fine-grained PAT ([85f4c91](https://github.com/vinayakkulkarni/tileserver-rs/commit/85f4c91684f614a69ade08fc22cad80941ff39d5))
+
 ## [0.1.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.3...mbgl-sys-v0.1.4) (2026-04-08)
 
 
