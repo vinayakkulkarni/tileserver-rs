@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.26.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.0...v2.26.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **ci:** remove double -fast suffix in merge-fast Inspect image step ([778dbc4](https://github.com/vinayakkulkarni/tileserver-rs/commit/778dbc414902635306f0d08275ed794d35027289))
+* **deps:** bump dependabot/fetch-metadata from 3.0.0 to 3.1.0 ([2491ce9](https://github.com/vinayakkulkarni/tileserver-rs/commit/2491ce91c4fd868589c84c235e9ad15bfbd0a1bc))
+* **deps:** bump dependabot/fetch-metadata from 3.0.0 to 3.1.0 ([f0736b8](https://github.com/vinayakkulkarni/tileserver-rs/commit/f0736b81570d4265e3a1964ac84de42f53d556e5))
+* **ogc:** strip whitespace in CQL2 round-trip canonicaliser ([e3e1a7d](https://github.com/vinayakkulkarni/tileserver-rs/commit/e3e1a7d7a3b702822749c2a7669abebcba2e4eeb))
+
+
+### Miscellaneous
+
+* **deps-dev:** update @tailwindcss/postcss requirement ([cf414b8](https://github.com/vinayakkulkarni/tileserver-rs/commit/cf414b84a2570d0089253cd21e3836dcd8c5e962))
+* **deps-dev:** update @tailwindcss/postcss requirement from ^4.2.2 to ^4.2.3 ([4b6d9a9](https://github.com/vinayakkulkarni/tileserver-rs/commit/4b6d9a9e0e3b40e5a9667affd4b72172b5d7c1f1))
+* **deps-dev:** update eslint-plugin-oxlint requirement ([fbffc89](https://github.com/vinayakkulkarni/tileserver-rs/commit/fbffc898b75392cd42e5038b6bc40e6a2220c438))
+* **deps-dev:** update eslint-plugin-oxlint requirement from ^1.60.0 to ^1.61.0 ([7142ee5](https://github.com/vinayakkulkarni/tileserver-rs/commit/7142ee5f922eac0a9162cc35f21c2ff01eba448e))
+* **deps-dev:** update tailwindcss requirement from ^4.2.2 to ^4.2.3 ([a645c4f](https://github.com/vinayakkulkarni/tileserver-rs/commit/a645c4f3cfddd4db0225890d88b9466d7472a1f7))
+* **deps-dev:** update tailwindcss requirement from ^4.2.2 to ^4.2.3 ([5b79b33](https://github.com/vinayakkulkarni/tileserver-rs/commit/5b79b338f7e4c1456ced891f5f998b9555e08950))
+* **homebrew:** update formula to v2.26.0 ([ba5ea80](https://github.com/vinayakkulkarni/tileserver-rs/commit/ba5ea803260c79057ce7b7aeca5b2ea478b91099))
+
 ## [2.26.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.25.1...v2.26.0) (2026-04-20)
 
 

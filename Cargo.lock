@@ -3090,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "mbgl-sys"
-version = "2.26.0"
+version = "2.26.1"
 dependencies = [
  "cc",
  "cmake",
@@ -5707,7 +5707,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.26.0"
+version = "2.26.1"
 dependencies = [
  "anyhow",
  "arc-swap",
