@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.26.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.2...v2.26.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* **ci:** drop AVX-512 from :fast amd64 Docker build (SIGILL on GH runners) ([c62a4a5](https://github.com/vinayakkulkarni/tileserver-rs/commit/c62a4a58366882f12e359ccb76370ddd5fc44d19))
+
+
+### Documentation
+
+* **readme:** document mbgl-sys/Docker race + manual rerun workaround ([384bd0a](https://github.com/vinayakkulkarni/tileserver-rs/commit/384bd0adde15a2cb0ec50f71c80292db6a5d4ae9))
+
 ## [2.26.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.1...v2.26.2) (2026-04-21)
 
 
