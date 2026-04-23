@@ -44,7 +44,7 @@ jobs:
     if: github.repository_owner == 'vinayakkulkarni'
     steps:
       - name: Release Please
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
