@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.27.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.4...v2.27.0) (2026-04-25)
+
+
+### Features
+
+* **benchmarks:** real-world grid mode + deploy/ split + bench refresh ([243c3e7](https://github.com/vinayakkulkarni/tileserver-rs/commit/243c3e73d131edaa464f4843a007bff007531d8c))
+
+
+### Bug Fixes
+
+* **sources:** make raster feature compile standalone without postgres ([114b7e9](https://github.com/vinayakkulkarni/tileserver-rs/commit/114b7e99d589be1b16d05b8a145c3907bd789cac))
+
+
+### Performance Improvements
+
+* **bench:** add benches for stac, cog, postgres, frontend, duckdb, geoparquet features ([67ade59](https://github.com/vinayakkulkarni/tileserver-rs/commit/67ade59cca68497f73e9e10eb71e9265e0609c3e))
+* **benches:** add style-rewrite bench + audit cache/mlt/raster ([c675857](https://github.com/vinayakkulkarni/tileserver-rs/commit/c675857a459820ba297c964de5cf142ee4b25930))
+
 ## [2.26.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.3...v2.26.4) (2026-04-23)
 
 
