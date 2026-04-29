@@ -469,8 +469,8 @@ importers:
         specifier: ^10.2.1
         version: 10.2.1(jiti@2.6.1)
       eslint-plugin-oxlint:
-        specifier: ^1.61.0
-        version: 1.61.0(oxlint@1.62.0)
+        specifier: ^1.62.0
+        version: 1.62.0(oxlint@1.62.0)
       oxlint:
         specifier: ^1.62.0
         version: 1.62.0
@@ -4864,11 +4864,6 @@ packages:
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
-
-  eslint-plugin-oxlint@1.61.0:
-    resolution: {integrity: sha512-mpROR01MZfs5jRtglHnslLcHYd3/6BNXPJvIxJW/Klg9B5wA8i8EDQp8/FUK7XgpRVa9TpodclqGiwsUYwi/Wg==}
-    peerDependencies:
-      oxlint: ~1.61.0
 
   eslint-plugin-oxlint@1.62.0:
     resolution: {integrity: sha512-fJ1xrPPw7AwJPH+4rD10qaXbCQfMNa743WnwPwteXLFsUQ0qs9N1Zx8xGJvuWCwvciRJ19dwG+G460fLHrrPdw==}
@@ -12516,11 +12511,6 @@ snapshots:
       to-valid-identifier: 1.0.0
     transitivePeerDependencies:
       - supports-color
-
-  eslint-plugin-oxlint@1.61.0(oxlint@1.62.0):
-    dependencies:
-      jsonc-parser: 3.3.1
-      oxlint: 1.62.0
 
   eslint-plugin-oxlint@1.62.0(oxlint@1.62.0):
     dependencies:
