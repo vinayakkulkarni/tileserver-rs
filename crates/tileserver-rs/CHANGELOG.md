@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.27.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.27.0...v2.27.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **deps:** bump maplibre-gl from 5.23.0 to 5.24.0 ([1cb84cf](https://github.com/vinayakkulkarni/tileserver-rs/commit/1cb84cf63d4508e0a83df909de5bf7d64253db10))
+
 ## [2.27.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.4...v2.27.0) (2026-04-26)
 
 
