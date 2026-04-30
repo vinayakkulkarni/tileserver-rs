@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.6...mbgl-sys-v0.1.7) (2026-04-30)
+
+
+### Bug Fixes
+
+* **deps:** bump maplibre-gl from 5.23.0 to 5.24.0 ([1cb84cf](https://github.com/vinayakkulkarni/tileserver-rs/commit/1cb84cf63d4508e0a83df909de5bf7d64253db10))
+
 ## [0.1.6](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.5...mbgl-sys-v0.1.6) (2026-04-21)
 
 
