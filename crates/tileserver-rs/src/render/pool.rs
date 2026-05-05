@@ -137,6 +137,7 @@ impl RendererPool {
         y: u32,
         scale: u8,
     ) -> Result<Vec<u8>> {
+        let render_start = std::time::Instant::now();
         let scale = scale.min(self.max_scale).max(1);
         let (tx, rx) = oneshot::channel();
 
@@ -152,7 +153,7 @@ impl RendererPool {
             response: tx,
         })?;
 
-        match tokio::time::timeout(self.config.render_timeout, rx).await {
+        let result = match tokio::time::timeout(self.config.render_timeout, rx).await {
             Ok(Ok(RenderOutput::Tile(result))) => result,
             Ok(Ok(_)) => Err(TileServerError::RenderError(
                 "unexpected render output type".to_string(),
@@ -164,7 +165,26 @@ impl RendererPool {
                 "render timed out after {}s",
                 self.config.render_timeout.as_secs()
             ))),
-        }
+        };
+
+        let error_msg: Option<String> = match &result {
+            Ok(_) => None,
+            Err(e) => Some(e.to_string()),
+        };
+        let (outcome, error_ref) = if error_msg.is_some() {
+            (crate::metrics::RenderOutcome::Error, error_msg.as_deref())
+        } else {
+            (crate::metrics::RenderOutcome::Success, None)
+        };
+        crate::metrics::render_recorded(crate::metrics::RenderEvent {
+            style: "tile",
+            format: crate::sources::TileFormat::Png,
+            duration: render_start.elapsed(),
+            outcome,
+            error_reason: error_ref,
+        });
+
+        result
     }
 
     /// Render a static map image via a worker thread
@@ -173,6 +193,7 @@ impl RendererPool {
         style_json: &str,
         options: RenderOptions,
     ) -> Result<RenderedImage> {
+        let render_start = std::time::Instant::now();
         let (tx, rx) = oneshot::channel();
 
         self.dispatch(RenderRequest {
@@ -183,7 +204,7 @@ impl RendererPool {
             response: tx,
         })?;
 
-        match tokio::time::timeout(self.config.render_timeout, rx).await {
+        let result = match tokio::time::timeout(self.config.render_timeout, rx).await {
             Ok(Ok(RenderOutput::Static(result))) => result,
             Ok(Ok(_)) => Err(TileServerError::RenderError(
                 "unexpected render output type".to_string(),
@@ -195,7 +216,26 @@ impl RendererPool {
                 "static render timed out after {}s",
                 self.config.render_timeout.as_secs()
             ))),
-        }
+        };
+
+        let error_msg: Option<String> = match &result {
+            Ok(_) => None,
+            Err(e) => Some(e.to_string()),
+        };
+        let (outcome, error_ref) = if error_msg.is_some() {
+            (crate::metrics::RenderOutcome::Error, error_msg.as_deref())
+        } else {
+            (crate::metrics::RenderOutcome::Success, None)
+        };
+        crate::metrics::render_recorded(crate::metrics::RenderEvent {
+            style: "static",
+            format: crate::sources::TileFormat::Png,
+            duration: render_start.elapsed(),
+            outcome,
+            error_reason: error_ref,
+        });
+
+        result
     }
 
     #[must_use]
