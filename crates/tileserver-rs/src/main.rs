@@ -268,34 +268,34 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
 
-    if let Some(exporter) = telemetry_output.prometheus_exporter {
-        if let Some(bind_str) = config.telemetry.prometheus_bind.as_ref() {
-            match bind_str.parse::<SocketAddr>() {
-                Ok(prom_addr) => {
-                    let path = config.telemetry.prometheus_path.clone();
-                    match metrics::spawn_metrics_server(prom_addr, path, exporter).await {
-                        Ok(_handle) => {
-                            tracing::info!(
-                                bind = %prom_addr,
-                                "Prometheus /metrics endpoint enabled"
-                            );
-                        }
-                        Err(e) => {
-                            tracing::error!(
-                                bind = %prom_addr,
-                                error = %e,
-                                "Failed to bind Prometheus /metrics listener; tile serving continues"
-                            );
-                        }
+    if let Some(exporter) = telemetry_output.prometheus_exporter
+        && let Some(bind_str) = config.telemetry.prometheus_bind.as_ref()
+    {
+        match bind_str.parse::<SocketAddr>() {
+            Ok(prom_addr) => {
+                let path = config.telemetry.prometheus_path.clone();
+                match metrics::spawn_metrics_server(prom_addr, path, exporter).await {
+                    Ok(_handle) => {
+                        tracing::info!(
+                            bind = %prom_addr,
+                            "Prometheus /metrics endpoint enabled"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            bind = %prom_addr,
+                            error = %e,
+                            "Failed to bind Prometheus /metrics listener; tile serving continues"
+                        );
                     }
                 }
-                Err(e) => {
-                    tracing::error!(
-                        prometheus_bind = %bind_str,
-                        error = %e,
-                        "Invalid prometheus_bind address; Prometheus /metrics disabled"
-                    );
-                }
+            }
+            Err(e) => {
+                tracing::error!(
+                    prometheus_bind = %bind_str,
+                    error = %e,
+                    "Invalid prometheus_bind address; Prometheus /metrics disabled"
+                );
             }
         }
     }
