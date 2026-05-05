@@ -12,6 +12,20 @@
  *   node run-benchmarks.js --mode grid              # Grid tile viewport simulation
  *   node run-benchmarks.js --mode grid --grid-size 5x4  # Custom grid dimensions
  *   node run-benchmarks.js --mode grid --iterations 100  # More iterations for accuracy
+ *
+ * Prometheus Metrics Benchmarks:
+ * To measure the overhead of Prometheus metrics, run tileserver-rs with different configs:
+ *
+ *   BASELINE (telemetry disabled):
+ *     cargo run -- --config data/configs/no-telemetry.toml
+ *     (in another terminal) npm run bench:metrics
+ *
+ *   METRICS ENABLED (strict cardinality):
+ *     cargo run -- --config data/configs/metrics-strict.toml
+ *     (in another terminal) npm run bench:metrics
+ *
+ * Results will show throughput and latency impact on the hot path (/data/{z}/{x}/{y}.pbf).
+ * Micro-benchmarks (Criterion) for metrics overhead are in crates/tileserver-rs/benches/.
  */
 
 import autocannon from 'autocannon';
