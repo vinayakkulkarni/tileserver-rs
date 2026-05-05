@@ -233,7 +233,11 @@ cors_origins = ["*", "https://example.com"]  # Supports multiple origins
 # admin_bind = "127.0.0.1:9099"
 
 [telemetry]
-enabled = false
+enabled = false                         # OTLP traces + metrics push (default: false)
+# endpoint = "http://localhost:4317"    # OTLP gRPC collector
+# metrics_enabled = true                # OTLP metrics push (requires enabled = true)
+# prometheus_bind = "127.0.0.1:9100"    # Optional: separate Prometheus /metrics scrape listener
+# metrics_label_cardinality = "strict"  # "strict" (default) | "verbose"
 
 [[sources]]
 id = "openmaptiles"
@@ -274,6 +278,62 @@ admin_bind = "127.0.0.1:9099"
 
 This exposes `POST /__admin/reload` on a separate port for reloading configuration without restarting the server. You can also send `SIGHUP` to the process for the same effect. See the [Hot Reload Guide](https://docs.tileserver.app/guides/hot-reload) for details.
 
+### Observability (Metrics & Tracing)
+
+tileserver-rs exposes runtime metrics two ways — both off by default, both independent of each other:
+
+- **Prometheus pull**: a separate HTTP listener (default port disabled) that exposes `GET /metrics` in Prometheus text format. Recommended for production scraping.
+- **OTLP push**: traces + metrics pushed to an OpenTelemetry collector (e.g. Grafana Alloy, OTel Collector, Jaeger).
+
+```toml
+[telemetry]
+# Prometheus pull endpoint (separate listener, scoped to your monitoring network):
+prometheus_bind = "127.0.0.1:9100"
+prometheus_path = "/metrics"
+metrics_label_cardinality = "strict"   # "strict" = production-safe; "verbose" = debug only
+
+# OTLP push pipeline (independent of prometheus_bind above):
+enabled = true
+endpoint = "http://localhost:4317"
+service_name = "tileserver-rs"
+sample_rate = 1.0
+```
+
+> **Why a separate port?** Following the [official Axum example](https://github.com/tokio-rs/axum/blob/main/examples/prometheus-metrics/src/main.rs) and projects like Opengist, the metrics endpoint runs on a dedicated listener so you can bind it to a private interface (e.g. `127.0.0.1` or a VPC-internal address) while keeping `/data`, `/styles`, and `/__admin` behind their own ACLs.
+
+**Exported metrics (Prometheus naming):**
+
+| Metric | Type | Unit | Labels | Description |
+|---|---|---|---|---|
+| `http_requests_total` | counter | — | `route`, `status_class` | HTTP requests by matched route and 1xx/2xx/3xx/4xx/5xx |
+| `http_request_duration_seconds` | histogram | seconds | `route`, `status_class` | Per-request latency |
+| `http_requests_in_flight` | up-down | — | — | Currently in-flight HTTP requests |
+| `tile_requests_total` | counter | — | `source`, `format`, `z_bucket`, `outcome` | Tile lookups by hit/miss/not_found/error |
+| `tile_request_duration_seconds` | histogram | seconds | `source`, `format`, `z_bucket`, `outcome` | End-to-end tile latency |
+| `tile_request_bytes` | histogram | bytes | `source`, `format` | Tile response payload size |
+| `tile_cache_hits_total` | counter | — | `source` | In-process tile cache hits |
+| `tile_cache_misses_total` | counter | — | `source` | In-process tile cache misses |
+| `render_duration_seconds` | histogram | seconds | `style`, `format` | Native MapLibre raster render duration |
+| `render_errors_total` | counter | — | `style`, `reason` | Native render failures bucketed by reason |
+
+**Cardinality matters.** The `metrics_label_cardinality` knob exists because [unbounded labels blow up Prometheus storage](https://prometheus.io/docs/practices/naming/):
+
+- **`strict`** (default) — `z_bucket` collapses zoom levels into `low` (0–6), `mid` (7–12), `high` (13+). Tile coordinates (`x`, `y`) are dropped entirely. Bounded label combinations safe for long-term retention.
+- **`verbose`** — passes raw zoom 0..=22 through. Useful for short-window investigations; **do not leave enabled in production** — a globe-scale source at z=22 has trillions of unique tile coordinates.
+
+**Scrape config example:**
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: tileserver-rs
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['tileserver-rs.internal:9100']
+```
+
+When `prometheus_bind` is unset (the default), the listener task is never spawned and the per-request cost is a single atomic load — no Prometheus, no overhead. See the [Telemetry Guide](https://docs.tileserver.app/guides/telemetry) for Grafana/Tempo/Jaeger backend setup.
+
 See [data/configs/example.toml](./data/configs/example.toml) for a complete example, or [data/configs/offline.toml](./data/configs/offline.toml) for a local development setup.
 
 ## API Endpoints
@@ -284,6 +344,7 @@ See [data/configs/example.toml](./data/configs/example.toml) for a complete exam
 |----------|-------------|
 | `GET /health` | Health check (returns `OK`) |
 | `GET /ping` | Runtime metadata (config hash, loaded sources/styles, version) |
+| `GET /metrics` | Prometheus metrics exposition (separate listener — see [Observability](#observability-metrics--tracing)) |
 | `POST /__admin/reload` | Hot-reload configuration (admin server only) |
 | `POST /__admin/reload?flush=true` | Force reload even if config unchanged |
 

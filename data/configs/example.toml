@@ -41,17 +41,44 @@ cors_origins = ["*"]
 # public_url = "http://localhost:4000"
 
 # ============================================================================
-# OPENTELEMETRY CONFIGURATION
+# OPENTELEMETRY + PROMETHEUS METRICS
+# OTLP push pipeline (traces + metrics) and Prometheus pull-based /metrics
+# scrape endpoint. Both pipelines are independent — you can run one without
+# the other. See: https://docs.tileserver.app/guides/telemetry
 # ============================================================================
 [telemetry]
-# Enable OpenTelemetry tracing (default: false)
+# Enable OTLP tracing + metrics push (default: false)
 enabled = false
-# OTLP endpoint for exporting traces (gRPC)
+# OTLP gRPC endpoint (only used when enabled = true)
 endpoint = "http://localhost:4317"
-# Service name for traces
+# Service name attached to traces and metrics
 service_name = "tileserver-rs"
-# Sampling rate (0.0 to 1.0, where 1.0 = 100% of traces)
+# Trace sampling rate (0.0 = none, 1.0 = all). Metrics ignore this — they
+# always export at full fidelity at the configured interval.
 sample_rate = 1.0
+# Enable OTLP metrics push (default: true; requires enabled = true)
+metrics_enabled = true
+# OTLP metrics push interval in seconds (default: 60)
+metrics_export_interval_secs = 60
+
+# --- Prometheus pull-based scrape endpoint ---
+# Spawns a separate HTTP listener for Prometheus to scrape directly. Runs
+# independently of `enabled`/`metrics_enabled` above. When `prometheus_bind`
+# is unset (the default) the listener task is never spawned and there is
+# zero runtime cost — same instruments feed both pipelines via no-op meters.
+#
+# Bind address for the standalone /metrics listener (default: disabled)
+# prometheus_bind = "127.0.0.1:9100"
+# HTTP path for the exposition endpoint (default: "/metrics")
+# prometheus_path = "/metrics"
+# Cardinality strategy for emitted labels:
+#   "strict"  (default) — zoom collapsed to low|mid|high buckets; tile
+#                         coordinates dropped. Bounded combinations safe
+#                         for long-term Prometheus retention.
+#   "verbose"           — pass-through (raw zoom 0..=22). Useful for
+#                         short-window debugging; can blow up cardinality
+#                         if left enabled in production.
+# metrics_label_cardinality = "strict"
 
 # ============================================================================
 # NATIVE RENDERER POOL (for server-side raster tile generation)

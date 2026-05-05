@@ -20,8 +20,30 @@ port = 8080
 cors_origins = ["*"]
 # admin_bind = "127.0.0.1:9099"
 
+# ============================================================================
+# OPENTELEMETRY + PROMETHEUS METRICS
+# OTLP tracing/metrics push and a separate Prometheus /metrics scrape endpoint.
+# Both pipelines are independent — you can enable one without the other.
+# See: https://docs.tileserver.app/guides/telemetry
+# ============================================================================
 [telemetry]
+# Enable OTLP tracing + metrics push (default: false)
 enabled = false
+# OTLP gRPC endpoint (only used when enabled = true)
+# endpoint = "http://localhost:4317"
+# service_name = "tileserver-rs"
+# sample_rate = 1.0                  # Trace sampling (0.0–1.0)
+# metrics_enabled = true             # OTLP metrics push (requires enabled = true)
+# metrics_export_interval_secs = 60  # OTLP metrics push interval
+#
+# --- Prometheus pull-based scrape endpoint (independent of `enabled`) ---
+# Spawns a separate listener task; zero cost when unset.
+# Bind address for the standalone /metrics endpoint (default: disabled)
+# prometheus_bind = "127.0.0.1:9100"
+# HTTP path for the Prometheus exposition (default: "/metrics")
+# prometheus_path = "/metrics"
+# Cardinality strategy: "strict" (production-safe, default) | "verbose" (debug only)
+# metrics_label_cardinality = "strict"
 
 # Local tile source - update the path to your PMTiles file
 # Download tiles from: https://protomaps.com/downloads
