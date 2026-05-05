@@ -94,11 +94,21 @@ struct ErrorKey {
     reason: String,
 }
 
-/// Label cache: maps logical keys to pre-built `Box<[KeyValue]>` slices.
+/// Label cache: maps logical keys to pre-built `Arc<[KeyValue]>` slices.
 ///
-/// First call for a given key allocates and inserts; subsequent calls return
-/// a borrowed slice. The bank is wrapped in `RwLock` so reads are concurrent
-/// and only first-time inserts take the write lock briefly.
+/// `tile_bytes_labels`, `cache_labels`, `render_labels`, and `render_error_labels`
+/// return cached slices directly via `Arc::clone` — zero allocation on the hot
+/// path after the first call for each (source, format, …) tuple. The
+/// `tile_labels` accessor for tile-request counters is the exception: it
+/// composes a base slice (`source`, `format`, `z_bucket`) cached in
+/// `tile_full` with a per-call `outcome` label, allocating a fresh
+/// `Arc<[KeyValue]>` of size `base.len() + 1` on every call. This is the
+/// dominant cost measured by `benches/metrics_overhead.rs` (~180 ns) and
+/// is below the spec's 250 ns gate; eliminating the allocation by caching
+/// `(tile_key, outcome)` directly is tracked as a v2.29 optimisation.
+///
+/// The bank is wrapped in `RwLock` so reads are concurrent and only
+/// first-time inserts take the write lock briefly.
 #[derive(Debug, Default)]
 struct Inner {
     tile_full: HashMap<TileKey, Arc<[KeyValue]>>,
