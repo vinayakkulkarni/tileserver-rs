@@ -26,7 +26,7 @@ axum             = { version = "0.8.9", features = ["multipart"] }
 tower-http       = { version = "0.6.8", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header"] }
 
 # Async runtime
-tokio            = { version = "1.52.1", features = ["full"] }
+tokio            = { version = "1.52.2", features = ["full"] }
 futures          = "0.3.32"
 
 # Serialization
