@@ -149,8 +149,8 @@ catalogs:
       specifier: ^1.9.17
       version: 1.9.17
     reka-ui:
-      specifier: ^2.9.6
-      version: 2.9.6
+      specifier: ^2.9.7
+      version: 2.9.7
     shadcn-nuxt:
       specifier: ^2.6.2
       version: 2.6.2
@@ -321,7 +321,7 @@ importers:
         version: 1.9.17(vue@3.5.33(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.6(vue@3.5.33(typescript@6.0.3))
+        version: 2.9.7(vue@3.5.33(typescript@6.0.3))
       shpjs:
         specifier: catalog:client
         version: 6.2.0
@@ -436,7 +436,7 @@ importers:
         version: 1.9.17(vue@3.5.33(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.6(vue@3.5.33(typescript@6.0.3))
+        version: 2.9.7(vue@3.5.33(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.5.0
@@ -530,7 +530,7 @@ importers:
         version: 1.9.17(vue@3.5.33(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.6(vue@3.5.33(typescript@6.0.3))
+        version: 2.9.7(vue@3.5.33(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.5.0
@@ -4021,11 +4021,6 @@ packages:
   '@vueuse/shared@10.11.1':
     resolution: {integrity: sha512-LHpC8711VFZlDaYUXEBbFBCQ7GS3dVU9mjOhhMhXP6txTV4EhYQg/KGnQuvt/sPAtoUKq7VVUnL6mVtFoL42sA==}
 
-  '@vueuse/shared@14.2.1':
-    resolution: {integrity: sha512-shTJncjV9JTI4oVNyF1FQonetYAiTBd+Qj7cY89SWbXSkx7gyhrgtEdF2ZAVWS1S3SHlaROO6F2IesJxQEkZBw==}
-    peerDependencies:
-      vue: ^3.5.0
-
   '@vueuse/shared@14.3.0':
     resolution: {integrity: sha512-bZpge9eSXwa4ToSiqJ7j6KRwhAsneMFoSz3LMWKQDkqimm3D/tbFlrklrs/IOqC8tEcYmXQZJ6N0UrjhBirVCg==}
     peerDependencies:
@@ -7075,8 +7070,8 @@ packages:
   reinterval@1.1.0:
     resolution: {integrity: sha512-QIRet3SYrGp0HUHO88jVskiG6seqUGC5iAG7AwI/BV4ypGcuqk9Du6YQBUOUqm9c8pw1eyLoIaONifRua1lsEQ==}
 
-  reka-ui@2.9.6:
-    resolution: {integrity: sha512-K6bL457owpvWONc7hsjFxo3HDC9s6IzhRqShW0w9JSKelPGfRbkHD558UQTn/NH1cvrXVHygKyC7fExFmRketg==}
+  reka-ui@2.9.7:
+    resolution: {integrity: sha512-aX7foYYR20v4+majO58OJJdBNfLMm0eJb448l9N4JVy8JB7GXOr4H/S4a+J1pkcoxZH8Cb7YHpJ855+miAm7sA==}
     peerDependencies:
       vue: '>= 3.4.0'
 
@@ -11902,10 +11897,6 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@vueuse/shared@14.2.1(vue@3.5.33(typescript@6.0.3))':
-    dependencies:
-      vue: 3.5.33(typescript@6.0.3)
-
   '@vueuse/shared@14.3.0(vue@3.5.33(typescript@6.0.3))':
     dependencies:
       vue: 3.5.33(typescript@6.0.3)
@@ -15824,7 +15815,7 @@ snapshots:
 
   reinterval@1.1.0: {}
 
-  reka-ui@2.9.6(vue@3.5.33(typescript@6.0.3)):
+  reka-ui@2.9.7(vue@3.5.33(typescript@6.0.3)):
     dependencies:
       '@floating-ui/dom': 1.7.6
       '@floating-ui/vue': 1.1.11(vue@3.5.33(typescript@6.0.3))
@@ -15832,7 +15823,7 @@ snapshots:
       '@internationalized/number': 3.6.6
       '@tanstack/vue-virtual': 3.13.24(vue@3.5.33(typescript@6.0.3))
       '@vueuse/core': 14.3.0(vue@3.5.33(typescript@6.0.3))
-      '@vueuse/shared': 14.2.1(vue@3.5.33(typescript@6.0.3))
+      '@vueuse/shared': 14.3.0(vue@3.5.33(typescript@6.0.3))
       aria-hidden: 1.2.6
       defu: 6.1.7
       ohash: 2.0.11
