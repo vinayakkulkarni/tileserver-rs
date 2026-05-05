@@ -79,7 +79,8 @@ pub(crate) async fn get_raster_tile(
     let rewritten_style =
         styles::rewrite_style_for_native(&style.style_json, &state.render_base_url, &state.sources);
 
-    let image_data = renderer
+    let render_started = std::time::Instant::now();
+    let render_result = renderer
         .render_tile(
             &rewritten_style.to_string(),
             params.z,
@@ -88,7 +89,9 @@ pub(crate) async fn get_raster_tile(
             scale,
             format,
         )
-        .await?;
+        .await;
+    record_render_metric(&params.style, format, render_started, &render_result);
+    let image_data = render_result?;
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -98,6 +101,30 @@ pub(crate) async fn get_raster_tile(
     headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
 
     Ok((headers, image_data).into_response())
+}
+
+fn record_render_metric(
+    style_id: &str,
+    format: ImageFormat,
+    started: std::time::Instant,
+    result: &Result<Vec<u8>, TileServerError>,
+) {
+    let metric_format = match format {
+        ImageFormat::Png => crate::sources::TileFormat::Png,
+        ImageFormat::Jpeg => crate::sources::TileFormat::Jpeg,
+        ImageFormat::Webp => crate::sources::TileFormat::Webp,
+    };
+    let (outcome, error_reason) = match result {
+        Ok(_) => (crate::metrics::RenderOutcome::Success, None),
+        Err(_) => (crate::metrics::RenderOutcome::Error, Some("render_failed")),
+    };
+    crate::metrics::render_recorded(crate::metrics::RenderEvent {
+        style: style_id,
+        format: metric_format,
+        duration: started.elapsed(),
+        outcome,
+        error_reason,
+    });
 }
 
 /// Raster tile request parameters with variable tile size
@@ -182,7 +209,8 @@ pub(crate) async fn get_raster_tile_with_size(
     let rewritten_style =
         styles::rewrite_style_for_native(&style.style_json, &state.render_base_url, &state.sources);
 
-    let image_data = renderer
+    let render_started = std::time::Instant::now();
+    let render_result = renderer
         .render_tile(
             &rewritten_style.to_string(),
             params.z,
@@ -191,7 +219,9 @@ pub(crate) async fn get_raster_tile_with_size(
             scale,
             format,
         )
-        .await?;
+        .await;
+    record_render_metric(&params.style, format, render_started, &render_result);
+    let image_data = render_result?;
 
     let mut headers = HeaderMap::new();
     headers.insert(

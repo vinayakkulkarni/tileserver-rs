@@ -32,6 +32,7 @@ use cli::Cli;
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
 use tileserver_rs::config;
+use tileserver_rs::metrics;
 use tileserver_rs::openapi;
 use tileserver_rs::reload::{
     self, ReloadController, ReloadMeta, RuntimeSettings, SharedState, build_app_state,
@@ -74,11 +75,14 @@ async fn main() -> anyhow::Result<()> {
     let fmt_layer = tracing_subscriber::fmt::layer().compact();
     let registry = tracing_subscriber::registry().with(filter).with(fmt_layer);
 
-    if let Some(otel_layer) = telemetry::init_telemetry(&config.telemetry) {
+    let telemetry_output = telemetry::init_telemetry(&config.telemetry);
+    if let Some(otel_layer) = telemetry_output.tracing_layer {
         registry.with(otel_layer).init();
     } else {
         registry.init();
     }
+
+    metrics::init(config.telemetry.metrics_label_cardinality.into());
 
     if let Some(ref report) = auto_report {
         log_auto_detect_report(report);
@@ -236,6 +240,7 @@ async fn main() -> anyhow::Result<()> {
     let router = router
         .layer(cors)
         .layer(CompressionLayer::new())
+        .layer(axum::middleware::from_fn(metrics::record_http_request))
         .layer(axum::middleware::from_fn(logging::request_logger));
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
@@ -262,6 +267,38 @@ async fn main() -> anyhow::Result<()> {
     }
 
     tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
+
+    if let Some(exporter) = telemetry_output.prometheus_exporter {
+        if let Some(bind_str) = config.telemetry.prometheus_bind.as_ref() {
+            match bind_str.parse::<SocketAddr>() {
+                Ok(prom_addr) => {
+                    let path = config.telemetry.prometheus_path.clone();
+                    match metrics::spawn_metrics_server(prom_addr, path, exporter).await {
+                        Ok(_handle) => {
+                            tracing::info!(
+                                bind = %prom_addr,
+                                "Prometheus /metrics endpoint enabled"
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                bind = %prom_addr,
+                                error = %e,
+                                "Failed to bind Prometheus /metrics listener; tile serving continues"
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(
+                        prometheus_bind = %bind_str,
+                        error = %e,
+                        "Invalid prometheus_bind address; Prometheus /metrics disabled"
+                    );
+                }
+            }
+        }
+    }
 
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())

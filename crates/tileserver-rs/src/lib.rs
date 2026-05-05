@@ -8,6 +8,7 @@ pub mod cache;
 pub mod cache_control;
 pub mod config;
 pub mod error;
+pub mod metrics;
 pub mod openapi;
 #[cfg(feature = "raster")]
 pub mod raster;

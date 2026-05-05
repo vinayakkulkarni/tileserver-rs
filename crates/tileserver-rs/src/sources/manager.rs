@@ -73,10 +73,13 @@ impl SourceManager {
         x: u32,
         y: u32,
     ) -> crate::error::Result<Option<crate::sources::TileData>> {
-        let source = self
-            .sources
-            .get(id)
-            .ok_or_else(|| TileServerError::SourceNotFound(id.to_string()))?;
+        let started = std::time::Instant::now();
+
+        let source = match self.sources.get(id) {
+            Some(s) => s,
+            None => return Err(TileServerError::SourceNotFound(id.to_string())),
+        };
+        let format = source.format();
 
         if let Some(cache) = &self.global_cache {
             let key = crate::cache::TileCacheKey {
@@ -86,15 +89,55 @@ impl SourceManager {
                 y,
             };
             if let Some(cached) = cache.get(&key).await {
+                crate::metrics::cache_hit_recorded(id);
+                crate::metrics::tile_request_recorded(crate::metrics::TileEvent {
+                    source: id,
+                    format,
+                    z,
+                    bytes: cached.data.len(),
+                    duration: started.elapsed(),
+                    outcome: crate::metrics::TileOutcome::Hit,
+                });
                 return Ok(Some(cached));
             }
-            let result = source.get_tile(z, x, y).await?;
+            crate::metrics::cache_miss_recorded(id);
+
+            let fetch_result = source.get_tile(z, x, y).await;
+            let (outcome, bytes) = match &fetch_result {
+                Ok(Some(tile)) => (crate::metrics::TileOutcome::Miss, tile.data.len()),
+                Ok(None) => (crate::metrics::TileOutcome::NotFound, 0),
+                Err(_) => (crate::metrics::TileOutcome::Error, 0),
+            };
+            crate::metrics::tile_request_recorded(crate::metrics::TileEvent {
+                source: id,
+                format,
+                z,
+                bytes,
+                duration: started.elapsed(),
+                outcome,
+            });
+
+            let result = fetch_result?;
             if let Some(ref tile) = result {
                 cache.insert(key, tile.clone()).await;
             }
             Ok(result)
         } else {
-            source.get_tile(z, x, y).await
+            let fetch_result = source.get_tile(z, x, y).await;
+            let (outcome, bytes) = match &fetch_result {
+                Ok(Some(tile)) => (crate::metrics::TileOutcome::Miss, tile.data.len()),
+                Ok(None) => (crate::metrics::TileOutcome::NotFound, 0),
+                Err(_) => (crate::metrics::TileOutcome::Error, 0),
+            };
+            crate::metrics::tile_request_recorded(crate::metrics::TileEvent {
+                source: id,
+                format,
+                z,
+                bytes,
+                duration: started.elapsed(),
+                outcome,
+            });
+            fetch_result
         }
     }
 

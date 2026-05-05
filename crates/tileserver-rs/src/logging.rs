@@ -1,54 +1,21 @@
-//! HTTP request logging middleware
+//! HTTP request logging middleware (Martin/actix-web combined format).
 //!
-//! Provides Martin/actix-web style request logging with the format:
-//! `IP "METHOD PATH HTTP/VERSION" STATUS SIZE "REFERRER" "USER_AGENT" DURATION`
+//! Format: `IP "METHOD PATH HTTP/VERSION" STATUS SIZE "REFERRER" "USER_AGENT" DURATION`
 //!
-//! Example output:
-//! ```
-//! 172.21.0.1 "GET /data/planet/12/2876/1828.pbf HTTP/1.1" 200 45883 "-" "node" 0.001492
-//! ```
+//! Example: `172.21.0.1 "GET /data/planet/12/2876/1828.pbf HTTP/1.1" 200 45883 "-" "node" 0.001492`
+//!
+//! HTTP metrics (count / duration / size) are recorded separately by
+//! [`crate::metrics::record_http_request`], which uses bounded
+//! [`axum::extract::MatchedPath`]-based labels to keep Prometheus
+//! cardinality safe. This module is intentionally logging-only.
 
 use axum::{
     body::Body,
     http::{Request, Response, header},
     middleware::Next,
 };
-use opentelemetry::KeyValue;
-use opentelemetry::metrics::{Counter, Histogram};
-use std::{net::SocketAddr, sync::OnceLock, time::Instant};
+use std::{net::SocketAddr, time::Instant};
 
-struct HttpMetrics {
-    request_count: Counter<u64>,
-    request_duration: Histogram<f64>,
-    response_size: Histogram<u64>,
-}
-
-static HTTP_METRICS: OnceLock<HttpMetrics> = OnceLock::new();
-
-fn get_metrics() -> &'static HttpMetrics {
-    HTTP_METRICS.get_or_init(|| {
-        let meter = opentelemetry::global::meter("tileserver-rs");
-        HttpMetrics {
-            request_count: meter
-                .u64_counter("http.server.request.count")
-                .with_description("Total HTTP requests")
-                .with_unit("requests")
-                .build(),
-            request_duration: meter
-                .f64_histogram("http.server.request.duration")
-                .with_description("HTTP request duration")
-                .with_unit("s")
-                .build(),
-            response_size: meter
-                .u64_histogram("http.server.response.body.size")
-                .with_description("HTTP response body size")
-                .with_unit("By")
-                .build(),
-        }
-    })
-}
-
-/// Middleware that logs HTTP requests in Martin/actix-web combined format
 pub async fn request_logger(request: Request<Body>, next: Next) -> Response<Body> {
     let start = Instant::now();
 
@@ -137,16 +104,6 @@ pub async fn request_logger(request: Request<Body>, next: Next) -> Response<Body
         user_agent,
         duration_secs
     );
-
-    let metrics = get_metrics();
-    let attrs = [
-        KeyValue::new("http.request.method", method),
-        KeyValue::new("http.response.status_code", i64::from(status)),
-        KeyValue::new("url.path", path),
-    ];
-    metrics.request_count.add(1, &attrs);
-    metrics.request_duration.record(duration_secs, &attrs);
-    metrics.response_size.record(size, &attrs);
 
     response
 }

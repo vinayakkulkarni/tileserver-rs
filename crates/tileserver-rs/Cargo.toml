@@ -159,3 +159,7 @@ required-features = ["duckdb"]
 name = "geoparquet"
 harness = false
 required-features = ["geoparquet"]
+
+[[bench]]
+name = "metrics_overhead"
+harness = false
