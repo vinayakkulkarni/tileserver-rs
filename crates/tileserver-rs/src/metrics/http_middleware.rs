@@ -47,3 +47,65 @@ pub async fn record_http_request(request: Request<Body>, next: Next) -> Response
 
     response
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use axum::Router;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use axum::routing::get;
+    use tower::ServiceExt;
+
+    use crate::metrics::{Cardinality, recorder::init};
+
+    async fn ok_handler() -> &'static str {
+        "ok"
+    }
+
+    async fn server_error_handler() -> (StatusCode, &'static str) {
+        (StatusCode::INTERNAL_SERVER_ERROR, "boom")
+    }
+
+    fn build_app() -> Router {
+        init(Cardinality::Strict);
+        Router::new()
+            .route("/data/{source}/{z}/{x}/{y_fmt}", get(ok_handler))
+            .route("/error", get(server_error_handler))
+            .layer(axum::middleware::from_fn(record_http_request))
+    }
+
+    #[tokio::test]
+    async fn middleware_records_matched_path_route() {
+        let app = build_app();
+        let req = Request::builder()
+            .uri("/data/openmaptiles/14/8192/5461")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn middleware_records_5xx_status_class() {
+        let app = build_app();
+        let req = Request::builder()
+            .uri("/error")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn middleware_records_unmatched_route() {
+        let app = build_app();
+        let req = Request::builder()
+            .uri("/totally-unknown-path-that-doesnt-match")
+            .body(Body::empty())
+            .unwrap();
+        let resp = app.oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+}

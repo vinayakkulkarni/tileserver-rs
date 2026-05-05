@@ -215,4 +215,117 @@ mod tests {
         assert_eq!(TileOutcome::NotFound.as_label(), "not_found");
         assert_eq!(TileOutcome::Error.as_label(), "error");
     }
+
+    #[test]
+    fn http_status_class_label_strings() {
+        assert_eq!(HttpStatusClass::Success.as_label(), "2xx");
+        assert_eq!(HttpStatusClass::Redirection.as_label(), "3xx");
+        assert_eq!(HttpStatusClass::ClientError.as_label(), "4xx");
+        assert_eq!(HttpStatusClass::ServerError.as_label(), "5xx");
+        assert_eq!(HttpStatusClass::Unknown.as_label(), "other");
+    }
+
+    #[test]
+    fn render_outcome_equality() {
+        assert_eq!(RenderOutcome::Success, RenderOutcome::Success);
+        assert_eq!(RenderOutcome::Error, RenderOutcome::Error);
+        assert_ne!(RenderOutcome::Success, RenderOutcome::Error);
+    }
+
+    #[test]
+    fn init_is_idempotent() {
+        init(Cardinality::Strict);
+        init(Cardinality::Verbose);
+        init(Cardinality::Standard);
+    }
+
+    #[test]
+    fn tile_request_recorded_all_outcomes_with_noop_meter() {
+        init(Cardinality::Strict);
+        for outcome in [
+            TileOutcome::Hit,
+            TileOutcome::Miss,
+            TileOutcome::NotFound,
+            TileOutcome::Error,
+        ] {
+            tile_request_recorded(TileEvent {
+                source: "noop-test",
+                format: TileFormat::Pbf,
+                z: 14,
+                bytes: 1024,
+                duration: Duration::from_millis(5),
+                outcome,
+            });
+        }
+    }
+
+    #[test]
+    fn tile_request_recorded_zero_bytes_skips_bytes_histogram() {
+        init(Cardinality::Strict);
+        tile_request_recorded(TileEvent {
+            source: "zero-bytes",
+            format: TileFormat::Pbf,
+            z: 0,
+            bytes: 0,
+            duration: Duration::from_millis(1),
+            outcome: TileOutcome::NotFound,
+        });
+    }
+
+    #[test]
+    fn cache_hit_and_miss_recorded_with_noop_meter() {
+        init(Cardinality::Strict);
+        cache_hit_recorded("source-x");
+        cache_hit_recorded("source-x");
+        cache_miss_recorded("source-x");
+        cache_miss_recorded("source-y");
+    }
+
+    #[test]
+    fn http_in_flight_inc_dec_balances() {
+        init(Cardinality::Strict);
+        http_in_flight_inc();
+        http_in_flight_inc();
+        http_in_flight_dec();
+        http_in_flight_dec();
+    }
+
+    #[test]
+    fn http_request_recorded_all_status_classes() {
+        init(Cardinality::Strict);
+        for status in [200u16, 301, 404, 500, 100] {
+            http_request_recorded(HttpEvent {
+                method: "GET",
+                route: "/some/route",
+                status,
+                duration: Duration::from_millis(10),
+            });
+        }
+    }
+
+    #[test]
+    fn render_recorded_success_and_error_paths() {
+        init(Cardinality::Strict);
+        render_recorded(RenderEvent {
+            style: "ok-style",
+            format: TileFormat::Png,
+            duration: Duration::from_millis(50),
+            outcome: RenderOutcome::Success,
+            error_reason: None,
+        });
+        render_recorded(RenderEvent {
+            style: "fail-style",
+            format: TileFormat::Webp,
+            duration: Duration::from_millis(75),
+            outcome: RenderOutcome::Error,
+            error_reason: Some("oom"),
+        });
+        render_recorded(RenderEvent {
+            style: "fail-no-reason",
+            format: TileFormat::Jpeg,
+            duration: Duration::from_millis(20),
+            outcome: RenderOutcome::Error,
+            error_reason: None,
+        });
+    }
 }

@@ -332,6 +332,109 @@ mod tests {
     }
 
     #[test]
+    fn cardinality_from_config_enum() {
+        assert_eq!(
+            Cardinality::from(MetricsLabelCardinality::Strict),
+            Cardinality::Strict
+        );
+        assert_eq!(
+            Cardinality::from(MetricsLabelCardinality::Standard),
+            Cardinality::Standard
+        );
+        assert_eq!(
+            Cardinality::from(MetricsLabelCardinality::Verbose),
+            Cardinality::Verbose
+        );
+    }
+
+    #[test]
+    fn z_bucket_label_strings() {
+        assert_eq!(ZBucket::Low.as_label(), "low");
+        assert_eq!(ZBucket::Mid.as_label(), "mid");
+        assert_eq!(ZBucket::High.as_label(), "high");
+        assert_eq!(ZBucket::Exact(7).as_label(), "7");
+        assert_eq!(ZBucket::Exact(22).as_label(), "22");
+    }
+
+    #[test]
+    fn format_label_covers_all_variants() {
+        assert_eq!(format_label(TileFormat::Pbf), "pbf");
+        assert_eq!(format_label(TileFormat::Png), "png");
+        assert_eq!(format_label(TileFormat::Jpeg), "jpeg");
+        assert_eq!(format_label(TileFormat::Webp), "webp");
+        assert_eq!(format_label(TileFormat::Avif), "avif");
+        assert_eq!(format_label(TileFormat::Mlt), "mlt");
+        assert_eq!(format_label(TileFormat::Unknown), "unknown");
+    }
+
+    #[test]
+    fn tile_bytes_labels_caches_per_source_format() {
+        let bank = LabelBank::new(Cardinality::Strict);
+        let a = bank.tile_bytes_labels("openmaptiles", TileFormat::Pbf);
+        let b = bank.tile_bytes_labels("openmaptiles", TileFormat::Pbf);
+        assert_eq!(a.len(), 2);
+        assert_eq!(a.len(), b.len());
+        let c = bank.tile_bytes_labels("openmaptiles", TileFormat::Mlt);
+        assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn cache_labels_caches_per_source() {
+        let bank = LabelBank::new(Cardinality::Strict);
+        let a = bank.cache_labels("source-a");
+        let b = bank.cache_labels("source-a");
+        assert_eq!(a.len(), 1);
+        assert_eq!(b.len(), 1);
+        let c = bank.cache_labels("source-b");
+        assert_eq!(c.len(), 1);
+    }
+
+    #[test]
+    fn render_labels_caches_per_style_format() {
+        let bank = LabelBank::new(Cardinality::Strict);
+        let a = bank.render_labels("osm-bright", TileFormat::Png);
+        let b = bank.render_labels("osm-bright", TileFormat::Png);
+        let c = bank.render_labels("osm-bright", TileFormat::Webp);
+        assert_eq!(a.len(), 2);
+        assert_eq!(b.len(), 2);
+        assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn render_error_labels_caches_per_style_reason() {
+        let bank = LabelBank::new(Cardinality::Strict);
+        let a = bank.render_error_labels("style1", "render_failed");
+        let b = bank.render_error_labels("style1", "render_failed");
+        let c = bank.render_error_labels("style1", "timeout");
+        assert_eq!(a.len(), 2);
+        assert_eq!(b.len(), 2);
+        assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn label_bank_cardinality_accessor() {
+        let strict = LabelBank::new(Cardinality::Strict);
+        assert_eq!(strict.cardinality(), Cardinality::Strict);
+        let verbose = LabelBank::new(Cardinality::Verbose);
+        assert_eq!(verbose.cardinality(), Cardinality::Verbose);
+        let standard = LabelBank::new(Cardinality::Standard);
+        assert_eq!(standard.cardinality(), Cardinality::Standard);
+    }
+
+    #[test]
+    fn tile_labels_includes_outcome_label() {
+        let bank = LabelBank::new(Cardinality::Strict);
+        let labels = bank.tile_labels("src", TileFormat::Pbf, 14, "error");
+        let mut outcome_value = String::new();
+        for kv in labels.iter() {
+            if kv.key.as_str() == "outcome" {
+                outcome_value = kv.value.to_string();
+            }
+        }
+        assert_eq!(outcome_value, "error");
+    }
+
+    #[test]
     fn label_bank_verbose_keeps_z() {
         let bank = LabelBank::new(Cardinality::Verbose);
         let labels = bank.tile_labels("s", TileFormat::Pbf, 18, "miss");
