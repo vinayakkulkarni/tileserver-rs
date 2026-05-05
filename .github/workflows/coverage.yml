@@ -51,6 +51,7 @@ jobs:
           cargo llvm-cov \
             --no-report \
             --lib \
+            --test metrics_endpoint \
             --no-default-features \
             --features "postgres,mlt"
 
