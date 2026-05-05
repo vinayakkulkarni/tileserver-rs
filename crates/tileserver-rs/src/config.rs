@@ -206,6 +206,45 @@ pub struct TelemetryConfig {
     /// Metrics export interval in seconds
     #[serde(default = "default_metrics_export_interval_secs")]
     pub metrics_export_interval_secs: u64,
+    /// Bind address for the standalone Prometheus `/metrics` listener
+    /// (e.g., `"127.0.0.1:9100"`). When `None` (the default), the
+    /// listener task is never spawned and there is zero runtime cost.
+    /// Independent of `enabled` — Prometheus pull works without OTLP
+    /// push and vice versa.
+    #[serde(default)]
+    pub prometheus_bind: Option<String>,
+    /// HTTP path for the Prometheus exposition endpoint (default
+    /// `/metrics`). Only relevant when `prometheus_bind` is set.
+    #[serde(default = "default_prometheus_path")]
+    pub prometheus_path: String,
+    /// Cardinality strategy for metric labels:
+    /// - `Strict` (default): zoom collapsed to `low|mid|high` buckets,
+    ///   tile coordinates dropped — bounded combinations safe for
+    ///   long-term Prometheus retention.
+    /// - `Standard`: same as strict for now (reserved for future
+    ///   intermediate strategies).
+    /// - `Verbose`: zoom passed through 0..=22, useful for debugging
+    ///   short-window investigations but can blow up cardinality if
+    ///   left enabled in production.
+    #[serde(default)]
+    pub metrics_label_cardinality: MetricsLabelCardinality,
+}
+
+/// Cardinality strategy for metric labels emitted via the
+/// Prometheus `/metrics` endpoint and the OTLP push pipeline.
+///
+/// See [`TelemetryConfig::metrics_label_cardinality`] for behavior
+/// of each variant. Default is [`MetricsLabelCardinality::Strict`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MetricsLabelCardinality {
+    /// Bounded label set safe for production Prometheus scrape.
+    #[default]
+    Strict,
+    /// Reserved for future intermediate cardinality (currently aliases `Strict`).
+    Standard,
+    /// Pass-through high-cardinality labels (debug only).
+    Verbose,
 }
 
 fn default_otlp_endpoint() -> String {
@@ -228,6 +267,10 @@ fn default_metrics_export_interval_secs() -> u64 {
     60
 }
 
+fn default_prometheus_path() -> String {
+    "/metrics".to_string()
+}
+
 impl Default for TelemetryConfig {
     fn default() -> Self {
         Self {
@@ -237,6 +280,9 @@ impl Default for TelemetryConfig {
             sample_rate: default_sample_rate(),
             metrics_enabled: default_metrics_enabled(),
             metrics_export_interval_secs: default_metrics_export_interval_secs(),
+            prometheus_bind: None,
+            prometheus_path: default_prometheus_path(),
+            metrics_label_cardinality: MetricsLabelCardinality::Strict,
         }
     }
 }
@@ -999,6 +1045,59 @@ mod tests {
 
         // SAFETY: test-only; no concurrent threads access env vars in this test
         unsafe { std::env::remove_var("DATABASE_URL") };
+    }
+
+    #[test]
+    fn test_metrics_label_cardinality_default_is_strict() {
+        assert_eq!(
+            MetricsLabelCardinality::default(),
+            MetricsLabelCardinality::Strict
+        );
+    }
+
+    #[test]
+    fn test_metrics_label_cardinality_serde_round_trip_all_variants() {
+        for (s, variant) in [
+            ("strict", MetricsLabelCardinality::Strict),
+            ("standard", MetricsLabelCardinality::Standard),
+            ("verbose", MetricsLabelCardinality::Verbose),
+        ] {
+            let json = serde_json::to_string(&variant).unwrap();
+            assert_eq!(json, format!("\"{}\"", s));
+            let parsed: MetricsLabelCardinality = serde_json::from_str(&json).unwrap();
+            assert_eq!(parsed, variant);
+        }
+    }
+
+    #[test]
+    fn test_telemetry_config_prometheus_fields_parse() {
+        let toml = r#"
+            [telemetry]
+            prometheus_bind = "127.0.0.1:9100"
+            prometheus_path = "/metrics"
+            metrics_label_cardinality = "verbose"
+        "#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(
+            config.telemetry.prometheus_bind,
+            Some("127.0.0.1:9100".to_string())
+        );
+        assert_eq!(config.telemetry.prometheus_path, "/metrics");
+        assert_eq!(
+            config.telemetry.metrics_label_cardinality,
+            MetricsLabelCardinality::Verbose
+        );
+    }
+
+    #[test]
+    fn test_telemetry_config_prometheus_bind_default_is_none() {
+        let config = Config::default();
+        assert!(config.telemetry.prometheus_bind.is_none());
+        assert_eq!(config.telemetry.prometheus_path, "/metrics");
+        assert_eq!(
+            config.telemetry.metrics_label_cardinality,
+            MetricsLabelCardinality::Strict
+        );
     }
 
     #[cfg(feature = "postgres")]

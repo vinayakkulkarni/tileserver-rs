@@ -1,0 +1,12 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[telemetry]
+enabled = false
+metrics_enabled = false
+
+[[sources]]
+id = "openmaptiles"
+type = "pmtiles"
+path = "/data/tiles/protomaps-sample-low.pmtiles"

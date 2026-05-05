@@ -1,0 +1,15 @@
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[telemetry]
+enabled = false
+metrics_enabled = true
+prometheus_bind = "127.0.0.1:9100"
+prometheus_path = "/metrics"
+metrics_label_cardinality = "strict"
+
+[[sources]]
+id = "openmaptiles"
+type = "pmtiles"
+path = "/data/tiles/protomaps-sample-low.pmtiles"
