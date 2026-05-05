@@ -101,6 +101,7 @@ pub struct ReloadMeta {
     pub loaded_sources: usize,
     pub loaded_styles: usize,
     pub renderer_enabled: bool,
+    pub prometheus_listener_active: bool,
 }
 
 /// Outcome of a reload attempt.
@@ -111,6 +112,7 @@ pub struct ReloadResult {
     pub loaded_sources: usize,
     pub loaded_styles: usize,
     pub renderer_enabled: bool,
+    pub prometheus_listener_active: bool,
 }
 
 pub struct ReloadController {
@@ -153,6 +155,7 @@ impl ReloadController {
                 loaded_sources: current_meta.loaded_sources,
                 loaded_styles: current_meta.loaded_styles,
                 renderer_enabled: current_meta.renderer_enabled,
+                prometheus_listener_active: current_meta.prometheus_listener_active,
             });
         }
 
@@ -164,6 +167,7 @@ impl ReloadController {
             loaded_sources: new_state.sources.len(),
             loaded_styles: new_state.styles.len(),
             renderer_enabled: new_state.renderer.is_some(),
+            prometheus_listener_active: current_meta.prometheus_listener_active,
         };
 
         let result = ReloadResult {
@@ -173,6 +177,7 @@ impl ReloadController {
             loaded_sources: new_meta.loaded_sources,
             loaded_styles: new_meta.loaded_styles,
             renderer_enabled: new_meta.renderer_enabled,
+            prometheus_listener_active: new_meta.prometheus_listener_active,
         };
 
         self.app.store(Arc::new(new_state));

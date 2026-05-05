@@ -1473,6 +1473,7 @@ mod tests {
             loaded_sources: 0,
             loaded_styles: 0,
             renderer_enabled: false,
+            prometheus_listener_active: false,
         };
         let runtime = RuntimeSettings {
             ui_enabled: false,

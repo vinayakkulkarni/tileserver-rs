@@ -14,7 +14,6 @@ struct ReloadQueryParams {
     flush: Option<bool>,
 }
 
-/// Runtime metadata returned by the `/ping` endpoint.
 #[derive(serde::Serialize)]
 pub struct PingResponse {
     status: &'static str,
@@ -23,6 +22,7 @@ pub struct PingResponse {
     loaded_sources: usize,
     loaded_styles: usize,
     renderer_enabled: bool,
+    prometheus_listener_active: bool,
     version: &'static str,
     cache_enabled: bool,
     cache_entries: u64,
@@ -38,6 +38,7 @@ struct ReloadResponse {
     loaded_sources: usize,
     loaded_styles: usize,
     renderer_enabled: bool,
+    prometheus_listener_active: bool,
     version: &'static str,
 }
 
@@ -76,6 +77,7 @@ pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse>
         loaded_sources: meta.loaded_sources,
         loaded_styles: meta.loaded_styles,
         renderer_enabled: meta.renderer_enabled,
+        prometheus_listener_active: meta.prometheus_listener_active,
         version: env!("CARGO_PKG_VERSION"),
         cache_enabled,
         cache_entries,
@@ -117,6 +119,7 @@ async fn admin_reload(
             loaded_sources: result.loaded_sources,
             loaded_styles: result.loaded_styles,
             renderer_enabled: result.renderer_enabled,
+            prometheus_listener_active: result.prometheus_listener_active,
             version: env!("CARGO_PKG_VERSION"),
         })),
         Err(err) => Err((
@@ -194,6 +197,7 @@ path = "{}"
             loaded_sources: state.sources.len(),
             loaded_styles: state.styles.len(),
             renderer_enabled: state.renderer.is_some(),
+            prometheus_listener_active: false,
         };
 
         let controller = Arc::new(ReloadController::new(

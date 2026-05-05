@@ -128,6 +128,7 @@ async fn main() -> anyhow::Result<()> {
         loaded_sources: state.sources.len(),
         loaded_styles: state.styles.len(),
         renderer_enabled: state.renderer.is_some(),
+        prometheus_listener_active: false,
     };
 
     let config_path_for_reload = cli.config.clone();
@@ -280,6 +281,9 @@ async fn main() -> anyhow::Result<()> {
                             bind = %prom_addr,
                             "Prometheus /metrics endpoint enabled"
                         );
+                        let mut updated = (*controller.meta.load_full()).clone();
+                        updated.prometheus_listener_active = true;
+                        controller.meta.store(Arc::new(updated));
                     }
                     Err(e) => {
                         tracing::error!(
