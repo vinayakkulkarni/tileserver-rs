@@ -85,8 +85,8 @@ catalogs:
       specifier: ^6.2.0
       version: 6.2.0
     zod:
-      specifier: ^4.4.2
-      version: 4.4.2
+      specifier: ^4.4.3
+      version: 4.4.3
   default:
     '@nuxt/eslint':
       specifier: ^1.15.2
@@ -339,7 +339,7 @@ importers:
         version: 3.5.33(typescript@6.0.3)
       zod:
         specifier: catalog:client
-        version: 4.4.2
+        version: 4.4.3
     devDependencies:
       '@nuxt/eslint':
         specifier: catalog:default
@@ -8267,8 +8267,8 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.4.2:
-    resolution: {integrity: sha512-IynmDyxsEsb9RKzO3J9+4SxXnl2FTFSzNBaKKaMV6tsSk0rw9gYw9gs+JFCq/qk2LCZ78KDwyj+Z289TijSkUw==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
   zstd-codec@0.1.5:
     resolution: {integrity: sha512-v3fyjpK8S/dpY/X5WxqTK3IoCnp/ZOLxn144GZVlNUjtwAchzrVo03h+oMATFhCIiJ5KTr4V3vDQQYz4RU684g==}
@@ -17171,7 +17171,7 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zod@4.4.2: {}
+  zod@4.4.3: {}
 
   zstd-codec@0.1.5:
     optional: true
