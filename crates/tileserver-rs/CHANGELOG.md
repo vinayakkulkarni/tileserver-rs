@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.28.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.27.0...v2.28.0) (2026-05-06)
+
+
+### Features
+
+* **telemetry:** add Prometheus /metrics endpoint via OpenTelemetry bridge ([#870](https://github.com/vinayakkulkarni/tileserver-rs/issues/870)) ([d9bc2a8](https://github.com/vinayakkulkarni/tileserver-rs/commit/d9bc2a89e548385a5610ee2d71d0dbafe744c166))
+
 ## [2.27.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.26.4...v2.27.0) (2026-04-26)
 
 

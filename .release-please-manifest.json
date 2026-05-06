@@ -1,4 +1,4 @@
 {
-  "crates/tileserver-rs": "2.27.0",
+  "crates/tileserver-rs": "2.28.0",
   "crates/mbgl-sys": "0.1.6"
 }
