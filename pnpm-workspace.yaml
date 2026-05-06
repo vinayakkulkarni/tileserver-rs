@@ -43,13 +43,13 @@ catalogs:
     clsx: ^2.1.1
     eslint: ^10.3.0
     eslint-plugin-better-tailwindcss: ^4.5.0
-    eslint-plugin-oxlint: ^1.62.0
+    eslint-plugin-oxlint: ^1.63.0
     lucide-vue-next: ^1.0.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.2.1
     nuxt: ^4.4.4
     oxfmt: ^0.47.0
-    oxlint: ^1.62.0
+    oxlint: ^1.63.0
     radix-vue: ^1.9.17
     reka-ui: ^2.9.7
     shadcn-nuxt: ^2.6.2
