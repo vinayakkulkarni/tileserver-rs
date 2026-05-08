@@ -92,4 +92,4 @@ catalogs:
   marketing:
     '@nuxtjs/plausible': ^3.0.2
     ogl: ^1.0.11
-    wrangler: ^4.88.0
+    wrangler: ^4.90.0
