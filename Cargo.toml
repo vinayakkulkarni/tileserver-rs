@@ -107,7 +107,7 @@ scalar_api_reference = { version = "0.2", features = ["axum"] }
 
 # OpenTelemetry
 opentelemetry    = "0.31.0"
-opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
+opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.31.1", features = ["grpc-tonic", "metrics", "logs"] }
 opentelemetry-semantic-conventions = "0.31.0"
 tracing-opentelemetry = "0.32.1"
