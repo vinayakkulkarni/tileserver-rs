@@ -5799,7 +5799,7 @@ dependencies = [
  "ndarray",
  "object_store",
  "ogcapi-types",
- "opentelemetry 0.31.0",
+ "opentelemetry 0.32.0",
  "opentelemetry-otlp",
  "opentelemetry-prometheus-text-exporter",
  "opentelemetry-semantic-conventions",
