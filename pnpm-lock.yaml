@@ -125,8 +125,8 @@ catalogs:
       specifier: ^4.5.0
       version: 4.5.0
     eslint-plugin-oxlint:
-      specifier: ^1.63.0
-      version: 1.63.0
+      specifier: ^1.64.0
+      version: 1.64.0
     lucide-vue-next:
       specifier: ^1.0.0
       version: 1.0.0
@@ -370,7 +370,7 @@ importers:
         version: 4.5.0(eslint@10.3.0(jiti@2.6.1))(oxlint@1.63.0)(tailwindcss@4.3.0)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.63.0(oxlint@1.63.0)
+        version: 1.64.0(oxlint@1.63.0)
       oxfmt:
         specifier: catalog:default
         version: 0.48.0
@@ -470,7 +470,7 @@ importers:
         version: 10.3.0(jiti@2.6.1)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.63.0(oxlint@1.63.0)
+        version: 1.64.0(oxlint@1.63.0)
       oxlint:
         specifier: catalog:default
         version: 1.63.0
@@ -567,7 +567,7 @@ importers:
         version: 4.5.0(eslint@10.3.0(jiti@2.6.1))(oxlint@1.63.0)(tailwindcss@4.3.0)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.63.0(oxlint@1.63.0)
+        version: 1.64.0(oxlint@1.63.0)
       oxfmt:
         specifier: catalog:default
         version: 0.48.0
@@ -5081,10 +5081,10 @@ packages:
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
 
-  eslint-plugin-oxlint@1.63.0:
-    resolution: {integrity: sha512-eqZ8pLk4Lz2HKqXC/BLceVzYP/cO0OHOAUBlLOau3Vk/I39mYbAFcmlAqJusTqEn2tgH/Nh/JUGKbCwf8k4DMA==}
+  eslint-plugin-oxlint@1.64.0:
+    resolution: {integrity: sha512-Ua7C3H1xSjkbXje6Z/1PC/1zRBuQVJ2aEGJAEvp99BTCuK0H8USgtJ3AZOH1pTnneqw2S6c41NnZAPi0PE40SQ==}
     peerDependencies:
-      oxlint: ~1.63.0
+      oxlint: ~1.64.0
 
   eslint-plugin-regexp@3.1.0:
     resolution: {integrity: sha512-qGXIC3DIKZHcK1H9A9+Byz9gmndY6TTSRkSMTZpNXdyCw2ObSehRgccJv35n9AdUakEjQp5VFNLas6BMXizCZg==}
@@ -13070,7 +13070,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-oxlint@1.63.0(oxlint@1.63.0):
+  eslint-plugin-oxlint@1.64.0(oxlint@1.63.0):
     dependencies:
       jsonc-parser: 3.3.1
       oxlint: 1.63.0
