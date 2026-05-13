@@ -128,6 +128,12 @@ export default defineNuxtConfig({
     typedPages: true,
     viewTransition: true,
     payloadExtraction: true,
+    // Workaround for Nuxt 4.4.5 + Vite 8 SPA-mode bug: `rollupOptions.input.entry`
+    // is dropped during config merge with `ssr: false`, crashing dev with
+    // "No entry found in rollupOptions.input". Upstream fix landed in
+    // https://github.com/nuxt/nuxt/pull/35037 but not yet released; remove
+    // this flag once Nuxt > 4.4.5 ships.
+    viteEnvironmentApi: true,
   },
 
   compatibilityDate: '2024-12-23',
