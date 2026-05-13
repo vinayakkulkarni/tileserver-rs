@@ -21,7 +21,7 @@
     "@nuxtjs/color-mode": "catalog:default",
     "@vueuse/core": "catalog:default",
     "@vueuse/nuxt": "catalog:default",
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^12.10.0",
     "class-variance-authority": "catalog:default",
     "clsx": "catalog:default",
     "lucide-vue-next": "catalog:default",
