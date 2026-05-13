@@ -115,10 +115,10 @@ scalar_api_reference = { version = "0.2", features = ["axum"] }
 # Unblock path: when tokio-rs/tracing-opentelemetry#258 merges and ships,
 # bump ALL six crates here together (the `opentelemetry` group in
 # .github/dependabot.yml enforces this).
-opentelemetry    = "0.31.0"
-opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.31.1", features = ["grpc-tonic", "metrics", "logs"] }
-opentelemetry-semantic-conventions = "0.31.0"
+opentelemetry    = "0.32.0"
+opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.32.0"
 tracing-opentelemetry = "0.32.1"
 # Prometheus pull-endpoint exporter — community successor to the (recently
 # un-deprecated) `opentelemetry-prometheus` crate. Authored by Quentin
