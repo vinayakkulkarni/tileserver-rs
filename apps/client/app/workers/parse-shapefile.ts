@@ -4,15 +4,7 @@
  */
 import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
 import { registerWorkerHandler } from '~/lib/run-worker';
-import type { GeometryType } from '~/types/file-upload';
-
-export interface ParseShapefileResult {
-  fileName: string;
-  format: 'shapefile';
-  data: FeatureCollection;
-  featureCount: number;
-  geometryTypes: GeometryType[];
-}
+import type { GeometryType, ParseShapefileResult } from '~/types/file-upload';
 
 async function parseShapefile(
   fileName: string,

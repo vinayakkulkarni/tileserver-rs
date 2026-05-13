@@ -2,7 +2,10 @@ import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
 import { runWorker } from '~/lib/run-worker';
 import type {
   GeometryType,
+  ParseCSVResult,
   ParsedFile,
+  ParseGeoJSONResult,
+  ParseShapefileResult,
   SupportedFormat,
 } from '~/types/file-upload';
 import {
@@ -10,9 +13,6 @@ import {
   CLIENT_SIDE_FORMATS,
   MAX_FILE_SIZE_BYTES,
 } from '~/types/file-upload';
-import type { ParseCSVResult } from '~/workers/parse-csv';
-import type { ParseGeoJSONResult } from '~/workers/parse-geojson';
-import type { ParseShapefileResult } from '~/workers/parse-shapefile';
 
 // ---------------------------------------------------------------------------
 // Public API

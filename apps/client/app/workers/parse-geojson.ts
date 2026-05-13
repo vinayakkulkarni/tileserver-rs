@@ -5,15 +5,7 @@
 import { destr } from 'destr';
 import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
 import { registerWorkerHandler } from '~/lib/run-worker';
-import type { GeometryType } from '~/types/file-upload';
-
-export interface ParseGeoJSONResult {
-  fileName: string;
-  format: 'geojson';
-  data: FeatureCollection;
-  featureCount: number;
-  geometryTypes: GeometryType[];
-}
+import type { GeometryType, ParseGeoJSONResult } from '~/types/file-upload';
 
 function parseGeoJSON(fileName: string, text: string): ParseGeoJSONResult {
   const data = destr<GeoJSON>(text);

@@ -1,6 +1,8 @@
-type WorkerSuccess<T> = { ok: true; result: T };
-type WorkerFailure = { ok: false; error: string };
-export type WorkerResponse<T> = WorkerSuccess<T> | WorkerFailure;
+import type {
+  WorkerFailure,
+  WorkerResponse,
+  WorkerSuccess,
+} from '~/types/worker';
 
 export function runWorker<TArgs extends unknown[], TResult>(
   worker: Worker,

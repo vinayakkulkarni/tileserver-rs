@@ -1,4 +1,4 @@
-import type { GeoJSON } from 'geojson';
+import type { FeatureCollection, GeoJSON } from 'geojson';
 import type { LayerSpecification, SourceSpecification } from 'maplibre-gl';
 
 /** Supported geospatial file formats for drag-and-drop */
@@ -134,4 +134,28 @@ export interface UploadResponse {
   file_name: string;
   format: string;
   tilejson_url: string;
+}
+
+export interface ParseGeoJSONResult {
+  fileName: string;
+  format: 'geojson';
+  data: FeatureCollection;
+  featureCount: number;
+  geometryTypes: GeometryType[];
+}
+
+export interface ParseCSVResult {
+  fileName: string;
+  format: 'csv';
+  data: FeatureCollection;
+  featureCount: number;
+  geometryTypes: GeometryType[];
+}
+
+export interface ParseShapefileResult {
+  fileName: string;
+  format: 'shapefile';
+  data: FeatureCollection;
+  featureCount: number;
+  geometryTypes: GeometryType[];
 }

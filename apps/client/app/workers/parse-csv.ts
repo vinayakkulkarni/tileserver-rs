@@ -4,15 +4,7 @@
  */
 import type { FeatureCollection, Feature } from 'geojson';
 import { registerWorkerHandler } from '~/lib/run-worker';
-import type { GeometryType } from '~/types/file-upload';
-
-export interface ParseCSVResult {
-  fileName: string;
-  format: 'csv';
-  data: FeatureCollection;
-  featureCount: number;
-  geometryTypes: GeometryType[];
-}
+import type { ParseCSVResult } from '~/types/file-upload';
 
 async function parseCSV(
   fileName: string,
