@@ -1,11 +1,12 @@
 /**
  * Parse CSV text with lat/lng column detection.
- * Runs in a web worker via nuxt-workers — auto-imported, zero config.
+ * Runs in a Web Worker via Vite's native `new Worker(new URL(...), { type: 'module' })`.
  */
 import type { FeatureCollection, Feature } from 'geojson';
+import { registerWorkerHandler } from '~/lib/run-worker';
 import type { GeometryType } from '~/types/file-upload';
 
-interface ParseResult {
+export interface ParseCSVResult {
   fileName: string;
   format: 'csv';
   data: FeatureCollection;
@@ -13,10 +14,10 @@ interface ParseResult {
   geometryTypes: GeometryType[];
 }
 
-export async function parseCSV(
+async function parseCSV(
   fileName: string,
   text: string,
-): Promise<ParseResult> {
+): Promise<ParseCSVResult> {
   const Papa = await import('papaparse');
 
   return new Promise((resolve, reject) => {
@@ -112,3 +113,7 @@ function csvToFeatures(
 
   return features;
 }
+
+registerWorkerHandler<[fileName: string, text: string], ParseCSVResult>(
+  parseCSV,
+);

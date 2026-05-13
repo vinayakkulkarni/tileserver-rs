@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -6,7 +8,6 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxtjs/color-mode',
     'motion-v/nuxt',
-    'nuxt-workers',
     '@comark/nuxt',
   ],
 
@@ -147,6 +148,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     build: {
       rollupOptions: {
         external: [
@@ -200,12 +202,6 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: false,
-  },
-
-  postcss: {
-    plugins: {
-      '@tailwindcss/postcss': {},
-    },
   },
 
   shadcn: {

@@ -49,7 +49,6 @@
     "maplibre-gl-inspect": "catalog:client",
     "motion-v": "catalog:default",
     "nuxt": "catalog:default",
-    "nuxt-workers": "catalog:client",
     "papaparse": "catalog:client",
     "pmtiles": "catalog:client",
     "radix-vue": "catalog:default",
@@ -64,7 +63,7 @@
   "devDependencies": {
     "@nuxt/eslint": "catalog:default",
     "@nuxt/eslint-config": "catalog:default",
-    "@tailwindcss/postcss": "catalog:default",
+    "@tailwindcss/vite": "catalog:default",
     "@types/geojson": "catalog:client",
     "@types/node": "catalog:default",
     "@types/papaparse": "catalog:client",

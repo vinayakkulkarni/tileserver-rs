@@ -1,11 +1,12 @@
 /**
  * Parse Shapefile (.zip) using shpjs.
- * Runs in a web worker via nuxt-workers — auto-imported, zero config.
+ * Runs in a Web Worker via Vite's native `new Worker(new URL(...), { type: 'module' })`.
  */
 import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
+import { registerWorkerHandler } from '~/lib/run-worker';
 import type { GeometryType } from '~/types/file-upload';
 
-interface ParseResult {
+export interface ParseShapefileResult {
   fileName: string;
   format: 'shapefile';
   data: FeatureCollection;
@@ -13,10 +14,10 @@ interface ParseResult {
   geometryTypes: GeometryType[];
 }
 
-export async function parseShapefile(
+async function parseShapefile(
   fileName: string,
   buffer: ArrayBuffer,
-): Promise<ParseResult> {
+): Promise<ParseShapefileResult> {
   const shp = await import('shpjs');
   const result = await shp.default(buffer);
 
@@ -90,3 +91,8 @@ function addGeometryType(
       break;
   }
 }
+
+registerWorkerHandler<
+  [fileName: string, buffer: ArrayBuffer],
+  ParseShapefileResult
+>(parseShapefile);
