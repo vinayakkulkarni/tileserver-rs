@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -6,7 +8,6 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxtjs/color-mode',
     'motion-v/nuxt',
-    'nuxt-workers',
     '@comark/nuxt',
   ],
 
@@ -128,6 +129,12 @@ export default defineNuxtConfig({
     typedPages: true,
     viewTransition: true,
     payloadExtraction: true,
+    // Workaround for Nuxt 4.4.5 + Vite 8 SPA-mode bug: `rollupOptions.input.entry`
+    // is dropped during config merge with `ssr: false`, crashing dev with
+    // "No entry found in rollupOptions.input". Upstream fix landed in
+    // https://github.com/nuxt/nuxt/pull/35037 but not yet released; remove
+    // this flag once Nuxt > 4.4.5 ships.
+    viteEnvironmentApi: true,
   },
 
   compatibilityDate: '2024-12-23',
@@ -141,6 +148,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     build: {
       rollupOptions: {
         external: [
@@ -194,12 +202,6 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: false,
-  },
-
-  postcss: {
-    plugins: {
-      '@tailwindcss/postcss': {},
-    },
   },
 
   shadcn: {

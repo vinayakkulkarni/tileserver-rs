@@ -25,6 +25,26 @@ updates:
       prefix: fix
       prefix-development: chore
       include: scope
+    # OpenTelemetry crates MUST bump together. The five SDK/OTLP/tracing
+    # crates share an opentelemetry_sdk trait surface (MetricReader); when
+    # they drift across minor versions the `opentelemetry-prometheus` reader
+    # implements the trait from one version and the meter provider expects
+    # another, breaking clippy with a `trait bound … not satisfied` error.
+    # Hit on PRs #885 #888 #893 #895 in May 2026 — Dependabot bumped them
+    # solo, CI red, manual revert each time. Grouping forces a single PR
+    # we can land/revert atomically. arrow-* are grouped for the same
+    # reason (parquet pins them transitively).
+    groups:
+      opentelemetry:
+        patterns:
+          - "opentelemetry"
+          - "opentelemetry_sdk"
+          - "opentelemetry-*"
+          - "tracing-opentelemetry"
+      arrow:
+        patterns:
+          - "arrow-*"
+          - "parquet"
 
   # npm ecosystem covers the pnpm workspace (apps/client + apps/docs +
   # apps/marketing + benchmarks via pnpm-workspace.yaml packages list).

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Tileserver for serving vector maps from data source(s)",
-  "packageManager": "pnpm@11.0.0-rc.5",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "dev:client": "pnpm --filter @tileserver-rs/client run dev",
     "dev:docs": "pnpm --filter @tileserver-rs/docs run dev",
@@ -17,11 +17,11 @@
     "prepare": "is-ci || husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.5.3",
-    "@commitlint/config-conventional": "^20.5.3",
-    "husky": "^9.1.7",
-    "is-ci": "^4.1.0",
-    "lint-staged": "^17.0.4",
+    "@commitlint/cli": "catalog:default",
+    "@commitlint/config-conventional": "catalog:default",
+    "husky": "catalog:default",
+    "is-ci": "catalog:default",
+    "lint-staged": "catalog:default",
     "oxfmt": "catalog:default",
     "oxlint": "catalog:default",
     "typescript": "catalog:default"

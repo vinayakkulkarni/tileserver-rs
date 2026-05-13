@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
   modules: [
     '@nuxt/content',
@@ -120,6 +122,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     optimizeDeps: {
       include: [
         '@plausible-analytics/tracker',
@@ -137,12 +140,6 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: false,
-  },
-
-  postcss: {
-    plugins: {
-      '@tailwindcss/postcss': {},
-    },
   },
 
   fonts: {

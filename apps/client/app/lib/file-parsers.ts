@@ -1,7 +1,11 @@
 import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
+import { runWorker } from '~/lib/run-worker';
 import type {
   GeometryType,
+  ParseCSVResult,
   ParsedFile,
+  ParseGeoJSONResult,
+  ParseShapefileResult,
   SupportedFormat,
 } from '~/types/file-upload';
 import {
@@ -65,8 +69,9 @@ export function validateFile(file: File): { format: SupportedFormat } {
 /**
  * Parse a dropped file into a ParsedFile result.
  *
- * Heavy formats (GeoJSON, CSV, Shapefile) are offloaded to web workers
- * via nuxt-workers — auto-imported, zero config, SSR-safe.
+ * Heavy formats (GeoJSON, CSV, Shapefile) are offloaded to dedicated Web
+ * Workers via Vite's native `new Worker(new URL(...), { type: 'module' })`
+ * — see https://vite.dev/guide/features.html#web-workers.
  *
  * KML/GPX stay on main thread — they need DOMParser (unavailable in workers).
  * PMTiles stays on main thread — creates an object URL for MapLibre.
@@ -76,20 +81,42 @@ export async function parseFile(
   format: SupportedFormat,
 ): Promise<ParsedFile> {
   switch (format) {
-    // Worker-offloaded formats (nuxt-workers auto-imports)
     case 'geojson': {
       const text = await file.text();
-      return parseGeoJSON(file.name, text);
+      const worker = new Worker(
+        new URL('~/workers/parse-geojson.ts', import.meta.url),
+        { type: 'module' },
+      );
+      return runWorker<[string, string], ParseGeoJSONResult>(
+        worker,
+        file.name,
+        text,
+      );
     }
     case 'csv': {
       const text = await file.text();
-      return parseCSV(file.name, text);
+      const worker = new Worker(
+        new URL('~/workers/parse-csv.ts', import.meta.url),
+        { type: 'module' },
+      );
+      return runWorker<[string, string], ParseCSVResult>(
+        worker,
+        file.name,
+        text,
+      );
     }
     case 'shapefile': {
       const buffer = await file.arrayBuffer();
-      return parseShapefile(file.name, buffer);
+      const worker = new Worker(
+        new URL('~/workers/parse-shapefile.ts', import.meta.url),
+        { type: 'module' },
+      );
+      return runWorker<[string, ArrayBuffer], ParseShapefileResult>(
+        worker,
+        file.name,
+        buffer,
+      );
     }
-    // Main-thread parsing (require browser APIs not available in workers)
     case 'kml':
       return parseKML(file);
     case 'gpx':

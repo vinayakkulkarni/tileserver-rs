@@ -25,7 +25,15 @@ export type {
   GeometryType,
   OverlayLayer,
   OverlaySourceConfig,
+  ParseCSVResult,
   ParsedFile,
+  ParseGeoJSONResult,
+  ParseShapefileResult,
   SupportedFormat,
   UploadResponse,
 } from './file-upload';
+export type {
+  WorkerFailure,
+  WorkerResponse,
+  WorkerSuccess,
+} from './worker';

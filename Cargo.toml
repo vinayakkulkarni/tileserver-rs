@@ -55,20 +55,9 @@ flate2           = "1.1.9"
 prost            = "0.14.3"
 geo-types        = "0.7.19"
 
-# MLT support
-# Pinned at 0.7.0 — DO NOT bump to 0.8.0 until cql2 0.5.6+ ships with geo
-# bumped to 0.33+. mlt-core 0.8.0 transitively requires `geo ^0.33.1` (which
-# pulls `i_overlay ^4.5`), but cql2 0.5.5 still requires `geo ^0.31.0` (which
-# pins `i_overlay ^4.0`). geo's `i_overlay` constraint participates in its
-# public API surface, so Cargo's resolver cannot select two `i_overlay`
-# versions side-by-side and aborts with a hard "failed to select version"
-# error during `cargo update`. The conflict is symmetric — neither can move
-# without the other. Verified Apr 25 2026: `mvt_to_feature_collection` API
-# we depend on (transcode.rs:200) is unchanged between 0.7.0 and 0.8.0, so
-# we lose only the upstream tessellation/wasm fixes by staying. Reference:
-# - mlt-core 0.8.0 release: https://github.com/maplibre/maplibre-tile-spec/releases/tag/rust-mlt-core-v0.8.0
-# - cql2 0.5.5 main still pins geo 0.31: https://github.com/developmentseed/cql2-rs/blob/main/Cargo.toml
-mlt-core         = { version = "0.7.0" }
+# MLT support — unblocked May 8 2026 by cql2 0.5.6 (geo 0.31 → 0.33). 0.9.1
+# renamed `TileLayer01` → `TileLayer`; transcode.rs callsites updated.
+mlt-core         = { version = "0.9.1" }
 
 # MBTiles / SQLite
 rusqlite         = { version = "0.39.0", features = ["bundled"] }
@@ -106,20 +95,41 @@ utoipa           = { version = "5.5.0", features = ["axum_extras"] }
 scalar_api_reference = { version = "0.2", features = ["axum"] }
 
 # OpenTelemetry
-opentelemetry    = "0.32.0"
-opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "metrics", "logs"] }
-opentelemetry-semantic-conventions = "0.32.0"
+#
+# PINNED to 0.31.x. A 0.32 family exists for `opentelemetry`,
+# `opentelemetry_sdk`, `opentelemetry-otlp`, `opentelemetry-semantic-conventions`,
+# AND `opentelemetry-prometheus` (the latter un-deprecated upstream on May 8
+# 2026), BUT `tracing-opentelemetry` 0.32.0/0.32.1 still pins
+# `opentelemetry = "0.31.0"` internally (upstream bug — see
+# tokio-rs/tracing-opentelemetry#258, in-progress as of May 12 2026). Mixing
+# 0.32 core with 0.32.1 tracing-opentelemetry resolves two copies of
+# `opentelemetry` in the graph and fails compile with
+# `the trait bound SdkTracer: opentelemetry::trace::Tracer is not satisfied`.
+#
+# We hit this on PRs #885/#888/#893/#895/#907 (May 12-13 2026): Dependabot
+# bumped 0.31 → 0.32, but `opentelemetry-prometheus-text-exporter = "=0.2.1"`
+# (the Prometheus pull endpoint exporter, see below) still pins SDK 0.31,
+# producing a diamond conflict with the same trait-bound error on
+# `PrometheusExporter: MetricReader`.
+#
+# Unblock path: when tokio-rs/tracing-opentelemetry#258 merges and ships,
+# bump ALL six crates here together (the `opentelemetry` group in
+# .github/dependabot.yml enforces this).
+opentelemetry    = "0.31.0"
+opentelemetry_sdk = { version = "0.31.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.31.1", features = ["grpc-tonic", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.31.0"
 tracing-opentelemetry = "0.32.1"
-# Prometheus pull-endpoint exporter — community successor to the discontinued
-# `opentelemetry-prometheus` crate. Authored by Quentin Gliech (Element /
-# Matrix.org) and explicitly endorsed by the OTel-Rust maintainers in
-# <https://github.com/open-telemetry/opentelemetry-rust/issues/2451> as the
-# replacement after the original crate was deprecated due to its `protobuf`
-# dependency carrying unresolved security vulnerabilities. Pinned EXACT (`=`)
-# because the crate is pre-1.0 (`0.2.x`) and may make breaking changes
-# between minor versions; bumping requires a deliberate review of the
-# changelog and an update to our `metrics/server.rs` integration.
+# Prometheus pull-endpoint exporter — community successor to the (recently
+# un-deprecated) `opentelemetry-prometheus` crate. Authored by Quentin
+# Gliech (Element/Matrix.org) and endorsed by OTel-Rust maintainers in
+# <https://github.com/open-telemetry/opentelemetry-rust/issues/2451>.
+# Pinned EXACT (`=`) because the crate is pre-1.0 (`0.2.x`) and may make
+# breaking changes between minor versions; bumping requires a deliberate
+# review of the changelog and an update to `metrics/server.rs` + `telemetry.rs`.
+# Will be replaced by official `opentelemetry-prometheus` 0.32 ONCE
+# `tracing-opentelemetry` ships SDK 0.32 support (see opentelemetry block
+# above).
 opentelemetry-prometheus-text-exporter = "=0.2.1"
 
 # Raster / GDAL (optional)
@@ -136,36 +146,20 @@ moka             = { version = "0.12.15", features = ["future"] }
 # OGC API (optional, used with postgres)
 ogcapi-types     = { version = "0.3.0", features = ["features", "common"] }
 geojson          = "1.0.0"
-cql2             = "0.5.5"
+cql2             = "0.5.6"
 
 # GeoParquet (optional)
 parquet          = { version = "58", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
 arrow-array      = "58"
 arrow-schema     = "58"
 arrow-cast       = "58"
-# geo 0.33 is available but blocked by cql2's transitive `geo ^0.31.0`
-# constraint: geo 0.31 pins `i_overlay ^4.0`, geo 0.33 pins `i_overlay ^4.5`,
-# and Cargo cannot resolve both in the same graph. Our own code has zero
-# `use geo::…` imports (verified Apr 2026) — the workspace dep only exists for
-# the unfinished `geoparquet` feature. Upstream history (tricky):
-#   - Filed developmentseed/cql2-rs#199 on Apr 21 2026
-#   - Their PR #201 merged the geo 0.31→0.32 bump at 15:49 same day
-#   - Their stale v0.5.4 release-plz PR #175 merged 15 min later and
-#     OVERWROTE Cargo.toml back to geo 0.31 (branch was 7 weeks old)
-#   - Their PR #208 merged the geo 0.31→0.33.1 bump on Apr 21 23:34 UTC
-#   - Their cql2-v0.5.5 release tag was cut Apr 22 00:02 UTC, but the
-#     release-please PR #203 had been opened BEFORE PR #208 and shipped
-#     a Cargo.toml snapshot with the OLD `geo = "0.31.0"`. The release
-#     notes mention the geo bump (release-please scrapes commit log) but
-#     the actual published .crate on crates.io ships geo 0.31. Verified
-#     by downloading cql2-0.5.5.crate + inspecting Cargo.toml directly.
-#   - Even main branch on cql2-rs (Apr 22) still declares geo = "0.31.0"
-# Status as of Apr 22 2026: re-verified at cql2 0.5.5 — still blocked.
-# Will unblock only when cql2 cuts v0.5.6+ AFTER another geo bump PR
-# lands AND the release PR is rebased to include it.
-# DO NOT bump to 0.33 without verifying `cargo check --features "postgres
-# geoparquet"` resolves cleanly — the i_overlay conflict aborts resolution.
-geo              = "0.32"
+# geo 0.33 unblocked May 8 2026 by cql2 0.5.6 (which finally shipped a
+# .crate with geo = "0.33.0" — earlier 0.5.4 / 0.5.5 release tags carried
+# stale snapshots that still pinned geo ^0.31; see developmentseed/cql2-rs#199).
+# Our own code has zero `use geo::…` imports — the workspace dep only
+# exists for the (unfinished) `geoparquet` feature and to satisfy
+# `mlt-core`'s transitive constraint.
+geo              = "0.33"
 
 # DuckDB (optional)
 duckdb           = { version = "1.10502.0", features = ["bundled"] }
@@ -211,3 +205,13 @@ strip = false
 
 [profile.dev.package."*"]
 opt-level = 3
+
+# Point gdal + gdal-sys at AlexanderWillner/gdal#fix/gdal-3.13-compat
+# (georust/gdal PR #714). GDAL 3.13 renamed `GDT_Byte` to `GDT_UInt8` in the
+# C enum and added `bOperateInBufType` to `GDALRasterIOExtraArg`; the gdal
+# 0.19.0 crate predates that change and fails to compile against a Homebrew
+# libgdal 3.13 install. Drop this patch block once a gdal release (>0.19.0)
+# lands containing PR #714. Tracking issue: georust/gdal#715.
+[patch.crates-io]
+gdal     = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }
+gdal-sys = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }

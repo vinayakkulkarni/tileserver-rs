@@ -1,20 +1,13 @@
 /**
  * Parse GeoJSON text using destr (safer + faster than JSON.parse).
- * Runs in a web worker via nuxt-workers — auto-imported, zero config.
+ * Runs in a Web Worker via Vite's native `new Worker(new URL(...), { type: 'module' })`.
  */
 import { destr } from 'destr';
 import type { FeatureCollection, GeoJSON, Geometry } from 'geojson';
-import type { GeometryType } from '~/types/file-upload';
+import { registerWorkerHandler } from '~/lib/run-worker';
+import type { GeometryType, ParseGeoJSONResult } from '~/types/file-upload';
 
-interface ParseResult {
-  fileName: string;
-  format: 'geojson';
-  data: FeatureCollection;
-  featureCount: number;
-  geometryTypes: GeometryType[];
-}
-
-export function parseGeoJSON(fileName: string, text: string): ParseResult {
+function parseGeoJSON(fileName: string, text: string): ParseGeoJSONResult {
   const data = destr<GeoJSON>(text);
 
   if (!data || typeof data !== 'object' || !('type' in data)) {
@@ -97,3 +90,7 @@ function addGeometryType(
       break;
   }
 }
+
+registerWorkerHandler<[fileName: string, text: string], ParseGeoJSONResult>(
+  parseGeoJSON,
+);
