@@ -10,8 +10,8 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
-    "generate": "nuxt generate",
+    "build": "NODE_OPTIONS='--max-old-space-size=16384' nuxt build",
+    "generate": "NODE_OPTIONS='--max-old-space-size=16384' nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "oxlint && eslint .",
