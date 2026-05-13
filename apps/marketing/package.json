@@ -40,7 +40,7 @@
     "@nuxt/eslint": "catalog:default",
     "@nuxt/eslint-config": "catalog:default",
     "@nuxtjs/plausible": "catalog:marketing",
-    "@tailwindcss/postcss": "catalog:default",
+    "@tailwindcss/vite": "catalog:default",
     "@types/node": "catalog:default",
     "eslint": "catalog:default",
     "eslint-plugin-better-tailwindcss": "catalog:default",

@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite';
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -168,6 +170,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     ssr: {
       external: ['ogl'],
     },
@@ -176,12 +179,6 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
     typeCheck: false,
-  },
-
-  postcss: {
-    plugins: {
-      '@tailwindcss/postcss': {},
-    },
   },
 
   shadcn: {
