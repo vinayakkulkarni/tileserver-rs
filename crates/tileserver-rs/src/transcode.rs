@@ -214,8 +214,8 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     let mut output = Vec::with_capacity(mvt_bytes.len());
     for (layer_name, features) in &layer_map {
         let tile_layer = build_tile_layer(layer_name, features);
-        // mlt-core 0.7: TileLayer01::encode tries sort strategies internally + returns bytes.
-        // Replaces the 0.6 StagedLayer::Tag01(...).encode_auto() + write_to() two-step flow.
+        // mlt-core 0.9: TileLayer::encode tries sort strategies internally + returns bytes.
+        // (Renamed from TileLayer01 in 0.9.0; identical field layout + encode signature.)
         let bytes = tile_layer.encode(EncoderConfig::default()).map_err(|e| {
             TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
         })?;
@@ -225,7 +225,7 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     Ok(Bytes::from(output))
 }
 
-/// Build a [`TileLayer01`] from a set of features belonging to one MVT layer.
+/// Build a [`TileLayer`] from a set of features belonging to one MVT layer.
 ///
 /// Collects unique property keys, infers the dominant type for each key across
 /// all features, and builds per-feature [`PropValue`] vectors parallel to
@@ -233,10 +233,10 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
 fn build_tile_layer(
     layer_name: &str,
     features: &[&mlt_core::geojson::Feature],
-) -> mlt_core::TileLayer01 {
+) -> mlt_core::TileLayer {
     use std::collections::BTreeSet;
 
-    use mlt_core::{PropValue, TileFeature, TileLayer01};
+    use mlt_core::{PropValue, TileFeature, TileLayer};
 
     // Extract extent from first feature (injected by mvt_to_feature_collection as _extent)
     let extent = features
@@ -281,7 +281,7 @@ fn build_tile_layer(
         })
         .collect();
 
-    TileLayer01 {
+    TileLayer {
         name: layer_name.to_string(),
         extent,
         property_names,
@@ -497,7 +497,7 @@ fn feature_collection_to_mvt(fc: &mlt_core::geojson::FeatureCollection) -> Resul
 /// Encode geo_types Geometry<i32> to MVT command-encoded geometry.
 ///
 /// Returns `(GeomType, Vec<u32>)` with the MVT command sequence.
-fn encode_geometry_to_mvt(geometry: &mlt_core::geojson::Geom32) -> (MvtProto::GeomType, Vec<u32>) {
+fn encode_geometry_to_mvt(geometry: &geo_types::Geometry<i32>) -> (MvtProto::GeomType, Vec<u32>) {
     use geo_types::Geometry;
 
     match geometry {

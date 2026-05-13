@@ -1,7 +1,7 @@
 //! OpenTelemetry tracing and metrics initialization.
 //!
 //! A single [`SdkMeterProvider`] feeds both the OTLP push reader (existing)
-//! and the Prometheus pull reader (new, via `opentelemetry-prometheus-text-exporter`).
+//! and the Prometheus pull reader (via `opentelemetry-prometheus-text-exporter`).
 //! See `docs/superpowers/specs/2026-05-04-prometheus-metrics-design.md` §3.
 
 use std::time::Duration;
