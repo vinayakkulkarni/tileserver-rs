@@ -426,4 +426,228 @@ mod tests {
         assert_eq!(tilejson.encoding, None);
         assert!(tilejson.tiles[0].contains(".pbf"));
     }
+
+    // --- TileFormat::content_type() exhaustive ---
+
+    #[test]
+    fn tile_format_content_type_pbf() {
+        assert_eq!(TileFormat::Pbf.content_type(), "application/x-protobuf");
+    }
+
+    #[test]
+    fn tile_format_content_type_png() {
+        assert_eq!(TileFormat::Png.content_type(), "image/png");
+    }
+
+    #[test]
+    fn tile_format_content_type_jpeg() {
+        assert_eq!(TileFormat::Jpeg.content_type(), "image/jpeg");
+    }
+
+    #[test]
+    fn tile_format_content_type_webp() {
+        assert_eq!(TileFormat::Webp.content_type(), "image/webp");
+    }
+
+    #[test]
+    fn tile_format_content_type_avif() {
+        assert_eq!(TileFormat::Avif.content_type(), "image/avif");
+    }
+
+    #[test]
+    fn tile_format_content_type_unknown() {
+        assert_eq!(
+            TileFormat::Unknown.content_type(),
+            "application/octet-stream"
+        );
+    }
+
+    // --- TileFormat::extension() exhaustive ---
+
+    #[test]
+    fn tile_format_extension_pbf() {
+        assert_eq!(TileFormat::Pbf.extension(), "pbf");
+    }
+
+    #[test]
+    fn tile_format_extension_png() {
+        assert_eq!(TileFormat::Png.extension(), "png");
+    }
+
+    #[test]
+    fn tile_format_extension_jpeg() {
+        assert_eq!(TileFormat::Jpeg.extension(), "jpg");
+    }
+
+    #[test]
+    fn tile_format_extension_webp() {
+        assert_eq!(TileFormat::Webp.extension(), "webp");
+    }
+
+    #[test]
+    fn tile_format_extension_avif() {
+        assert_eq!(TileFormat::Avif.extension(), "avif");
+    }
+
+    #[test]
+    fn tile_format_extension_unknown() {
+        assert_eq!(TileFormat::Unknown.extension(), "bin");
+    }
+
+    // --- TileFormat::is_vector() exhaustive ---
+
+    #[test]
+    fn tile_format_is_vector_pbf_is_true() {
+        assert!(TileFormat::Pbf.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_mlt_is_true() {
+        assert!(TileFormat::Mlt.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_png_is_false() {
+        assert!(!TileFormat::Png.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_jpeg_is_false() {
+        assert!(!TileFormat::Jpeg.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_webp_is_false() {
+        assert!(!TileFormat::Webp.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_avif_is_false() {
+        assert!(!TileFormat::Avif.is_vector());
+    }
+
+    #[test]
+    fn tile_format_is_vector_unknown_is_false() {
+        assert!(!TileFormat::Unknown.is_vector());
+    }
+
+    // --- TileFormat::from_str() exhaustive ---
+
+    #[test]
+    fn tile_format_from_str_pbf() {
+        assert_eq!("pbf".parse::<TileFormat>(), Ok(TileFormat::Pbf));
+    }
+
+    #[test]
+    fn tile_format_from_str_mvt() {
+        assert_eq!("mvt".parse::<TileFormat>(), Ok(TileFormat::Pbf));
+    }
+
+    #[test]
+    fn tile_format_from_str_vector() {
+        assert_eq!("vector".parse::<TileFormat>(), Ok(TileFormat::Pbf));
+    }
+
+    #[test]
+    fn tile_format_from_str_png() {
+        assert_eq!("png".parse::<TileFormat>(), Ok(TileFormat::Png));
+    }
+
+    #[test]
+    fn tile_format_from_str_jpeg() {
+        assert_eq!("jpeg".parse::<TileFormat>(), Ok(TileFormat::Jpeg));
+    }
+
+    #[test]
+    fn tile_format_from_str_jpg() {
+        assert_eq!("jpg".parse::<TileFormat>(), Ok(TileFormat::Jpeg));
+    }
+
+    #[test]
+    fn tile_format_from_str_webp() {
+        assert_eq!("webp".parse::<TileFormat>(), Ok(TileFormat::Webp));
+    }
+
+    #[test]
+    fn tile_format_from_str_avif() {
+        assert_eq!("avif".parse::<TileFormat>(), Ok(TileFormat::Avif));
+    }
+
+    #[test]
+    fn tile_format_from_str_mlt() {
+        assert_eq!("mlt".parse::<TileFormat>(), Ok(TileFormat::Mlt));
+    }
+
+    #[test]
+    fn tile_format_from_str_case_insensitive_uppercase() {
+        assert_eq!("PNG".parse::<TileFormat>(), Ok(TileFormat::Png));
+    }
+
+    #[test]
+    fn tile_format_from_str_case_insensitive_mixed() {
+        assert_eq!("Pbf".parse::<TileFormat>(), Ok(TileFormat::Pbf));
+    }
+
+    #[test]
+    fn tile_format_from_str_unknown_returns_err() {
+        assert!("xyz".parse::<TileFormat>().is_err());
+    }
+
+    #[test]
+    fn tile_format_from_str_empty_returns_err() {
+        assert!("".parse::<TileFormat>().is_err());
+    }
+
+    // --- Equality and clone ---
+
+    #[test]
+    fn tile_format_equality() {
+        assert_eq!(TileFormat::Pbf, TileFormat::Pbf);
+        assert_ne!(TileFormat::Pbf, TileFormat::Png);
+    }
+
+    #[test]
+    fn tile_format_clone() {
+        let fmt = TileFormat::Jpeg;
+        let cloned = fmt;
+        assert_eq!(fmt, cloned);
+    }
+
+    // --- TileFormat serialization roundtrip ---
+
+    #[test]
+    fn tile_format_serialize_pbf() {
+        let json = serde_json::to_string(&TileFormat::Pbf).expect("serialize TileFormat");
+        assert_eq!(json, "\"pbf\"");
+    }
+
+    #[test]
+    fn tile_format_deserialize_png() {
+        let fmt: TileFormat = serde_json::from_str("\"png\"").expect("deserialize TileFormat");
+        assert_eq!(fmt, TileFormat::Png);
+    }
+
+    #[test]
+    fn tile_format_deserialize_jpeg() {
+        let fmt: TileFormat = serde_json::from_str("\"jpeg\"").expect("deserialize jpeg");
+        assert_eq!(fmt, TileFormat::Jpeg);
+    }
+
+    #[test]
+    fn tile_format_deserialize_webp() {
+        let fmt: TileFormat = serde_json::from_str("\"webp\"").expect("deserialize webp");
+        assert_eq!(fmt, TileFormat::Webp);
+    }
+
+    #[test]
+    fn tile_format_deserialize_avif() {
+        let fmt: TileFormat = serde_json::from_str("\"avif\"").expect("deserialize avif");
+        assert_eq!(fmt, TileFormat::Avif);
+    }
+
+    #[test]
+    fn tile_format_deserialize_unknown() {
+        let fmt: TileFormat = serde_json::from_str("\"unknown\"").expect("deserialize unknown");
+        assert_eq!(fmt, TileFormat::Unknown);
+    }
 }
