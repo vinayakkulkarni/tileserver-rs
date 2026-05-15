@@ -177,8 +177,8 @@ catalogs:
       specifier: ^2.9.7
       version: 2.9.7
     shadcn-nuxt:
-      specifier: ^2.7.2
-      version: 2.7.2
+      specifier: ^2.7.3
+      version: 2.7.3
     tailwind-merge:
       specifier: ^3.6.0
       version: 3.6.0
@@ -408,7 +408,7 @@ importers:
         version: 1.64.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
+        version: 2.7.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.0
@@ -505,7 +505,7 @@ importers:
         version: 1.64.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
+        version: 2.7.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.0
@@ -605,7 +605,7 @@ importers:
         version: 1.64.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
+        version: 2.7.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.0
@@ -7287,8 +7287,8 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shadcn-nuxt@2.7.2:
-    resolution: {integrity: sha512-HYltOy3TtppeFNPSY8bLJPS6zYUV74esbEansGjOR8O7CoAGcTbhNACYRXVPlE87xXkhYYhgVnAfT9XH3DoVqg==}
+  shadcn-nuxt@2.7.3:
+    resolution: {integrity: sha512-aeH/Ecy/e3aiWUgQyBm39iLA+pCZuB1uisPYPha03U1/dpidnaYe4qblPETTbDyNEAVBjqgfNdoM9lT7Zthbvw==}
 
   sharp@0.34.5:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
@@ -9824,7 +9824,7 @@ snapshots:
       magicast: 0.5.2
       pathe: 2.0.3
       pkg-types: 2.3.1
-      semver: 7.7.4
+      semver: 7.8.0
 
   '@nuxt/devtools@3.2.4(vite@8.0.13(@types/node@25.7.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.46.1)(yaml@2.8.4))(vue@3.5.34(typescript@6.0.3))':
     dependencies:
@@ -10102,7 +10102,7 @@ snapshots:
       pkg-types: 2.3.1
       rc9: 3.0.1
       scule: 1.3.0
-      semver: 7.7.4
+      semver: 7.8.0
       tinyglobby: 0.2.16
       ufo: 1.6.4
       unctx: 2.5.0
@@ -14752,7 +14752,7 @@ snapshots:
       rollup: 4.60.2
       rollup-plugin-visualizer: 7.0.1(rolldown@1.0.1)(rollup@4.60.2)
       scule: 1.3.0
-      semver: 7.7.4
+      semver: 7.8.0
       serve-placeholder: 2.0.2
       serve-static: 2.2.1
       source-map: 0.7.6
@@ -16123,7 +16123,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shadcn-nuxt@2.7.2(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2):
+  shadcn-nuxt@2.7.3(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(magicast@0.5.2):
     dependencies:
       '@nuxt/kit': 3.21.2(magicast@0.5.2)
       oxc-parser: 0.102.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
@@ -16136,7 +16136,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
-      semver: 7.7.4
+      semver: 7.8.0
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5
