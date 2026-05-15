@@ -762,4 +762,90 @@ mod tests {
         let cached = cache.get(&key).await;
         assert!(cached.is_some());
     }
+
+    #[tokio::test]
+    async fn source_manager_from_empty_configs_is_empty() {
+        let mgr = SourceManager::from_configs(&[])
+            .await
+            .expect("empty configs");
+        assert!(mgr.is_empty());
+        assert_eq!(mgr.len(), 0);
+        assert!(mgr.cache().is_none());
+    }
+
+    #[test]
+    fn source_manager_new_len_is_zero() {
+        let mgr = SourceManager::new();
+        assert_eq!(mgr.len(), 0);
+    }
+
+    #[test]
+    fn source_manager_new_get_is_none() {
+        let mgr = SourceManager::new();
+        assert!(mgr.get("any-source").is_none());
+    }
+
+    #[test]
+    fn source_manager_with_cache_attaches_cache() {
+        let mgr = SourceManager::new();
+        assert!(mgr.cache().is_none());
+
+        let cache = Arc::new(crate::cache::TileCache::new(64, 60));
+        let mgr_with_cache = mgr.with_cache(cache);
+
+        assert!(mgr_with_cache.cache().is_some());
+    }
+
+    #[test]
+    fn source_manager_new_all_metadata_is_empty() {
+        let mgr = SourceManager::new();
+        assert!(mgr.all_metadata().is_empty());
+    }
+
+    #[test]
+    fn source_manager_exists_returns_false_for_empty() {
+        let mgr = SourceManager::new();
+        assert!(!mgr.exists("any-id"));
+        assert!(!mgr.exists(""));
+    }
+
+    #[tokio::test]
+    async fn source_manager_get_tile_unknown_returns_source_not_found() {
+        let mgr = SourceManager::new();
+        let result = mgr.get_tile("nonexistent-source", 0, 0, 0).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            crate::error::TileServerError::SourceNotFound(id) => {
+                assert_eq!(id, "nonexistent-source");
+            }
+            other => panic!("expected SourceNotFound, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn source_manager_get_tile_unknown_returns_error_not_panic() {
+        let mgr = SourceManager::new();
+        let result = mgr.get_tile("x", 10, 5, 5).await;
+        assert!(result.is_err(), "expected error for unknown source");
+        let err = result.unwrap_err();
+        assert!(matches!(
+            err,
+            crate::error::TileServerError::SourceNotFound(_)
+        ));
+    }
+
+    #[test]
+    fn source_manager_from_sources_empty_map_is_empty() {
+        let mgr = SourceManager::from_sources(HashMap::new());
+        assert!(mgr.is_empty());
+        assert_eq!(mgr.len(), 0);
+    }
+
+    #[test]
+    fn source_manager_clone_sources_on_empty_is_empty() {
+        let mgr = SourceManager::new();
+        let cloned = mgr.clone_sources();
+        assert!(cloned.is_empty());
+    }
 }
