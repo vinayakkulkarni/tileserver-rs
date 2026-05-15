@@ -37,6 +37,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      # ubuntu-latest ships with ~14GB free on /. The bundled libduckdb-sys +
+      # GDAL + mbgl-sys C++ build under cargo --all-features (libduckdb alone
+      # produces ~6GB of object files before archiving) exceeds that. Clearing
+      # pre-installed Android SDK / .NET / Haskell / large-packages reclaims
+      # ~30GB and unblocks the archive step (ar: No space left on device).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Install system dependencies
         run: |
           sudo apt-get update

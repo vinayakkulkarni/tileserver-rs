@@ -9,13 +9,13 @@ use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
-use opentelemetry_prometheus_text_exporter::PrometheusExporter;
+use prometheus::{Encoder, Registry, TextEncoder};
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
 #[derive(Clone)]
 struct ServerState {
-    exporter: Arc<PrometheusExporter>,
+    registry: Arc<Registry>,
 }
 
 /// Owned handle for the spawned metrics listener task.
@@ -35,13 +35,13 @@ pub struct MetricsServerHandle {
 pub async fn spawn_metrics_server(
     bind: SocketAddr,
     path: String,
-    exporter: PrometheusExporter,
+    registry: Registry,
 ) -> std::io::Result<MetricsServerHandle> {
     let listener = TcpListener::bind(bind).await?;
     let addr = listener.local_addr()?;
 
     let state = ServerState {
-        exporter: Arc::new(exporter),
+        registry: Arc::new(registry),
     };
 
     let normalized = if path.starts_with('/') {
@@ -72,7 +72,9 @@ pub async fn spawn_metrics_server(
 
 async fn scrape(State(state): State<ServerState>) -> Response {
     let mut buf: Vec<u8> = Vec::with_capacity(4096);
-    if let Err(e) = state.exporter.export(&mut buf) {
+    let encoder = TextEncoder::new();
+    let metric_families = state.registry.gather();
+    if let Err(e) = encoder.encode(&metric_families, &mut buf) {
         tracing::warn!("metrics scrape failed: {e}");
         return (StatusCode::INTERNAL_SERVER_ERROR, "metrics scrape failed").into_response();
     }

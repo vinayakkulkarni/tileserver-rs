@@ -269,13 +269,13 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
 
-    if let Some(exporter) = telemetry_output.prometheus_exporter
+    if let Some(registry) = telemetry_output.prometheus_registry
         && let Some(bind_str) = config.telemetry.prometheus_bind.as_ref()
     {
         match bind_str.parse::<SocketAddr>() {
             Ok(prom_addr) => {
                 let path = config.telemetry.prometheus_path.clone();
-                match metrics::spawn_metrics_server(prom_addr, path, exporter).await {
+                match metrics::spawn_metrics_server(prom_addr, path, registry).await {
                     Ok(_handle) => {
                         tracing::info!(
                             bind = %prom_addr,

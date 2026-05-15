@@ -13,8 +13,8 @@
 use std::net::SocketAddr;
 use std::time::Duration;
 
-use opentelemetry_prometheus_text_exporter::PrometheusExporter;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
+use prometheus::Registry;
 
 use tileserver_rs::metrics::{
     self, Cardinality, RenderEvent, RenderOutcome, TileEvent, TileOutcome,
@@ -24,19 +24,21 @@ use tileserver_rs::sources::TileFormat;
 struct TestHarness {
     addr: SocketAddr,
     _provider: SdkMeterProvider,
-    _exporter: PrometheusExporter,
+    _registry: Registry,
 }
 
 async fn install_harness() -> TestHarness {
-    let exporter = PrometheusExporter::new();
-    let provider = SdkMeterProvider::builder()
-        .with_reader(exporter.clone())
-        .build();
+    let registry = Registry::new();
+    let exporter = opentelemetry_prometheus::exporter()
+        .with_registry(registry.clone())
+        .build()
+        .expect("prometheus exporter");
+    let provider = SdkMeterProvider::builder().with_reader(exporter).build();
     opentelemetry::global::set_meter_provider(provider.clone());
     metrics::init(Cardinality::Strict);
 
     let bind: SocketAddr = "127.0.0.1:0".parse().unwrap();
-    let handle = metrics::spawn_metrics_server(bind, "/metrics".to_string(), exporter.clone())
+    let handle = metrics::spawn_metrics_server(bind, "/metrics".to_string(), registry.clone())
         .await
         .expect("metrics server bind failed");
     tokio::time::sleep(Duration::from_millis(20)).await;
@@ -44,7 +46,7 @@ async fn install_harness() -> TestHarness {
     TestHarness {
         addr: handle.addr,
         _provider: provider,
-        _exporter: exporter,
+        _registry: registry,
     }
 }
 

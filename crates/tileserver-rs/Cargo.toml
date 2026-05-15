@@ -59,7 +59,8 @@ opentelemetry_sdk = { workspace = true }
 opentelemetry-otlp = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true }
 tracing-opentelemetry = { workspace = true }
-opentelemetry-prometheus-text-exporter = { workspace = true }
+opentelemetry-prometheus = { workspace = true }
+prometheus = { workspace = true }
 
 # MBTiles support (SQLite)
 rusqlite         = { workspace = true }
