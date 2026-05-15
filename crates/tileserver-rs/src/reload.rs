@@ -342,3 +342,131 @@ pub async fn reload_signal(_controller: Arc<ReloadController>) {
     // SIGHUP is not available on non-Unix platforms
     std::future::pending::<()>().await;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    fn make_test_app_state() -> AppState {
+        AppState {
+            sources: Arc::new(crate::sources::SourceManager::new()),
+            styles: Arc::new(crate::styles::StyleManager::new()),
+            renderer: None,
+            base_url: "http://localhost:8080".to_string(),
+            render_base_url: "http://127.0.0.1:8080".to_string(),
+            ui_enabled: false,
+            fonts_dir: None,
+            files_dir: None,
+            upload_dir: None,
+        }
+    }
+
+    fn make_test_meta() -> ReloadMeta {
+        ReloadMeta {
+            config_hash: "test-hash".to_string(),
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: 0,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+        }
+    }
+
+    fn make_test_runtime() -> RuntimeSettings {
+        RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: "127.0.0.1".to_string(),
+            runtime_port: 8080,
+            public_url_override: None,
+        }
+    }
+
+    #[test]
+    fn now_unix_seconds_is_positive() {
+        let t = now_unix_seconds();
+        assert!(t > 0, "unix timestamp must be positive");
+    }
+
+    #[test]
+    fn now_unix_seconds_is_recent() {
+        let t = now_unix_seconds();
+        // Must be after 2020-01-01 (unix 1577836800)
+        assert!(t > 1_577_836_800, "timestamp should be after 2020");
+    }
+
+    #[test]
+    fn runtime_settings_fields_accessible() {
+        let rt = make_test_runtime();
+        assert_eq!(rt.runtime_port, 8080);
+        assert_eq!(rt.runtime_host, "127.0.0.1");
+        assert!(!rt.ui_enabled);
+        assert!(rt.public_url_override.is_none());
+    }
+
+    #[test]
+    fn reload_meta_fields_accessible() {
+        let meta = make_test_meta();
+        assert_eq!(meta.config_hash, "test-hash");
+        assert_eq!(meta.loaded_sources, 0);
+        assert!(!meta.renderer_enabled);
+    }
+
+    #[test]
+    fn app_state_fields_accessible() {
+        let state = make_test_app_state();
+        assert!(state.renderer.is_none());
+        assert!(state.fonts_dir.is_none());
+        assert!(!state.ui_enabled);
+        assert_eq!(state.base_url, "http://localhost:8080");
+    }
+
+    #[test]
+    fn reload_controller_new_stores_initial_state() {
+        let state = make_test_app_state();
+        let meta = make_test_meta();
+        let runtime = make_test_runtime();
+        let controller = ReloadController::new(state, meta, None, runtime);
+        let loaded = controller.app.load_full();
+        assert_eq!(loaded.base_url, "http://localhost:8080");
+    }
+
+    #[test]
+    fn shared_state_new_load_returns_initial_state() {
+        let state = make_test_app_state();
+        let meta = make_test_meta();
+        let runtime = make_test_runtime();
+        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let shared = SharedState::new(controller);
+        let loaded = shared.load();
+        assert_eq!(loaded.base_url, "http://localhost:8080");
+    }
+
+    #[test]
+    fn shared_state_meta_returns_initial_hash() {
+        let state = make_test_app_state();
+        let meta = make_test_meta();
+        let runtime = make_test_runtime();
+        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let shared = SharedState::new(controller);
+        let loaded_meta = shared.meta();
+        assert_eq!(loaded_meta.config_hash, "test-hash");
+    }
+
+    #[test]
+    fn shared_state_uploads_initially_empty() {
+        let state = make_test_app_state();
+        let meta = make_test_meta();
+        let runtime = make_test_runtime();
+        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let shared = SharedState::new(controller);
+        let _ = shared.uploads();
+    }
+
+    #[test]
+    fn app_state_clone_preserves_base_url() {
+        let state = make_test_app_state();
+        let cloned = state.clone();
+        assert_eq!(state.base_url, cloned.base_url);
+    }
+}

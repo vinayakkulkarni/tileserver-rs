@@ -358,4 +358,74 @@ path = "{}"
         assert_eq!(after_ping["loaded_styles"], 1);
         assert_eq!(after_ping["config_hash"], before_ping["config_hash"]);
     }
+
+    #[test]
+    fn ping_response_serializes_correctly() {
+        let resp = PingResponse {
+            status: "ok",
+            config_hash: "abc123".to_string(),
+            loaded_at_unix: 1_700_000_000,
+            loaded_sources: 3,
+            loaded_styles: 2,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+            version: "1.0.0",
+            cache_enabled: false,
+            cache_entries: 0,
+            cache_bytes: 0,
+        };
+        let json = serde_json::to_value(&resp).expect("PingResponse serializes");
+        assert_eq!(json["status"], "ok");
+        assert_eq!(json["loaded_sources"], 3);
+        assert_eq!(json["loaded_styles"], 2);
+        assert_eq!(json["cache_enabled"], false);
+    }
+
+    #[test]
+    fn reload_response_serializes_correctly() {
+        let resp = ReloadResponse {
+            ok: true,
+            reloaded: true,
+            config_hash: "newHash".to_string(),
+            loaded_at_unix: 0,
+            loaded_sources: 1,
+            loaded_styles: 1,
+            renderer_enabled: true,
+            prometheus_listener_active: true,
+            version: "2.0.0",
+        };
+        let json = serde_json::to_value(&resp).expect("ReloadResponse serializes");
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["reloaded"], true);
+        assert_eq!(json["renderer_enabled"], true);
+    }
+
+    #[test]
+    fn reload_error_response_serializes_correctly() {
+        let resp = ReloadErrorResponse {
+            ok: false,
+            error: "config parse error".to_string(),
+        };
+        let json = serde_json::to_value(&resp).expect("ReloadErrorResponse serializes");
+        assert_eq!(json["ok"], false);
+        assert!(
+            json["error"]
+                .as_str()
+                .unwrap()
+                .contains("config parse error")
+        );
+    }
+
+    #[test]
+    fn cache_flush_response_serializes_correctly() {
+        let resp = CacheFlushResponse {
+            ok: true,
+            invalidated_entries: 42,
+            freed_bytes: 1024,
+        };
+        let json = serde_json::to_value(&resp).expect("CacheFlushResponse serializes");
+        assert_eq!(json["ok"], true);
+        assert_eq!(json["invalidated_entries"], 42);
+        assert_eq!(json["freed_bytes"], 1024);
+    }
 }
