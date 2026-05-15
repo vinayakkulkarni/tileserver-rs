@@ -848,4 +848,285 @@ mod tests {
         let cloned = mgr.clone_sources();
         assert!(cloned.is_empty());
     }
+
+    #[test]
+    fn mock_source_as_any_downcasts_to_concrete_type() {
+        let src: Arc<dyn TileSource> = Arc::new(MockSource::new("downcast-me"));
+        let any = src.as_any();
+        assert!(any.downcast_ref::<MockSource>().is_some());
+    }
+
+    #[tokio::test]
+    async fn get_tile_with_cache_hit_returns_cached_data_on_second_call() {
+        let mut map = HashMap::new();
+        map.insert(
+            "hit".to_string(),
+            Arc::new(MockSource::new("hit")) as Arc<dyn TileSource>,
+        );
+        let cache = Arc::new(crate::cache::TileCache::new(4, 3600));
+        let mgr = SourceManager::from_sources(map).with_cache(cache);
+
+        let first = mgr.get_tile("hit", 5, 1, 1).await.unwrap().unwrap();
+        assert_eq!(first.data.as_ref(), b"mock-tile-data");
+
+        let second = mgr.get_tile("hit", 5, 1, 1).await.unwrap().unwrap();
+        assert_eq!(second.data.as_ref(), b"mock-tile-data");
+    }
+
+    struct NoneSource(TileMetadata);
+
+    #[async_trait]
+    impl TileSource for NoneSource {
+        async fn get_tile(
+            &self,
+            _z: u8,
+            _x: u32,
+            _y: u32,
+        ) -> crate::error::Result<Option<TileData>> {
+            Ok(None)
+        }
+        fn metadata(&self) -> &TileMetadata {
+            &self.0
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    fn none_source(id: &str) -> Arc<dyn TileSource> {
+        Arc::new(NoneSource(TileMetadata {
+            id: id.to_string(),
+            name: id.to_string(),
+            description: None,
+            attribution: None,
+            format: TileFormat::Pbf,
+            minzoom: 0,
+            maxzoom: 14,
+            bounds: None,
+            center: None,
+            vector_layers: None,
+        }))
+    }
+
+    #[tokio::test]
+    async fn get_tile_returns_none_when_source_has_no_tile() {
+        let mut map = HashMap::new();
+        map.insert("empty".to_string(), none_source("empty"));
+        let mgr = SourceManager::from_sources(map);
+
+        let result = mgr.get_tile("empty", 1, 0, 0).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn get_tile_none_via_cache_does_not_pollute_cache() {
+        let mut map = HashMap::new();
+        map.insert("empty-c".to_string(), none_source("empty-c"));
+        let cache = Arc::new(crate::cache::TileCache::new(4, 3600));
+        let mgr = SourceManager::from_sources(map).with_cache(cache.clone());
+
+        let result = mgr.get_tile("empty-c", 2, 1, 1).await.unwrap();
+        assert!(result.is_none());
+
+        let key = crate::cache::TileCacheKey {
+            source_id: "empty-c".into(),
+            z: 2,
+            x: 1,
+            y: 1,
+        };
+        assert!(cache.get(&key).await.is_none());
+    }
+
+    struct ErrSource(TileMetadata);
+
+    #[async_trait]
+    impl TileSource for ErrSource {
+        async fn get_tile(
+            &self,
+            _z: u8,
+            _x: u32,
+            _y: u32,
+        ) -> crate::error::Result<Option<TileData>> {
+            Err(TileServerError::Internal(anyhow::anyhow!("forced")))
+        }
+        fn metadata(&self) -> &TileMetadata {
+            &self.0
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    #[tokio::test]
+    async fn get_tile_propagates_underlying_source_error() {
+        let mut map = HashMap::new();
+        map.insert(
+            "err".to_string(),
+            Arc::new(ErrSource(TileMetadata {
+                id: "err".to_string(),
+                name: "err".to_string(),
+                description: None,
+                attribution: None,
+                format: TileFormat::Pbf,
+                minzoom: 0,
+                maxzoom: 14,
+                bounds: None,
+                center: None,
+                vector_layers: None,
+            })) as Arc<dyn TileSource>,
+        );
+        let mgr = SourceManager::from_sources(map);
+
+        let result = mgr.get_tile("err", 0, 0, 0).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn get_tile_with_cache_propagates_source_error() {
+        let mut map = HashMap::new();
+        map.insert(
+            "err-c".to_string(),
+            Arc::new(ErrSource(TileMetadata {
+                id: "err-c".to_string(),
+                name: "err-c".to_string(),
+                description: None,
+                attribution: None,
+                format: TileFormat::Pbf,
+                minzoom: 0,
+                maxzoom: 14,
+                bounds: None,
+                center: None,
+                vector_layers: None,
+            })) as Arc<dyn TileSource>,
+        );
+        let cache = Arc::new(crate::cache::TileCache::new(4, 3600));
+        let mgr = SourceManager::from_sources(map).with_cache(cache);
+
+        let result = mgr.get_tile("err-c", 0, 0, 0).await;
+        assert!(result.is_err());
+    }
+
+    fn missing_mbtiles_config(id: &str) -> SourceConfig {
+        SourceConfig {
+            id: id.to_string(),
+            source_type: SourceType::MBTiles,
+            path: format!("/nonexistent/path/{id}.mbtiles"),
+            name: None,
+            attribution: None,
+            description: None,
+            resampling: None,
+            layer_name: None,
+            geometry_column: None,
+            query: None,
+            minzoom: None,
+            maxzoom: None,
+            serve_as: None,
+            #[cfg(feature = "raster")]
+            colormap: None,
+            options: None,
+            collection: None,
+            asset_role: "visual".to_string(),
+            dynamic: false,
+            max_items: 100,
+            stac_bbox: None,
+            pixel_selection: crate::config::PixelSelectionMethod::First,
+        }
+    }
+
+    #[tokio::test]
+    async fn from_configs_continues_on_load_failure() {
+        let cfg = missing_mbtiles_config("missing");
+        let mgr = SourceManager::from_configs(&[cfg]).await.unwrap();
+        assert!(mgr.is_empty());
+    }
+
+    #[tokio::test]
+    async fn from_configs_with_multiple_failures_returns_empty_manager() {
+        let configs = vec![
+            missing_mbtiles_config("first"),
+            missing_mbtiles_config("second"),
+        ];
+        let mgr = SourceManager::from_configs(&configs).await.unwrap();
+        assert!(mgr.is_empty());
+    }
+
+    #[tokio::test]
+    async fn from_configs_with_postgres_no_pg_config_is_ok() {
+        let mgr = SourceManager::from_configs_with_postgres(&[], None)
+            .await
+            .expect("no postgres config");
+        assert!(mgr.is_empty());
+    }
+
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    async fn get_vector_tile_with_query_params_unknown_source_returns_error() {
+        let mgr = SourceManager::new();
+        let params = serde_json::json!({});
+        let result = mgr
+            .get_vector_tile_with_query_params("nope", 0, 0, 0, &params)
+            .await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::error::TileServerError::SourceNotFound(_)
+        ));
+    }
+
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    async fn get_vector_tile_with_query_params_non_function_source_falls_through() {
+        let mut map = HashMap::new();
+        map.insert(
+            "regular".to_string(),
+            Arc::new(MockSource::new("regular")) as Arc<dyn TileSource>,
+        );
+        let mgr = SourceManager::from_sources(map);
+        let params = serde_json::json!({});
+
+        let result = mgr
+            .get_vector_tile_with_query_params("regular", 0, 0, 0, &params)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(result.data.as_ref(), b"mock-tile-data");
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn is_postgres_function_source_unknown_id_returns_false() {
+        let mgr = SourceManager::new();
+        assert!(!mgr.is_postgres_function_source("nope"));
+    }
+
+    #[cfg(feature = "postgres")]
+    #[test]
+    fn is_postgres_function_source_non_pg_source_returns_false() {
+        let mut map = HashMap::new();
+        map.insert(
+            "mock".to_string(),
+            Arc::new(MockSource::new("mock")) as Arc<dyn TileSource>,
+        );
+        let mgr = SourceManager::from_sources(map);
+        assert!(!mgr.is_postgres_function_source("mock"));
+    }
+
+    #[cfg(all(feature = "postgres", feature = "raster"))]
+    #[test]
+    fn is_outdb_raster_source_unknown_id_returns_false() {
+        let mgr = SourceManager::new();
+        assert!(!mgr.is_outdb_raster_source("nope"));
+    }
+
+    #[cfg(all(feature = "postgres", feature = "raster"))]
+    #[test]
+    fn is_outdb_raster_source_non_raster_returns_false() {
+        let mut map = HashMap::new();
+        map.insert(
+            "mock".to_string(),
+            Arc::new(MockSource::new("mock")) as Arc<dyn TileSource>,
+        );
+        let mgr = SourceManager::from_sources(map);
+        assert!(!mgr.is_outdb_raster_source("mock"));
+    }
 }

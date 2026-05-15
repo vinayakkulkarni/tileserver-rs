@@ -469,4 +469,278 @@ mod tests {
         let cloned = state.clone();
         assert_eq!(state.base_url, cloned.base_url);
     }
+
+    #[test]
+    fn shared_state_store_swaps_app_state_atomically() {
+        let state = make_test_app_state();
+        let meta = make_test_meta();
+        let runtime = make_test_runtime();
+        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let shared = SharedState::new(controller);
+
+        let mut replacement = make_test_app_state();
+        replacement.base_url = "http://replaced".to_string();
+        shared.store(Arc::new(replacement));
+
+        let loaded = shared.load();
+        assert_eq!(loaded.base_url, "http://replaced");
+    }
+
+    #[test]
+    fn upload_info_clone_round_trips_fields() {
+        let info = UploadInfo {
+            id: "abc".to_string(),
+            file_name: "world.mbtiles".to_string(),
+            format: "mbtiles".to_string(),
+            file_path: std::path::PathBuf::from("/tmp/x.mbtiles"),
+        };
+        let cloned = info.clone();
+        assert_eq!(cloned.id, "abc");
+        assert_eq!(cloned.file_name, "world.mbtiles");
+        assert_eq!(cloned.format, "mbtiles");
+        assert_eq!(cloned.file_path, std::path::PathBuf::from("/tmp/x.mbtiles"));
+    }
+
+    fn runtime_for(host: &str, port: u16, public_override: Option<&str>) -> RuntimeSettings {
+        RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: host.to_string(),
+            runtime_port: port,
+            public_url_override: public_override.map(str::to_string),
+        }
+    }
+
+    #[tokio::test]
+    async fn build_app_state_uses_public_url_override() {
+        let cfg = crate::config::Config::default();
+        let runtime = runtime_for("127.0.0.1", 8080, Some("https://tiles.example.com/"));
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert_eq!(state.base_url, "https://tiles.example.com");
+        assert_eq!(state.render_base_url, "http://127.0.0.1:8080");
+    }
+
+    #[tokio::test]
+    async fn build_app_state_uses_server_public_url_when_no_override() {
+        let mut cfg = crate::config::Config::default();
+        cfg.server.public_url = Some("https://maps.test/".to_string());
+        let runtime = runtime_for("0.0.0.0", 9090, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert_eq!(state.base_url, "https://maps.test");
+    }
+
+    #[tokio::test]
+    async fn build_app_state_falls_back_to_localhost_when_host_is_wildcard() {
+        let cfg = crate::config::Config::default();
+        let runtime = runtime_for("0.0.0.0", 9000, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert_eq!(state.base_url, "http://localhost:9000");
+        assert_eq!(state.render_base_url, "http://127.0.0.1:9000");
+    }
+
+    #[tokio::test]
+    async fn build_app_state_uses_runtime_host_when_not_wildcard() {
+        let cfg = crate::config::Config::default();
+        let runtime = runtime_for("192.168.1.5", 7777, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert_eq!(state.base_url, "http://192.168.1.5:7777");
+    }
+
+    #[tokio::test]
+    async fn build_app_state_default_upload_dir_lands_in_temp() {
+        let cfg = crate::config::Config::default();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+
+        let upload = state.upload_dir.expect("default upload dir set");
+        assert!(
+            upload.ends_with("tileserver-uploads"),
+            "got: {}",
+            upload.display()
+        );
+        assert!(upload.exists(), "upload dir must be created");
+    }
+
+    #[tokio::test]
+    async fn build_app_state_uses_configured_upload_dir() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let upload_path = tempdir.path().join("custom-uploads");
+        let mut cfg = crate::config::Config::default();
+        cfg.server.upload_dir = Some(upload_path.clone());
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert_eq!(state.upload_dir.as_deref(), Some(upload_path.as_path()));
+        assert!(upload_path.exists());
+    }
+
+    #[tokio::test]
+    async fn build_app_state_with_no_styles_has_no_renderer() {
+        let cfg = crate::config::Config::default();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert!(state.renderer.is_none());
+        assert_eq!(state.styles.len(), 0);
+        assert_eq!(state.sources.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn build_app_state_with_cache_enabled_wires_global_cache() {
+        let mut cfg = crate::config::Config::default();
+        cfg.cache.enabled = true;
+        cfg.cache.max_size_mb = 1;
+        cfg.cache.ttl_seconds = 60;
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert!(state.sources.cache().is_some());
+    }
+
+    #[tokio::test]
+    async fn build_app_state_propagates_runtime_flags() {
+        let cfg = crate::config::Config {
+            fonts: Some(std::path::PathBuf::from("/tmp/does-not-exist-fonts")),
+            files: Some(std::path::PathBuf::from("/tmp/does-not-exist-files")),
+            ..crate::config::Config::default()
+        };
+        let runtime = RuntimeSettings {
+            ui_enabled: true,
+            runtime_host: "127.0.0.1".to_string(),
+            runtime_port: 8080,
+            public_url_override: None,
+        };
+        let state = build_app_state(&cfg, &runtime).await.unwrap();
+        assert!(state.ui_enabled);
+        assert!(state.fonts_dir.is_some());
+        assert!(state.files_dir.is_some());
+    }
+
+    fn write_default_config_toml(path: &std::path::Path) {
+        let cfg = crate::config::Config::default();
+        let content = toml::to_string(&cfg).expect("serialize default config");
+        std::fs::write(path, content).expect("write config");
+    }
+
+    #[tokio::test]
+    async fn reload_returns_unchanged_when_hash_matches() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let cfg_path = tempdir.path().join("config.toml");
+        write_default_config_toml(&cfg_path);
+
+        let load = crate::config::Config::load_with_metadata(Some(cfg_path.clone())).unwrap();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let initial_state = build_app_state(&load.config, &runtime).await.unwrap();
+        let initial_hash = load.content_hash.clone();
+        let meta = ReloadMeta {
+            config_hash: initial_hash.clone(),
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: initial_state.sources.len(),
+            loaded_styles: initial_state.styles.len(),
+            renderer_enabled: initial_state.renderer.is_some(),
+            prometheus_listener_active: false,
+        };
+        let controller = ReloadController::new(initial_state, meta, Some(cfg_path), runtime);
+
+        let result = controller.reload(false).await.unwrap();
+        assert!(
+            !result.reloaded,
+            "reload must short-circuit when config hash matches"
+        );
+        assert_eq!(result.config_hash, initial_hash);
+    }
+
+    #[tokio::test]
+    async fn reload_with_flush_true_rebuilds_even_when_hash_matches() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let cfg_path = tempdir.path().join("config.toml");
+        write_default_config_toml(&cfg_path);
+
+        let load = crate::config::Config::load_with_metadata(Some(cfg_path.clone())).unwrap();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let initial_state = build_app_state(&load.config, &runtime).await.unwrap();
+        let initial_hash = load.content_hash.clone();
+        let meta = ReloadMeta {
+            config_hash: initial_hash.clone(),
+            loaded_at_unix: 0,
+            loaded_sources: initial_state.sources.len(),
+            loaded_styles: initial_state.styles.len(),
+            renderer_enabled: initial_state.renderer.is_some(),
+            prometheus_listener_active: false,
+        };
+        let controller = ReloadController::new(initial_state, meta, Some(cfg_path), runtime);
+
+        let result = controller.reload(true).await.unwrap();
+        assert!(result.reloaded, "flush=true must force a rebuild");
+        assert_eq!(result.config_hash, initial_hash);
+        assert!(
+            result.loaded_at_unix > 0,
+            "loaded_at_unix must be refreshed"
+        );
+    }
+
+    #[tokio::test]
+    async fn reload_detects_config_change_and_swaps_app_state() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let cfg_path = tempdir.path().join("config.toml");
+
+        let mut cfg = crate::config::Config::default();
+        cfg.server.port = 8080;
+        std::fs::write(&cfg_path, toml::to_string(&cfg).unwrap()).unwrap();
+
+        let load = crate::config::Config::load_with_metadata(Some(cfg_path.clone())).unwrap();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let initial_state = build_app_state(&load.config, &runtime).await.unwrap();
+        let meta = ReloadMeta {
+            config_hash: load.content_hash.clone(),
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: 0,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: true,
+        };
+        let controller =
+            ReloadController::new(initial_state, meta, Some(cfg_path.clone()), runtime);
+
+        let mut new_cfg = crate::config::Config::default();
+        new_cfg.server.port = 9999;
+        new_cfg.server.public_url = Some("https://changed.test".to_string());
+        std::fs::write(&cfg_path, toml::to_string(&new_cfg).unwrap()).unwrap();
+
+        let result = controller.reload(false).await.unwrap();
+        assert!(result.reloaded);
+        assert_ne!(result.config_hash, load.content_hash);
+        assert!(
+            result.prometheus_listener_active,
+            "reload must preserve prometheus listener flag"
+        );
+
+        let new_state = controller.app.load_full();
+        assert_eq!(new_state.base_url, "https://changed.test");
+    }
+
+    #[tokio::test]
+    async fn shared_state_reload_through_controller_short_circuits_on_same_hash() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let cfg_path = tempdir.path().join("config.toml");
+        write_default_config_toml(&cfg_path);
+
+        let load = crate::config::Config::load_with_metadata(Some(cfg_path.clone())).unwrap();
+        let runtime = runtime_for("127.0.0.1", 8080, None);
+        let initial_state = build_app_state(&load.config, &runtime).await.unwrap();
+        let meta = ReloadMeta {
+            config_hash: load.content_hash.clone(),
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: 0,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+        };
+        let controller = Arc::new(ReloadController::new(
+            initial_state,
+            meta,
+            Some(cfg_path),
+            runtime,
+        ));
+        let shared = SharedState::new(controller);
+
+        let result = shared.reload(false).await.unwrap();
+        assert!(!result.reloaded);
+    }
 }

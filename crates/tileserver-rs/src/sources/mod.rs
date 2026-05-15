@@ -650,4 +650,175 @@ mod tests {
         let fmt: TileFormat = serde_json::from_str("\"unknown\"").expect("deserialize unknown");
         assert_eq!(fmt, TileFormat::Unknown);
     }
+
+    // --- TileCompression::content_encoding() exhaustive ---
+
+    #[test]
+    fn tile_compression_content_encoding_none_is_none() {
+        assert_eq!(TileCompression::None.content_encoding(), None);
+    }
+
+    #[test]
+    fn tile_compression_content_encoding_gzip() {
+        assert_eq!(TileCompression::Gzip.content_encoding(), Some("gzip"));
+    }
+
+    #[test]
+    fn tile_compression_content_encoding_zstd() {
+        assert_eq!(TileCompression::Zstd.content_encoding(), Some("zstd"));
+    }
+
+    #[test]
+    fn tile_compression_content_encoding_brotli() {
+        assert_eq!(TileCompression::Brotli.content_encoding(), Some("br"));
+    }
+
+    #[test]
+    fn tile_compression_equality_and_copy() {
+        let a = TileCompression::Gzip;
+        let b = a;
+        assert_eq!(a, b);
+        assert_ne!(TileCompression::None, TileCompression::Gzip);
+    }
+
+    // --- to_tilejson_with_key: API key query parameter is appended ---
+
+    fn meta_for(format: TileFormat) -> TileMetadata {
+        TileMetadata {
+            id: "src-1".to_string(),
+            name: "Source One".to_string(),
+            description: Some("desc".to_string()),
+            attribution: Some("attr".to_string()),
+            format,
+            minzoom: 0,
+            maxzoom: 14,
+            bounds: Some([-180.0, -85.0, 180.0, 85.0]),
+            center: Some([0.0, 0.0, 2.0]),
+            vector_layers: None,
+        }
+    }
+
+    #[test]
+    fn tilejson_with_key_appends_key_query() {
+        let m = meta_for(TileFormat::Pbf);
+        let tj = m.to_tilejson_with_key("http://h", Some("abc"));
+        assert_eq!(tj.tiles[0], "http://h/data/src-1/{z}/{x}/{y}.pbf?key=abc");
+    }
+
+    #[test]
+    fn tilejson_with_key_urlencodes_special_chars() {
+        let m = meta_for(TileFormat::Pbf);
+        let tj = m.to_tilejson_with_key("http://h", Some("a b/c"));
+        // urlencoding crate percent-encodes space as %20 and '/' as %2F
+        assert!(
+            tj.tiles[0].ends_with("?key=a%20b%2Fc"),
+            "got: {}",
+            tj.tiles[0]
+        );
+    }
+
+    #[test]
+    fn tilejson_without_key_has_no_query_string() {
+        let m = meta_for(TileFormat::Png);
+        let tj = m.to_tilejson("http://h");
+        assert!(!tj.tiles[0].contains('?'));
+        assert!(tj.tiles[0].ends_with(".png"));
+    }
+
+    #[test]
+    fn tilejson_with_key_mlt_sets_encoding() {
+        let m = meta_for(TileFormat::Mlt);
+        let tj = m.to_tilejson_with_key("http://h", Some("k"));
+        assert_eq!(tj.encoding.as_deref(), Some("mlt"));
+        assert!(tj.tiles[0].contains(".mlt?key=k"));
+    }
+
+    #[test]
+    fn tilejson_preserves_bounds_and_center() {
+        let m = meta_for(TileFormat::Pbf);
+        let tj = m.to_tilejson("http://h");
+        assert_eq!(tj.bounds, Some([-180.0, -85.0, 180.0, 85.0]));
+        assert_eq!(tj.center, Some([0.0, 0.0, 2.0]));
+        assert_eq!(tj.attribution.as_deref(), Some("attr"));
+        assert_eq!(tj.description.as_deref(), Some("desc"));
+        assert_eq!(tj.tilejson, "3.0.0");
+    }
+
+    // --- decode_7bit_length_and_tag edge cases via detect_mlt_format ---
+
+    #[test]
+    fn detect_mlt_varint_overflow_returns_false() {
+        // 10 bytes all with continuation bit → shift exceeds 63
+        let buf = [0x81u8; 10];
+        assert!(!detect_mlt_format(&buf));
+    }
+
+    #[test]
+    fn detect_mlt_size_zero_returns_false() {
+        // size varint = 0 (single byte 0x00) → invalid
+        assert!(!detect_mlt_format(&[0x00, 0x01]));
+    }
+
+    #[test]
+    fn detect_mlt_truncated_varint_returns_false() {
+        // continuation bit set but buffer ends
+        assert!(!detect_mlt_format(&[0x81, 0x81]));
+    }
+
+    #[test]
+    fn detect_mlt_payload_exceeds_buffer_returns_false() {
+        // size=10 (tag + 9 payload), tag=0x01, but only 2 bytes follow
+        assert!(!detect_mlt_format(&[0x0A, 0x01, 0xFF, 0xFF]));
+    }
+
+    #[test]
+    fn detect_mlt_two_byte_varint_size() {
+        // size varint = 1 encoded as two bytes: 0x81 0x00 → 1
+        // Wait: 0x81 has continuation, low7=1, then 0x00 stops with low7=0 → total=1
+        // size=1 means tag only, no payload
+        assert!(detect_mlt_format(&[0x81, 0x00, 0x01]));
+    }
+
+    // --- TileSource trait default impl: format() returns metadata().format ---
+
+    struct DummySource(TileMetadata);
+
+    #[async_trait]
+    impl TileSource for DummySource {
+        async fn get_tile(
+            &self,
+            _z: u8,
+            _x: u32,
+            _y: u32,
+        ) -> crate::error::Result<Option<TileData>> {
+            Ok(None)
+        }
+        fn metadata(&self) -> &TileMetadata {
+            &self.0
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    #[test]
+    fn tilesource_default_format_returns_metadata_format() {
+        let src = DummySource(meta_for(TileFormat::Webp));
+        assert_eq!(src.format(), TileFormat::Webp);
+    }
+
+    #[tokio::test]
+    async fn tilesource_dummy_returns_none_for_get_tile() {
+        let src = DummySource(meta_for(TileFormat::Pbf));
+        let result = src.get_tile(0, 0, 0).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn tilesource_dummy_as_any_downcasts() {
+        let src = DummySource(meta_for(TileFormat::Pbf));
+        let trait_obj: &dyn TileSource = &src;
+        let any = trait_obj.as_any();
+        assert!(any.downcast_ref::<DummySource>().is_some());
+    }
 }
