@@ -26,4 +26,4 @@ pub use recorder::{
 };
 pub use server::{MetricsServerHandle, spawn_metrics_server};
 
-pub use opentelemetry_prometheus_text_exporter::PrometheusExporter;
+pub use prometheus::Registry;

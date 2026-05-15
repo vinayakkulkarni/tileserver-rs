@@ -1,7 +1,8 @@
 //! OpenTelemetry tracing and metrics initialization.
 //!
 //! A single [`SdkMeterProvider`] feeds both the OTLP push reader (existing)
-//! and the Prometheus pull reader (via `opentelemetry-prometheus-text-exporter`).
+//! and the Prometheus pull reader (via the official `opentelemetry-prometheus`
+//! crate paired with `prometheus::Registry`).
 //! See `docs/superpowers/specs/2026-05-04-prometheus-metrics-design.md` §3.
 
 use std::time::Duration;
@@ -9,10 +10,10 @@ use std::time::Duration;
 use opentelemetry::KeyValue;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_prometheus_text_exporter::PrometheusExporter;
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::trace::{Sampler, SdkTracerProvider};
+use prometheus::Registry;
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::{Layer, registry::LookupSpan};
@@ -34,7 +35,7 @@ where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
     pub tracing_layer: Option<Box<dyn Layer<S> + Send + Sync>>,
-    pub prometheus_exporter: Option<PrometheusExporter>,
+    pub prometheus_registry: Option<Registry>,
 }
 
 /// Initialize OpenTelemetry tracing and metrics from the [`TelemetryConfig`].
@@ -62,11 +63,11 @@ where
         None
     };
 
-    let prometheus_exporter = init_metrics_provider(config, resource);
+    let prometheus_registry = init_metrics_provider(config, resource);
 
     TelemetryOutput {
         tracing_layer,
-        prometheus_exporter,
+        prometheus_registry,
     }
 }
 
@@ -102,10 +103,7 @@ where
     Some(Box::new(OpenTelemetryLayer::new(tracer)))
 }
 
-fn init_metrics_provider(
-    config: &TelemetryConfig,
-    resource: Resource,
-) -> Option<PrometheusExporter> {
+fn init_metrics_provider(config: &TelemetryConfig, resource: Resource) -> Option<Registry> {
     let prometheus_wanted = config.prometheus_bind.is_some();
     let otlp_wanted = config.metrics_enabled && config.enabled;
 
@@ -135,15 +133,26 @@ fn init_metrics_provider(
         }
     }
 
-    let prom_exporter = if prometheus_wanted {
-        let exp = PrometheusExporter::new();
-        builder = builder.with_reader(exp.clone());
-        Some(exp)
+    let prom_registry = if prometheus_wanted {
+        let registry = Registry::new();
+        match opentelemetry_prometheus::exporter()
+            .with_registry(registry.clone())
+            .build()
+        {
+            Ok(exporter) => {
+                builder = builder.with_reader(exporter);
+                Some(registry)
+            }
+            Err(e) => {
+                tracing::warn!("Failed to build Prometheus exporter: {e}. Prometheus disabled.");
+                None
+            }
+        }
     } else {
         None
     };
 
-    if !otlp_attached && prom_exporter.is_none() {
+    if !otlp_attached && prom_registry.is_none() {
         return None;
     }
 
@@ -153,12 +162,12 @@ fn init_metrics_provider(
 
     tracing::info!(
         otlp_metrics = otlp_attached,
-        prometheus_metrics = prom_exporter.is_some(),
+        prometheus_metrics = prom_registry.is_some(),
         service_name = %config.service_name,
         "OpenTelemetry metrics initialized"
     );
 
-    prom_exporter
+    prom_registry
 }
 
 pub fn shutdown_telemetry() {
