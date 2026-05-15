@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.28.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.28.0...v2.28.1) (2026-05-15)
+
+
+### Miscellaneous
+
+* **changelog:** consolidate legacy root into crates/tileserver-rs and add redirect ([#880](https://github.com/vinayakkulkarni/tileserver-rs/issues/880)) ([1673bb5](https://github.com/vinayakkulkarni/tileserver-rs/commit/1673bb56564673d30c34413ebbad2dd4b6dc490b))
+* **deps:** upgrade vite to 8, mlt-core to 0.9, cql2 to 0.5.6 ([#916](https://github.com/vinayakkulkarni/tileserver-rs/issues/916)) ([74a4b68](https://github.com/vinayakkulkarni/tileserver-rs/commit/74a4b680e77cd4dcef1ca34082e6dcb92a3a2ffc))
+
 ## [2.28.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.27.0...v2.28.0) (2026-05-06)
 
 
