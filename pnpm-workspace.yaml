@@ -106,7 +106,7 @@ catalogs:
   marketing:
     '@nuxtjs/plausible': ^3.0.2
     ogl: ^1.0.11
-    wrangler: ^4.90.1
+    wrangler: ^4.91.0
   docs:
     '@nuxt/content': ^3.13.0
     better-sqlite3: ^12.10.0
