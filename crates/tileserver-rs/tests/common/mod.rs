@@ -2,14 +2,20 @@
 //!
 //! Usage: add `mod common;` at top of test file, then call helpers.
 
+#![allow(dead_code)] // helpers are referenced across multiple test binaries
+
+use async_trait::async_trait;
 use axum_test::TestServer;
+use bytes::Bytes;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tileserver_rs::{
+    TileCompression, TileData, TileFormat, TileSource,
     reload::{
         AppState, ReloadController, ReloadMeta, RuntimeSettings, SharedState, now_unix_seconds,
     },
     routes::api_router,
-    sources::SourceManager,
+    sources::{SourceManager, TileMetadata},
     styles::StyleManager,
 };
 
@@ -65,6 +71,130 @@ pub fn minimal_shared_state() -> SharedState {
 /// Use this for testing 404 responses, empty list responses, and routing.
 pub fn empty_test_server() -> TestServer {
     let shared = minimal_shared_state();
+    let router = api_router(shared);
+    TestServer::new(router)
+}
+
+// ============================================================
+// MockSource — in-memory tile source for integration tests
+// ============================================================
+
+/// A configurable in-memory [`TileSource`] suitable for integration tests.
+///
+/// Lets tests construct sources with arbitrary metadata, tile payloads, and
+/// compression without touching the filesystem or pulling in a real
+/// PMTiles/MBTiles fixture.
+pub struct MockSource {
+    meta: TileMetadata,
+    tile: Option<TileData>,
+}
+
+impl MockSource {
+    /// Vector (PBF) source serving a fixed (non-gzipped) tile payload.
+    pub fn pbf(id: &str) -> Self {
+        Self {
+            meta: TileMetadata {
+                id: id.to_string(),
+                name: id.to_string(),
+                description: None,
+                attribution: None,
+                format: TileFormat::Pbf,
+                minzoom: 0,
+                maxzoom: 14,
+                bounds: Some([-180.0, -85.0, 180.0, 85.0]),
+                center: Some([0.0, 0.0, 2.0]),
+                vector_layers: Some(serde_json::json!([
+                    {
+                        "id": "buildings",
+                        "description": "building footprints",
+                        "minzoom": 0,
+                        "maxzoom": 14,
+                        "fields": {
+                            "height": "number",
+                            "name": "string",
+                        },
+                    },
+                    {
+                        "id": "roads",
+                    },
+                ])),
+            },
+            tile: Some(TileData {
+                data: Bytes::from_static(b"mock-pbf-bytes"),
+                format: TileFormat::Pbf,
+                compression: TileCompression::None,
+            }),
+        }
+    }
+
+    /// Vector (PBF) source whose tiles carry the gzip [`TileCompression`]
+    /// marker. The payload itself is *not* a real gzip stream; this only
+    /// drives callers that branch on `tile.compression`.
+    pub fn pbf_gzip(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        if let Some(ref mut t) = src.tile {
+            t.compression = TileCompression::Gzip;
+        }
+        src
+    }
+
+    /// Raster (PNG) source — feature queries should reject this.
+    pub fn png(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        src.meta.format = TileFormat::Png;
+        src.meta.vector_layers = None;
+        if let Some(ref mut t) = src.tile {
+            t.format = TileFormat::Png;
+        }
+        src
+    }
+
+    /// PBF source that returns `None` from `get_tile` (i.e. nothing cached at
+    /// any coordinate).  Useful for hitting `TileNotFound` branches.
+    pub fn empty(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        src.tile = None;
+        src
+    }
+
+    /// PBF source with no `center` and no `bounds` — exercises default-tile
+    /// fallback branches in the spatial query handler.
+    pub fn no_center(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        src.meta.center = None;
+        src.meta.bounds = None;
+        src
+    }
+}
+
+#[async_trait]
+impl TileSource for MockSource {
+    async fn get_tile(&self, _z: u8, _x: u32, _y: u32) -> tileserver_rs::Result<Option<TileData>> {
+        Ok(self.tile.clone())
+    }
+
+    fn metadata(&self) -> &TileMetadata {
+        &self.meta
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+/// Build a [`TestServer`] populated with the supplied mock sources.
+///
+/// Each entry becomes a routable source under its `id`.
+pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
+    let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::new();
+    for s in sources {
+        map.insert(s.metadata().id.clone(), s);
+    }
+    let mut state = minimal_app_state();
+    state.sources = Arc::new(SourceManager::from_sources(map));
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let shared = SharedState::new(controller);
     let router = api_router(shared);
     TestServer::new(router)
 }

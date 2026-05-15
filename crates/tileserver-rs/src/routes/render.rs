@@ -127,6 +127,208 @@ fn record_render_metric(
     });
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn raster(y_fmt: &str) -> RasterTileParams {
+        RasterTileParams {
+            style: "s".into(),
+            z: 0,
+            x: 0,
+            y_fmt: y_fmt.into(),
+        }
+    }
+
+    fn raster_sz(tile_size: u16, y_fmt: &str) -> RasterTileWithSizeParams {
+        RasterTileWithSizeParams {
+            style: "s".into(),
+            tile_size,
+            z: 0,
+            x: 0,
+            y_fmt: y_fmt.into(),
+        }
+    }
+
+    fn stat_img(size_fmt: &str) -> StaticImageParams {
+        StaticImageParams {
+            style: "s".into(),
+            static_type: "0,0,2".into(),
+            size_fmt: size_fmt.into(),
+        }
+    }
+
+    #[test]
+    fn raster_parse_plain_png() {
+        let (y, scale, fmt) = raster("3.png").parse().expect("3.png parses");
+        assert_eq!(y, 3);
+        assert_eq!(scale, 1);
+        assert_eq!(fmt, ImageFormat::Png);
+    }
+
+    #[test]
+    fn raster_parse_retina_2x() {
+        let (y, scale, fmt) = raster("5@2x.webp").parse().expect("@2x parses");
+        assert_eq!(y, 5);
+        assert_eq!(scale, 2);
+        assert_eq!(fmt, ImageFormat::Webp);
+    }
+
+    #[test]
+    fn raster_parse_retina_max_9x() {
+        let parsed = raster("0@9x.jpg").parse().expect("9x boundary parses");
+        assert_eq!(parsed.1, 9);
+    }
+
+    #[test]
+    fn raster_parse_rejects_scale_zero() {
+        assert!(raster("0@0x.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_scale_above_9() {
+        assert!(raster("0@10x.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_scale_without_x_suffix() {
+        assert!(raster("0@2.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_non_numeric_y() {
+        assert!(raster("abc.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_missing_extension() {
+        assert!(raster("123").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_unknown_format() {
+        assert!(raster("123.gif").parse().is_none());
+    }
+
+    #[test]
+    fn raster_parse_rejects_non_numeric_scale() {
+        assert!(raster("0@xx.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_size_parse_basic_png_256() {
+        let (y, scale, fmt) = raster_sz(256, "1.png").parse().expect("256/1.png parses");
+        assert_eq!(y, 1);
+        assert_eq!(scale, 1);
+        assert_eq!(fmt, ImageFormat::Png);
+    }
+
+    #[test]
+    fn raster_size_parse_retina_512_at2x_clamped() {
+        let parsed = raster_sz(512, "2@2x.webp")
+            .parse()
+            .expect("512/2@2x parses");
+        assert_eq!(parsed.0, 2);
+        assert_eq!(parsed.1, 2);
+        assert_eq!(parsed.2, ImageFormat::Webp);
+    }
+
+    #[test]
+    fn raster_size_parse_rejects_bad_format() {
+        assert!(raster_sz(256, "0.bmp").parse().is_none());
+    }
+
+    #[test]
+    fn raster_size_parse_rejects_zero_scale() {
+        assert!(raster_sz(256, "0@0x.png").parse().is_none());
+    }
+
+    #[test]
+    fn raster_size_parse_rejects_huge_scale() {
+        assert!(raster_sz(512, "0@99x.png").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_basic_size() {
+        let (w, h, scale, fmt) = stat_img("800x600.png").parse().expect("800x600.png");
+        assert_eq!((w, h, scale), (800, 600, 1));
+        assert_eq!(fmt, ImageFormat::Png);
+    }
+
+    #[test]
+    fn static_image_parse_retina_2x_webp() {
+        let (w, h, scale, fmt) = stat_img("400x300@2x.webp").parse().expect("retina webp");
+        assert_eq!((w, h, scale), (400, 300, 2));
+        assert_eq!(fmt, ImageFormat::Webp);
+    }
+
+    #[test]
+    fn static_image_parse_rejects_missing_dot() {
+        assert!(stat_img("800x600").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_missing_x_in_size() {
+        assert!(stat_img("800600.png").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_non_numeric_width() {
+        assert!(stat_img("axb.png").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_unknown_format() {
+        assert!(stat_img("800x600.gif").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_scale_zero() {
+        assert!(stat_img("800x600@0x.png").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_scale_above_9() {
+        assert!(stat_img("800x600@10x.png").parse().is_none());
+    }
+
+    #[test]
+    fn static_image_parse_rejects_scale_without_x_suffix() {
+        assert!(stat_img("800x600@2.png").parse().is_none());
+    }
+
+    #[test]
+    fn record_render_metric_ok_branch() {
+        let started = std::time::Instant::now();
+        let result: Result<Vec<u8>, TileServerError> = Ok(vec![1, 2, 3]);
+        record_render_metric("style-a", ImageFormat::Png, started, &result);
+    }
+
+    #[test]
+    fn record_render_metric_err_branch_png() {
+        let started = std::time::Instant::now();
+        let result: Result<Vec<u8>, TileServerError> =
+            Err(TileServerError::RenderError("boom".into()));
+        record_render_metric("style-a", ImageFormat::Png, started, &result);
+    }
+
+    #[test]
+    fn record_render_metric_err_branch_jpeg() {
+        let started = std::time::Instant::now();
+        let result: Result<Vec<u8>, TileServerError> =
+            Err(TileServerError::RenderError("boom".into()));
+        record_render_metric("style-b", ImageFormat::Jpeg, started, &result);
+    }
+
+    #[test]
+    fn record_render_metric_err_branch_webp() {
+        let started = std::time::Instant::now();
+        let result: Result<Vec<u8>, TileServerError> =
+            Err(TileServerError::RenderError("boom".into()));
+        record_render_metric("style-c", ImageFormat::Webp, started, &result);
+    }
+}
+
 /// Raster tile request parameters with variable tile size
 #[derive(serde::Deserialize)]
 pub(super) struct RasterTileWithSizeParams {

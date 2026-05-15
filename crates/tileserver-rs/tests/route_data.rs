@@ -310,3 +310,196 @@ async fn data_tile_malformed_y_fmt_non_numeric() {
     assert!(status < 500, "non-numeric y must not 5xx, got {status}");
     assert_ne!(status, 200, "non-numeric y must not return 200");
 }
+
+// ============================================================
+// Mock-source tests — exercise handler success branches with
+// deterministic in-memory tile data, no PMTiles I/O required.
+// ============================================================
+
+#[tokio::test]
+async fn data_json_with_mock_source_returns_single_entry() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("mock-vec")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data.json").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    let arr = body.as_array().expect("array response");
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0]["id"], "mock-vec");
+    assert_eq!(arr[0]["tilejson"], "3.0.0");
+}
+
+#[tokio::test]
+async fn data_tilejson_mock_source_returns_correct_metadata() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("mock-meta")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/mock-meta").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["id"], "mock-meta");
+    assert_eq!(body["minzoom"], 0);
+    assert_eq!(body["maxzoom"], 14);
+    assert!(body["vector_layers"].is_array());
+}
+
+#[tokio::test]
+async fn data_tilejson_mock_source_strip_json_suffix() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("mock-strip")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/mock-strip.json").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["id"], "mock-strip");
+}
+
+#[tokio::test]
+async fn data_tile_mock_source_returns_200_with_content_type() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("mock-tile")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/mock-tile/0/0/0.pbf").await;
+    resp.assert_status_ok();
+    let ct = resp
+        .headers()
+        .get("content-type")
+        .map(|v| v.to_str().unwrap_or("").to_string())
+        .unwrap_or_default();
+    assert!(
+        ct.contains("vnd.mapbox-vector-tile")
+            || ct.contains("application/x-protobuf")
+            || ct.contains("application/vnd.mapbox-vector-tile"),
+        "vector tile content-type must be MVT-compatible, got: {ct}"
+    );
+}
+
+#[tokio::test]
+async fn data_tile_mock_source_response_body_matches() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("body-mock")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/body-mock/0/0/0.pbf").await;
+    resp.assert_status_ok();
+    let body = resp.as_bytes();
+    assert_eq!(
+        &body[..],
+        b"mock-pbf-bytes",
+        "body must echo MockSource data"
+    );
+}
+
+#[tokio::test]
+async fn data_tile_mock_gzipped_sets_content_encoding() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf_gzip("gz-mock")) as Arc<dyn tileserver_rs::TileSource>,
+    ]);
+    let resp = server.get("/data/gz-mock/0/0/0.pbf").await;
+    resp.assert_status_ok();
+    let ce = resp
+        .headers()
+        .get("content-encoding")
+        .map(|v| v.to_str().unwrap_or("").to_string());
+    assert_eq!(ce.as_deref(), Some("gzip"));
+}
+
+#[tokio::test]
+async fn data_tile_mock_empty_source_returns_4xx() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::empty("nada")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/nada/0/0/0.pbf").await;
+    let status = resp.status_code().as_u16();
+    assert!(
+        (400..500).contains(&status),
+        "empty source must yield 4xx (TileNotFound), got {status}"
+    );
+}
+
+#[tokio::test]
+async fn data_tile_geojson_format_on_raster_source_returns_error() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::png("rast")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/rast/0/0/0.geojson").await;
+    let status = resp.status_code().as_u16();
+    assert!(
+        status >= 400,
+        "geojson conversion on non-PBF must fail, got {status}"
+    );
+}
+
+#[tokio::test]
+async fn data_tile_geojson_format_on_unknown_source_returns_error() {
+    let server = common::empty_test_server();
+    let resp = server.get("/data/ghost/0/0/0.geojson").await;
+    let status = resp.status_code().as_u16();
+    assert_ne!(status, 200);
+}
+
+#[tokio::test]
+async fn data_tile_geojson_format_on_empty_pbf_source_returns_4xx() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::empty("emp")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/emp/0/0/0.geojson").await;
+    let status = resp.status_code().as_u16();
+    assert!(
+        (400..500).contains(&status),
+        "empty tile request must surface as 4xx, got {status}"
+    );
+}
+
+#[tokio::test]
+async fn data_tile_geojson_decode_error_on_garbage_bytes_returns_5xx() {
+    // MockSource::pbf returns bytes that are not a valid MVT — Tile::decode
+    // should fail with a RenderError mapped to a 4xx/5xx.
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("bad-mvt")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/bad-mvt/0/0/0.geojson").await;
+    let status = resp.status_code().as_u16();
+    assert!(
+        (400..600).contains(&status),
+        "garbage MVT bytes must yield 4xx/5xx, got {status}"
+    );
+}
+
+#[tokio::test]
+async fn data_json_multiple_mock_sources_listed() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("alpha")) as Arc<dyn tileserver_rs::TileSource>,
+        Arc::new(common::MockSource::pbf("beta")) as Arc<dyn tileserver_rs::TileSource>,
+        Arc::new(common::MockSource::png("gamma")) as Arc<dyn tileserver_rs::TileSource>,
+    ]);
+    let resp = server.get("/data.json").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    let arr = body.as_array().expect("array");
+    assert_eq!(arr.len(), 3);
+}
+
+#[tokio::test]
+async fn data_tile_mock_mvt_extension_alias_works() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("alias-mvt")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/alias-mvt/0/0/0.mvt").await;
+    resp.assert_status_ok();
+}
+
+#[tokio::test]
+async fn data_tilejson_mock_source_with_api_key_appended() {
+    let server = common::server_with_sources(vec![
+        Arc::new(common::MockSource::pbf("keyed")) as Arc<dyn tileserver_rs::TileSource>
+    ]);
+    let resp = server.get("/data/keyed?key=secret-xyz").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    let first = body["tiles"][0].as_str().unwrap_or("");
+    assert!(
+        first.contains("key=secret-xyz"),
+        "API key must be appended to tile URLs, got {first}"
+    );
+}

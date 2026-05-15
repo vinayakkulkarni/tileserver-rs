@@ -306,3 +306,128 @@ fn parse_mvt_features(
     tracing::warn!("parse_mvt_features: MVT decoding not yet implemented, returning empty");
     Vec::new()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_zoom_is_14() {
+        assert_eq!(default_zoom(), 14);
+    }
+
+    #[test]
+    fn default_limit_is_100() {
+        assert_eq!(default_limit(), 100);
+    }
+
+    #[test]
+    fn lng_lat_to_tile_origin_zoom_0_is_zero_zero() {
+        let (x, y) = lng_lat_to_tile(0.0, 0.0, 0);
+        assert_eq!((x, y), (0, 0));
+    }
+
+    #[test]
+    fn lng_lat_to_tile_west_hemisphere_zoom_2() {
+        let (x, y) = lng_lat_to_tile(-179.0, 0.0, 2);
+        assert_eq!(x, 0, "longitude near -180 must map to x=0 at z=2");
+        assert!(y <= 3, "y must be within 2^z range at z=2");
+    }
+
+    #[test]
+    fn lng_lat_to_tile_east_hemisphere_zoom_2() {
+        let (x, y) = lng_lat_to_tile(179.0, 0.0, 2);
+        assert!(x <= 3);
+        assert!(y <= 3);
+    }
+
+    #[test]
+    fn lng_lat_to_tile_clamps_to_max_tile_index() {
+        let (x, y) = lng_lat_to_tile(180.0, -85.0, 2);
+        assert!(x < 4);
+        assert!(y < 4);
+    }
+
+    #[test]
+    fn lng_lat_to_tile_zoom_4_known_coords() {
+        let (x, y) = lng_lat_to_tile(13.4, 52.5, 4);
+        assert_eq!((x, y), (8, 5));
+    }
+
+    #[test]
+    fn extract_layer_info_returns_empty_for_none() {
+        let layers = extract_layer_info(&None);
+        assert!(layers.is_empty());
+    }
+
+    #[test]
+    fn extract_layer_info_returns_empty_for_non_array() {
+        let layers = extract_layer_info(&Some(serde_json::json!({})));
+        assert!(layers.is_empty());
+    }
+
+    #[test]
+    fn extract_layer_info_skips_entries_without_id() {
+        let v = serde_json::json!([{"description": "no id here"}]);
+        let layers = extract_layer_info(&Some(v));
+        assert!(layers.is_empty());
+    }
+
+    #[test]
+    fn extract_layer_info_basic_minimal_id_only() {
+        let v = serde_json::json!([{"id": "buildings"}]);
+        let layers = extract_layer_info(&Some(v));
+        assert_eq!(layers.len(), 1);
+        assert_eq!(layers[0].id, "buildings");
+        assert!(layers[0].description.is_none());
+        assert!(layers[0].minzoom.is_none());
+        assert!(layers[0].maxzoom.is_none());
+        assert!(layers[0].fields.is_empty());
+    }
+
+    #[test]
+    fn extract_layer_info_full_with_fields_and_zoom() {
+        let v = serde_json::json!([{
+            "id": "roads",
+            "description": "all roads",
+            "minzoom": 5,
+            "maxzoom": 14,
+            "fields": {
+                "name": "string",
+                "lanes": "number",
+            }
+        }]);
+        let layers = extract_layer_info(&Some(v));
+        assert_eq!(layers.len(), 1);
+        assert_eq!(layers[0].id, "roads");
+        assert_eq!(layers[0].description.as_deref(), Some("all roads"));
+        assert_eq!(layers[0].minzoom, Some(5));
+        assert_eq!(layers[0].maxzoom, Some(14));
+        assert_eq!(layers[0].fields.len(), 2);
+    }
+
+    #[test]
+    fn extract_layer_info_field_with_non_string_type_falls_back_to_unknown() {
+        let v = serde_json::json!([{
+            "id": "x",
+            "fields": { "weird": 42 }
+        }]);
+        let layers = extract_layer_info(&Some(v));
+        assert_eq!(layers.len(), 1);
+        let field = layers[0].fields.first().expect("one field present");
+        assert_eq!(field.name, "weird");
+        assert_eq!(field.field_type, "unknown");
+    }
+
+    #[test]
+    fn parse_mvt_features_returns_empty_for_now() {
+        let empty: Vec<SpatialFeature> = parse_mvt_features(&[1, 2, 3], &None, 10);
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn parse_mvt_features_with_layer_filter_returns_empty() {
+        let empty = parse_mvt_features(&[], &Some(vec!["roads".into()]), 5);
+        assert!(empty.is_empty());
+    }
+}
