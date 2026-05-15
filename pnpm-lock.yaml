@@ -41,8 +41,8 @@ catalogs:
       specifier: ^9.3.2
       version: 9.3.2
     '@geoql/v-maplibre':
-      specifier: ^1.7.1
-      version: 1.7.1
+      specifier: ^1.8.0
+      version: 1.8.0
     '@luma.gl/engine':
       specifier: ~9.3.3
       version: 9.3.3
@@ -275,7 +275,7 @@ importers:
         version: 9.3.2(@deck.gl/core@9.3.2)(@loaders.gl/core@4.4.1)(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/gltf@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3))
       '@geoql/v-maplibre':
         specifier: catalog:client
-        version: 1.7.1(1d7bae43a63b38c52016640fc86ff2f7)
+        version: 1.8.0(1d7bae43a63b38c52016640fc86ff2f7)
       '@luma.gl/engine':
         specifier: catalog:client
         version: 9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3))
@@ -1575,22 +1575,26 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
-  '@geoql/v-maplibre@1.7.1':
-    resolution: {integrity: sha512-ERbC9mYlmaSZ957TSsF7p2GH6FjDC0vg/OK2RCZz8LazNOUGLq8jOeNXxGnfy954GwiUROAtD9nWJv+cfo93jw==}
+  '@geoql/v-maplibre@1.8.0':
+    resolution: {integrity: sha512-fGSIpTM6qP0eo8NZZ5UNweYg4PbR96MISdZxibXPY8m4MLsC7hIJbCwSZMJO4a0yAaMyAZfUoc3tJfOrEcvauw==}
     peerDependencies:
-      '@deck.gl/aggregation-layers': ^9.2.6
-      '@deck.gl/core': ^9.2.6
-      '@deck.gl/geo-layers': ^9.2.6
-      '@deck.gl/layers': ^9.2.6
-      '@deck.gl/mapbox': ^9.2.6
-      '@deck.gl/mesh-layers': ^9.2.6
-      '@developmentseed/deck.gl-geotiff': ^0.3.0
-      '@developmentseed/deck.gl-raster': ^0.3.0
+      '@deck.gl/aggregation-layers': ^9.3.0
+      '@deck.gl/core': ^9.3.0
+      '@deck.gl/geo-layers': ^9.3.0
+      '@deck.gl/layers': ^9.3.0
+      '@deck.gl/mapbox': ^9.3.0
+      '@deck.gl/mesh-layers': ^9.3.0
+      '@developmentseed/deck.gl-geotiff': ^0.6.0
+      '@developmentseed/deck.gl-raster': ^0.6.0
+      '@developmentseed/deck.gl-zarr': ^0.6.0
+      '@developmentseed/geotiff': ^0.6.0
+      '@developmentseed/proj': ^0.6.0
       '@geoql/maplibre-gl-starfield': ^0.1.0
-      maplibre-gl-lidar: ^0.11.1
+      maplibre-gl-lidar: ^0.13.0
       maplibre-gl-wind: ^0.2.0
       three: '>=0.176.0'
       vue: ^3.5.0
+      zarrita: ^0.7.0
     peerDependenciesMeta:
       '@deck.gl/aggregation-layers':
         optional: true
@@ -1608,6 +1612,12 @@ packages:
         optional: true
       '@developmentseed/deck.gl-raster':
         optional: true
+      '@developmentseed/deck.gl-zarr':
+        optional: true
+      '@developmentseed/geotiff':
+        optional: true
+      '@developmentseed/proj':
+        optional: true
       '@geoql/maplibre-gl-starfield':
         optional: true
       maplibre-gl-lidar:
@@ -1615,6 +1625,8 @@ packages:
       maplibre-gl-wind:
         optional: true
       three:
+        optional: true
+      zarrita:
         optional: true
 
   '@humanfs/core@0.19.2':
@@ -6085,6 +6097,7 @@ packages:
 
   lucide-vue-next@1.0.0:
     resolution: {integrity: sha512-V6SPvx1IHTj/UY+FrIYWV5faISsPSb8BnWSFDxAtezWKvWc9ZZ40PDrdu1/Qb5vg4lHWr1hs1BAMGVGm6V1Xdg==}
+    deprecated: Package deprecated. Please use @lucide/vue instead.
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -6112,10 +6125,6 @@ packages:
     engines: {node: '>=24.0.0'}
     peerDependencies:
       maplibre-gl: '>=5.0.0'
-
-  maplibre-gl@5.23.0:
-    resolution: {integrity: sha512-aou8YBNFS8uVtDWFWt0W/6oorfl18wt+oIA8fnXk1kivjkbtXi9gGrQvflTpwrR3hG13aWdIdbYWeN0NFMV7ag==}
-    engines: {node: '>=16.14.0', npm: '>=8.1.0'}
 
   maplibre-gl@5.24.0:
     resolution: {integrity: sha512-ALyFxgtd5R+65UqZ/++lOqwWcC0SNho9c27fYSyLmG7AfnAul2o46F05aDJGPbFU57wos9dgcIySHs0Xe6ia3A==}
@@ -9102,9 +9111,9 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@geoql/v-maplibre@1.7.1(1d7bae43a63b38c52016640fc86ff2f7)':
+  '@geoql/v-maplibre@1.8.0(1d7bae43a63b38c52016640fc86ff2f7)':
     dependencies:
-      maplibre-gl: 5.23.0
+      maplibre-gl: 5.24.0
       pmtiles: 4.4.1
       vue: 3.5.34(typescript@6.0.3)
     optionalDependencies:
@@ -14164,28 +14173,6 @@ snapshots:
     dependencies:
       maplibre-gl: 5.24.0
       randomcolor: 0.6.2
-
-  maplibre-gl@5.23.0:
-    dependencies:
-      '@mapbox/jsonlint-lines-primitives': 2.0.2
-      '@mapbox/point-geometry': 1.1.0
-      '@mapbox/tiny-sdf': 2.1.0
-      '@mapbox/unitbezier': 0.0.1
-      '@mapbox/vector-tile': 2.0.4
-      '@mapbox/whoots-js': 3.1.0
-      '@maplibre/geojson-vt': 6.1.0
-      '@maplibre/maplibre-gl-style-spec': 24.8.1
-      '@maplibre/mlt': 1.1.8
-      '@maplibre/vt-pbf': 4.3.0
-      '@types/geojson': 7946.0.16
-      earcut: 3.0.2
-      gl-matrix: 3.4.4
-      kdbush: 4.0.2
-      murmurhash-js: 1.0.0
-      pbf: 4.0.1
-      potpack: 2.1.0
-      quickselect: 3.0.0
-      tinyqueue: 3.0.0
 
   maplibre-gl@5.24.0:
     dependencies:
