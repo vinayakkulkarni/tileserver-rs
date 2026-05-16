@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ChevronRight, ExternalLink } from 'lucide-vue-next';
+  import { ChevronRight, ExternalLink } from '@lucide/vue';
   import { motion } from 'motion-v';
 </script>
 

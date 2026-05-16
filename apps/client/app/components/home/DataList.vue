@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ChevronRight, Database } from 'lucide-vue-next';
+  import { ChevronRight, Database } from '@lucide/vue';
   import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
 

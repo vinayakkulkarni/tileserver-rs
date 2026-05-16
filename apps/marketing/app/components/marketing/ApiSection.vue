@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { FileJson2, ExternalLink } from 'lucide-vue-next';
+  import { FileJson2, ExternalLink } from '@lucide/vue';
 
   const { apiEndpoints } = useMarketingPage();
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Bot } from 'lucide-vue-next';
+  import { Bot } from '@lucide/vue';
   import type { ReadonlyUIMessage } from '~/types/llm';
 
   defineProps<{

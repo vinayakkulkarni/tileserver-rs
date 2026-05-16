@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Globe, Moon, Sun } from 'lucide-vue-next';
+  import { Globe, Moon, Sun } from '@lucide/vue';
 
   defineProps<{
     isDark: boolean;

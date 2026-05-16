@@ -43,9 +43,11 @@ catalogs:
   default:
     '@commitlint/cli': ^21.0.1
     '@commitlint/config-conventional': ^21.0.1
+    '@iconify-json/simple-icons': ^1.2.82
     '@nuxt/eslint': ^1.15.2
     '@nuxt/eslint-config': ^1.15.2
     '@nuxt/fonts': ^0.14.0
+    '@nuxt/icon': ^2.2.2
     '@nuxtjs/color-mode': ^4.0.0
     '@tailwindcss/vite': ^4.3.0
     '@types/node': ^25.8.0
@@ -59,7 +61,7 @@ catalogs:
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.0.4
-    lucide-vue-next: ^1.0.0
+    '@lucide/vue': ^1.16.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.2.1
     nuxt: ^4.4.5
@@ -84,7 +86,7 @@ catalogs:
     '@deck.gl/layers': ^9.3.2
     '@deck.gl/mapbox': ^9.3.2
     '@deck.gl/mesh-layers': ^9.3.2
-    '@geoql/v-maplibre': ^1.8.0
+    '@geoql/v-maplibre': ^1.8.1
     '@luma.gl/engine': ~9.3.3
     '@maplibre/mlt': ^1.1.9
     '@mlc-ai/web-llm': ^0.2.83
@@ -106,7 +108,7 @@ catalogs:
   marketing:
     '@nuxtjs/plausible': ^3.0.2
     ogl: ^1.0.11
-    wrangler: ^4.91.0
+    wrangler: ^4.92.0
   docs:
     '@nuxt/content': ^3.13.0
     better-sqlite3: ^12.10.0

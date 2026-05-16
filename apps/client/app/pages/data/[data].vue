@@ -5,7 +5,7 @@
     Layers,
     PanelRightClose,
     PanelRightOpen,
-  } from 'lucide-vue-next';
+  } from '@lucide/vue';
 
   const route = useRoute('data-data');
   const dataId = computed(() => String(route.params.data));

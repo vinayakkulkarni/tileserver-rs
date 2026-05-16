@@ -4,7 +4,7 @@
     ExternalLink,
     BotMessageSquare,
     User,
-  } from 'lucide-vue-next';
+  } from '@lucide/vue';
 
   const { aiBenefits, aiChatExample } = useMarketingPage();
 </script>

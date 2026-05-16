@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Github, ArrowRight } from 'lucide-vue-next';
+  import { ArrowRight } from '@lucide/vue';
 </script>
 
 <template>
@@ -59,7 +59,7 @@
             hover:border-foreground/20 hover:text-foreground
           "
         >
-          <Github class="size-3.5" />
+          <Icon name="simple-icons:github" class="size-3.5" />
           Star on GitHub
         </NuxtLink>
       </div>

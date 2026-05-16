@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Check, Copy, Grid3x3, Image } from 'lucide-vue-next';
+  import { Check, Copy, Grid3x3, Image } from '@lucide/vue';
   import type { Style } from '~/types/style';
 
   const props = defineProps<{

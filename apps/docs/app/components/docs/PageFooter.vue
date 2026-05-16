@@ -5,7 +5,7 @@
     ArrowLeft,
     ArrowRight,
     FileText,
-  } from 'lucide-vue-next';
+  } from '@lucide/vue';
   import type { NavItem } from '~/types';
 
   defineProps<{

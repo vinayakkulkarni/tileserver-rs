@@ -44,7 +44,7 @@
     "class-variance-authority": "catalog:default",
     "clsx": "catalog:default",
     "destr": "catalog:client",
-    "lucide-vue-next": "catalog:default",
+    "@lucide/vue": "catalog:default",
     "maplibre-gl": "catalog:default",
     "maplibre-gl-inspect": "catalog:client",
     "motion-v": "catalog:default",

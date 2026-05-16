@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Github, Globe, Menu, Moon, Sun, X } from 'lucide-vue-next';
+  import { Globe, Menu, Moon, Sun, X } from '@lucide/vue';
 
   const { isDark, toggle } = useThemeToggle();
   const mobileOpen = ref(false);
@@ -107,7 +107,7 @@
           lg:flex
         "
       >
-        <Github class="size-5" />
+        <Icon name="simple-icons:github" class="size-5" />
       </NuxtLink>
     </div>
   </header>
