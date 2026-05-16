@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ArrowLeft, Palette, Sparkles } from 'lucide-vue-next';
+  import { ArrowLeft, Palette, Sparkles } from '@lucide/vue';
 
   defineProps<{
     styleId: string;

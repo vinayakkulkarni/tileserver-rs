@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Database } from 'lucide-vue-next';
+  import { Database } from '@lucide/vue';
   import type { Data } from '~/types/data';
 
   defineProps<{

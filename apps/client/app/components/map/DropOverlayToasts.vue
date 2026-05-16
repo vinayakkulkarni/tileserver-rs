@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { AlertCircle, CheckCircle2 } from 'lucide-vue-next';
+  import { AlertCircle, CheckCircle2 } from '@lucide/vue';
   import type { FileDropError, FileDropSuccess } from '~/types/file-upload';
 
   defineProps<{

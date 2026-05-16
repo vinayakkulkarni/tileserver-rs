@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Github, Globe, Menu, Moon, Sun, X } from 'lucide-vue-next';
+  import { Globe, Menu, Moon, Sun, X } from '@lucide/vue';
 
   const {
     sections,
@@ -123,7 +123,10 @@
           external
           class="hidden items-center justify-center border-l border-border text-muted-foreground transition-colors hover:text-foreground lg:flex"
         >
-          <Github class="size-5" />
+          <Icon
+            name="simple-icons:github"
+            class="size-5"
+          />
         </NuxtLink>
       </div>
     </nav>

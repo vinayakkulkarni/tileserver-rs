@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Palette } from 'lucide-vue-next';
+  import { Palette } from '@lucide/vue';
   import type { Style } from '~/types/style';
 
   defineProps<{

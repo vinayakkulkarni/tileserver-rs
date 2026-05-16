@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Bot, User } from 'lucide-vue-next';
+  import { Bot, User } from '@lucide/vue';
   import type { ReadonlyUIMessage } from '~/types/llm';
   import {
     getTextContent,

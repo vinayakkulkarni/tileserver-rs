@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { BrainCircuit } from 'lucide-vue-next';
+  import { BrainCircuit } from '@lucide/vue';
 
   defineProps<{
     stageText: string;

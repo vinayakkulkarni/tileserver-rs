@@ -7,7 +7,7 @@
  * @see https://tanstack.com/ai/latest
  */
 
-import { Map, Layers, Search, Globe } from 'lucide-vue-next';
+import { Map, Layers, Search, Globe } from '@lucide/vue';
 import type { Map as MaplibreMap } from 'maplibre-gl';
 import type { OverlayLayer } from '~/types/file-upload';
 import type { MessagePart } from '@tanstack/ai';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Eye, EyeOff, Trash2, X } from 'lucide-vue-next';
+  import { Eye, EyeOff, Trash2, X } from '@lucide/vue';
   import type { OverlayLayer } from '~/types/file-upload';
 
   defineProps<{

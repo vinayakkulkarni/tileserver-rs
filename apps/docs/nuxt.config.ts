@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/content',
     '@nuxt/fonts',
+    '@nuxt/icon',
     '@nuxt/eslint',
     '@nuxtjs/color-mode',
     '@vueuse/nuxt',

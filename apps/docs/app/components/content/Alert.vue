@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Info, AlertTriangle, Lightbulb, CheckCircle } from 'lucide-vue-next';
+  import { Info, AlertTriangle, Lightbulb, CheckCircle } from '@lucide/vue';
   import { computed } from 'vue';
 
   const props = withDefaults(

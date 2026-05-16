@@ -3,7 +3,7 @@
   import type { HTMLAttributes } from 'vue';
   import type { SheetVariants } from '.';
   import { reactiveOmit } from '@vueuse/core';
-  import { X } from 'lucide-vue-next';
+  import { X } from '@lucide/vue';
   import {
     DialogClose,
     DialogContent,

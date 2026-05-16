@@ -23,7 +23,7 @@ import {
   Timer,
   Satellite,
   FileCode2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type {
   Feature,
   FeatureCategory,

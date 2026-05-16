@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ChevronRight, Palette } from 'lucide-vue-next';
+  import { ChevronRight, Palette } from '@lucide/vue';
   import { motion } from 'motion-v';
   import type { Style } from '~/types/style';
 

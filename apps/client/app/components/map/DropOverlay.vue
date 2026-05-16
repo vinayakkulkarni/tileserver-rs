@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Upload, Loader2 } from 'lucide-vue-next';
+  import { Upload, Loader2 } from '@lucide/vue';
   import type {
     FileDropError,
     FileDropSuccess,

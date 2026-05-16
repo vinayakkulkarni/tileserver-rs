@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Send, Square } from 'lucide-vue-next';
+  import { Send, Square } from '@lucide/vue';
 
   const props = defineProps<{
     modelValue: string;

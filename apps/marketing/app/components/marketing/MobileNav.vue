@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Github, Globe, Menu, Moon, Sun, X } from 'lucide-vue-next';
+  import { Globe, Menu, Moon, Sun, X } from '@lucide/vue';
 
   const { isDark, toggle } = useThemeToggle();
 
@@ -22,7 +22,7 @@
     {
       label: 'GitHub',
       href: 'https://github.com/vinayakkulkarni/tileserver-rs',
-      icon: Github,
+      iconName: 'simple-icons:github',
       external: true,
     },
   ];
@@ -100,7 +100,7 @@
                   "
                   @click="handleClose"
                 >
-                  <component :is="link.icon" v-if="link.icon" class="size-4" />
+                  <Icon v-if="link.iconName" :name="link.iconName" class="size-4" />
                   {{ link.label }}
                 </a>
               </li>

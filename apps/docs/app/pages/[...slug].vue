@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ArrowLeft } from 'lucide-vue-next';
+  import { ArrowLeft } from '@lucide/vue';
   import { useDocsNavigation } from '~/composables/use-docs-navigation';
 
   const route = useRoute();

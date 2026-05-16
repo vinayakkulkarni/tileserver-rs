@@ -4,7 +4,7 @@
     SheetTitle as UiSheetTitle,
     SheetDescription as UiSheetDescription,
   } from '~/components/ui/sheet';
-  import { Bot } from 'lucide-vue-next';
+  import { Bot } from '@lucide/vue';
   import type { LlmEngineStatus, LlmModelConfig } from '~/types/llm';
 
   defineProps<{

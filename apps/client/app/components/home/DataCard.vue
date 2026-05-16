@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Layers } from 'lucide-vue-next';
+  import { Layers } from '@lucide/vue';
   import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
 

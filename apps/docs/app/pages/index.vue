@@ -7,7 +7,6 @@
     Database,
     Image,
     RefreshCw,
-    Github,
     ExternalLink,
     Map,
     Camera,
@@ -17,7 +16,7 @@
     RotateCw,
     Server,
     FileSpreadsheet,
-  } from 'lucide-vue-next';
+  } from '@lucide/vue';
 
   definePageMeta({ layout: false });
 
@@ -227,7 +226,10 @@
           external
           class="hidden items-center justify-center border-l border-border text-muted-foreground transition-colors hover:text-foreground lg:flex"
         >
-          <Github class="size-5" />
+          <Icon
+            name="simple-icons:github"
+            class="size-5"
+          />
         </NuxtLink>
       </div>
     </header>
@@ -302,7 +304,10 @@
               external
               class="inline-flex items-center gap-2 border border-border px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
             >
-              <Github class="size-3.5" />
+              <Icon
+                name="simple-icons:github"
+                class="size-3.5"
+              />
               View Source
             </NuxtLink>
             <NuxtLink

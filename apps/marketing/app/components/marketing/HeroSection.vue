@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import {
-    Github,
     Sparkles,
     ArrowRight,
     ExternalLink,
@@ -8,7 +7,7 @@
     Copy,
     Check,
     BotMessageSquare,
-  } from 'lucide-vue-next';
+  } from '@lucide/vue';
 
   const { copied, installCommand, copyToClipboard } = useMarketingPage();
 </script>
@@ -141,7 +140,7 @@
               sm:w-auto
             "
           >
-            <Github class="size-4" />
+            <Icon name="simple-icons:github" class="size-4" />
             View on GitHub
           </Button>
           <GlareHover

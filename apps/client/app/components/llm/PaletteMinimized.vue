@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { GripHorizontal, Bot, Maximize2, X } from 'lucide-vue-next';
+  import { GripHorizontal, Bot, Maximize2, X } from '@lucide/vue';
   import type { LlmEngineStatus } from '~/types/llm';
 
   defineProps<{

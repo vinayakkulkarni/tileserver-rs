@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Eye, EyeOff } from 'lucide-vue-next';
+  import { Eye, EyeOff } from '@lucide/vue';
   import { motion, AnimatePresence } from 'motion-v';
   import type { LayerColor } from '~/types/data';
 
