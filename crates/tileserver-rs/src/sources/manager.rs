@@ -1050,6 +1050,7 @@ mod tests {
         assert!(mgr.is_empty());
     }
 
+    #[cfg(feature = "postgres")]
     #[tokio::test]
     async fn from_configs_with_postgres_no_pg_config_is_ok() {
         let mgr = SourceManager::from_configs_with_postgres(&[], None)
