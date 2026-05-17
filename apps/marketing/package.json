@@ -19,6 +19,7 @@
     "lint:fix": "oxlint --fix && eslint . --fix"
   },
   "dependencies": {
+    "@lucide/vue": "catalog:default",
     "@nuxt/fonts": "catalog:default",
     "@nuxt/icon": "catalog:default",
     "@nuxtjs/color-mode": "catalog:default",
@@ -26,7 +27,6 @@
     "@vueuse/nuxt": "catalog:default",
     "class-variance-authority": "catalog:default",
     "clsx": "catalog:default",
-    "@lucide/vue": "catalog:default",
     "motion-v": "catalog:default",
     "nuxt": "catalog:default",
     "ogl": "catalog:marketing",

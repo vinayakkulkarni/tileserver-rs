@@ -60,7 +60,7 @@ catalogs:
     eslint-plugin-oxlint: ^1.65.0
     husky: ^9.1.7
     is-ci: ^4.1.0
-    lint-staged: ^17.0.4
+    lint-staged: ^17.0.5
     '@lucide/vue': ^1.16.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.2.1
@@ -90,8 +90,8 @@ catalogs:
     '@luma.gl/engine': ~9.3.3
     '@maplibre/mlt': ^1.1.9
     '@mlc-ai/web-llm': ^0.2.83
-    '@tanstack/ai': ^0.17.0
-    '@tanstack/ai-vue': ^0.8.0
+    '@tanstack/ai': ^0.18.0
+    '@tanstack/ai-vue': ^0.9.0
     '@tanstack/query-db-collection': ^1.0.36
     '@tanstack/vue-db': ^0.0.116
     '@tanstack/vue-query': ^5.100.10

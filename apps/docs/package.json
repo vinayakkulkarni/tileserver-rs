@@ -16,6 +16,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@lucide/vue": "catalog:default",
     "@nuxt/content": "catalog:docs",
     "@nuxt/fonts": "catalog:default",
     "@nuxt/icon": "catalog:default",
@@ -25,7 +26,6 @@
     "better-sqlite3": "catalog:docs",
     "class-variance-authority": "catalog:default",
     "clsx": "catalog:default",
-    "@lucide/vue": "catalog:default",
     "motion-v": "catalog:default",
     "nuxt": "catalog:default",
     "ogl": "catalog:marketing",
