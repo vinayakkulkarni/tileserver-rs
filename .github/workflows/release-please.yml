@@ -49,8 +49,24 @@ jobs:
     if: github.repository_owner == 'vinayakkulkarni'
     steps:
       - name: Release Please
+        id: release
         uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # release-please-action has no `assignees` config (only `label` /
+      # `extra-label`). Set assignee via gh CLI after the action runs.
+      - name: Assign Release PRs to repo owner
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          PRS_JSON: ${{ steps.release.outputs.prs }}
+        run: |
+          echo "$PRS_JSON" | jq -r '.[].number' | while read -r num; do
+            echo "Assigning PR #$num to vinayakkulkarni"
+            gh pr edit "$num" \
+              --repo "${{ github.repository }}" \
+              --add-assignee vinayakkulkarni
+          done
