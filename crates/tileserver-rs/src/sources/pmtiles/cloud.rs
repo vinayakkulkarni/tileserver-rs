@@ -229,4 +229,117 @@ mod tests {
         assert!(!is_cloud_url("http://example.com/tiles.pmtiles"));
         assert!(!is_cloud_url("./relative/path.pmtiles"));
     }
+
+    #[test]
+    fn test_is_cloud_url_empty_string() {
+        assert!(!is_cloud_url(""));
+    }
+
+    #[test]
+    fn test_is_cloud_url_scheme_prefix_only() {
+        assert!(is_cloud_url("s3://"));
+        assert!(is_cloud_url("gs://"));
+        assert!(is_cloud_url("az://"));
+    }
+
+    #[test]
+    fn test_is_cloud_url_case_sensitive() {
+        assert!(!is_cloud_url("S3://bucket/key"));
+        assert!(!is_cloud_url("GS://bucket/key"));
+    }
+
+    #[test]
+    fn test_convert_compression_all_variants() {
+        assert_eq!(
+            convert_compression(PmCompression::None),
+            TileCompression::None
+        );
+        assert_eq!(
+            convert_compression(PmCompression::Gzip),
+            TileCompression::Gzip
+        );
+        assert_eq!(
+            convert_compression(PmCompression::Brotli),
+            TileCompression::Brotli
+        );
+        assert_eq!(
+            convert_compression(PmCompression::Zstd),
+            TileCompression::Zstd
+        );
+        assert_eq!(
+            convert_compression(PmCompression::Unknown),
+            TileCompression::None
+        );
+    }
+
+    fn make_config(path: &str) -> crate::config::SourceConfig {
+        crate::config::SourceConfig {
+            id: "test-cloud".to_string(),
+            source_type: crate::config::SourceType::PMTiles,
+            path: path.to_string(),
+            name: None,
+            attribution: None,
+            description: None,
+            resampling: None,
+            layer_name: None,
+            geometry_column: None,
+            query: None,
+            minzoom: None,
+            maxzoom: None,
+            serve_as: None,
+            #[cfg(feature = "raster")]
+            colormap: None,
+            options: None,
+            collection: None,
+            asset_role: "visual".to_string(),
+            dynamic: false,
+            max_items: 100,
+            stac_bbox: None,
+            pixel_selection: crate::config::PixelSelectionMethod::default(),
+        }
+    }
+
+    #[tokio::test]
+    async fn from_url_invalid_url_string_returns_config_error() {
+        let cfg = make_config("not a valid url at all");
+        let result = CloudPmTilesSource::from_url(&cfg).await;
+        let err = result
+            .err()
+            .expect("malformed URL must fail before any network call");
+        match err {
+            TileServerError::ConfigError(msg) => {
+                assert!(
+                    msg.contains("invalid cloud storage URL"),
+                    "error message must explain the failure, got: {msg}"
+                );
+            }
+            other => panic!("expected ConfigError, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn from_url_unknown_scheme_returns_config_error() {
+        let cfg = make_config("ftp://example.com/tiles.pmtiles");
+        let result = CloudPmTilesSource::from_url(&cfg).await;
+        let err = result
+            .err()
+            .expect("unknown scheme must fail at object_store parsing");
+        match err {
+            TileServerError::ConfigError(msg) => {
+                assert!(
+                    msg.contains("failed to configure object store"),
+                    "must surface object_store error, got: {msg}"
+                );
+            }
+            other => panic!("expected ConfigError, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn from_url_empty_url_returns_error() {
+        let cfg = make_config("");
+        let result = CloudPmTilesSource::from_url(&cfg).await;
+        let err = result.err().expect("empty URL must fail");
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
 }

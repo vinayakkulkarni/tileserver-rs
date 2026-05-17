@@ -1100,6 +1100,382 @@ mod tests {
         );
     }
 
+    // === Edge-branch tests: defaults, round-trips, load_with_metadata ===
+
+    #[test]
+    fn test_config_default_has_empty_sources_and_styles() {
+        let config = Config::default();
+        assert!(config.sources.is_empty());
+        assert!(config.styles.is_empty());
+        assert!(config.fonts.is_none());
+        assert!(config.files.is_none());
+    }
+
+    #[test]
+    fn test_server_config_default_values() {
+        let server = ServerConfig::default();
+        assert_eq!(server.host, "0.0.0.0");
+        assert_eq!(server.port, 8080);
+        assert_eq!(server.cors_origins, vec!["*".to_string()]);
+        assert_eq!(server.admin_bind, "127.0.0.1:0");
+        assert!(server.public_url.is_none());
+        assert!(server.upload_dir.is_none());
+        assert_eq!(server.upload_max_size_mb, 500);
+    }
+
+    #[test]
+    fn test_cache_config_default_is_disabled() {
+        let cache = CacheConfig::default();
+        assert!(!cache.enabled);
+        assert_eq!(cache.max_size_mb, 512);
+        assert_eq!(cache.ttl_seconds, 3600);
+    }
+
+    #[test]
+    fn test_cache_config_default_via_config() {
+        let config = Config::default();
+        assert!(!config.cache.enabled);
+        assert_eq!(config.cache.max_size_mb, 512);
+    }
+
+    #[test]
+    fn test_render_pool_config_default_values() {
+        let render = RenderPoolConfig::default();
+        assert_eq!(render.pool_size, 4);
+        assert_eq!(render.render_timeout_secs, 30);
+    }
+
+    #[test]
+    fn test_config_toml_round_trip_empty() {
+        let config = Config::default();
+        let toml_str = toml::to_string(&config).expect("serialize default config to TOML");
+        let reparsed: Config = toml::from_str(&toml_str).expect("deserialize from TOML");
+        assert_eq!(reparsed.sources.len(), config.sources.len());
+        assert_eq!(reparsed.styles.len(), config.styles.len());
+        assert_eq!(reparsed.server.host, config.server.host);
+        assert_eq!(reparsed.server.port, config.server.port);
+        assert_eq!(reparsed.cache.enabled, config.cache.enabled);
+    }
+
+    #[test]
+    fn test_source_config_pmtiles_round_trip() {
+        let toml_str = r#"
+            [[sources]]
+            id = "test-pmtiles"
+            type = "pmtiles"
+            path = "/data/test.pmtiles"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse pmtiles source config");
+        assert_eq!(config.sources.len(), 1);
+        assert_eq!(config.sources[0].id, "test-pmtiles");
+        assert_eq!(config.sources[0].source_type, SourceType::PMTiles);
+        assert_eq!(config.sources[0].path, "/data/test.pmtiles");
+        assert!(config.sources[0].name.is_none());
+    }
+
+    #[test]
+    fn test_source_config_mbtiles_round_trip() {
+        let toml_str = r#"
+            [[sources]]
+            id = "test-mbtiles"
+            type = "mbtiles"
+            path = "/data/test.mbtiles"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse mbtiles source config");
+        assert_eq!(config.sources.len(), 1);
+        assert_eq!(config.sources[0].source_type, SourceType::MBTiles);
+    }
+
+    #[test]
+    fn test_source_config_with_optional_fields() {
+        let toml_str = r#"
+            [[sources]]
+            id = "full"
+            type = "pmtiles"
+            path = "/data/full.pmtiles"
+            name = "Full Source"
+            attribution = "© Provider"
+            description = "Test description"
+            minzoom = 0
+            maxzoom = 14
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse full source config");
+        let src = &config.sources[0];
+        assert_eq!(src.name.as_deref(), Some("Full Source"));
+        assert_eq!(src.attribution.as_deref(), Some("© Provider"));
+        assert_eq!(src.description.as_deref(), Some("Test description"));
+        assert_eq!(src.minzoom, Some(0));
+        assert_eq!(src.maxzoom, Some(14));
+    }
+
+    #[test]
+    fn test_style_config_with_name_round_trip() {
+        let toml_str = r#"
+            [[styles]]
+            id = "my-style"
+            path = "/styles/my-style/style.json"
+            name = "My Style Name"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse style config with name");
+        assert_eq!(config.styles.len(), 1);
+        assert_eq!(config.styles[0].id, "my-style");
+        assert_eq!(config.styles[0].name.as_deref(), Some("My Style Name"));
+    }
+
+    #[test]
+    fn test_style_config_without_name_round_trip() {
+        let toml_str = r#"
+            [[styles]]
+            id = "minimal-style"
+            path = "/styles/minimal/style.json"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse style config without name");
+        assert_eq!(config.styles.len(), 1);
+        assert_eq!(config.styles[0].id, "minimal-style");
+        assert!(config.styles[0].name.is_none());
+    }
+
+    #[test]
+    fn test_cache_config_enabled_round_trip() {
+        let toml_str = r#"
+            [cache]
+            enabled = true
+            max_size_mb = 1024
+            ttl_seconds = 7200
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse cache config");
+        assert!(config.cache.enabled);
+        assert_eq!(config.cache.max_size_mb, 1024);
+        assert_eq!(config.cache.ttl_seconds, 7200);
+    }
+
+    #[test]
+    fn test_cache_config_partial_uses_defaults() {
+        let toml_str = r#"
+            [cache]
+            enabled = true
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse partial cache config");
+        assert!(config.cache.enabled);
+        assert_eq!(config.cache.max_size_mb, 512);
+        assert_eq!(config.cache.ttl_seconds, 3600);
+    }
+
+    #[test]
+    fn test_render_pool_config_round_trip() {
+        let toml_str = r#"
+            [render]
+            pool_size = 8
+            render_timeout_secs = 60
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse render pool config");
+        assert_eq!(config.render.pool_size, 8);
+        assert_eq!(config.render.render_timeout_secs, 60);
+    }
+
+    #[test]
+    fn test_render_pool_partial_uses_defaults() {
+        let toml_str = r#"
+            [render]
+            pool_size = 2
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse partial render config");
+        assert_eq!(config.render.pool_size, 2);
+        assert_eq!(config.render.render_timeout_secs, 30);
+    }
+
+    #[test]
+    fn test_server_config_custom_port_and_host() {
+        let toml_str = r#"
+            [server]
+            host = "127.0.0.1"
+            port = 9090
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse server config with port");
+        assert_eq!(config.server.port, 9090);
+        assert_eq!(config.server.host, "127.0.0.1");
+    }
+
+    #[test]
+    fn test_server_config_public_url_override() {
+        let toml_str = r#"
+            [server]
+            public_url = "https://tiles.example.com"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse server public_url");
+        assert_eq!(
+            config.server.public_url.as_deref(),
+            Some("https://tiles.example.com")
+        );
+    }
+
+    #[test]
+    fn test_server_config_cors_origins_round_trip() {
+        let toml_str = r#"
+            [server]
+            cors_origins = ["https://a.com", "https://b.com"]
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse cors_origins");
+        assert_eq!(config.server.cors_origins.len(), 2);
+        assert_eq!(config.server.cors_origins[0], "https://a.com");
+    }
+
+    #[test]
+    fn test_server_config_upload_settings() {
+        let toml_str = r#"
+            [server]
+            upload_max_size_mb = 100
+            upload_dir = "/var/uploads"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse upload settings");
+        assert_eq!(config.server.upload_max_size_mb, 100);
+        assert_eq!(
+            config
+                .server
+                .upload_dir
+                .as_ref()
+                .map(|p| p.to_str().unwrap()),
+            Some("/var/uploads")
+        );
+    }
+
+    #[test]
+    fn test_config_fonts_and_files_paths() {
+        let toml_str = r#"
+            fonts = "/data/fonts"
+            files = "/data/static"
+        "#;
+        let config: Config = toml::from_str(toml_str).expect("parse fonts/files paths");
+        assert_eq!(
+            config.fonts.as_ref().and_then(|p| p.to_str()),
+            Some("/data/fonts")
+        );
+        assert_eq!(
+            config.files.as_ref().and_then(|p| p.to_str()),
+            Some("/data/static")
+        );
+    }
+
+    #[test]
+    fn test_config_content_hash_is_deterministic() {
+        let content = "[server]\nport = 8080\n";
+        let hash1 = Config::hash_content(content);
+        let hash2 = Config::hash_content(content);
+        assert_eq!(hash1, hash2);
+        // SHA-256 produces 32 bytes = 64 hex characters
+        assert_eq!(hash1.len(), 64);
+    }
+
+    #[test]
+    fn test_config_content_hash_differs_for_different_content() {
+        let hash1 = Config::hash_content("[server]\nport = 8080\n");
+        let hash2 = Config::hash_content("[server]\nport = 9090\n");
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_config_load_with_metadata_from_tempfile() {
+        use std::io::Write;
+        let mut tmp = tempfile::NamedTempFile::new().expect("create tempfile");
+        write!(
+            tmp,
+            r#"
+[server]
+host = "127.0.0.1"
+port = 8181
+
+[[sources]]
+id = "local"
+type = "pmtiles"
+path = "/tmp/test.pmtiles"
+"#
+        )
+        .expect("write tempfile");
+        tmp.flush().expect("flush tempfile");
+
+        let loaded = Config::load_with_metadata(Some(tmp.path().to_path_buf()))
+            .expect("load_with_metadata succeeds");
+        assert_eq!(loaded.config.server.port, 8181);
+        assert_eq!(loaded.config.server.host, "127.0.0.1");
+        assert_eq!(loaded.config.sources.len(), 1);
+        assert_eq!(loaded.config.sources[0].id, "local");
+        assert_eq!(loaded.config.sources[0].source_type, SourceType::PMTiles);
+        assert_eq!(loaded.content_hash.len(), 64);
+    }
+
+    #[test]
+    fn test_config_load_with_metadata_missing_path_falls_back_to_default() {
+        let nonexistent = PathBuf::from("/tmp/definitely-not-a-real-config-9999.toml");
+        let result = Config::load_with_metadata(Some(nonexistent));
+        assert!(result.is_ok());
+        let loaded = result.expect("load returns ok");
+        assert_eq!(loaded.content_hash.len(), 64);
+    }
+
+    #[test]
+    fn test_config_load_wrapper_returns_config_only() {
+        let nonexistent = PathBuf::from("/tmp/definitely-not-a-real-config-9998.toml");
+        let result = Config::load(Some(nonexistent));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_config_load_with_metadata_invalid_toml_errors() {
+        use std::io::Write;
+        let mut tmp = tempfile::NamedTempFile::new().expect("create tempfile");
+        write!(tmp, "this is = not = valid = toml\n[[[broken").expect("write invalid TOML");
+        tmp.flush().expect("flush tempfile");
+
+        let result = Config::load_with_metadata(Some(tmp.path().to_path_buf()));
+        assert!(result.is_err(), "invalid TOML should error");
+    }
+
+    #[test]
+    fn test_config_load_with_metadata_applies_env_substitution() {
+        use std::io::Write;
+        // SAFETY: test-only; no concurrent threads access env vars in this test
+        unsafe { std::env::set_var("TEST_ENV_SUB_PORT", "7777") };
+        let mut tmp = tempfile::NamedTempFile::new().expect("create tempfile");
+        write!(
+            tmp,
+            r#"
+[server]
+port = ${{TEST_ENV_SUB_PORT}}
+"#
+        )
+        .expect("write tempfile with env var");
+        tmp.flush().expect("flush tempfile");
+
+        let loaded = Config::load_with_metadata(Some(tmp.path().to_path_buf()))
+            .expect("load_with_metadata succeeds");
+        assert_eq!(loaded.config.server.port, 7777);
+
+        // SAFETY: test-only; no concurrent threads access env vars in this test
+        unsafe { std::env::remove_var("TEST_ENV_SUB_PORT") };
+    }
+
+    #[test]
+    fn test_source_type_non_exhaustive_marker_does_not_break_serde() {
+        let s = serde_json::to_string(&SourceType::PMTiles).expect("serialize");
+        let back: SourceType = serde_json::from_str(&s).expect("deserialize");
+        assert_eq!(back, SourceType::PMTiles);
+    }
+
+    #[test]
+    fn test_telemetry_default_metrics_path() {
+        let config = Config::default();
+        assert_eq!(config.telemetry.prometheus_path, "/metrics");
+    }
+
+    #[test]
+    fn test_metrics_label_cardinality_serde_standard_variant() {
+        let s = serde_json::to_string(&MetricsLabelCardinality::Standard).expect("serialize");
+        assert_eq!(s, "\"standard\"");
+        let back: MetricsLabelCardinality =
+            serde_json::from_str("\"standard\"").expect("deserialize");
+        assert_eq!(back, MetricsLabelCardinality::Standard);
+    }
+
     #[cfg(feature = "postgres")]
     mod postgres_tests {
         use super::*;

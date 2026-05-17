@@ -147,6 +147,125 @@ mod openapi_tests {
         assert!(!spec.info.version.is_empty());
         // Note: Exact version check would require reading Cargo.toml
     }
+
+    #[test]
+    fn test_openapi_json_snapshot() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        let value = serde_json::to_value(&spec).expect("spec serializes to JSON");
+        insta::assert_json_snapshot!("openapi_full_schema", value);
+    }
+
+    #[test]
+    fn test_openapi_all_paths_have_operations() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        for (path, item) in &spec.paths.paths {
+            assert!(
+                item.get.is_some()
+                    || item.post.is_some()
+                    || item.put.is_some()
+                    || item.delete.is_some()
+                    || item.patch.is_some(),
+                "Path {} has no HTTP operations",
+                path
+            );
+        }
+    }
+
+    #[test]
+    fn test_openapi_all_paths_have_responses() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        for (path, item) in &spec.paths.paths {
+            let ops = [
+                item.get.as_ref(),
+                item.post.as_ref(),
+                item.put.as_ref(),
+                item.delete.as_ref(),
+                item.patch.as_ref(),
+            ];
+            for op in ops.into_iter().flatten() {
+                assert!(
+                    !op.responses.responses.is_empty(),
+                    "Operation on {} has no responses defined",
+                    path
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_openapi_has_components() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        let components = spec.components.expect("spec has components");
+        assert!(
+            !components.schemas.is_empty(),
+            "spec has at least one schema"
+        );
+    }
+
+    #[test]
+    fn test_openapi_serializes_to_valid_json_string() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        let json_str = serde_json::to_string(&spec).expect("spec serializes to string");
+        assert!(
+            json_str.starts_with('{'),
+            "OpenAPI spec JSON starts with {{"
+        );
+        assert!(
+            json_str.contains("tileserver-rs"),
+            "JSON contains product name"
+        );
+    }
+
+    #[test]
+    fn test_openapi_round_trip() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        let json = serde_json::to_string(&spec).expect("serialize");
+        let reparsed: serde_json::Value = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(
+            reparsed["info"]["title"].as_str().unwrap(),
+            "tileserver-rs API"
+        );
+    }
+
+    #[test]
+    fn test_openapi_version_is_non_empty() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        assert!(
+            !spec.info.version.is_empty(),
+            "API version must not be empty"
+        );
+        assert!(
+            spec.info.version.contains('.'),
+            "Version should be semver-like: {}",
+            spec.info.version
+        );
+    }
+
+    #[test]
+    fn test_openapi_minimum_path_count() {
+        use tileserver_rs::openapi::ApiDoc;
+        use utoipa::OpenApi;
+        let spec = ApiDoc::openapi();
+        assert!(
+            spec.paths.paths.len() >= 10,
+            "Expected at least 10 documented paths, got {}",
+            spec.paths.paths.len()
+        );
+    }
 }
 
 // ============================================================

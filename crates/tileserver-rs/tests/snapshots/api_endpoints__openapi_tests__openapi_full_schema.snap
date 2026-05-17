@@ -1,0 +1,2524 @@
+---
+source: crates/tileserver-rs/tests/api_endpoints.rs
+expression: value
+---
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "tileserver-rs API",
+    "description": "High-performance vector and raster tile server with native MapLibre rendering",
+    "contact": {
+      "name": "Vinayak Kulkarni",
+      "url": "https://github.com/vinayakkulkarni/tileserver-rs"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/vinayakkulkarni/tileserver-rs/blob/main/LICENSE"
+    },
+    "version": "2.8.0"
+  },
+  "paths": {
+    "/api/spatial/query": {
+      "post": {
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Query features from a source",
+        "description": "Decodes vector tiles at the requested location and returns features as JSON.\nSupports bounding box filtering, layer filtering, and result limits.",
+        "operationId": "post_spatial_query",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpatialQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Query results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpatialQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (non-vector source)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/spatial/schema/{source}": {
+      "get": {
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Get source schema",
+        "description": "Returns vector layer info, field types, and metadata for a source.\nUsed by LLM tools for understanding tile source structure.",
+        "operationId": "get_spatial_schema",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "description": "Source ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpatialSchemaResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/spatial/stats/{source}": {
+      "get": {
+        "tags": [
+          "Spatial"
+        ],
+        "summary": "Get source statistics",
+        "description": "Returns bounds, zoom range, layer count, and other statistics for a source",
+        "operationId": "get_spatial_stats",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "description": "Source ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpatialStatsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/upload": {
+      "get": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "List uploaded sources",
+        "description": "Returns all currently uploaded file sources",
+        "operationId": "list_uploads",
+        "responses": {
+          "200": {
+            "description": "List of uploaded sources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UploadInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Upload a geospatial file",
+        "description": "Streams a file to disk and registers it as a temporary tile source.\nSupports MBTiles, SQLite, and COG formats.",
+        "operationId": "upload_file",
+        "requestBody": {
+          "description": "Geospatial file to upload",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File uploaded and source registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported format or invalid file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File exceeds size limit"
+          }
+        }
+      }
+    },
+    "/api/upload/{id}": {
+      "delete": {
+        "tags": [
+          "Upload"
+        ],
+        "summary": "Delete an uploaded source",
+        "description": "Removes an uploaded source and deletes the file from disk",
+        "operationId": "delete_upload",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Upload UUID or full source ID (upload-{uuid})",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Upload deleted successfully"
+          },
+          "404": {
+            "description": "Upload not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data.json": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "List all data sources",
+        "description": "Returns TileJSON metadata for all available tile sources.\nThe optional `key` parameter is appended to all tile URLs in the response.",
+        "operationId": "list_data_sources",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in tile URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of data sources",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TileJSON"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data/{source}": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Get data source TileJSON",
+        "description": "Returns TileJSON metadata for a specific tile source.\nThe optional `key` parameter is appended to all tile URLs in the response.",
+        "operationId": "get_data_source",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "description": "Source ID (with or without .json extension)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in tile URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TileJSON metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TileJSON"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data/{source}/{z}/{x}/{y}.{format}": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Get a tile from any data source",
+        "description": "Returns a tile from the specified source. The response format depends on the source type:\n\n**Vector sources** (PMTiles, MBTiles, PostgreSQL functions):\n- Formats: `pbf`, `mvt`, `geojson`\n- Returns Mapbox Vector Tiles or GeoJSON\n\n**Raster/COG sources** (Cloud Optimized GeoTIFF):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query param `resampling`: nearest, bilinear, cubic, lanczos, average, etc.\n\n**PostgreSQL Out-of-Database raster sources** (VRT/COG via PostGIS):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query params are passed to the PostgreSQL function for dynamic filtering\n- See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters",
+        "operationId": "get_tile",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "description": "Source ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "z",
+            "in": "path",
+            "description": "Zoom level (0-22)",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "x",
+            "in": "path",
+            "description": "Tile X coordinate",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "y",
+            "in": "path",
+            "description": "Tile Y coordinate",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "Tile format: pbf, mvt, geojson (vector) or png, jpg, webp (raster)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resampling",
+            "in": "query",
+            "description": "Resampling method for COG sources: nearest, bilinear, cubic, cubicspline, lanczos, average, mode, max, min, med, q1, q3",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raster tile image",
+            "content": {
+              "image/png": {}
+            }
+          },
+          "404": {
+            "description": "Tile or source not found"
+          }
+        }
+      }
+    },
+    "/files/{filepath}": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Get static file",
+        "description": "Serves static files from the configured files directory",
+        "operationId": "get_static_file",
+        "parameters": [
+          {
+            "name": "filepath",
+            "in": "path",
+            "description": "Path to the file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File content"
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fonts.json": {
+      "get": {
+        "tags": [
+          "Fonts"
+        ],
+        "summary": "List available fonts",
+        "description": "Returns a list of available font families",
+        "operationId": "list_fonts",
+        "responses": {
+          "200": {
+            "description": "List of font names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "Noto Sans Regular",
+                  "Noto Sans Bold"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fonts/{fontstack}/{range}": {
+      "get": {
+        "tags": [
+          "Fonts"
+        ],
+        "summary": "Get font glyphs",
+        "description": "Returns PBF-encoded font glyphs for a character range",
+        "operationId": "get_font_glyphs",
+        "parameters": [
+          {
+            "name": "fontstack",
+            "in": "path",
+            "description": "Font stack (comma-separated font names)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "Noto Sans Regular"
+          },
+          {
+            "name": "range",
+            "in": "path",
+            "description": "Character range (e.g., 0-255.pbf)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "0-255.pbf"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Font glyph data",
+            "content": {
+              "application/x-protobuf": {}
+            }
+          },
+          "404": {
+            "description": "Font not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Returns OK if the server is running",
+        "operationId": "health_check",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "OK"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/index.json": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Get all sources and styles",
+        "description": "Returns a combined list of all data sources and styles as TileJSON.\nThe optional `key` parameter is appended to all tile URLs in the response.",
+        "operationId": "get_index",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in all tile URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined list of sources and styles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TileJSON"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "OGC API Features landing page",
+        "description": "Discovery endpoint advertising links to conformance, collections and the\nOpenAPI description. This is the root of the OGC API Features tree.",
+        "operationId": "ogc_landing_page",
+        "responses": {
+          "200": {
+            "description": "Landing page with navigation links",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcLandingPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "List all OGC feature collections",
+        "description": "Each PostGIS table source is exposed as a feature collection with the\nextent, supported CRSes and storage CRS populated from the table's\ngeometry column metadata.",
+        "operationId": "ogc_collections",
+        "responses": {
+          "200": {
+            "description": "List of feature collections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcCollections"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Single OGC collection metadata",
+        "operationId": "ogc_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id (maps to a PostGIS table source id)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collection metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcCollection"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}/items": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Paginated GeoJSON FeatureCollection for a collection",
+        "description": "Supports OGC API Features Part 1 (bbox, limit, offset), Part 2 (bbox-crs,\ncrs response CRS, Content-Crs header) and Part 3 (filter + filter-lang +\nfilter-crs, cql2-text and cql2-json dialects).",
+        "operationId": "ogc_items",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bbox",
+            "in": "query",
+            "description": "Comma-separated bbox: minx,miny,maxx,maxy (4-value) or minx,miny,minz,maxx,maxy,maxz (6-value)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bbox-crs",
+            "in": "query",
+            "description": "CRS of the bbox parameter (EPSG URI or OGC:CRS84). Defaults to CRS84",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "crs",
+            "in": "query",
+            "description": "CRS requested for response geometries. Defaults to CRS84",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "description": "CQL2 filter expression",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter-lang",
+            "in": "query",
+            "description": "Filter dialect: cql2-text (default) or cql2-json",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter-crs",
+            "in": "query",
+            "description": "CRS of geometry literals inside the filter expression",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max features per page (1..=10000, default 10)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Pagination offset in features",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GeoJSON FeatureCollection with pagination links",
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcFeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid bbox, crs, or filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Create a new feature (OGC API Features Part 4 Transactions)",
+        "description": "Requires `writable = true` on the target table in config.toml.",
+        "operationId": "ogc_create_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/geo+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OgcFeature"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Feature created; Location header contains the new /items/{fid} URL"
+          },
+          "400": {
+            "description": "Invalid GeoJSON payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Collection is not writable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}/items/{fid}": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Single OGC Feature by id",
+        "operationId": "ogc_feature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "description": "Feature id (matches the configured id_column or the PostgreSQL ctid fallback)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "crs",
+            "in": "query",
+            "description": "CRS requested for the response geometry. Defaults to CRS84",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GeoJSON Feature",
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcFeature"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature or collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Replace a feature (PUT semantics — OGC API Features Part 4)",
+        "description": "All configured property columns are overwritten; missing properties are\nset to NULL. Requires `writable = true`.",
+        "operationId": "ogc_replace_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "description": "Feature id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/geo+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OgcFeature"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Feature replaced"
+          },
+          "400": {
+            "description": "Invalid GeoJSON payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Collection is not writable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Delete a feature (OGC API Features Part 4 Transactions)",
+        "operationId": "ogc_delete_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "description": "Feature id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Feature deleted"
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Collection is not writable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Merge-update a feature (PATCH / RFC 7396 — OGC API Features Part 4)",
+        "description": "Only fields present in the payload are touched. Requires `writable = true`.",
+        "operationId": "ogc_update_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fid",
+            "in": "path",
+            "description": "Feature id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OgcFeature"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Feature updated"
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Collection is not writable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}/queryables": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Filterable properties (OGC API Features Part 5)",
+        "description": "Returns a JSON Schema describing every non-geometry column that CQL2\nfilters may reference.",
+        "operationId": "ogc_queryables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON Schema of queryable properties",
+            "content": {
+              "application/schema+json": {}
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}/schema": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Full feature schema (OGC API Features Part 5)",
+        "description": "Describes the complete shape of a Feature response — type, id, geometry\n(referencing geojson.org Geometry schema) and properties.",
+        "operationId": "ogc_schema",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON Schema document for a Feature",
+            "content": {
+              "application/schema+json": {}
+            }
+          }
+        }
+      }
+    },
+    "/ogc/collections/{id}/sortables": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "Sortable properties (OGC API Features Part 5)",
+        "description": "Subset of queryables that support SQL `ORDER BY` — excludes `jsonb` and\narray columns that have no defined comparison function.",
+        "operationId": "ogc_sortables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON Schema of sortable properties",
+            "content": {
+              "application/schema+json": {}
+            }
+          }
+        }
+      }
+    },
+    "/ogc/conformance": {
+      "get": {
+        "tags": [
+          "OGC"
+        ],
+        "summary": "OGC API conformance declaration",
+        "description": "Returns the conformance class URIs this server implements. Currently\nadvertises Part 1 Core, Part 2 CRS, and Part 3 Filter / Queryables.",
+        "operationId": "ogc_conformance",
+        "responses": {
+          "200": {
+            "description": "Conformance class URIs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OgcConformance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ping": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Runtime metadata",
+        "description": "Returns runtime metadata including config hash, loaded sources/styles count,\nrenderer status, and server version. Useful for monitoring and automation.",
+        "operationId": "ping_check",
+        "responses": {
+          "200": {
+            "description": "Runtime metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles.json": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "List all styles",
+        "description": "Returns metadata for all available map styles.\nThe optional `key` parameter is appended to all style URLs in the response.",
+        "operationId": "list_styles",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in style URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of styles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StyleInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}.json": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get style TileJSON",
+        "description": "Returns TileJSON for raster tiles rendered from this style.\nThe optional `key` parameter is appended to all tile URLs in the response.",
+        "operationId": "get_style_tilejson",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in tile URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TileJSON for raster tiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TileJSON"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Style not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/sprite.{ext}": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get sprite image or JSON",
+        "description": "Returns sprite image (PNG) or metadata (JSON) for the style",
+        "operationId": "get_sprite",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ext",
+            "in": "path",
+            "description": "File extension (png or json, optionally with @2x)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "png"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sprite metadata",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "Sprite not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/static/{center}/{size}.{format}": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get a static map image",
+        "description": "Renders a static map image centered at the specified location",
+        "operationId": "get_static_image",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "center",
+            "in": "path",
+            "description": "Center point as lon,lat,zoom or 'auto'",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "-122.4194,37.7749,12"
+          },
+          {
+            "name": "size",
+            "in": "path",
+            "description": "Image size as WIDTHxHEIGHT, optionally with @2x",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "800x600"
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "Image format (png, jpg, jpeg, webp)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bearing",
+            "in": "query",
+            "description": "Map bearing in degrees",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "pitch",
+            "in": "query",
+            "description": "Map pitch in degrees",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "markers",
+            "in": "query",
+            "description": "Markers to add (format: pin-s+color(lon,lat))",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Path to draw (format: path-width+color(lon,lat|lon,lat))",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Static map image",
+            "content": {
+              "image/png": {}
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/style.json": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get MapLibre style JSON",
+        "description": "Returns the full MapLibre GL style specification.\nThe optional `key` parameter is appended to all URLs in the style (sources, glyphs, sprites).",
+        "operationId": "get_style_json",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in all URLs within the style",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MapLibre style specification",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "Style not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/wmts.xml": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get WMTS capabilities",
+        "description": "Returns OGC WMTS GetCapabilities document for the style",
+        "operationId": "get_wmts_capabilities",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "description": "API key to include in all tile URLs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "WMTS capabilities XML",
+            "content": {
+              "application/xml": {}
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/{tileSize}/{z}/{x}/{y}.{format}": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get a raster tile with custom size",
+        "description": "Returns a raster tile with specified tile size (256 or 512 pixels)",
+        "operationId": "get_raster_tile_with_size",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tileSize",
+            "in": "path",
+            "description": "Tile size in pixels (256 or 512)",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "z",
+            "in": "path",
+            "description": "Zoom level",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "x",
+            "in": "path",
+            "description": "Tile X coordinate",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "y",
+            "in": "path",
+            "description": "Tile Y coordinate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "Image format (png, jpg, jpeg, webp)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raster tile image",
+            "content": {
+              "image/png": {}
+            }
+          }
+        }
+      }
+    },
+    "/styles/{style}/{z}/{x}/{y}.{format}": {
+      "get": {
+        "tags": [
+          "Styles"
+        ],
+        "summary": "Get a raster tile",
+        "description": "Returns a raster tile rendered from the style. Supports retina with @2x suffix.",
+        "operationId": "get_raster_tile",
+        "parameters": [
+          {
+            "name": "style",
+            "in": "path",
+            "description": "Style ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "z",
+            "in": "path",
+            "description": "Zoom level (0-22)",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "x",
+            "in": "path",
+            "description": "Tile X coordinate",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "y",
+            "in": "path",
+            "description": "Tile Y coordinate (optionally with @2x for retina)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "123"
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "Image format (png, jpg, jpeg, webp)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raster tile image",
+            "content": {
+              "image/png": {}
+            }
+          },
+          "404": {
+            "description": "Style not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "description": "API error response",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "example": {
+          "error": "Source not found: invalid-source"
+        }
+      },
+      "GeoJSON": {
+        "type": "object",
+        "description": "GeoJSON FeatureCollection",
+        "required": [
+          "type",
+          "features"
+        ],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {},
+            "description": "Array of GeoJSON features"
+          },
+          "type": {
+            "type": "string",
+            "description": "Always \"FeatureCollection\"",
+            "example": "FeatureCollection"
+          }
+        }
+      },
+      "OgcCollection": {
+        "type": "object",
+        "description": "Metadata for a single OGC feature collection.",
+        "required": [
+          "id",
+          "title",
+          "extent",
+          "itemType",
+          "crs",
+          "storageCrs",
+          "links"
+        ],
+        "properties": {
+          "crs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "extent": {},
+          "id": {
+            "type": "string"
+          },
+          "itemType": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcLink"
+            }
+          },
+          "storageCrs": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "OgcCollections": {
+        "type": "object",
+        "description": "List of OGC feature collections.",
+        "required": [
+          "collections",
+          "links"
+        ],
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcCollection"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcLink"
+            }
+          }
+        }
+      },
+      "OgcConformance": {
+        "type": "object",
+        "description": "Conformance class URIs advertised by this server.",
+        "required": [
+          "conformsTo"
+        ],
+        "properties": {
+          "conformsTo": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OgcFeature": {
+        "type": "object",
+        "description": "A single OGC GeoJSON Feature.",
+        "required": [
+          "type",
+          "id",
+          "geometry",
+          "properties",
+          "links"
+        ],
+        "properties": {
+          "geometry": {},
+          "id": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcLink"
+            }
+          },
+          "properties": {},
+          "type": {
+            "type": "string",
+            "example": "Feature"
+          }
+        }
+      },
+      "OgcFeatureCollection": {
+        "type": "object",
+        "description": "OGC FeatureCollection response with pagination metadata.",
+        "required": [
+          "type",
+          "features",
+          "numberMatched",
+          "numberReturned",
+          "links"
+        ],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcFeature"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcLink"
+            }
+          },
+          "numberMatched": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "numberReturned": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "example": "FeatureCollection"
+          }
+        }
+      },
+      "OgcLandingPage": {
+        "type": "object",
+        "description": "OGC API Features landing page.",
+        "required": [
+          "title",
+          "description",
+          "links"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OgcLink"
+            }
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "OgcLink": {
+        "type": "object",
+        "description": "OGC navigation link (self / conformance / data / service-desc / service-doc).",
+        "required": [
+          "href",
+          "rel",
+          "type",
+          "title"
+        ],
+        "properties": {
+          "href": {
+            "type": "string"
+          },
+          "rel": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "PingResponse": {
+        "type": "object",
+        "description": "Runtime metadata from /ping",
+        "required": [
+          "status",
+          "config_hash",
+          "loaded_at_unix",
+          "loaded_sources",
+          "loaded_styles",
+          "renderer_enabled",
+          "version"
+        ],
+        "properties": {
+          "config_hash": {
+            "type": "string"
+          },
+          "loaded_at_unix": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "loaded_sources": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "loaded_styles": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "renderer_enabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "status": "ok",
+          "config_hash": "a1b2c3d4e5f6...",
+          "loaded_at_unix": 1700000000,
+          "loaded_sources": 3,
+          "loaded_styles": 2,
+          "renderer_enabled": true,
+          "version": "2.8.0"
+        }
+      },
+      "SpatialQueryRequest": {
+        "type": "object",
+        "description": "Spatial query request",
+        "required": [
+          "source",
+          "zoom",
+          "limit"
+        ],
+        "properties": {
+          "bbox": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Bounding box [west, south, east, north]"
+          },
+          "layers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional layer filter"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum features to return",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string",
+            "description": "Source ID to query"
+          },
+          "zoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Zoom level for tile resolution",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "source": "openmaptiles",
+          "bbox": [
+            -122.5,
+            37.7,
+            -122.3,
+            37.9
+          ],
+          "zoom": 14,
+          "limit": 100
+        }
+      },
+      "SpatialQueryResponse": {
+        "type": "object",
+        "description": "Spatial query response",
+        "required": [
+          "source",
+          "features",
+          "total",
+          "truncated"
+        ],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {},
+            "description": "Matching features"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source that was queried"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total features returned",
+            "minimum": 0
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Whether results were truncated by limit"
+          }
+        }
+      },
+      "SpatialSchemaResponse": {
+        "type": "object",
+        "description": "Spatial schema response",
+        "required": [
+          "source",
+          "format",
+          "minzoom",
+          "maxzoom",
+          "layers"
+        ],
+        "properties": {
+          "bounds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Bounding box [west, south, east, north]"
+          },
+          "format": {
+            "type": "string",
+            "description": "Tile format (pbf, mlt, png, etc.)"
+          },
+          "layers": {
+            "type": "array",
+            "items": {},
+            "description": "Vector layer information"
+          },
+          "maxzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum zoom level",
+            "minimum": 0
+          },
+          "minzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Minimum zoom level",
+            "minimum": 0
+          },
+          "source": {
+            "type": "string",
+            "description": "Source ID"
+          }
+        }
+      },
+      "SpatialStatsResponse": {
+        "type": "object",
+        "description": "Spatial stats response",
+        "required": [
+          "source",
+          "format",
+          "minzoom",
+          "maxzoom",
+          "layer_count"
+        ],
+        "properties": {
+          "attribution": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Attribution"
+          },
+          "bounds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Bounding box"
+          },
+          "center": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Center point [lon, lat, zoom]"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source description"
+          },
+          "format": {
+            "type": "string",
+            "description": "Tile format"
+          },
+          "layer_count": {
+            "type": "integer",
+            "description": "Number of vector layers",
+            "minimum": 0
+          },
+          "maxzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum zoom level",
+            "minimum": 0
+          },
+          "minzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Minimum zoom level",
+            "minimum": 0
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source name"
+          },
+          "source": {
+            "type": "string",
+            "description": "Source ID"
+          }
+        }
+      },
+      "StyleInfo": {
+        "type": "object",
+        "description": "Style metadata",
+        "required": [
+          "id",
+          "name",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Style identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to style.json"
+          }
+        },
+        "example": {
+          "id": "osm-bright",
+          "name": "OSM Bright",
+          "url": "http://localhost:8080/styles/osm-bright/style.json"
+        }
+      },
+      "TileJSON": {
+        "type": "object",
+        "description": "TileJSON 3.0 metadata",
+        "required": [
+          "tilejson",
+          "tiles",
+          "minzoom",
+          "maxzoom"
+        ],
+        "properties": {
+          "attribution": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Attribution HTML"
+          },
+          "bounds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Bounding box [west, south, east, north]"
+          },
+          "center": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "description": "Center point [longitude, latitude, zoom]"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Description of the tileset"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source identifier"
+          },
+          "maxzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Maximum zoom level",
+            "maximum": 22,
+            "minimum": 0
+          },
+          "minzoom": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Minimum zoom level",
+            "maximum": 22,
+            "minimum": 0
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable name"
+          },
+          "tilejson": {
+            "type": "string",
+            "description": "TileJSON version (always \"3.0.0\")"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tile URL templates"
+          },
+          "vector_layers": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/VectorLayer"
+            },
+            "description": "Vector layer definitions"
+          }
+        },
+        "example": {
+          "tilejson": "3.0.0",
+          "tiles": [
+            "http://localhost:8080/data/source/{z}/{x}/{y}.pbf"
+          ],
+          "name": "OpenMapTiles",
+          "minzoom": 0,
+          "maxzoom": 14
+        }
+      },
+      "UploadInfo": {
+        "type": "object",
+        "description": "Upload tracking info",
+        "required": [
+          "id",
+          "file_name",
+          "format"
+        ],
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "description": "Original file name"
+          },
+          "format": {
+            "type": "string",
+            "description": "Detected format"
+          },
+          "id": {
+            "type": "string",
+            "description": "Upload ID (UUID)"
+          }
+        }
+      },
+      "UploadResponse": {
+        "type": "object",
+        "description": "Upload response",
+        "required": [
+          "id",
+          "source_id",
+          "file_name",
+          "format",
+          "tilejson_url"
+        ],
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "description": "Original file name"
+          },
+          "format": {
+            "type": "string",
+            "description": "Detected format (mbtiles, cog)"
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique upload ID (UUID)"
+          },
+          "source_id": {
+            "type": "string",
+            "description": "Source ID for accessing tiles"
+          },
+          "tilejson_url": {
+            "type": "string",
+            "description": "URL to the TileJSON endpoint for this source"
+          }
+        },
+        "example": {
+          "id": "a1b2c3d4-e5f6-...",
+          "source_id": "upload-a1b2c3d4-e5f6-...",
+          "file_name": "zurich.mbtiles",
+          "format": "mbtiles",
+          "tilejson_url": "http://localhost:8080/data/upload-a1b2c3d4-e5f6-....json"
+        }
+      },
+      "VectorLayer": {
+        "type": "object",
+        "description": "Vector layer metadata",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Layer description"
+          },
+          "fields": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Field names and types",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string",
+            "description": "Layer identifier"
+          },
+          "maxzoom": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Maximum zoom level",
+            "minimum": 0
+          },
+          "minzoom": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Minimum zoom level",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check and runtime metadata endpoints"
+    },
+    {
+      "name": "Data",
+      "description": "Tile data sources: vector (PMTiles, MBTiles, PostgreSQL), raster (COG), and OutDB raster (PostGIS)"
+    },
+    {
+      "name": "Styles",
+      "description": "Map styles and raster tile rendering"
+    },
+    {
+      "name": "Fonts",
+      "description": "Font glyphs for map labels"
+    },
+    {
+      "name": "Files",
+      "description": "Static file serving"
+    },
+    {
+      "name": "Upload",
+      "description": "File upload for drag-and-drop visualization"
+    },
+    {
+      "name": "Spatial",
+      "description": "Spatial queries and source schema inspection for LLM tool integration"
+    },
+    {
+      "name": "OGC",
+      "description": "OGC API Features (Parts 1-5): read-only GeoJSON feature access for PostGIS table sources, consumed natively by QGIS, ArcGIS Pro and FME"
+    }
+  ]
+}

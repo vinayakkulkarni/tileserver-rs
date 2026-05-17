@@ -7,12 +7,13 @@ coverage:
     project:
       default:
         # Codecov reports REGION coverage by default (not line coverage).
-        # Local `cargo llvm-cov report` shows: lines=66.05%, regions=67.76%.
-        # Codecov's project% matches the regions number. Floor sits at 67%
-        # (above current 67.76%, with 1% threshold absorbing minor swings).
-        # Stretch ladder: bump to 70% once postgres/table.rs + cog.rs gain
-        # DB-fixture / GDAL-fixture integration tests (separate follow-up).
-        target: 67%
+        # Local `cargo llvm-cov --features postgres,mlt` (single combo) shows
+        # 73.47% regions after adding route integration tests + unit tests in
+        # this PR. The merged multi-feature report is higher (raster/stac/
+        # duckdb/geoparquet combos each add their module coverage on top).
+        # Target raised from 67% → 75% now that integration tests cover
+        # routes/*, admin, upload, spatial, openapi, config, sources, styles.
+        target: 75%
         threshold: 1%
         if_not_found: success
     patch:
