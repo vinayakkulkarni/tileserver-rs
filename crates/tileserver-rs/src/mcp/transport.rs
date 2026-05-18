@@ -200,7 +200,14 @@ mod tests {
     use axum::body::Body;
     use axum::http::{Request, header::ORIGIN};
     use axum::routing::get;
+    use std::collections::HashMap;
     use tower::ServiceExt;
+
+    use crate::reload::{
+        AppState, ReloadController, ReloadMeta, RuntimeSettings, SharedState, now_unix_seconds,
+    };
+    use crate::sources::SourceManager;
+    use crate::styles::StyleManager;
 
     const ALLOW_ORIGIN_HEADER: &str = "access-control-allow-origin";
     const PREFLIGHT_METHOD_HEADER: &str = "access-control-request-method";
@@ -210,6 +217,36 @@ mod tests {
         Router::new()
             .route("/mcp", get(|| async { "ok" }))
             .layer(build_cors_layer(origins))
+    }
+
+    fn minimal_shared_state() -> SharedState {
+        let state = AppState {
+            sources: Arc::new(SourceManager::from_sources(HashMap::new())),
+            styles: Arc::new(StyleManager::new()),
+            renderer: None,
+            base_url: "http://localhost:8080".to_string(),
+            render_base_url: "http://127.0.0.1:8080".to_string(),
+            ui_enabled: false,
+            fonts_dir: None,
+            files_dir: None,
+            upload_dir: None,
+        };
+        let meta = ReloadMeta {
+            config_hash: "transport-test".to_string(),
+            loaded_at_unix: now_unix_seconds(),
+            loaded_sources: 0,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+        };
+        let runtime = RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: "127.0.0.1".to_string(),
+            runtime_port: 8080,
+            public_url_override: None,
+        };
+        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        SharedState::new(controller)
     }
 
     async fn send_preflight(router: Router, origin: &str) -> axum::http::Response<Body> {
@@ -295,5 +332,151 @@ mod tests {
             .get(ALLOW_ORIGIN_HEADER)
             .expect("allow-origin header present");
         assert_eq!(header, "*");
+    }
+
+    async fn send_get(router: Router, uri: &str) -> axum::http::Response<Body> {
+        router
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(uri)
+                    .body(Body::empty())
+                    .expect("build GET request"),
+            )
+            .await
+            .expect("oneshot GET")
+    }
+
+    async fn send_get_with_bearer(
+        router: Router,
+        uri: &str,
+        token: &str,
+    ) -> axum::http::Response<Body> {
+        router
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri(uri)
+                    .header(AUTHORIZATION, format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .expect("build authed GET request"),
+            )
+            .await
+            .expect("oneshot authed GET")
+    }
+
+    #[tokio::test]
+    async fn mcp_router_none_auth_does_not_require_authorization_header() {
+        let router = mcp_router(minimal_shared_state(), McpAuthMode::None, &[]);
+
+        let response = send_get(router, "/mcp").await;
+
+        assert_ne!(
+            response.status(),
+            StatusCode::UNAUTHORIZED,
+            "no-auth mode must not reject unauthenticated requests"
+        );
+    }
+
+    #[tokio::test]
+    async fn mcp_router_static_bearer_rejects_missing_authorization() {
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::StaticBearer("the-secret".to_string()),
+            &[],
+        );
+
+        let response = send_get(router, "/mcp").await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn mcp_router_static_bearer_rejects_wrong_token() {
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::StaticBearer("the-secret".to_string()),
+            &[],
+        );
+
+        let response = send_get_with_bearer(router, "/mcp", "wrong-token").await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn mcp_router_static_bearer_passes_with_matching_token() {
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::StaticBearer("the-secret".to_string()),
+            &[],
+        );
+
+        let response = send_get_with_bearer(router, "/mcp", "the-secret").await;
+
+        assert_ne!(
+            response.status(),
+            StatusCode::UNAUTHORIZED,
+            "matching bearer must pass middleware"
+        );
+    }
+
+    #[tokio::test]
+    async fn mcp_router_static_bearer_rejects_authorization_without_bearer_prefix() {
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::StaticBearer("the-secret".to_string()),
+            &[],
+        );
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/mcp")
+                    .header(AUTHORIZATION, "the-secret")
+                    .body(Body::empty())
+                    .expect("build request"),
+            )
+            .await
+            .expect("oneshot");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn mcp_router_oauth_mode_mounts_well_known_metadata_route() {
+        let pem = include_bytes!("../../tests/fixtures/oauth_test_key.pem");
+        let oauth_state = OAuthState::from_pem("http://localhost:8080".to_string(), pem, 3600)
+            .expect("test PEM parses");
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::OAuth(Box::new(oauth_state)),
+            &[],
+        );
+
+        let response = send_get(router, "/.well-known/oauth-authorization-server").await;
+
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "oauth mode must expose the RFC 8414 discovery doc"
+        );
+    }
+
+    #[tokio::test]
+    async fn mcp_router_oauth_mode_rejects_mcp_without_bearer() {
+        let pem = include_bytes!("../../tests/fixtures/oauth_test_key.pem");
+        let oauth_state = OAuthState::from_pem("http://localhost:8080".to_string(), pem, 3600)
+            .expect("test PEM parses");
+        let router = mcp_router(
+            minimal_shared_state(),
+            McpAuthMode::OAuth(Box::new(oauth_state)),
+            &[],
+        );
+
+        let response = send_get(router, "/mcp").await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

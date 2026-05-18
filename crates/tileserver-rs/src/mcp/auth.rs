@@ -971,4 +971,69 @@ mod tests {
         };
         assert!(snapshot.is_some());
     }
+
+    #[test]
+    fn render_consent_page_includes_client_name_and_scope() {
+        let html = render_consent_page(
+            "client-abc",
+            "Claude",
+            "https://example.com/cb",
+            "mcp",
+            "state-123",
+            "ch-xyz",
+        );
+        assert!(
+            html.contains("<title>Authorize Claude</title>"),
+            "title missing: {html}"
+        );
+        assert!(html.contains("client-abc"), "client_id missing: {html}");
+        assert!(
+            html.contains("https://example.com/cb"),
+            "redirect missing: {html}"
+        );
+        assert!(html.contains("ch-xyz"), "code_challenge missing: {html}");
+        assert!(html.contains("S256"), "S256 marker missing: {html}");
+    }
+
+    #[test]
+    fn render_consent_page_escapes_malicious_client_name() {
+        let html = render_consent_page(
+            "client-abc",
+            "<script>alert(1)</script>",
+            "https://example.com/cb",
+            "mcp",
+            "s",
+            "c",
+        );
+        assert!(
+            !html.contains("<script>alert(1)</script>"),
+            "raw script tag not escaped: {html}"
+        );
+        assert!(
+            html.contains("&lt;script&gt;"),
+            "expected escaped tag: {html}"
+        );
+    }
+
+    #[tokio::test]
+    async fn take_refresh_token_consumes_entry_so_replay_returns_none() {
+        let s = state();
+        let rt = issue_refresh_token(&s, "rt-client", "mcp").await;
+
+        let first = take_refresh_token(&s, &rt).await;
+        assert!(first.is_some(), "first consumption should succeed");
+
+        let second = take_refresh_token(&s, &rt).await;
+        assert!(
+            second.is_none(),
+            "consumed refresh token must not be reusable"
+        );
+    }
+
+    #[tokio::test]
+    async fn take_auth_code_returns_none_for_unknown_code() {
+        let s = state();
+        let result = take_auth_code(&s, "never-issued").await;
+        assert!(result.is_none());
+    }
 }
