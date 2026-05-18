@@ -299,6 +299,279 @@ async fn mcp_resource_templates_listed() {
 }
 
 #[tokio::test]
+async fn prompts_list_returns_four_prompts() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "prompts/list",
+            "params": {}
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let prompts = body["result"]["prompts"]
+        .as_array()
+        .unwrap_or_else(|| panic!("prompts must be array: {body}"));
+    assert_eq!(prompts.len(), 4, "expected 4 prompts: {body}");
+    let names: Vec<&str> = prompts.iter().filter_map(|p| p["name"].as_str()).collect();
+    for expected in [
+        "describe_style",
+        "suggest_cql2_filter",
+        "render_location_preview",
+        "explain_tile_metadata",
+    ] {
+        assert!(
+            names.contains(&expected),
+            "missing prompt {expected}; got {names:?}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn prompts_list_includes_describe_style_with_required_arg() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 11,
+            "method": "prompts/list",
+            "params": {}
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let prompts = body["result"]["prompts"]
+        .as_array()
+        .unwrap_or_else(|| panic!("prompts must be array: {body}"));
+    let describe = prompts
+        .iter()
+        .find(|p| p["name"] == "describe_style")
+        .unwrap_or_else(|| panic!("describe_style missing: {body}"));
+    let args = describe["arguments"]
+        .as_array()
+        .unwrap_or_else(|| panic!("arguments must be array: {describe}"));
+    let style_id_arg = args
+        .iter()
+        .find(|a| a["name"] == "style_id")
+        .unwrap_or_else(|| panic!("style_id arg missing: {describe}"));
+    assert_eq!(style_id_arg["required"], true, "style_id must be required");
+}
+
+#[tokio::test]
+async fn prompts_get_describe_style_substitutes_style_id() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "prompts/get",
+            "params": {
+                "name": "describe_style",
+                "arguments": { "style_id": "osm-bright" }
+            }
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let messages = body["result"]["messages"]
+        .as_array()
+        .unwrap_or_else(|| panic!("messages must be array: {body}"));
+    assert_eq!(messages.len(), 1, "expected one message: {body}");
+    let msg = &messages[0];
+    assert_eq!(msg["role"], "user", "role must be user");
+    assert_eq!(msg["content"]["type"], "text");
+    let text = msg["content"]["text"]
+        .as_str()
+        .unwrap_or_else(|| panic!("text missing: {msg}"));
+    assert!(
+        text.contains("osm-bright"),
+        "style_id not substituted in `{text}`"
+    );
+}
+
+#[tokio::test]
+async fn prompts_get_suggest_cql2_substitutes_both_args() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 13,
+            "method": "prompts/get",
+            "params": {
+                "name": "suggest_cql2_filter",
+                "arguments": {
+                    "table_id": "buildings",
+                    "intent": "tall structures over 100m"
+                }
+            }
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let text = body["result"]["messages"][0]["content"]["text"]
+        .as_str()
+        .unwrap_or_else(|| panic!("text missing: {body}"));
+    assert!(
+        text.contains("buildings"),
+        "table_id not substituted: {text}"
+    );
+    assert!(
+        text.contains("tall structures over 100m"),
+        "intent not substituted: {text}"
+    );
+}
+
+#[tokio::test]
+async fn prompts_get_render_location_preview_uses_zoom_default() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 14,
+            "method": "prompts/get",
+            "params": {
+                "name": "render_location_preview",
+                "arguments": { "location": "Tokyo" }
+            }
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let text = body["result"]["messages"][0]["content"]["text"]
+        .as_str()
+        .unwrap_or_else(|| panic!("text missing: {body}"));
+    assert!(text.contains("Tokyo"), "location missing: {text}");
+    assert!(text.contains("12"), "default zoom 12 missing: {text}");
+}
+
+#[tokio::test]
+async fn prompts_get_unknown_name_returns_error() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 15,
+            "method": "prompts/get",
+            "params": { "name": "ghost_prompt" }
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    assert!(
+        body.get("error").is_some(),
+        "expected JSON-RPC error for unknown prompt: {body}"
+    );
+}
+
+#[tokio::test]
+async fn prompts_get_missing_required_arg_returns_error() {
+    // Arrange
+    let server = empty_mcp_server();
+    let session_id = initialize_and_get_session_id(&server).await;
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header("mcp-session-id", &session_id)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 16,
+            "method": "prompts/get",
+            "params": {
+                "name": "describe_style",
+                "arguments": {}
+            }
+        }))
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    let err = body
+        .get("error")
+        .unwrap_or_else(|| panic!("expected error for missing required arg: {body}"));
+    assert_eq!(err["code"], -32602, "expected INVALID_PARAMS: {err}");
+}
+
+#[tokio::test]
+async fn mcp_initialize_advertises_prompts_capability() {
+    // Arrange
+    let server = empty_mcp_server();
+
+    // Act
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .json(&initialize_payload())
+        .await;
+
+    // Assert
+    resp.assert_status_ok();
+    let body = parse_sse_json(&resp.text());
+    assert!(
+        body["result"]["capabilities"]["prompts"].is_object(),
+        "prompts capability missing: {body}"
+    );
+}
+
+#[tokio::test]
 async fn mcp_bearer_auth_rejects_missing_token() {
     let shared = common::minimal_shared_state();
     let router = mcp_test_router(shared, Some("test-secret".into()));

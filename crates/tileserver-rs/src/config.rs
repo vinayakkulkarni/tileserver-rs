@@ -51,10 +51,11 @@ pub struct Config {
 /// ```toml
 /// [mcp]
 /// enabled = true
-/// auth_token = "secret"  # optional bearer token; omit to disable auth
+/// auth_token = "secret"          # optional bearer token; omit to disable auth
+/// cors_origins = ["*"]           # wildcard by default; lock down in production
 /// ```
 #[cfg(feature = "mcp")]
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 #[non_exhaustive]
 pub struct McpConfig {
@@ -63,6 +64,34 @@ pub struct McpConfig {
     /// Optional bearer token. When `Some`, requests to `/mcp` must include
     /// `Authorization: Bearer <token>`. Stdio transport never reads this.
     pub auth_token: Option<String>,
+    /// Origins allowed by the `/mcp` CORS layer.
+    ///
+    /// Defaults to `["*"]` (wildcard, preserving pre-1.0 behavior). Set
+    /// explicit origins such as `["https://claude.ai", "https://app.cursor.com"]`
+    /// to restrict access. An empty list falls back to wildcard with a warning
+    /// log; individual invalid origin strings are skipped with a `warn!` log.
+    #[serde(default = "default_mcp_cors_origins")]
+    pub cors_origins: Vec<String>,
+}
+
+/// Default CORS allow-list for the `/mcp` endpoint — wildcard.
+///
+/// Wrapped in a function rather than a const so `#[serde(default = "…")]`
+/// can reference it and the manual [`Default`] impl can reuse it.
+#[cfg(feature = "mcp")]
+fn default_mcp_cors_origins() -> Vec<String> {
+    vec!["*".to_string()]
+}
+
+#[cfg(feature = "mcp")]
+impl Default for McpConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            auth_token: None,
+            cors_origins: default_mcp_cors_origins(),
+        }
+    }
 }
 
 /// Native renderer pool configuration for server-side raster tile generation

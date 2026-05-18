@@ -124,3 +124,86 @@ async fn mcp_stdio_initialize_and_tools_list() {
     drop(reader);
     let _ = timeout(Duration::from_secs(2), server_task).await;
 }
+
+#[tokio::test]
+async fn mcp_stdio_prompts_list_works() {
+    // Arrange
+    let shared = common::minimal_shared_state();
+    let state = shared.load();
+
+    let (client_io, server_io) = tokio::io::duplex(64 * 1024);
+    let (server_reader, server_writer) = tokio::io::split(server_io);
+    let (client_reader, mut client_writer) = tokio::io::split(client_io);
+
+    let handler = McpHandler::new(Arc::clone(&state));
+    let server_task = tokio::spawn(async move {
+        let running = handler
+            .serve((server_reader, server_writer))
+            .await
+            .expect("server handshake completed");
+        let _ = running.waiting().await;
+    });
+
+    let mut reader = BufReader::new(client_reader);
+
+    let init = json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": PROTOCOL_VERSION,
+            "capabilities": {},
+            "clientInfo": { "name": "tileserver-rs-stdio-test", "version": "0.0.0" }
+        }
+    });
+    client_writer
+        .write_all(format!("{init}\n").as_bytes())
+        .await
+        .expect("write init");
+    client_writer.flush().await.expect("flush init");
+    let init_resp = read_one_line(&mut reader).await;
+    assert!(
+        init_resp["result"]["capabilities"]["prompts"].is_object(),
+        "prompts capability missing in handshake: {init_resp}"
+    );
+
+    let initialized = json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+    });
+    client_writer
+        .write_all(format!("{initialized}\n").as_bytes())
+        .await
+        .expect("write initialized");
+    client_writer.flush().await.expect("flush initialized");
+
+    // Act
+    let list = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "prompts/list",
+        "params": {}
+    });
+    client_writer
+        .write_all(format!("{list}\n").as_bytes())
+        .await
+        .expect("write prompts/list");
+    client_writer.flush().await.expect("flush prompts/list");
+
+    // Assert
+    let list_resp = read_one_line(&mut reader).await;
+    let names: Vec<String> = list_resp["result"]["prompts"]
+        .as_array()
+        .unwrap_or_else(|| panic!("prompts array missing: {list_resp}"))
+        .iter()
+        .filter_map(|p| p["name"].as_str().map(str::to_string))
+        .collect();
+    assert!(names.contains(&"describe_style".to_string()));
+    assert!(names.contains(&"suggest_cql2_filter".to_string()));
+    assert!(names.contains(&"render_location_preview".to_string()));
+    assert!(names.contains(&"explain_tile_metadata".to_string()));
+
+    drop(client_writer);
+    drop(reader);
+    let _ = timeout(Duration::from_secs(2), server_task).await;
+}

@@ -201,6 +201,7 @@ async fn main() -> anyhow::Result<()> {
         router = router.merge(mcp::mcp_router(
             shared.clone(),
             config.mcp.auth_token.clone(),
+            &config.mcp.cors_origins,
         ));
     }
 

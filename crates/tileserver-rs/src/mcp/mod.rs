@@ -23,6 +23,7 @@
 
 pub mod error;
 pub mod handlers;
+pub mod prompts;
 pub mod resources;
 pub mod transport;
 

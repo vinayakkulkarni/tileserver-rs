@@ -62,6 +62,16 @@ jobs:
             --no-default-features \
             --features "postgres,mlt"
 
+      - name: Coverage — mcp
+        run: |
+          cargo llvm-cov \
+            --no-report \
+            --lib \
+            --test route_mcp_http \
+            --test route_mcp_stdio \
+            --no-default-features \
+            --features "mcp"
+
       - name: Coverage — duckdb
         run: |
           cargo llvm-cov \

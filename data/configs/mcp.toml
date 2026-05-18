@@ -25,6 +25,15 @@ enabled = true
 # 127.0.0.1 or behind another auth layer).
 # auth_token = "replace-me-with-a-real-secret"
 
+# CORS allow-list for the /mcp endpoint. Defaults to ["*"] (wildcard) so
+# browsers and remote inspectors can hit the service out of the box. For a
+# production deployment behind a known web client, lock this down to the
+# exact origins that should be allowed:
+#   cors_origins = ["https://claude.ai", "https://app.cursor.com"]
+# Empty list and ["*"] both fall back to wildcard; invalid entries are
+# skipped with a warning at startup.
+cors_origins = ["*"]
+
 # At least one source is needed for the MCP tools to return useful results.
 # Swap the path for a real PMTiles or MBTiles file on disk.
 [[sources]]

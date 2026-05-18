@@ -18,7 +18,8 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use rmcp::ErrorData as McpError;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
-    CallToolResult, Content, ListResourceTemplatesResult, PaginatedRequestParams, ProtocolVersion,
+    CallToolResult, Content, GetPromptRequestParams, GetPromptResult, ListPromptsResult,
+    ListResourceTemplatesResult, PaginatedRequestParams, ProtocolVersion,
     ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
 };
 use rmcp::service::{NotificationContext, RequestContext, RoleServer};
@@ -27,6 +28,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::mcp::error::{tile_error_to_call_result, tool_error};
+use crate::mcp::prompts::{get_prompt, list_prompts};
 use crate::mcp::resources::{list_resource_templates, read_resource};
 use crate::reload::AppState;
 use crate::render::{ImageFormat, RenderOptions, StaticQueryParams, StaticType};
@@ -577,6 +579,7 @@ impl ServerHandler for McpHandler {
         let capabilities = ServerCapabilities::builder()
             .enable_tools()
             .enable_resources()
+            .enable_prompts()
             .build();
         ServerInfo::new(capabilities)
             .with_protocol_version(ProtocolVersion::default())
@@ -589,7 +592,9 @@ impl ServerHandler for McpHandler {
                  Use tileserver_list_sources and tileserver_list_styles to discover content. \
                  Use tileserver_render_static_map to produce preview images. \
                  Resources at tileserver://styles/{id} and tileserver://data/{id}.json mirror \
-                 the introspection tools as read-only handles.",
+                 the introspection tools as read-only handles. \
+                 Prompts (describe_style, suggest_cql2_filter, render_location_preview, \
+                 explain_tile_metadata) provide reusable scaffolds for common workflows.",
             )
     }
 
@@ -607,6 +612,22 @@ impl ServerHandler for McpHandler {
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
         read_resource(&request.uri, &self.state)
+    }
+
+    async fn list_prompts(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListPromptsResult, McpError> {
+        Ok(list_prompts())
+    }
+
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResult, McpError> {
+        get_prompt(&request)
     }
 
     async fn on_cancelled(
