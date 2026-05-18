@@ -53,6 +53,12 @@ pub struct Config {
 /// enabled = true
 /// auth_token = "secret"          # optional bearer token; omit to disable auth
 /// cors_origins = ["*"]           # wildcard by default; lock down in production
+///
+/// [mcp.oauth]                    # optional; mutually exclusive with auth_token
+/// enabled = true
+/// issuer_url = "https://tiles.example.com"
+/// signing_key_path = "/etc/tileserver/mcp-jwt-key.pem"
+/// token_ttl_secs = 3600
 /// ```
 #[cfg(feature = "mcp")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,15 +69,68 @@ pub struct McpConfig {
     pub enabled: bool,
     /// Optional bearer token. When `Some`, requests to `/mcp` must include
     /// `Authorization: Bearer <token>`. Stdio transport never reads this.
+    ///
+    /// **Mutually exclusive with `oauth.enabled = true`.**
     pub auth_token: Option<String>,
     /// Origins allowed by the `/mcp` CORS layer.
     ///
     /// Defaults to `["*"]` (wildcard, preserving pre-1.0 behavior). Set
     /// explicit origins such as `["https://claude.ai", "https://app.cursor.com"]`
     /// to restrict access. An empty list falls back to wildcard with a warning
-    /// log; individual invalid origin strings are skipped with a `warn!` log.
+    /// at startup.
     #[serde(default = "default_mcp_cors_origins")]
     pub cors_origins: Vec<String>,
+    /// OAuth 2.0 authorization server for the `/mcp` route — RFC 7591 Dynamic
+    /// Client Registration + claude.ai Custom Connector compatibility.
+    /// Mutually exclusive with [`Self::auth_token`].
+    #[serde(default)]
+    pub oauth: McpOAuthConfig,
+}
+
+/// OAuth 2.0 authorization-server configuration for the MCP HTTP transport.
+///
+/// Implements RFC 7591 (DCR) + the MCP authorization-flow spec used by
+/// claude.ai Custom Connectors. Tokens are JWTs signed with RS256 using a
+/// key loaded from disk at startup.
+///
+/// **Token store is in-memory only** — restarting the server invalidates
+/// all issued access and refresh tokens. Clients must re-authorize.
+#[cfg(feature = "mcp")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+#[non_exhaustive]
+pub struct McpOAuthConfig {
+    /// Master switch — when `false` (the default), the OAuth flow is
+    /// disabled and the optional static `auth_token` is used instead.
+    pub enabled: bool,
+    /// Issuer URL — must match the public URL the server is reachable at.
+    /// Example: `"https://tiles.example.com"`. Required when `enabled = true`.
+    pub issuer_url: Option<String>,
+    /// Path to an RSA private key (PEM PKCS#8) for signing access tokens.
+    /// Required when `enabled = true`. Generate with:
+    /// `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out mcp-jwt-key.pem`
+    pub signing_key_path: Option<std::path::PathBuf>,
+    /// Token TTL in seconds. Default `3600` (1 hour). Clamped to 86 400
+    /// (24 h) at startup.
+    #[serde(default = "default_token_ttl_secs")]
+    pub token_ttl_secs: u64,
+}
+
+#[cfg(feature = "mcp")]
+fn default_token_ttl_secs() -> u64 {
+    3600
+}
+
+#[cfg(feature = "mcp")]
+impl Default for McpOAuthConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            issuer_url: None,
+            signing_key_path: None,
+            token_ttl_secs: default_token_ttl_secs(),
+        }
+    }
 }
 
 /// Default CORS allow-list for the `/mcp` endpoint — wildcard.
@@ -90,6 +149,7 @@ impl Default for McpConfig {
             enabled: false,
             auth_token: None,
             cors_origins: default_mcp_cors_origins(),
+            oauth: McpOAuthConfig::default(),
         }
     }
 }
@@ -940,10 +1000,39 @@ impl Config {
         let content = std::fs::read_to_string(path)?;
         let content = Self::substitute_env_vars(&content);
         let config: Config = toml::from_str(&content)?;
+        config.validate()?;
         Ok(ConfigLoadMetadata {
             config,
             content_hash: Self::hash_content(&content),
         })
+    }
+
+    /// Validate cross-field invariants the type system can't enforce.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when:
+    /// - `[mcp]` enables both `auth_token` and `oauth.enabled` (mutually exclusive).
+    /// - `[mcp.oauth].enabled = true` without `issuer_url` set.
+    /// - `[mcp.oauth].enabled = true` without `signing_key_path` set.
+    pub fn validate(&self) -> anyhow::Result<()> {
+        #[cfg(feature = "mcp")]
+        {
+            if self.mcp.oauth.enabled && self.mcp.auth_token.is_some() {
+                anyhow::bail!(
+                    "cannot enable both static bearer (`[mcp].auth_token`) and OAuth (`[mcp.oauth].enabled`); pick one"
+                );
+            }
+            if self.mcp.oauth.enabled && self.mcp.oauth.issuer_url.is_none() {
+                anyhow::bail!("`[mcp.oauth].issuer_url` is required when oauth.enabled = true");
+            }
+            if self.mcp.oauth.enabled && self.mcp.oauth.signing_key_path.is_none() {
+                anyhow::bail!(
+                    "`[mcp.oauth].signing_key_path` is required when oauth.enabled = true"
+                );
+            }
+        }
+        Ok(())
     }
 
     /// Load configuration and return metadata including the content hash.

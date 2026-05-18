@@ -21,6 +21,7 @@
 
 #![deny(clippy::correctness)]
 
+pub mod auth;
 pub mod error;
 pub mod handlers;
 pub mod prompts;

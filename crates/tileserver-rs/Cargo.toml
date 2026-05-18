@@ -106,6 +106,15 @@ rmcp             = { version = "1.7", optional = true, features = ["transport-io
 schemars         = { version = "1", optional = true }
 base64           = { version = "0.22", optional = true }
 
+# OAuth 2.0 support for the MCP HTTP transport (RFC 7591 DCR + claude.ai
+# Custom Connectors). Pulled in only when both `mcp` and the operator's
+# `[mcp.oauth]` block opt into OAuth — see `src/mcp/auth.rs`. JWT access
+# tokens are signed with RS256.
+jsonwebtoken     = { version = "10", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
+askama           = { version = "0.15", optional = true }
+serde_urlencoded = { version = "0.7", optional = true }
+rsa              = { version = "0.9", optional = true, features = ["pem"] }
+
 [features]
 default = ["postgres", "raster", "mlt", "cloud", "stac"]
 frontend = ["rust-embed"]
@@ -119,7 +128,15 @@ duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
 # MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
 # and avoid pulling rmcp into every `cargo build` invocation.
-mcp = ["dep:rmcp", "dep:schemars", "dep:base64"]
+mcp = [
+  "dep:rmcp",
+  "dep:schemars",
+  "dep:base64",
+  "dep:jsonwebtoken",
+  "dep:askama",
+  "dep:serde_urlencoded",
+  "dep:rsa",
+]
 
 [dev-dependencies]
 tower            = { workspace = true }
@@ -127,6 +144,11 @@ axum-test        = { workspace = true }
 tempfile         = { workspace = true }
 insta            = { workspace = true }
 criterion        = { workspace = true }
+url              = { workspace = true }
+base64           = { version = "0.22" }
+sha2             = { workspace = true }
+serde_urlencoded = "0.7"
+jsonwebtoken     = { version = "10", default-features = false, features = ["rust_crypto", "use_pem"] }
 
 [[bench]]
 name = "mlt"

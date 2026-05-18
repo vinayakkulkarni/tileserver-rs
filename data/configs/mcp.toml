@@ -34,6 +34,22 @@ enabled = true
 # skipped with a warning at startup.
 cors_origins = ["*"]
 
+# --------------------------------------------------------------------------
+# OAuth 2.0 for claude.ai Custom Connectors (RFC 7591 DCR).
+# Mutually exclusive with `auth_token` — `Config::load` errors when both are
+# enabled. The issued token store is in-memory only; restarting the server
+# invalidates every access and refresh token.
+#
+# Generate a 2048-bit RSA key:
+#   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+#     -out /etc/tileserver-rs/mcp-jwt-key.pem
+# --------------------------------------------------------------------------
+# [mcp.oauth]
+# enabled = true
+# issuer_url = "https://tiles.example.com"
+# signing_key_path = "/etc/tileserver-rs/mcp-jwt-key.pem"
+# token_ttl_secs = 3600  # max 86 400 (24 h); larger values are clamped down
+
 # At least one source is needed for the MCP tools to return useful results.
 # Swap the path for a real PMTiles or MBTiles file on disk.
 [[sources]]

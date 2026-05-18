@@ -198,9 +198,10 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "mcp")]
     if config.mcp.enabled {
         tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
+        let auth_mode = build_mcp_auth_mode(&config.mcp)?;
         router = router.merge(mcp::mcp_router(
             shared.clone(),
-            config.mcp.auth_token.clone(),
+            auth_mode,
             &config.mcp.cors_origins,
         ));
     }
@@ -331,6 +332,33 @@ async fn main() -> anyhow::Result<()> {
     telemetry::shutdown_telemetry();
 
     Ok(())
+}
+
+#[cfg(feature = "mcp")]
+fn build_mcp_auth_mode(cfg: &config::McpConfig) -> anyhow::Result<mcp::transport::McpAuthMode> {
+    if cfg.oauth.enabled {
+        let issuer = cfg
+            .oauth
+            .issuer_url
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].issuer_url` is required"))?;
+        let key_path = cfg
+            .oauth
+            .signing_key_path
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].signing_key_path` is required"))?;
+        let state = mcp::auth::OAuthState::from_file(
+            issuer.to_string(),
+            key_path,
+            cfg.oauth.token_ttl_secs,
+        )?;
+        tracing::info!(issuer = %issuer, "MCP OAuth authorization server enabled");
+        Ok(mcp::transport::McpAuthMode::OAuth(Box::new(state)))
+    } else if let Some(token) = cfg.auth_token.clone() {
+        Ok(mcp::transport::McpAuthMode::StaticBearer(token))
+    } else {
+        Ok(mcp::transport::McpAuthMode::None)
+    }
 }
 
 fn log_auto_detect_report(report: &autodetect::AutoDetectReport) {

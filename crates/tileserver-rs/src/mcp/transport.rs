@@ -29,6 +29,7 @@ use rmcp::transport::streamable_http_server::tower::{
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
 use crate::error::{Result, TileServerError};
+use crate::mcp::auth::{OAuthState, oauth_router, validate_oauth_bearer};
 use crate::mcp::handlers::McpHandler;
 use crate::reload::{AppState, SharedState};
 
@@ -52,14 +53,28 @@ struct McpBearerToken(Arc<String>);
 ///   and logged at `warn` level. If every entry is invalid, falls back to
 ///   wildcard with a warning.
 ///
-/// When `auth_token` is `Some`, a bearer-token middleware is applied to the
-/// `/mcp` route and rejects any request whose `Authorization` header does
-/// not exactly match `Bearer <token>`.
-pub fn mcp_router(
-    shared: SharedState,
-    auth_token: Option<String>,
-    cors_origins: &[String],
-) -> Router {
+/// Authentication mode for the `/mcp` route. `auth_token` and `oauth` are
+/// mutually exclusive — config validation rejects the combination before
+/// this function is called.
+#[derive(Debug, Default)]
+#[non_exhaustive]
+pub enum McpAuthMode {
+    /// No authentication. A warning is logged at startup so operators
+    /// don't accidentally expose `/mcp` to the open internet.
+    #[default]
+    None,
+    /// Single shared bearer token compared verbatim against the
+    /// `Authorization: Bearer …` header.
+    StaticBearer(String),
+    /// Full OAuth 2.0 authorization server with RFC 7591 DCR.
+    OAuth(Box<OAuthState>),
+}
+
+/// When `auth` is [`McpAuthMode::StaticBearer`], a bearer-token middleware
+/// is applied to the `/mcp` route. When [`McpAuthMode::OAuth`], the OAuth
+/// discovery / token / register routes are also mounted at the router root
+/// and JWT validation is layered on `/mcp`.
+pub fn mcp_router(shared: SharedState, auth: McpAuthMode, cors_origins: &[String]) -> Router {
     let factory_state = shared.clone();
     let svc = StreamableHttpService::new(
         move || Ok(McpHandler::new(factory_state.load())),
@@ -69,12 +84,35 @@ pub fn mcp_router(
 
     let mut mcp = Router::new().nest_service("/mcp", svc);
 
-    if let Some(token) = auth_token {
-        let state = McpBearerToken(Arc::new(token));
-        mcp = mcp.layer(middleware::from_fn_with_state(state, bearer_auth));
+    let mut oauth_routes: Option<Router> = None;
+
+    match auth {
+        McpAuthMode::None => {
+            tracing::warn!(
+                "MCP `/mcp` is mounted without authentication. Set `[mcp].auth_token` or enable `[mcp.oauth]` before exposing this server publicly.",
+            );
+        }
+        McpAuthMode::StaticBearer(token) => {
+            let state = McpBearerToken(Arc::new(token));
+            mcp = mcp.layer(middleware::from_fn_with_state(state, bearer_auth));
+        }
+        McpAuthMode::OAuth(state) => {
+            let inner = *state;
+            mcp = mcp.layer(middleware::from_fn_with_state(
+                inner.clone(),
+                validate_oauth_bearer,
+            ));
+            oauth_routes = Some(oauth_router(inner));
+        }
     }
 
-    mcp.layer(build_cors_layer(cors_origins))
+    let merged = if let Some(routes) = oauth_routes {
+        mcp.merge(routes)
+    } else {
+        mcp
+    };
+
+    merged.layer(build_cors_layer(cors_origins))
 }
 
 /// Build a [`CorsLayer`] for the `/mcp` route from a configured origin list.
