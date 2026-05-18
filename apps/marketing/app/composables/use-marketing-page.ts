@@ -190,7 +190,7 @@ export function useMarketingPage() {
       icon: Plug,
       title: 'MCP Server',
       description:
-        'First Rust tile server with built-in Model Context Protocol. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools spanning introspection, rendering, CQL2 feature queries, and STAC search.',
+        'First Rust tile server with built-in Model Context Protocol. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
       category: 'Intelligence',
     },
   ];
