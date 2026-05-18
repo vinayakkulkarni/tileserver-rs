@@ -29,9 +29,13 @@ mod logging;
 mod telemetry;
 
 use cli::Cli;
+#[cfg(feature = "mcp")]
+use cli::Commands;
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
 use tileserver_rs::config;
+#[cfg(feature = "mcp")]
+use tileserver_rs::mcp;
 use tileserver_rs::metrics;
 use tileserver_rs::openapi;
 use tileserver_rs::reload::{
@@ -58,6 +62,14 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse_args();
+
+    #[cfg(feature = "mcp")]
+    if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
+        return run_mcp_stdio(config.clone(), *verbose).await;
+    }
+    #[cfg(not(feature = "mcp"))]
+    let _ = &cli.command;
+
     let ui_enabled = cli.ui_enabled();
     let verbose = cli.verbose;
 
@@ -184,6 +196,15 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     let mut router = Router::new().merge(routes::api_router(shared.clone()));
+
+    #[cfg(feature = "mcp")]
+    if config.mcp.enabled {
+        tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
+        router = router.merge(mcp::mcp_router(
+            shared.clone(),
+            config.mcp.auth_token.clone(),
+        ));
+    }
 
     // OpenAPI JSON endpoint (must be before SPA fallback)
     let mut openapi_spec = openapi::ApiDoc::openapi();
@@ -402,4 +423,46 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
     }
 
     (StatusCode::NOT_FOUND, "Not Found").into_response()
+}
+
+/// Run the MCP server over stdio.
+///
+/// Initializes tracing on stderr (stdout is reserved for MCP JSON-RPC),
+/// loads the configuration via the same priority chain as the HTTP server,
+/// builds an `AppState`, and hands it to [`mcp::run_stdio`] which blocks
+/// until the client disconnects.
+#[cfg(feature = "mcp")]
+async fn run_mcp_stdio(
+    config_path: Option<std::path::PathBuf>,
+    verbose: bool,
+) -> anyhow::Result<()> {
+    let filter = if verbose {
+        EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
+    } else {
+        EnvFilter::from_default_env().add_directive("tileserver_rs=info".parse()?)
+    };
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_writer(std::io::stderr)
+        .compact();
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt_layer)
+        .init();
+
+    let (config, _auto_report) = startup::load_runtime_config(config_path, None)?;
+
+    let runtime = RuntimeSettings {
+        ui_enabled: false,
+        runtime_host: config.server.host.clone(),
+        runtime_port: config.server.port,
+        public_url_override: None,
+    };
+    let state = build_app_state(&config, &runtime).await?;
+    tracing::info!(
+        sources = state.sources.len(),
+        styles = state.styles.len(),
+        "starting MCP stdio server"
+    );
+    mcp::run_stdio(Arc::new(state)).await?;
+    Ok(())
 }

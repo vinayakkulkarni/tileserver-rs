@@ -1,12 +1,18 @@
 //! CLI argument parsing via `clap` for server configuration and startup options.
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "tileserver-rs")]
 #[command(author, version, about = "A high-performance tile server for PMTiles and MBTiles", long_about = None)]
 pub struct Cli {
+    /// Optional subcommand. When omitted the binary runs the HTTP server
+    /// (default behavior). Subcommands are used for alternative entry
+    /// points like `mcp-stdio` that take control of stdin/stdout.
+    #[command(subcommand)]
+    pub command: Option<Commands>,
+
     /// Path to a tile file or directory to auto-detect sources/styles from
     #[arg(value_name = "PATH")]
     pub path: Option<PathBuf>,
@@ -38,6 +44,30 @@ pub struct Cli {
     /// Enable verbose logging
     #[arg(short, long)]
     pub verbose: bool,
+}
+
+/// Top-level subcommands.
+///
+/// New variants here must be additive: omitting `--command` MUST keep the
+/// flat HTTP-server invocation (`tileserver-rs --port 8080`) working as it
+/// has historically.
+#[derive(Subcommand, Debug)]
+#[non_exhaustive]
+pub enum Commands {
+    /// Run the MCP server over stdio (for Claude Desktop and other local
+    /// MCP clients). Reads the same config as the HTTP server but ignores
+    /// `[server]` host/port — stdin/stdout becomes the transport.
+    #[cfg(feature = "mcp")]
+    McpStdio {
+        /// Path to configuration file. When omitted, the same priority
+        /// chain used by the HTTP server applies.
+        #[arg(short, long, value_name = "FILE", env = "TILESERVER_CONFIG")]
+        config: Option<PathBuf>,
+
+        /// Enable verbose logging on stderr (stdout is reserved for MCP).
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 impl Cli {

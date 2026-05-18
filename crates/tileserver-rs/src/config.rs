@@ -35,6 +35,34 @@ pub struct Config {
     /// Global in-process tile cache
     #[serde(default)]
     pub cache: CacheConfig,
+    /// Model Context Protocol (MCP) server configuration.
+    ///
+    /// Only present when the binary is compiled with `--features mcp`.
+    /// When enabled, the HTTP server mounts a Streamable HTTP MCP service at
+    /// `/mcp` for AI assistants (Cursor, Claude Desktop via mcp-remote, MCP
+    /// Inspector). Stdio mode is reached via the `mcp-stdio` subcommand.
+    #[serde(default)]
+    #[cfg(feature = "mcp")]
+    pub mcp: McpConfig,
+}
+
+/// MCP server configuration block.
+///
+/// ```toml
+/// [mcp]
+/// enabled = true
+/// auth_token = "secret"  # optional bearer token; omit to disable auth
+/// ```
+#[cfg(feature = "mcp")]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+#[non_exhaustive]
+pub struct McpConfig {
+    /// Whether to mount the `/mcp` Streamable HTTP service on the main listener.
+    pub enabled: bool,
+    /// Optional bearer token. When `Some`, requests to `/mcp` must include
+    /// `Authorization: Bearer <token>`. Stdio transport never reads this.
+    pub auth_token: Option<String>,
 }
 
 /// Native renderer pool configuration for server-side raster tile generation

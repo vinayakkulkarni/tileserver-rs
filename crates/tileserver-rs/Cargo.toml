@@ -95,6 +95,17 @@ geo              = { workspace = true, optional = true }
 # DuckDB support (optional)
 duckdb           = { workspace = true, optional = true }
 
+# MCP (Model Context Protocol) server support (optional)
+#
+# Pulls rmcp with its `default` features (base64 + macros + server, where
+# `server` itself enables `dep:schemars` for JSON Schema generation) plus
+# the two transports we expose: stdio (`transport-io`) for local clients
+# like Claude Desktop and Streamable HTTP for remote clients (Cursor, MCP
+# Inspector, claude.ai via mcp-remote bridges).
+rmcp             = { version = "1.7", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
+schemars         = { version = "1", optional = true }
+base64           = { version = "0.22", optional = true }
+
 [features]
 default = ["postgres", "raster", "mlt", "cloud", "stac"]
 frontend = ["rust-embed"]
@@ -106,6 +117,9 @@ mlt = ["mlt-core", "dep:prost", "geo-types"]
 geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast", "dep:geo", "dep:prost"]
 duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
+# MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
+# and avoid pulling rmcp into every `cargo build` invocation.
+mcp = ["dep:rmcp", "dep:schemars", "dep:base64"]
 
 [dev-dependencies]
 tower            = { workspace = true }

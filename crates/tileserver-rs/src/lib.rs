@@ -8,6 +8,8 @@ pub mod cache;
 pub mod cache_control;
 pub mod config;
 pub mod error;
+#[cfg(feature = "mcp")]
+pub mod mcp;
 pub mod metrics;
 pub mod openapi;
 #[cfg(feature = "raster")]

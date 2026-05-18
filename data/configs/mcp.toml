@@ -1,0 +1,42 @@
+# tileserver-rs MCP (Model Context Protocol) example configuration.
+#
+# Enable the `mcp` feature on build to use this:
+#   cargo run --features mcp -- --config data/configs/mcp.toml
+#
+# This boots the regular HTTP tile server and additionally mounts a
+# Streamable HTTP MCP service at /mcp on the same listener. Local clients
+# (Claude Desktop) should use the `mcp-stdio` subcommand instead:
+#   cargo run --features mcp -- mcp-stdio --config data/configs/mcp.toml
+
+[server]
+host = "127.0.0.1"
+port = 8080
+cors_origins = ["*"]
+
+[mcp]
+# Mount the Streamable HTTP MCP service at /mcp. Required for Cursor / MCP
+# Inspector / mcp-remote bridges. Stdio mode (`mcp-stdio` subcommand) does
+# not depend on this flag.
+enabled = true
+
+# Optional bearer token. When set, requests to /mcp must include:
+#   Authorization: Bearer <token>
+# Leave commented out to disable HTTP auth (acceptable when bound to
+# 127.0.0.1 or behind another auth layer).
+# auth_token = "replace-me-with-a-real-secret"
+
+# At least one source is needed for the MCP tools to return useful results.
+# Swap the path for a real PMTiles or MBTiles file on disk.
+[[sources]]
+id = "openmaptiles"
+type = "pmtiles"
+path = "/data/tiles/openmaptiles.pmtiles"
+name = "OpenMapTiles"
+attribution = "© OpenMapTiles © OpenStreetMap contributors"
+
+# Optional: register a style so tileserver_render_static_map has something
+# to draw. The style.json should reference /data/openmaptiles via the
+# inline tile URL pattern (the server rewrites relative URLs at runtime).
+# [[styles]]
+# id = "osm-bright"
+# path = "/data/styles/osm-bright/style.json"
