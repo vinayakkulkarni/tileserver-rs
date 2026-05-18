@@ -67,8 +67,6 @@ async fn main() -> anyhow::Result<()> {
     if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
         return run_mcp_stdio(config.clone(), *verbose).await;
     }
-    #[cfg(not(feature = "mcp"))]
-    let _ = &cli.command;
 
     let ui_enabled = cli.ui_enabled();
     let verbose = cli.verbose;

@@ -11,6 +11,7 @@ pub struct Cli {
     /// (default behavior). Subcommands are used for alternative entry
     /// points like `mcp-stdio` that take control of stdin/stdout.
     #[command(subcommand)]
+    #[cfg_attr(not(feature = "mcp"), allow(dead_code))]
     pub command: Option<Commands>,
 
     /// Path to a tile file or directory to auto-detect sources/styles from
