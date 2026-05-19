@@ -1,7 +1,32 @@
 # CLAUDE.md - Tileserver RS Development Guide
 
 > **For AI Assistants (Claude Code, Cursor, etc.)**
-> This file helps AI understand the codebase architecture, conventions, and best practices for tileserver-rs.
+> This file is the single source of truth for tileserver-rs frontend + backend conventions. When this file conflicts with `.claude/skills/`, **this file wins**.
+
+---
+
+## Skills Integration & Priority
+
+The frontend uses **vue-best-practices**, **nuxt-best-practices**, and **nuxt-seo-best-practices** skills from `.claude/skills/`. The backend uses **rust-skills** (179 rules). These provide generic guidelines.
+
+**Priority rule: This CLAUDE.md ALWAYS takes precedence over generic skills when they conflict.**
+
+### Known Conflicts (CLAUDE.md wins)
+
+| Skill Says                                            | CLAUDE.md Says (Use This)                                                            |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Use `useFetch`/`useAsyncData` for data fetching       | Use **TanStack Query** with `$fetch` abstracted to `app/utils/api/` — see Rule #12   |
+| Use Pinia for state management                        | Use **`useState`** for global state (SSR-safe, no provider wrapper needed)           |
+| Use `provide/inject` for deep prop drilling           | Use **`useState`** for global state                                                  |
+| Composable subfolder barrel exports (`auth/index.ts`) | **No barrels in auto-imported dirs** (`server/utils`, `shared/utils`) — see Rule #14 |
+| `useQuery`/`useMutation` direct in components         | Wrap inside `app/utils/api/<feature>/*.{query,mutation}.ts` — see Rule #12           |
+
+### What Skills Add (Not in CLAUDE.md)
+
+- **Reactivity**: `ref` vs `reactive`, `toRefs`, `shallowRef`, `toRaw` for large data
+- **Performance**: `v-once`, `v-memo`, `defineAsyncComponent`, `KeepAlive`
+- **Templates**: `v-show` vs `v-if`, proper `:key` usage, avoid `v-if` + `v-for`
+- **Composition API**: Single-responsibility composables, return refs not reactive objects
 
 ---
 
@@ -379,6 +404,177 @@ await uploadMutation.mutateAsync(file);
 1. Add the version to the appropriate catalog in root `package.json`
 2. Reference it as `"catalog:client"` (or `"catalog:default"`) in the workspace package
 3. Run `pnpm install` to verify resolution
+
+### 🚨 Rule #14: NEVER Create Barrel Exports in Auto-Imported Directories
+
+**Nuxt auto-imports from `app/components/`, `app/composables/`, and `app/utils/`. Adding `index.ts` barrels in these dirs causes duplicate-import warnings at build time.**
+
+```typescript
+// ❌ WRONG - app/composables/auth/index.ts
+export { useAuthSession } from './use-auth-session';
+// Nuxt already auto-imports use-auth-session.ts; the barrel re-exports
+// it under a second path → duplicate import warning.
+
+// ✅ CORRECT - no index.ts in the subfolder
+// app/composables/auth/use-auth-session.ts
+export function useAuthSession() { ... }
+// Auto-import: import { useAuthSession } from '#imports'; just works.
+```
+
+**Where barrel exports ARE needed:**
+
+- `app/types/index.ts` — Helpful for organizing types (not auto-imported)
+- `app/utils/api/<feature>/index.ts` — Co-locates queries + mutations for explicit import
+- `app/utils/query-keys/index.ts` — Re-exports query key constants
+
+**Where barrel exports are FORBIDDEN:**
+
+- `app/composables/<feature>/index.ts` — duplicate-import warning
+- `app/components/<feature>/index.ts` — duplicate-component warning
+
+### 🚨 Rule #15: Vue Emits MUST Use kebab-case — ALWAYS
+
+**All Vue component emits MUST use kebab-case consistently across `defineEmits`, `emit()` calls, and template event handlers.**
+
+```vue
+<!-- ❌ WRONG - camelCase -->
+<script setup>
+const emit = defineEmits<{
+  toggleVisibility: [id: string, visible: boolean]; // NO!
+}>();
+emit('toggleVisibility', id, true); // NO!
+</script>
+
+<!-- ✅ CORRECT - kebab-case everywhere -->
+<script setup>
+const emit = defineEmits<{
+  'toggle-visibility': [id: string, visible: boolean];
+}>();
+emit('toggle-visibility', id, true);
+</script>
+
+<template>
+  <ChildComponent @toggle-visibility="handleToggleVisibility" />
+</template>
+```
+
+**The pattern:**
+
+| Location           | Format                  | Example                       |
+| ------------------ | ----------------------- | ----------------------------- |
+| `defineEmits` type | `'kebab-case'` (quoted) | `'toggle-visibility': [...]`  |
+| `emit()` call      | `'kebab-case'`          | `emit('toggle-visibility')`   |
+| Template `@event`  | `@kebab-case`           | `@toggle-visibility="..."`    |
+
+**Why?** Matches HTML attribute conventions, makes event names grep-able across templates and scripts.
+
+### 🚨 Rule #16: Composables Calling Other Composables MUST Use Direct Imports
+
+**When a composable calls another composable, use direct relative imports, NOT Nuxt's auto-import — auto-import creates circular dependency warnings at build time.**
+
+```typescript
+// ❌ WRONG - app/composables/use-dashboard.ts (auto-import inside composable)
+export function useDashboard() {
+  const { styles } = useMapStyles(); // auto-imported → cycle
+}
+
+// ✅ CORRECT - direct relative import
+import { useMapStyles } from './use-map-styles';
+export function useDashboard() {
+  const { styles } = useMapStyles();
+}
+```
+
+**Why?** When composables auto-import each other, Rollup detects the cycle: `composable A` → `auto-import resolver` → `composables/index.ts` → `composable A`. Vue components SHOULD still use auto-import (that's what auto-import is for). Only composables-calling-composables need direct imports.
+
+### 🚨 Rule #17: NEVER Use Inline `import()` in Type Annotations
+
+**Always use top-level `import type` statements. NEVER inline `import('...')` syntax.**
+
+```typescript
+// ❌ WRONG - inline import in type annotation
+export interface ApiErrorData {
+  style?: import('~/types/style').Style; // NO!
+}
+export interface SomeProps {
+  iconComponents: Record<string, import('vue').Component>; // NO!
+}
+
+// ✅ CORRECT - top-level import type
+import type { Style } from '~/types/style';
+import type { Component } from 'vue';
+
+export interface ApiErrorData {
+  style?: Style;
+}
+export interface SomeProps {
+  iconComponents: Record<string, Component>;
+}
+```
+
+**Why?** Inline `import()` types bypass the project's import organization, defeat tree-shaking analysis, and make refactors error-prone (renames don't propagate). Top-level `import type` statements are erased at compile time — zero runtime cost.
+
+### 🚨 Rule #18: Use Zod v4 Syntax — NEVER Zod 3 Deprecated Patterns
+
+**If/when Zod is added to the project, use Zod v4.3+ syntax. Old `z.string().email()`-style validators are deprecated.**
+
+```typescript
+// ❌ WRONG - Zod 3 string method validators (deprecated)
+z.string().url();
+z.string().email();
+z.string().uuid();
+z.string().datetime();
+z.string().min(5, { message: 'Too short' });
+
+// ✅ CORRECT - Zod 4 top-level validators + `error` key
+z.url();
+z.email();
+z.uuid();
+z.iso.datetime();
+z.string().min(5, { error: 'Too short' });
+
+// ✅ STILL OK - string shorthand
+z.string().min(5, 'Too short');
+```
+
+| Zod 3 (Deprecated)            | Zod 4 (Correct)             |
+| ----------------------------- | --------------------------- |
+| `z.string().url()`            | `z.url()`                   |
+| `z.string().email()`          | `z.email()`                 |
+| `z.string().uuid()`           | `z.uuid()`                  |
+| `z.string().datetime()`       | `z.iso.datetime()`          |
+| `{ message: '...' }`          | `{ error: '...' }`          |
+
+### 🚨 Rule #19: Pinned Visual Direction — Direction I (Linear Density v2) for `/admin/*`
+
+**Admin UI is locked to "Direction I" — Linear-density-v2 dark+violet OKLch palette, table-density layout, sharp corners (radius: 0), violet accent.** Every admin page, component, and styling change MUST follow it. The home page / map viewer continue to use the existing light+blue HSL tokens.
+
+**Before writing ANY admin page or styling code:**
+
+1. **Load `~/.claude/skills/design-discipline/`** — the global anti-slop baseline (10 hard rules, banned fonts/colors, distinctive moments)
+2. **Use ONLY tokens** from `.admin-theme` in `apps/client/app/assets/css/tailwind.css` — never raw hex, never Tailwind default colors, never pure `#fff`/`#000`
+3. **Run the 5-dimensional self-critique** before declaring work complete — see `~/.claude/skills/design-discipline/references/critique.md`
+
+**Direction I token highlights:**
+
+| Token                | Value                                | Notes                                                       |
+| -------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| `--color-background` | `oklch(0.18 0.012 270)`              | Near-black, warm-cool hue                                   |
+| `--color-foreground` | `oklch(0.96 0.005 270)`              | Near-white                                                  |
+| `--color-primary`    | `oklch(0.65 0.22 295)`               | Violet — the ONE accent                                     |
+| `--color-border`     | `oklch(0.32 0.01 270)`               | Thin neutral border                                         |
+| Radius               | `0` (global `--radius-*: 0`)         | Sharp corners; NEVER add `rounded-*` classes on admin pages |
+
+**Forbidden in `/admin/*`:**
+
+- Inter, Roboto, Poppins (banned per design-discipline)
+- Tailwind default color classes (`bg-blue-600`, `text-zinc-500`, etc.)
+- `#000` / `#fff` pure black/white — use OKLch shades
+- Gradient text headlines
+- `rounded-*` classes (radius is 0 — direction-I locks sharp corners)
+- Mixing the public viewer's light+blue HSL tokens with admin tokens
+
+**Activation:** the `admin.vue` layout adds `class="admin-theme"` on its root — the OKLch overlay applies to all descendants. Outside that scope, the existing HSL tokens win.
 
 ---
 
