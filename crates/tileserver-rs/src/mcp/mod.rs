@@ -29,6 +29,7 @@ use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitEx
 use crate::reload::{RuntimeSettings, build_app_state};
 use crate::startup;
 
+pub mod admin_routes;
 pub mod auth;
 pub mod auth_store;
 #[cfg(feature = "mcp-persistence")]

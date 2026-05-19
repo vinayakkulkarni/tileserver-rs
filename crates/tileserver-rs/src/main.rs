@@ -196,15 +196,23 @@ async fn main() -> anyhow::Result<()> {
     let mut router = Router::new().merge(routes::api_router(shared.clone()));
 
     #[cfg(feature = "mcp")]
-    if config.mcp.enabled {
-        tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
-        let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
-        router = router.merge(mcp::mcp_router(
-            shared.clone(),
-            auth_mode,
-            &config.mcp.cors_origins,
-        ));
-    }
+    let mcp_oauth_store: Option<std::sync::Arc<dyn mcp::auth_store::OAuthBackend>> =
+        if config.mcp.enabled {
+            tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
+            let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
+            let oauth_store = match &auth_mode {
+                mcp::transport::McpAuthMode::OAuth(state) => Some(state.store.clone()),
+                _ => None,
+            };
+            router = router.merge(mcp::mcp_router(
+                shared.clone(),
+                auth_mode,
+                &config.mcp.cors_origins,
+            ));
+            oauth_store
+        } else {
+            None
+        };
 
     // OpenAPI JSON endpoint (must be before SPA fallback)
     let mut openapi_spec = openapi::ApiDoc::openapi();
@@ -274,8 +282,16 @@ async fn main() -> anyhow::Result<()> {
     if admin_bind != "127.0.0.1:0" {
         let admin_addr: SocketAddr = admin_bind.parse()?;
         let admin_shared = shared.clone();
+        #[cfg(feature = "mcp")]
+        let admin_oauth_store = mcp_oauth_store.clone();
         tokio::spawn(async move {
-            let admin_app = admin::admin_router(admin_shared);
+            #[allow(unused_mut)]
+            let mut admin_app = admin::admin_router(admin_shared);
+            #[cfg(feature = "mcp")]
+            if let Some(store) = admin_oauth_store {
+                admin_app = admin_app.merge(mcp::admin_routes::admin_router(store));
+                tracing::info!("MCP admin OAuth routes mounted at /__admin/oauth/*");
+            }
             tracing::info!("Admin server listening on http://{}", admin_addr);
             match TcpListener::bind(admin_addr).await {
                 Ok(admin_listener) => {

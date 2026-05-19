@@ -64,10 +64,10 @@ jobs:
 
       - name: Coverage — mcp
         # IMPORTANT: list EVERY mcp integration test file here. cargo-llvm-cov
-        # only instruments tests it knows about, so omitting `route_mcp_oauth`
-        # or `route_mcp_handlers` silently drops their contribution and codecov
-        # under-reports auth.rs / handlers.rs by 30+ points each. Add new
-        # tests/route_mcp_*.rs files to this list when you create them.
+        # only instruments tests it knows about, so omitting any mcp test file
+        # silently drops its contribution and codecov under-reports the matching
+        # source module by 30+ points. Add new tests/route_mcp_*.rs and
+        # tests/route_admin_oauth*.rs files to this list when you create them.
         run: |
           cargo llvm-cov \
             --no-report \
@@ -76,8 +76,22 @@ jobs:
             --test route_mcp_stdio \
             --test route_mcp_oauth \
             --test route_mcp_handlers \
+            --test route_admin_oauth \
             --no-default-features \
             --features "mcp"
+
+      - name: Coverage — mcp + mcp-persistence (SQLite OAuth backend)
+        # mcp-persistence activates the SqliteStore branch in src/mcp/auth_store_sqlite.rs.
+        # The sqlite-only tests inside route_admin_oauth.rs are gated on
+        # #[cfg(feature = "mcp-persistence")], so this is the only step that
+        # exercises that code path. Omitting it drops sqlite store coverage to 0%.
+        run: |
+          cargo llvm-cov \
+            --no-report \
+            --lib \
+            --test route_admin_oauth \
+            --no-default-features \
+            --features "mcp,mcp-persistence"
 
       - name: Coverage — duckdb
         run: |
