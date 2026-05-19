@@ -486,9 +486,23 @@ async fn get_tile_returns_tile_not_found_when_source_has_no_data() {
 }
 
 // ============================================================
-// tileserver_query_features_at_point — postgres feature absent
+// tileserver_query_features_at_point + query_features_cql2
+//
+// These tools have two compile-time shapes:
+//
+//   --features postgres  → tool is wired to PostGIS, returns "source
+//                          not found" for unknown ids, real GeoJSON for
+//                          known ones.
+//   no postgres feature → tool short-circuits with a "postgres feature
+//                          not compiled" error.
+//
+// We test BOTH shapes via `#[cfg]` gating so each test runs only in
+// the config it was authored against. Without gating, CI configurations
+// (postgres+mlt, all-features) would fail the "feature absent" tests
+// because postgres IS compiled there.
 // ============================================================
 
+#[cfg(not(feature = "postgres"))]
 #[tokio::test]
 async fn query_features_at_point_errors_without_postgres_feature() {
     let server = server_for(common::minimal_shared_state());
@@ -515,6 +529,34 @@ async fn query_features_at_point_errors_without_postgres_feature() {
     );
 }
 
+#[cfg(feature = "postgres")]
+#[tokio::test]
+async fn query_features_at_point_errors_for_unknown_source_with_postgres() {
+    let server = server_for(common::minimal_shared_state());
+    let session = initialize_session(&server).await;
+
+    let body = call_tool(
+        &server,
+        &session,
+        "tileserver_query_features_at_point",
+        json!({
+            "source_id": "no-such-source",
+            "lon": 0.0, "lat": 0.0
+        }),
+    )
+    .await;
+
+    assert!(
+        is_error(&body),
+        "expected isError for unknown source: {body}"
+    );
+    assert!(
+        first_text(&body).contains("not found"),
+        "expected source-not-found error: {body}"
+    );
+}
+
+#[cfg(not(feature = "postgres"))]
 #[tokio::test]
 async fn query_features_cql2_errors_without_postgres_feature() {
     let server = server_for(common::minimal_shared_state());
@@ -538,6 +580,31 @@ async fn query_features_cql2_errors_without_postgres_feature() {
     );
 }
 
+#[cfg(feature = "postgres")]
+#[tokio::test]
+async fn query_features_cql2_errors_for_unknown_source_with_postgres() {
+    let server = server_for(common::minimal_shared_state());
+    let session = initialize_session(&server).await;
+
+    let body = call_tool(
+        &server,
+        &session,
+        "tileserver_query_features_cql2",
+        json!({ "source_id": "no-such-source", "cql2": "1=1" }),
+    )
+    .await;
+
+    assert!(
+        is_error(&body),
+        "expected isError for unknown source: {body}"
+    );
+    assert!(
+        first_text(&body).contains("not found"),
+        "expected source-not-found error: {body}"
+    );
+}
+
+#[cfg(not(feature = "stac"))]
 #[tokio::test]
 async fn search_stac_items_errors_without_stac_feature() {
     let server = server_for(common::minimal_shared_state());
@@ -555,6 +622,30 @@ async fn search_stac_items_errors_without_stac_feature() {
     assert!(
         first_text(&body).contains("stac"),
         "expected stac-related error: {body}"
+    );
+}
+
+#[cfg(feature = "stac")]
+#[tokio::test]
+async fn search_stac_items_errors_for_unknown_source_with_stac() {
+    let server = server_for(common::minimal_shared_state());
+    let session = initialize_session(&server).await;
+
+    let body = call_tool(
+        &server,
+        &session,
+        "tileserver_search_stac_items",
+        json!({ "source_id": "no-such-source" }),
+    )
+    .await;
+
+    assert!(
+        is_error(&body),
+        "expected isError for unknown source: {body}"
+    );
+    assert!(
+        first_text(&body).contains("not found"),
+        "expected source-not-found error: {body}"
     );
 }
 
