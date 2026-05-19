@@ -57,7 +57,7 @@ catalogs:
     clsx: ^2.1.1
     eslint: ^10.4.0
     eslint-plugin-better-tailwindcss: ^4.5.0
-    eslint-plugin-oxlint: ^1.65.0
+    eslint-plugin-oxlint: ^1.66.0
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.0.5
@@ -66,7 +66,7 @@ catalogs:
     motion-v: ^2.2.1
     nuxt: ^4.4.5
     oxfmt: ^0.50.0
-    oxlint: ^1.65.0
+    oxlint: ^1.66.0
     radix-vue: ^1.9.17
     reka-ui: ^2.9.7
     shadcn-nuxt: ^2.7.3
