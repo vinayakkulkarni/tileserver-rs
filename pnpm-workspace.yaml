@@ -64,7 +64,7 @@ catalogs:
     '@lucide/vue': ^1.16.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.2.1
-    nuxt: ^4.4.5
+    nuxt: ^4.4.6
     oxfmt: ^0.51.0
     oxlint: ^1.66.0
     radix-vue: ^1.9.17
