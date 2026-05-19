@@ -63,12 +63,19 @@ jobs:
             --features "postgres,mlt"
 
       - name: Coverage — mcp
+        # IMPORTANT: list EVERY mcp integration test file here. cargo-llvm-cov
+        # only instruments tests it knows about, so omitting `route_mcp_oauth`
+        # or `route_mcp_handlers` silently drops their contribution and codecov
+        # under-reports auth.rs / handlers.rs by 30+ points each. Add new
+        # tests/route_mcp_*.rs files to this list when you create them.
         run: |
           cargo llvm-cov \
             --no-report \
             --lib \
             --test route_mcp_http \
             --test route_mcp_stdio \
+            --test route_mcp_oauth \
+            --test route_mcp_handlers \
             --no-default-features \
             --features "mcp"
 
