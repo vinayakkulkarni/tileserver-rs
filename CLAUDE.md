@@ -545,36 +545,39 @@ z.string().min(5, 'Too short');
 | `z.string().datetime()`       | `z.iso.datetime()`          |
 | `{ message: '...' }`          | `{ error: '...' }`          |
 
-### 🚨 Rule #19: Pinned Visual Direction — Direction I (Linear Density v2) for `/admin/*`
+### 🚨 Rule #19: Pinned Visual Direction — Direction I (Linear Density v2) for ALL of `apps/client/`
 
-**Admin UI is locked to "Direction I" — Linear-density-v2 dark+violet OKLch palette, table-density layout, sharp corners (radius: 0), violet accent.** Every admin page, component, and styling change MUST follow it. The home page / map viewer continue to use the existing light+blue HSL tokens.
+**The ENTIRE Nuxt client — public viewer (`/`, `/styles/*`, `/data/*`) AND admin (`/admin/*`) — is locked to "Direction I" — Linear-density-v2 OKLch palette, table-density layout, sharp corners (radius: 0), violet accent.** Every page, component, and styling change MUST follow it.
 
-**Before writing ANY admin page or styling code:**
+The public viewer keeps light + dark color modes (daytime map use needs a light variant). Both modes use OKLch derivatives of the same direction-I palette so light/dark/admin all share visual continuity. The `/admin/*` pages force the dark variant regardless of viewer toggle (via `.admin-theme` class on the layout root) because they're an operator console — light mode is wrong for them.
+
+**Before writing ANY page or styling code:**
 
 1. **Load `~/.claude/skills/design-discipline/`** — the global anti-slop baseline (10 hard rules, banned fonts/colors, distinctive moments)
-2. **Use ONLY tokens** from `.admin-theme` in `apps/client/app/assets/css/tailwind.css` — never raw hex, never Tailwind default colors, never pure `#fff`/`#000`
+2. **Use ONLY semantic tokens** from `apps/client/app/assets/css/tailwind.css` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, `border-border`, `bg-success`, `bg-destructive`) — never raw hex, never Tailwind default colors, never pure `#fff`/`#000`
 3. **Run the 5-dimensional self-critique** before declaring work complete — see `~/.claude/skills/design-discipline/references/critique.md`
 
-**Direction I token highlights:**
+**Direction I token highlights (light + dark + admin overlay):**
 
-| Token                | Value                                | Notes                                                       |
-| -------------------- | ------------------------------------ | ----------------------------------------------------------- |
-| `--color-background` | `oklch(0.18 0.012 270)`              | Near-black, warm-cool hue                                   |
-| `--color-foreground` | `oklch(0.96 0.005 270)`              | Near-white                                                  |
-| `--color-primary`    | `oklch(0.65 0.22 295)`               | Violet — the ONE accent                                     |
-| `--color-border`     | `oklch(0.32 0.01 270)`               | Thin neutral border                                         |
-| Radius               | `0` (global `--radius-*: 0`)         | Sharp corners; NEVER add `rounded-*` classes on admin pages |
+| Token                | Light                              | Dark / Admin                        |
+| -------------------- | ---------------------------------- | ----------------------------------- |
+| `--color-background` | `oklch(0.985 0.004 270)`           | `oklch(0.18 0.012 270)`             |
+| `--color-foreground` | `oklch(0.2 0.012 270)`             | `oklch(0.96 0.005 270)`             |
+| `--color-primary`    | `oklch(0.55 0.22 295)`             | `oklch(0.65 0.22 295)` — violet     |
+| `--color-success`    | `oklch(0.62 0.16 162)` — emerald   | `oklch(0.72 0.18 162)` — emerald    |
+| `--color-destructive`| `oklch(0.62 0.22 25)` — warm red   | `oklch(0.62 0.22 25)`               |
+| Radius               | `0` everywhere (`--radius-*: 0`)   | `0` — NEVER add `rounded-*` classes |
 
-**Forbidden in `/admin/*`:**
+**Forbidden anywhere in `apps/client/`:**
 
-- Inter, Roboto, Poppins (banned per design-discipline)
-- Tailwind default color classes (`bg-blue-600`, `text-zinc-500`, etc.)
+- Inter, Roboto, Poppins, Outfit, Sora, Lato, Open Sans (banned per design-discipline)
+- Tailwind default color classes (`bg-blue-600`, `text-zinc-500`, `text-green-500`, `bg-emerald-*`, `text-slate-*`, etc.)
+- Raw hex / HSL outside the `@theme` and `.dark` blocks
 - `#000` / `#fff` pure black/white — use OKLch shades
-- Gradient text headlines
-- `rounded-*` classes (radius is 0 — direction-I locks sharp corners)
-- Mixing the public viewer's light+blue HSL tokens with admin tokens
+- Gradient text headlines (`bg-clip-text` + `bg-gradient-to-*`)
+- `rounded-*` classes (radius is 0 — direction-I locks sharp corners; the class is dead weight + a violation)
 
-**Activation:** the `admin.vue` layout adds `class="admin-theme"` on its root — the OKLch overlay applies to all descendants. Outside that scope, the existing HSL tokens win.
+**Why one direction across both viewer + admin?** Earlier the public viewer used HSL + Tailwind-default-blue while admin used OKLch + violet — two parallel palettes drifting apart. Direction I is now the canonical, single-source palette; light mode is a perceptually-uniform desaturation, dark mode and admin share identical tokens.
 
 ---
 

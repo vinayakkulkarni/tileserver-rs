@@ -42,9 +42,9 @@
 
     <div
       v-if="isLoading"
-      class="flex size-full items-center justify-center bg-slate-100 dark:bg-slate-900"
+      class="flex size-full items-center justify-center bg-muted"
     >
-      <span class="text-slate-500 dark:text-slate-400"> Loading style... </span>
+      <span class="text-muted-foreground"> Loading style... </span>
     </div>
 
     <div

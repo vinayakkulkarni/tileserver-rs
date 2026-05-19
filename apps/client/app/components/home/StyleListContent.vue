@@ -36,7 +36,7 @@
     </div>
     <div v-else-if="!hasStyles" class="py-12 text-center">
       <div
-        class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-muted/50"
+        class="mx-auto mb-4 flex size-16 items-center justify-center bg-muted/50"
       >
         <Palette class="size-8 text-muted-foreground" />
       </div>

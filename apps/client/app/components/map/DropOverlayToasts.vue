@@ -31,13 +31,13 @@
   <Transition name="slide-up">
     <div
       v-if="showSuccess"
-      class="absolute bottom-6 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-start gap-3 border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 shadow-lg backdrop-blur-sm"
+      class="absolute bottom-6 left-1/2 z-50 flex max-w-md -translate-x-1/2 items-start gap-3 border border-success/30 bg-success/10 px-4 py-3 shadow-lg backdrop-blur-sm"
     >
       <CheckCircle2
-        class="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+        class="mt-0.5 size-4 shrink-0 text-success"
       />
       <div class="min-w-0">
-        <p class="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+        <p class="text-sm font-medium text-success">
           Loaded {{ success?.fileName }}
         </p>
         <p class="mt-0.5 text-xs text-muted-foreground">

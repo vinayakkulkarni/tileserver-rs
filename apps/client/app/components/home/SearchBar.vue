@@ -24,7 +24,7 @@
     <Input
       :model-value="modelValue"
       placeholder="Search styles and data sources..."
-      class="h-11 rounded-xl border-border/50 bg-muted/30 pl-11 transition-all focus:bg-background"
+      class="h-11 border-border/50 bg-muted/30 pl-11 transition-all focus:bg-background"
       @update:model-value="$emit('update:modelValue', $event)"
     />
   </motion.div>

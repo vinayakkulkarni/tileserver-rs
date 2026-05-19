@@ -9,25 +9,30 @@
   --font-display: 'General Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
 
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(224 71% 4%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(224 71% 4%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(224 71% 4%);
-  --color-primary: hsl(220 90% 56%);
-  --color-primary-foreground: hsl(210 20% 98%);
-  --color-secondary: hsl(220 14% 96%);
-  --color-secondary-foreground: hsl(220 9% 46%);
-  --color-muted: hsl(220 14% 96%);
-  --color-muted-foreground: hsl(220 9% 46%);
-  --color-accent: hsl(220 14% 96%);
-  --color-accent-foreground: hsl(220 9% 46%);
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(210 20% 98%);
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(224 71% 4%);
+  /* Light surfaces — warm off-white, NEVER #fff; warm-cool 270 hue stays
+     consistent with the dark/admin palette for cross-mode visual continuity. */
+  --color-background: oklch(0.985 0.004 270);
+  --color-foreground: oklch(0.2 0.012 270);
+  --color-card: oklch(0.99 0.003 270);
+  --color-card-foreground: oklch(0.2 0.012 270);
+  --color-popover: oklch(0.99 0.003 270);
+  --color-popover-foreground: oklch(0.2 0.012 270);
+  --color-primary: oklch(0.55 0.22 295);
+  --color-primary-foreground: oklch(0.98 0.005 270);
+  --color-secondary: oklch(0.96 0.006 270);
+  --color-secondary-foreground: oklch(0.42 0.012 270);
+  --color-muted: oklch(0.96 0.006 270);
+  --color-muted-foreground: oklch(0.5 0.012 270);
+  --color-accent: oklch(0.93 0.012 295);
+  --color-accent-foreground: oklch(0.3 0.018 295);
+  --color-destructive: oklch(0.62 0.22 25);
+  --color-destructive-foreground: oklch(0.98 0.005 270);
+  --color-success: oklch(0.62 0.16 162);
+  --color-success-foreground: oklch(0.98 0.005 270);
+  --color-border: oklch(0.9 0.006 270);
+  --color-input: oklch(0.9 0.006 270);
+  --color-ring: oklch(0.55 0.22 295);
+
   --radius-lg: 0;
   --radius-md: 0;
   --radius-sm: 0;
@@ -73,25 +78,27 @@
 }
 
 .dark {
-  --color-background: hsl(0 0% 0%);
-  --color-foreground: hsl(0 0% 95%);
-  --color-card: hsl(0 0% 4%);
-  --color-card-foreground: hsl(0 0% 95%);
-  --color-popover: hsl(0 0% 4%);
-  --color-popover-foreground: hsl(0 0% 95%);
-  --color-primary: hsl(217 91% 60%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(0 0% 10%);
-  --color-secondary-foreground: hsl(0 0% 95%);
-  --color-muted: hsl(0 0% 10%);
-  --color-muted-foreground: hsl(0 0% 55%);
-  --color-accent: hsl(0 0% 15%);
-  --color-accent-foreground: hsl(0 0% 95%);
-  --color-destructive: hsl(0 62% 50%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(0 0% 15%);
-  --color-input: hsl(0 0% 15%);
-  --color-ring: hsl(217 91% 60%);
+  --color-background: oklch(0.18 0.012 270);
+  --color-foreground: oklch(0.96 0.005 270);
+  --color-card: oklch(0.22 0.012 270);
+  --color-card-foreground: oklch(0.96 0.005 270);
+  --color-popover: oklch(0.2 0.012 270);
+  --color-popover-foreground: oklch(0.96 0.005 270);
+  --color-primary: oklch(0.65 0.22 295);
+  --color-primary-foreground: oklch(0.98 0.005 270);
+  --color-secondary: oklch(0.26 0.012 270);
+  --color-secondary-foreground: oklch(0.85 0.01 270);
+  --color-muted: oklch(0.24 0.012 270);
+  --color-muted-foreground: oklch(0.62 0.012 270);
+  --color-accent: oklch(0.28 0.06 295);
+  --color-accent-foreground: oklch(0.96 0.005 270);
+  --color-destructive: oklch(0.62 0.22 25);
+  --color-destructive-foreground: oklch(0.98 0.005 270);
+  --color-success: oklch(0.72 0.18 162);
+  --color-success-foreground: oklch(0.18 0.012 270);
+  --color-border: oklch(0.32 0.01 270);
+  --color-input: oklch(0.28 0.012 270);
+  --color-ring: oklch(0.65 0.22 295);
 }
 
 /* AI Chat Markdown Prose Styles */
@@ -141,12 +148,12 @@
   }
 
   .ai-prose code {
-    @apply rounded bg-muted px-1.5 py-0.5 text-xs text-foreground;
+    @apply bg-muted px-1.5 py-0.5 text-xs text-foreground;
     font-family: var(--font-family-mono);
   }
 
   .ai-prose pre {
-    @apply my-2 overflow-x-auto rounded-lg bg-muted p-3;
+    @apply my-2 overflow-x-auto bg-muted p-3;
   }
 
   .ai-prose pre code {
@@ -187,24 +194,11 @@
   }
 }
 
-/* ===========================================================================
- * Admin theme (Direction I — Linear density v2)
- * ===========================================================================
- *
- * Scoped OKLch token overlay applied via `class="admin-theme"` on the root
- * of any `/admin/*` page or layout. Keeps the existing public map viewer
- * tokens untouched: only descendants of `.admin-theme` see this palette.
- *
- * Direction-I locked palette:
- *   surface  near-black (warm cool)
- *   text     near-white
- *   accent   violet 65% chroma
- *   border   thin neutral
- *   density  uniform 18px row padding, no border-radius
- *
- * Dropping all border-radii to 0 matches the locked Linear-density v2
- * mockup (i-linear-density-v2.html) where every surface is sharp-edged.
- */
+/* The .admin-theme class is preserved as a no-op marker so existing layout
+   markup keeps validating, but the global tokens above now ARE direction-I,
+   so the public viewer and the admin pages share one palette. The class
+   forces .dark behavior so admin pages stay dark even if the user toggles
+   the viewer to light mode. */
 .admin-theme {
   --color-background: oklch(0.18 0.012 270);
   --color-foreground: oklch(0.96 0.005 270);
@@ -222,6 +216,8 @@
   --color-accent-foreground: oklch(0.96 0.005 270);
   --color-destructive: oklch(0.62 0.22 25);
   --color-destructive-foreground: oklch(0.98 0.005 270);
+  --color-success: oklch(0.72 0.18 162);
+  --color-success-foreground: oklch(0.18 0.012 270);
   --color-border: oklch(0.32 0.01 270);
   --color-input: oklch(0.28 0.012 270);
   --color-ring: oklch(0.65 0.22 295);

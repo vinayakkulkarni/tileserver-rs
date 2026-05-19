@@ -36,11 +36,11 @@
     :initial="{ opacity: 0, y: 12 }"
     :animate="{ opacity: 1, y: 0 }"
     :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group rounded-xl border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
   >
     <div class="flex gap-4">
       <div
-        class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-border/50"
+        class="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-muted ring-1 ring-border/50"
       >
         <img
           v-if="!imgError"
@@ -59,12 +59,12 @@
             <h3 class="font-semibold">{{ style.name }}</h3>
             <p class="mt-0.5 text-sm text-muted-foreground">
               <code
-                class="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium"
+                class="bg-muted px-1.5 py-0.5 text-xs font-medium"
                 >{{ style.id }}</code
               >
             </p>
           </div>
-          <Button as-child size="sm" class="rounded-lg">
+          <Button as-child size="sm" class="">
             <NuxtLink :to="`/styles/${style.id}/`">
               <Map class="mr-1.5 size-4" />
               Viewer
