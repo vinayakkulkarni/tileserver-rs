@@ -36,7 +36,6 @@
 //! - <https://datatracker.ietf.org/doc/html/rfc7591> (DCR)
 //! - <https://datatracker.ietf.org/doc/html/rfc8414> (Authorization Server Metadata)
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -60,8 +59,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
-use tokio::sync::RwLock;
 use uuid::Uuid;
+
+use super::auth_store::{BackendError, InMemoryStore, OAuthBackend};
 
 /// Maximum access-token lifetime in seconds (24 hours). Larger values from
 /// config are clamped down with a warning.
@@ -129,32 +129,36 @@ pub struct RegisteredClient {
 }
 
 /// Bound authorization code awaiting exchange at `/token`.
+///
+/// Exposed `pub` so the [`super::auth_store::OAuthBackend`] trait can
+/// move codes in and out of pluggable backends.
 #[derive(Clone, Debug)]
-struct AuthCode {
-    client_id: String,
-    redirect_uri: String,
-    code_challenge: String,
-    scope: String,
-    expires_at: u64,
+pub struct AuthCode {
+    /// Registered DCR client that this code was issued to.
+    pub client_id: String,
+    /// Redirect URI the original `/authorize` request used; the
+    /// `/token` exchange must present the same URI.
+    pub redirect_uri: String,
+    /// PKCE S256 code challenge that the verifier on `/token` must match.
+    pub code_challenge: String,
+    /// Granted OAuth scope (currently always `"mcp"`).
+    pub scope: String,
+    /// Unix epoch seconds at which this code becomes invalid.
+    pub expires_at: u64,
 }
 
 /// Issued refresh token kept in the store until expiry or rotation.
+///
+/// Exposed `pub` so the [`super::auth_store::OAuthBackend`] trait can
+/// surface outstanding tokens to the admin device-sessions page.
 #[derive(Clone, Debug)]
-struct RefreshTokenEntry {
-    client_id: String,
-    scope: String,
-    expires_at: u64,
-}
-
-/// In-memory backing store for the authorization server.
-#[derive(Default, Debug)]
-pub struct OAuthStore {
-    /// Registered DCR clients keyed by `client_id`.
-    pub clients: HashMap<String, RegisteredClient>,
-    /// Outstanding (un-redeemed) authorization codes.
-    auth_codes: HashMap<String, AuthCode>,
-    /// Outstanding refresh tokens.
-    refresh_tokens: HashMap<String, RefreshTokenEntry>,
+pub struct RefreshTokenEntry {
+    /// Owning client.
+    pub client_id: String,
+    /// Granted OAuth scope at the time of issuance.
+    pub scope: String,
+    /// Unix epoch seconds at which this refresh token becomes invalid.
+    pub expires_at: u64,
 }
 
 /// Shared, cloneable state for the authorization-server routes.
@@ -169,8 +173,12 @@ pub struct OAuthState {
     pub decoding_key: Arc<DecodingKey>,
     /// Access-token lifetime (clamped to [`MAX_TOKEN_TTL_SECS`]).
     pub token_ttl: Duration,
-    /// In-memory client + code store.
-    pub store: Arc<RwLock<OAuthStore>>,
+    /// Pluggable backing store for clients, auth codes, and refresh
+    /// tokens. Defaults to [`InMemoryStore`]; operators opt into a
+    /// disk-backed [`super::auth_store_sqlite::SqliteStore`] by enabling
+    /// the `mcp-persistence` Cargo feature and pointing
+    /// `[mcp.oauth.store_path]` at a SQLite file.
+    pub store: Arc<dyn OAuthBackend>,
 }
 
 impl std::fmt::Debug for OAuthState {
@@ -215,7 +223,7 @@ impl OAuthState {
             encoding_key: Arc::new(encoding_key),
             decoding_key: Arc::new(decoding_key),
             token_ttl: Duration::from_secs(clamped_ttl),
-            store: Arc::new(RwLock::new(OAuthStore::default())),
+            store: Arc::new(InMemoryStore::new()),
         })
     }
 
@@ -322,12 +330,9 @@ async fn register(
         client_name: req.client_name.clone(),
     };
 
-    state
-        .store
-        .write()
-        .await
-        .clients
-        .insert(client_id.clone(), client);
+    if let Err(e) = state.store.insert_client(client_id.clone(), client).await {
+        return backend_error_response(&e);
+    }
 
     (
         StatusCode::CREATED,
@@ -382,9 +387,9 @@ async fn authorize(State(state): State<OAuthState>, Query(q): Query<AuthorizeQue
         );
     }
 
-    let client = {
-        let store = state.store.read().await;
-        store.clients.get(&q.client_id).cloned()
+    let client = match state.store.get_client(&q.client_id).await {
+        Ok(c) => c,
+        Err(e) => return backend_error_response(&e),
     };
     let Some(client) = client else {
         return error_json(
@@ -502,9 +507,9 @@ async fn approve(State(state): State<OAuthState>, Form(form): Form<ApproveForm>)
         return Redirect::to(&url).into_response();
     }
 
-    let client = {
-        let store = state.store.read().await;
-        store.clients.get(&form.client_id).cloned()
+    let client = match state.store.get_client(&form.client_id).await {
+        Ok(c) => c,
+        Err(e) => return backend_error_response(&e),
     };
     let Some(client) = client else {
         return error_json(
@@ -533,12 +538,9 @@ async fn approve(State(state): State<OAuthState>, Form(form): Form<ApproveForm>)
         },
         expires_at: now_secs() + AUTH_CODE_TTL_SECS,
     };
-    state
-        .store
-        .write()
-        .await
-        .auth_codes
-        .insert(code.clone(), entry);
+    if let Err(e) = state.store.insert_auth_code(code.clone(), entry).await {
+        return backend_error_response(&e);
+    }
 
     let mut url = form.redirect_uri.clone();
     url.push_str("?code=");
@@ -633,7 +635,10 @@ async fn token_authorization_code(state: OAuthState, form: TokenForm) -> Respons
         );
     };
 
-    let entry = take_auth_code(&state, code).await;
+    let entry = match take_auth_code(&state, code).await {
+        Ok(e) => e,
+        Err(e) => return backend_error_response(&e),
+    };
     let Some(entry) = entry else {
         return error_json(
             StatusCode::BAD_REQUEST,
@@ -679,7 +684,10 @@ async fn token_authorization_code(state: OAuthState, form: TokenForm) -> Respons
             );
         }
     };
-    let refresh_token = issue_refresh_token(&state, &entry.client_id, &entry.scope).await;
+    let refresh_token = match issue_refresh_token(&state, &entry.client_id, &entry.scope).await {
+        Ok(t) => t,
+        Err(e) => return backend_error_response(&e),
+    };
 
     Json(json!({
         "access_token": access_token,
@@ -700,7 +708,10 @@ async fn token_refresh(state: OAuthState, form: TokenForm) -> Response {
         );
     };
 
-    let entry = take_refresh_token(&state, refresh).await;
+    let entry = match take_refresh_token(&state, refresh).await {
+        Ok(e) => e,
+        Err(e) => return backend_error_response(&e),
+    };
     let Some(entry) = entry else {
         return error_json(
             StatusCode::BAD_REQUEST,
@@ -736,7 +747,10 @@ async fn token_refresh(state: OAuthState, form: TokenForm) -> Response {
             );
         }
     };
-    let new_refresh = rotate_refresh_token(&state, &entry.client_id, &entry.scope).await;
+    let new_refresh = match rotate_refresh_token(&state, &entry.client_id, &entry.scope).await {
+        Ok(t) => t,
+        Err(e) => return backend_error_response(&e),
+    };
 
     Json(json!({
         "access_token": access_token,
@@ -771,7 +785,11 @@ fn issue_access_token(
 /// successful refresh exchange must return a brand-new refresh token and
 /// invalidate the old one. Callers reach this via [`rotate_refresh_token`]
 /// (after consuming the old entry) or directly during code exchange.
-async fn issue_refresh_token(state: &OAuthState, client_id: &str, scope: &str) -> String {
+async fn issue_refresh_token(
+    state: &OAuthState,
+    client_id: &str,
+    scope: &str,
+) -> Result<String, BackendError> {
     let refresh = format!("rt-{}", Uuid::new_v4());
     let entry = RefreshTokenEntry {
         client_id: client_id.to_string(),
@@ -780,11 +798,9 @@ async fn issue_refresh_token(state: &OAuthState, client_id: &str, scope: &str) -
     };
     state
         .store
-        .write()
-        .await
-        .refresh_tokens
-        .insert(refresh.clone(), entry);
-    refresh
+        .insert_refresh_token(refresh.clone(), entry)
+        .await?;
+    Ok(refresh)
 }
 
 // ---------------------------------------------------------------------------
@@ -870,18 +886,23 @@ fn derive_public_key_pem(private_pem: &[u8]) -> Result<String, OAuthError> {
         .map_err(|e| OAuthError::PublicKeyEncode(e.to_string()))
 }
 
-async fn rotate_refresh_token(state: &OAuthState, client_id: &str, scope: &str) -> String {
+async fn rotate_refresh_token(
+    state: &OAuthState,
+    client_id: &str,
+    scope: &str,
+) -> Result<String, BackendError> {
     issue_refresh_token(state, client_id, scope).await
 }
 
-async fn take_auth_code(state: &OAuthState, code: &str) -> Option<AuthCode> {
-    let mut store = state.store.write().await;
-    store.auth_codes.remove(code)
+async fn take_auth_code(state: &OAuthState, code: &str) -> Result<Option<AuthCode>, BackendError> {
+    state.store.take_auth_code(code).await
 }
 
-async fn take_refresh_token(state: &OAuthState, refresh: &str) -> Option<RefreshTokenEntry> {
-    let mut store = state.store.write().await;
-    store.refresh_tokens.remove(refresh)
+async fn take_refresh_token(
+    state: &OAuthState,
+    refresh: &str,
+) -> Result<Option<RefreshTokenEntry>, BackendError> {
+    state.store.take_refresh_token(refresh).await
 }
 
 fn now_secs() -> u64 {
@@ -909,6 +930,15 @@ fn error_json(status: StatusCode, error: &str, description: &str) -> Response {
         })),
     )
         .into_response()
+}
+
+fn backend_error_response(err: &BackendError) -> Response {
+    tracing::error!("MCP OAuth backend error: {err}");
+    error_json(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "server_error",
+        "OAuth backend storage failure",
+    )
 }
 
 #[cfg(test)]
@@ -964,11 +994,16 @@ mod tests {
     #[tokio::test]
     async fn refresh_token_round_trip_via_store() {
         let s = state();
-        let rt = issue_refresh_token(&s, "rt-client", "mcp").await;
-        let snapshot = {
-            let g = s.store.read().await;
-            g.refresh_tokens.get(&rt).cloned()
-        };
+        let rt = issue_refresh_token(&s, "rt-client", "mcp")
+            .await
+            .expect("issue refresh token");
+        let snapshot = s
+            .store
+            .list_refresh_tokens()
+            .await
+            .expect("list refresh tokens")
+            .into_iter()
+            .find(|(t, _)| t == &rt);
         assert!(snapshot.is_some());
     }
 
@@ -1018,12 +1053,18 @@ mod tests {
     #[tokio::test]
     async fn take_refresh_token_consumes_entry_so_replay_returns_none() {
         let s = state();
-        let rt = issue_refresh_token(&s, "rt-client", "mcp").await;
+        let rt = issue_refresh_token(&s, "rt-client", "mcp")
+            .await
+            .expect("issue refresh token");
 
-        let first = take_refresh_token(&s, &rt).await;
+        let first = take_refresh_token(&s, &rt)
+            .await
+            .expect("take refresh token");
         assert!(first.is_some(), "first consumption should succeed");
 
-        let second = take_refresh_token(&s, &rt).await;
+        let second = take_refresh_token(&s, &rt)
+            .await
+            .expect("take refresh token");
         assert!(
             second.is_none(),
             "consumed refresh token must not be reusable"
@@ -1033,7 +1074,9 @@ mod tests {
     #[tokio::test]
     async fn take_auth_code_returns_none_for_unknown_code() {
         let s = state();
-        let result = take_auth_code(&s, "never-issued").await;
+        let result = take_auth_code(&s, "never-issued")
+            .await
+            .expect("take auth code");
         assert!(result.is_none());
     }
 }

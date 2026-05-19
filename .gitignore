@@ -12,6 +12,11 @@ target/
 **/*.snap.new
 **/*.snap.new.*
 
+# Design exploration artifacts — static HTML mockups for picking visual
+# direction. Local-only; do not commit. Mirrors the convention used in
+# sibling repos so designers can browse the same way everywhere.
+.design-explorations
+
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 

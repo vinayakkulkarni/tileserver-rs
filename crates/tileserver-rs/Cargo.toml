@@ -137,6 +137,13 @@ mcp = [
   "dep:serde_urlencoded",
   "dep:rsa",
 ]
+# Disk-backed SQLite persistence for the MCP OAuth store (registered
+# clients, outstanding authorization codes, refresh tokens). Without this
+# feature the store is purely in-memory and a server restart invalidates
+# every issued token. Requires `mcp`. Reuses the non-optional `rusqlite`
+# dep declared for MBTiles — no extra build-time cost beyond compiling
+# `src/mcp/auth_store_sqlite.rs`.
+mcp-persistence = ["mcp"]
 
 [dev-dependencies]
 tower            = { workspace = true }

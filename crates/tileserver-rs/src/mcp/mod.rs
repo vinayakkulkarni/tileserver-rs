@@ -30,6 +30,9 @@ use crate::reload::{RuntimeSettings, build_app_state};
 use crate::startup;
 
 pub mod auth;
+pub mod auth_store;
+#[cfg(feature = "mcp-persistence")]
+pub mod auth_store_sqlite;
 pub mod error;
 pub mod handlers;
 pub mod prompts;
