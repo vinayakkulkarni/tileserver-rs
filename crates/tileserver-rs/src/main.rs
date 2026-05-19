@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "mcp")]
     if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
-        return run_mcp_stdio(config.clone(), *verbose).await;
+        return mcp::run_stdio_from_config(config.clone(), *verbose).await;
     }
 
     let ui_enabled = cli.ui_enabled();
@@ -198,7 +198,7 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "mcp")]
     if config.mcp.enabled {
         tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
-        let auth_mode = build_mcp_auth_mode(&config.mcp)?;
+        let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
         router = router.merge(mcp::mcp_router(
             shared.clone(),
             auth_mode,
@@ -334,33 +334,6 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(feature = "mcp")]
-fn build_mcp_auth_mode(cfg: &config::McpConfig) -> anyhow::Result<mcp::transport::McpAuthMode> {
-    if cfg.oauth.enabled {
-        let issuer = cfg
-            .oauth
-            .issuer_url
-            .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].issuer_url` is required"))?;
-        let key_path = cfg
-            .oauth
-            .signing_key_path
-            .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].signing_key_path` is required"))?;
-        let state = mcp::auth::OAuthState::from_file(
-            issuer.to_string(),
-            key_path,
-            cfg.oauth.token_ttl_secs,
-        )?;
-        tracing::info!(issuer = %issuer, "MCP OAuth authorization server enabled");
-        Ok(mcp::transport::McpAuthMode::OAuth(Box::new(state)))
-    } else if let Some(token) = cfg.auth_token.clone() {
-        Ok(mcp::transport::McpAuthMode::StaticBearer(token))
-    } else {
-        Ok(mcp::transport::McpAuthMode::None)
-    }
-}
-
 fn log_auto_detect_report(report: &autodetect::AutoDetectReport) {
     tracing::info!("Auto-detected from: {}", report.target.display());
     if !report.sources.is_empty() {
@@ -450,46 +423,4 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
     }
 
     (StatusCode::NOT_FOUND, "Not Found").into_response()
-}
-
-/// Run the MCP server over stdio.
-///
-/// Initializes tracing on stderr (stdout is reserved for MCP JSON-RPC),
-/// loads the configuration via the same priority chain as the HTTP server,
-/// builds an `AppState`, and hands it to [`mcp::run_stdio`] which blocks
-/// until the client disconnects.
-#[cfg(feature = "mcp")]
-async fn run_mcp_stdio(
-    config_path: Option<std::path::PathBuf>,
-    verbose: bool,
-) -> anyhow::Result<()> {
-    let filter = if verbose {
-        EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
-    } else {
-        EnvFilter::from_default_env().add_directive("tileserver_rs=info".parse()?)
-    };
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_writer(std::io::stderr)
-        .compact();
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer)
-        .init();
-
-    let (config, _auto_report) = startup::load_runtime_config(config_path, None)?;
-
-    let runtime = RuntimeSettings {
-        ui_enabled: false,
-        runtime_host: config.server.host.clone(),
-        runtime_port: config.server.port,
-        public_url_override: None,
-    };
-    let state = build_app_state(&config, &runtime).await?;
-    tracing::info!(
-        sources = state.sources.len(),
-        styles = state.styles.len(),
-        "starting MCP stdio server"
-    );
-    mcp::run_stdio(Arc::new(state)).await?;
-    Ok(())
 }

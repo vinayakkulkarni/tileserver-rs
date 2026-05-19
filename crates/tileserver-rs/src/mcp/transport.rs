@@ -28,6 +28,7 @@ use rmcp::transport::streamable_http_server::tower::{
 };
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
+use crate::config::McpConfig;
 use crate::error::{Result, TileServerError};
 use crate::mcp::auth::{OAuthState, oauth_router, validate_oauth_bearer};
 use crate::mcp::handlers::McpHandler;
@@ -68,6 +69,49 @@ pub enum McpAuthMode {
     StaticBearer(String),
     /// Full OAuth 2.0 authorization server with RFC 7591 DCR.
     OAuth(Box<OAuthState>),
+}
+
+impl McpAuthMode {
+    /// Resolve the runtime authentication mode from `[mcp]` configuration.
+    ///
+    /// Priority matches the precedence enforced by config validation:
+    ///
+    /// 1. `oauth.enabled = true` → [`McpAuthMode::OAuth`], requires both
+    ///    `oauth.issuer_url` and `oauth.signing_key_path` to be set and
+    ///    the signing key to parse as RSA PEM.
+    /// 2. `auth_token = Some(_)` → [`McpAuthMode::StaticBearer`].
+    /// 3. Otherwise → [`McpAuthMode::None`] (a warning is logged later by
+    ///    [`mcp_router`] before the route is mounted).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when:
+    /// - `oauth.enabled = true` but `oauth.issuer_url` is `None`.
+    /// - `oauth.enabled = true` but `oauth.signing_key_path` is `None`.
+    /// - The signing key file cannot be read or parsed as RSA PEM
+    ///   (propagated from [`OAuthState::from_file`]).
+    pub fn from_config(cfg: &McpConfig) -> anyhow::Result<Self> {
+        if cfg.oauth.enabled {
+            let issuer = cfg
+                .oauth
+                .issuer_url
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].issuer_url` is required"))?;
+            let key_path = cfg
+                .oauth
+                .signing_key_path
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].signing_key_path` is required"))?;
+            let state =
+                OAuthState::from_file(issuer.to_string(), key_path, cfg.oauth.token_ttl_secs)?;
+            tracing::info!(issuer = %issuer, "MCP OAuth authorization server enabled");
+            Ok(Self::OAuth(Box::new(state)))
+        } else if let Some(token) = cfg.auth_token.clone() {
+            Ok(Self::StaticBearer(token))
+        } else {
+            Ok(Self::None)
+        }
+    }
 }
 
 /// When `auth` is [`McpAuthMode::StaticBearer`], a bearer-token middleware
@@ -478,5 +522,111 @@ mod tests {
         let response = send_get(router, "/mcp").await;
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    use crate::config::McpConfig;
+
+    fn write_test_pem_to_tempfile() -> tempfile::NamedTempFile {
+        let pem = include_bytes!("../../tests/fixtures/oauth_test_key.pem");
+        let file = tempfile::Builder::new()
+            .prefix("mcp-auth-mode-")
+            .suffix(".pem")
+            .tempfile()
+            .expect("create tempfile for signing key");
+        std::fs::write(file.path(), pem).expect("write PEM to tempfile");
+        file
+    }
+
+    #[test]
+    fn from_config_none_when_disabled() {
+        let cfg = McpConfig::default();
+
+        let mode = McpAuthMode::from_config(&cfg).expect("default config builds None mode");
+
+        assert!(
+            matches!(mode, McpAuthMode::None),
+            "expected McpAuthMode::None for default config, got {mode:?}"
+        );
+    }
+
+    #[test]
+    fn from_config_static_bearer_when_token_set() {
+        let cfg = McpConfig {
+            auth_token: Some("the-secret".to_string()),
+            ..McpConfig::default()
+        };
+
+        let mode = McpAuthMode::from_config(&cfg).expect("static-bearer config builds");
+
+        match mode {
+            McpAuthMode::StaticBearer(token) => assert_eq!(token, "the-secret"),
+            other => panic!("expected StaticBearer, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn from_config_oauth_when_oauth_enabled_with_valid_key() {
+        let key = write_test_pem_to_tempfile();
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: Some("http://localhost:8080".to_string()),
+                signing_key_path: Some(key.path().to_path_buf()),
+                token_ttl_secs: 3600,
+            },
+            ..McpConfig::default()
+        };
+
+        let mode = McpAuthMode::from_config(&cfg).expect("oauth config with valid key builds");
+
+        assert!(
+            matches!(mode, McpAuthMode::OAuth(_)),
+            "expected McpAuthMode::OAuth, got {mode:?}"
+        );
+    }
+
+    #[test]
+    fn from_config_errors_when_oauth_enabled_without_issuer_url() {
+        let key = write_test_pem_to_tempfile();
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: None,
+                signing_key_path: Some(key.path().to_path_buf()),
+                ..crate::config::McpOAuthConfig::default()
+            },
+            ..McpConfig::default()
+        };
+
+        let err = McpAuthMode::from_config(&cfg)
+            .expect_err("missing issuer_url must error when oauth enabled");
+
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("issuer_url"),
+            "error must mention `issuer_url`, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn from_config_errors_when_oauth_enabled_without_signing_key() {
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: Some("http://localhost:8080".to_string()),
+                signing_key_path: None,
+                ..crate::config::McpOAuthConfig::default()
+            },
+            ..McpConfig::default()
+        };
+
+        let err = McpAuthMode::from_config(&cfg)
+            .expect_err("missing signing_key_path must error when oauth enabled");
+
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("signing_key_path"),
+            "error must mention `signing_key_path`, got: {msg}"
+        );
     }
 }
