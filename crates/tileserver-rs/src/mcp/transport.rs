@@ -289,7 +289,13 @@ mod tests {
             runtime_port: 8080,
             public_url_override: None,
         };
-        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            crate::config::Config::default(),
+            None,
+            runtime,
+        ));
         SharedState::new(controller)
     }
 

@@ -145,6 +145,7 @@ async fn main() -> anyhow::Result<()> {
     let controller = Arc::new(ReloadController::new(
         state,
         meta,
+        config.clone(),
         config_path_for_reload,
         runtime,
     ));

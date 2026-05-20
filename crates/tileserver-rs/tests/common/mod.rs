@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tileserver_rs::{
     TileCompression, TileData, TileFormat, TileSource,
-    config::StyleConfig,
+    config::{Config, StyleConfig},
     reload::{
         AppState, ReloadController, ReloadMeta, RuntimeSettings, SharedState, now_unix_seconds,
     },
@@ -64,7 +64,13 @@ pub fn minimal_app_state() -> AppState {
 pub fn minimal_shared_state() -> SharedState {
     let state = minimal_app_state();
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     SharedState::new(controller)
 }
 
@@ -195,7 +201,13 @@ pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
     let mut state = minimal_app_state();
     state.sources = Arc::new(SourceManager::from_sources(map));
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     let shared = SharedState::new(controller);
     let router = api_router(shared);
     TestServer::new(router)
@@ -242,7 +254,13 @@ pub fn shared_state_with_two_sources() -> SharedState {
     state.sources = Arc::new(SourceManager::from_sources(map));
 
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     SharedState::new(controller)
 }
 
@@ -266,7 +284,13 @@ pub fn shared_state_populated() -> SharedState {
     state.styles = Arc::new(protomaps_light_style_manager());
 
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     SharedState::new(controller)
 }
 
@@ -285,6 +309,12 @@ pub fn shared_state_with_empty_source() -> SharedState {
     state.sources = Arc::new(SourceManager::from_sources(map));
 
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     SharedState::new(controller)
 }
