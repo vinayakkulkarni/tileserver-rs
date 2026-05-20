@@ -1,13 +1,16 @@
 <script setup lang="ts">
+  import { Plug } from '@lucide/vue';
   import { useAdminMcpConnectedApps } from '~/composables/admin/use-admin-mcp-connected-apps';
 
   definePageMeta({ layout: 'admin' });
   useHead({ title: 'Connected apps · tileserver-rs admin' });
 
   const {
+    breadcrumbs,
     clients,
     isLoading,
     error,
+    friendly,
     isEmpty,
     pendingClientId,
     confirmTargetId,
@@ -17,15 +20,14 @@
     visibleScopes,
     overflowScopes,
     formatTimestamp,
+    SKELETON_ROWS,
   } = useAdminMcpConnectedApps();
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col">
     <header class="border-b border-border px-10 py-6">
-      <p class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
-        tileserver-rs / admin / mcp / connected apps
-      </p>
+      <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
         Connected apps
       </h1>
@@ -37,48 +39,140 @@
     </header>
 
     <section class="flex-1 px-10 py-8">
-      <div v-if="isLoading" class="font-mono text-xs tracking-wider text-muted-foreground uppercase">
-        Loading clients…
+      <div v-if="isLoading" class="border border-border">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-border bg-card">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Client
+              </th>
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Scopes
+              </th>
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Sessions
+              </th>
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Last seen
+              </th>
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in SKELETON_ROWS"
+              :key="row"
+              class="border-b border-border align-middle last:border-b-0"
+            >
+              <td class="px-4 py-[18px]">
+                <Skeleton class="h-4 w-40" />
+                <Skeleton class="mt-2 h-3 w-28" />
+              </td>
+              <td class="px-4 py-[18px]">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <Skeleton class="h-5 w-16" />
+                  <Skeleton class="h-5 w-20" />
+                  <Skeleton class="h-5 w-14" />
+                </div>
+              </td>
+              <td class="px-4 py-[18px] text-right">
+                <Skeleton class="ml-auto h-4 w-6" />
+              </td>
+              <td class="px-4 py-[18px]">
+                <Skeleton class="h-3 w-24" />
+              </td>
+              <td class="px-4 py-[18px] text-right">
+                <Skeleton class="ml-auto h-3 w-16" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div
-        v-else-if="error"
-        class="border border-destructive/60 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground"
-      >
-        Failed to load connected apps: {{ error.message }}
+      <div v-else-if="error" class="border border-border px-6 py-8">
+        <p
+          class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+        >
+          {{ friendly.title }}
+        </p>
+        <p class="mt-3 max-w-2xl text-sm text-foreground">
+          {{ friendly.body }}
+        </p>
+        <p
+          v-if="friendly.hint"
+          class="mt-2 max-w-2xl text-sm text-muted-foreground"
+        >
+          {{ friendly.hint }}
+        </p>
       </div>
 
-      <div
-        v-else-if="isEmpty"
-        class="border border-border px-6 py-12 text-center"
-      >
-        <p class="font-mono text-xs tracking-wider text-muted-foreground uppercase">
-          No connected apps
-        </p>
-        <p class="mt-3 text-sm text-muted-foreground">
-          When a client completes the OAuth dance against
-          <code class="font-mono text-foreground">/oauth/register</code>, it
-          will appear here.
-        </p>
+      <div v-else-if="isEmpty" class="border border-border px-8 py-16">
+        <div class="mx-auto flex max-w-xl flex-col items-start gap-6">
+          <div
+            class="flex size-12 items-center justify-center border border-border bg-card"
+          >
+            <Plug class="size-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p
+              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            >
+              Zero clients registered
+            </p>
+            <h2
+              class="mt-3 text-3xl font-semibold tracking-tight text-foreground"
+            >
+              Nothing's connected yet.
+            </h2>
+            <p class="mt-3 text-sm text-muted-foreground">
+              A connected app appears here after it completes Dynamic Client
+              Registration against
+              <code class="font-mono text-foreground">/oauth/register</code>.
+              From there you can audit its scopes and revoke access.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div v-else class="border border-border">
         <table class="w-full border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Client
               </th>
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Scopes
               </th>
-              <th class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Sessions
               </th>
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Last seen
               </th>
-              <th class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Actions
               </th>
             </tr>
@@ -113,7 +207,9 @@
                       +{{ overflowScopes(client).length }} more
                     </PopoverTrigger>
                     <PopoverContent class="w-72">
-                      <p class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+                      <p
+                        class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                      >
                         All scopes
                       </p>
                       <div class="mt-3 flex flex-wrap gap-1.5">
@@ -134,7 +230,9 @@
                   {{ client.active_sessions }}
                 </span>
               </td>
-              <td class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground">
+              <td
+                class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground"
+              >
                 {{ formatTimestamp(client.last_seen_at) }}
               </td>
               <td class="px-4 py-[18px] text-right">
@@ -155,11 +253,13 @@
 
     <Teleport v-if="confirmTargetId" to="body">
       <div
-        class="admin-theme fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         @click.self="closeRevokeConfirm"
       >
         <div class="w-full max-w-md border border-border bg-card p-6">
-          <p class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+          <p
+            class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+          >
             Confirm revoke
           </p>
           <h2 class="mt-3 text-lg font-semibold text-foreground">

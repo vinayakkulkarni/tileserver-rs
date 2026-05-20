@@ -1,7 +1,11 @@
 export type {
+  AdminBreadcrumbCrumb,
+  AdminFriendlyError,
   AdminMcpClient,
   AdminMcpDeleteResponse,
   AdminMcpSession,
+  AdminNavGroup,
+  AdminNavItem,
 } from './admin-mcp';
 export type { Data, VectorLayer } from './data';
 export type { VMapOptions } from './map';
@@ -37,8 +41,4 @@ export type {
   SupportedFormat,
   UploadResponse,
 } from './file-upload';
-export type {
-  WorkerFailure,
-  WorkerResponse,
-  WorkerSuccess,
-} from './worker';
+export type { WorkerFailure, WorkerResponse, WorkerSuccess } from './worker';

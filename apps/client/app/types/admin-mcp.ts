@@ -7,6 +7,8 @@
  * as a runtime TypeScript narrowing failure in the admin pages.
  */
 
+import type { Component } from 'vue';
+
 /**
  * Registered DCR client + derived session stats.
  *
@@ -47,4 +49,44 @@ export interface AdminMcpDeleteResponse {
   ok: boolean;
   deleted: boolean;
   revoked_sessions: number | null;
+}
+
+/**
+ * Single breadcrumb segment shown in admin page headers.
+ *
+ * `to` omitted → segment renders as muted, non-clickable text (used for
+ * the current page). When present, must be a real navigable route.
+ */
+export interface AdminBreadcrumbCrumb {
+  label: string;
+  to?: string;
+}
+
+/**
+ * Friendly error wrapper for admin endpoint failures. Never leaks raw
+ * HTTP status codes or stack traces to the end user.
+ */
+export interface AdminFriendlyError {
+  title: string;
+  body: string;
+  hint?: string;
+}
+
+/**
+ * Sidebar navigation entry in the admin layout. `to` is a real route,
+ * `icon` is a Lucide component imported by the layout consumer.
+ */
+export interface AdminNavItem {
+  label: string;
+  to: string;
+  icon: Component;
+}
+
+/**
+ * Sidebar navigation group. `heading` is the uppercase mono kicker shown
+ * above the group; null for ungrouped entries (rendered without a header).
+ */
+export interface AdminNavGroup {
+  heading: string | null;
+  items: AdminNavItem[];
 }

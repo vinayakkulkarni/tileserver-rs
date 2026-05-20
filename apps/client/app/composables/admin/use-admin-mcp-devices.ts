@@ -1,9 +1,18 @@
 import { useQuery } from '@tanstack/vue-query';
-import type { AdminMcpSession } from '~/types';
+import type { AdminBreadcrumbCrumb, AdminMcpSession } from '~/types';
 import {
   adminMcpSessionsQueryOptions,
   useDeleteAdminMcpSessionMutation,
 } from '~/utils/api/admin-mcp';
+import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
+
+const SKELETON_ROWS = 5;
+
+const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
+  { label: 'Home', to: '/' },
+  { label: 'Admin', to: '/admin' },
+  { label: 'Devices' },
+];
 
 export function useAdminMcpDevices() {
   const sessionsQuery = useQuery(adminMcpSessionsQueryOptions());
@@ -14,6 +23,7 @@ export function useAdminMcpDevices() {
   );
   const isLoading = computed(() => sessionsQuery.isPending.value);
   const error = computed(() => sessionsQuery.error.value);
+  const friendly = computed(() => friendlyAdminError(error.value));
   const isEmpty = computed(
     () => !isLoading.value && !error.value && sessions.value.length === 0,
   );
@@ -65,6 +75,7 @@ export function useAdminMcpDevices() {
     sessions,
     isLoading,
     error,
+    friendly,
     isEmpty,
     pendingTokenId,
     confirmTargetId,
@@ -73,5 +84,7 @@ export function useAdminMcpDevices() {
     confirmRevoke,
     formatTimestamp,
     formatRelativeExpiry,
+    SKELETON_ROWS,
+    breadcrumbs: BREADCRUMBS,
   };
 }

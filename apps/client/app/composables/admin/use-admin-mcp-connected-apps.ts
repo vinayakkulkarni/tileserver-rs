@@ -1,11 +1,19 @@
 import { useQuery } from '@tanstack/vue-query';
-import type { AdminMcpClient } from '~/types';
+import type { AdminBreadcrumbCrumb, AdminMcpClient } from '~/types';
 import {
   adminMcpClientsQueryOptions,
   useDeleteAdminMcpClientMutation,
 } from '~/utils/api/admin-mcp';
+import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
 
 const SCOPE_VISIBLE_LIMIT = 3;
+const SKELETON_ROWS = 5;
+
+const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
+  { label: 'Home', to: '/' },
+  { label: 'Admin', to: '/admin' },
+  { label: 'Connected apps' },
+];
 
 export function useAdminMcpConnectedApps() {
   const clientsQuery = useQuery(adminMcpClientsQueryOptions());
@@ -16,6 +24,7 @@ export function useAdminMcpConnectedApps() {
   );
   const isLoading = computed(() => clientsQuery.isPending.value);
   const error = computed(() => clientsQuery.error.value);
+  const friendly = computed(() => friendlyAdminError(error.value));
   const isEmpty = computed(
     () => !isLoading.value && !error.value && clients.value.length === 0,
   );
@@ -67,6 +76,7 @@ export function useAdminMcpConnectedApps() {
     clients,
     isLoading,
     error,
+    friendly,
     isEmpty,
     pendingClientId,
     confirmTargetId,
@@ -77,5 +87,7 @@ export function useAdminMcpConnectedApps() {
     overflowScopes,
     formatTimestamp,
     SCOPE_VISIBLE_LIMIT,
+    SKELETON_ROWS,
+    breadcrumbs: BREADCRUMBS,
   };
 }

@@ -1,13 +1,16 @@
 <script setup lang="ts">
+  import { Smartphone } from '@lucide/vue';
   import { useAdminMcpDevices } from '~/composables/admin/use-admin-mcp-devices';
 
   definePageMeta({ layout: 'admin' });
   useHead({ title: 'Devices · tileserver-rs admin' });
 
   const {
+    breadcrumbs,
     sessions,
     isLoading,
     error,
+    friendly,
     isEmpty,
     pendingTokenId,
     confirmTargetId,
@@ -16,70 +19,167 @@
     confirmRevoke,
     formatTimestamp,
     formatRelativeExpiry,
+    SKELETON_ROWS,
   } = useAdminMcpDevices();
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col">
     <header class="border-b border-border px-10 py-6">
-      <p class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
-        tileserver-rs / admin / mcp / devices
-      </p>
+      <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
         Devices
       </h1>
       <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
         Each row is an active refresh token — one device or browser tab where a
-        connected app is logged in. Revoking a row terminates that session
-        only; the owning client stays registered.
+        connected app is logged in. Revoking a row terminates that session only;
+        the owning client stays registered.
       </p>
     </header>
 
     <section class="flex-1 px-10 py-8">
-      <div v-if="isLoading" class="font-mono text-xs tracking-wider text-muted-foreground uppercase">
-        Loading sessions…
+      <div v-if="isLoading" class="border border-border">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b border-border bg-card">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Token
+              </th>
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Client
+              </th>
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Scope
+              </th>
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Granted
+              </th>
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Expires
+              </th>
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in SKELETON_ROWS"
+              :key="row"
+              class="border-b border-border align-middle last:border-b-0"
+            >
+              <td class="px-4 py-[18px]"><Skeleton class="h-3 w-32" /></td>
+              <td class="px-4 py-[18px]">
+                <Skeleton class="h-4 w-36" />
+                <Skeleton class="mt-2 h-3 w-24" />
+              </td>
+              <td class="px-4 py-[18px]"><Skeleton class="h-5 w-16" /></td>
+              <td class="px-4 py-[18px]"><Skeleton class="h-3 w-24" /></td>
+              <td class="px-4 py-[18px] text-right">
+                <Skeleton class="ml-auto h-3 w-16" />
+              </td>
+              <td class="px-4 py-[18px] text-right">
+                <Skeleton class="ml-auto h-3 w-16" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div
-        v-else-if="error"
-        class="border border-destructive/60 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground"
-      >
-        Failed to load sessions: {{ error.message }}
+      <div v-else-if="error" class="border border-border px-6 py-8">
+        <p
+          class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+        >
+          {{ friendly.title }}
+        </p>
+        <p class="mt-3 max-w-2xl text-sm text-foreground">
+          {{ friendly.body }}
+        </p>
+        <p
+          v-if="friendly.hint"
+          class="mt-2 max-w-2xl text-sm text-muted-foreground"
+        >
+          {{ friendly.hint }}
+        </p>
       </div>
 
-      <div
-        v-else-if="isEmpty"
-        class="border border-border px-6 py-12 text-center"
-      >
-        <p class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
-          No active devices
-        </p>
-        <p class="mt-3 text-sm text-muted-foreground">
-          When a client completes an OAuth code-exchange and receives a refresh
-          token, the session will appear here.
-        </p>
+      <div v-else-if="isEmpty" class="border border-border px-8 py-16">
+        <div class="mx-auto flex max-w-xl flex-col items-start gap-6">
+          <div
+            class="flex size-12 items-center justify-center border border-border bg-card"
+          >
+            <Smartphone class="size-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p
+              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            >
+              No active devices
+            </p>
+            <h2
+              class="mt-3 text-3xl font-semibold tracking-tight text-foreground"
+            >
+              No one's logged in.
+            </h2>
+            <p class="mt-3 text-sm text-muted-foreground">
+              A device appears here after a connected app completes the OAuth
+              code exchange and stores a refresh token. Open
+              <NuxtLink
+                to="/admin/mcp/connected-apps"
+                class="font-mono text-foreground underline hover:text-primary"
+              >
+                Connected apps
+              </NuxtLink>
+              to see which apps are registered.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div v-else class="border border-border">
         <table class="w-full border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Token
               </th>
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Client
               </th>
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Scope
               </th>
-              <th class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Granted
               </th>
-              <th class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Expires
               </th>
-              <th class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+              <th
+                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              >
                 Actions
               </th>
             </tr>
@@ -92,7 +192,9 @@
             >
               <td class="px-4 py-[18px]">
                 <code class="font-mono text-[11px] text-foreground">
-                  {{ session.token_id.slice(0, 12) }}…{{ session.token_id.slice(-4) }}
+                  {{ session.token_id.slice(0, 12) }}…{{
+                    session.token_id.slice(-4)
+                  }}
                 </code>
               </td>
               <td class="px-4 py-[18px]">
@@ -104,14 +206,20 @@
                 </div>
               </td>
               <td class="px-4 py-[18px]">
-                <span class="border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground">
+                <span
+                  class="border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
+                >
                   {{ session.scope }}
                 </span>
               </td>
-              <td class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground">
+              <td
+                class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground"
+              >
                 {{ formatTimestamp(session.granted_at) }}
               </td>
-              <td class="px-4 py-[18px] text-right font-mono text-[11px] text-muted-foreground tabular-nums">
+              <td
+                class="px-4 py-[18px] text-right font-mono text-[11px] text-muted-foreground tabular-nums"
+              >
                 {{ formatRelativeExpiry(session.expires_at) }}
               </td>
               <td class="px-4 py-[18px] text-right">
@@ -132,20 +240,22 @@
 
     <Teleport v-if="confirmTargetId" to="body">
       <div
-        class="admin-theme fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         @click.self="closeRevokeConfirm"
       >
         <div class="w-full max-w-md border border-border bg-card p-6">
-          <p class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase">
+          <p
+            class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+          >
             Confirm revoke
           </p>
           <h2 class="mt-3 text-lg font-semibold text-foreground">
             Revoke this device?
           </h2>
           <p class="mt-2 text-sm text-muted-foreground">
-            The refresh token will be deleted. The device's current access
-            token continues to work until it expires (typically 1 hour);
-            after that, the client must re-authenticate.
+            The refresh token will be deleted. The device's current access token
+            continues to work until it expires (typically 1 hour); after that,
+            the client must re-authenticate.
           </p>
           <div class="mt-6 flex justify-end gap-3">
             <button
