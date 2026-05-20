@@ -12,6 +12,7 @@
 host = "127.0.0.1"
 port = 8080
 cors_origins = ["*"]
+admin_bind = "127.0.0.1:8081"
 
 [mcp]
 # Mount the Streamable HTTP MCP service at /mcp. Required for Cursor / MCP
