@@ -1,3 +1,4 @@
+export type { AdminConfigPayload } from './admin-config';
 export type {
   AdminBreadcrumbCrumb,
   AdminFriendlyError,

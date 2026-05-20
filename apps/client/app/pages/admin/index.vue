@@ -1,17 +1,13 @@
 <script setup lang="ts">
   import {
     ArrowUpRight,
-    Check,
     Cpu,
     Layers,
     Map,
     Plug,
-    RotateCcw,
     Smartphone,
-    TriangleAlert,
   } from '@lucide/vue';
   import { useAdminDashboard } from '~/composables/admin/use-admin-dashboard';
-  import { useReloadConfigMutation } from '~/utils/api/server';
 
   definePageMeta({ layout: 'admin' });
   useHead({ title: 'Admin · tileserver-rs' });
@@ -35,72 +31,21 @@
     RECENT_SKELETON_ROWS,
     formatLastSeen,
   } = useAdminDashboard();
-
-  const reload = useReloadConfigMutation();
-
-  async function onReload() {
-    try {
-      await reload.mutateAsync();
-    } catch {
-      // Surfaced via reload.isError / reload.error in the template.
-    }
-  }
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col">
     <header class="border-b border-border px-10 py-6">
       <AdminBreadcrumb :items="breadcrumbs" />
-      <div class="mt-3 flex items-start justify-between gap-6">
-        <div>
-          <h1
-            class="font-display text-5xl font-semibold tracking-tight text-foreground"
-          >
-            Operator console
-          </h1>
-          <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Runtime status, connected MCP clients, and active device sessions
-            for this tileserver-rs instance.
-          </p>
-        </div>
-        <div class="flex shrink-0 flex-col items-end gap-2">
-          <button
-            type="button"
-            :disabled="reload.isPending.value"
-            class="flex items-center gap-2 border border-border bg-card px-4 py-2 text-sm text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
-            @click="onReload"
-          >
-            <RotateCcw
-              :class="[
-                'size-4',
-                reload.isPending.value ? 'animate-spin' : '',
-              ]"
-            />
-            {{ reload.isPending.value ? 'Reloading…' : 'Reload config' }}
-          </button>
-          <p
-            v-if="reload.isSuccess.value && reload.data.value?.reloaded"
-            class="flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-success uppercase"
-          >
-            <Check class="size-3" />
-            Config reloaded
-          </p>
-          <p
-            v-else-if="reload.isSuccess.value"
-            class="flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
-          >
-            <Check class="size-3" />
-            Already up to date
-          </p>
-          <p
-            v-else-if="reload.isError.value"
-            class="flex max-w-xs items-center gap-1.5 font-mono text-[11px] tracking-wider text-destructive uppercase"
-          >
-            <TriangleAlert class="size-3" />
-            Reload failed
-          </p>
-        </div>
-      </div>
+      <h1
+        class="mt-3 font-display text-5xl font-semibold tracking-tight text-foreground"
+      >
+        Operator console
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
+        Runtime status, connected MCP clients, and active device sessions
+        for this tileserver-rs instance.
+      </p>
     </header>
 
     <section v-if="pingError" class="border-b border-border px-10 py-8">

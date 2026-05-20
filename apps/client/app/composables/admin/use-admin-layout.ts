@@ -1,11 +1,14 @@
-import { LayoutDashboard, Plug, Smartphone } from '@lucide/vue';
+import { FileText, LayoutDashboard, Plug, Smartphone } from '@lucide/vue';
 import type { AdminNavGroup } from '~/types';
 import { useThemeToggle } from '../use-theme-toggle';
 
 const NAV_GROUPS: AdminNavGroup[] = [
   {
     heading: null,
-    items: [{ label: 'Dashboard', to: '/admin', icon: LayoutDashboard }],
+    items: [
+      { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
+      { label: 'Configuration', to: '/admin/config', icon: FileText },
+    ],
   },
   {
     heading: 'MCP',

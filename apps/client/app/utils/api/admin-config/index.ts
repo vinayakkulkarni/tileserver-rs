@@ -1,0 +1,1 @@
+export { adminConfigQueryOptions } from './queries';
