@@ -1,5 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 
+const BACKEND_PORT = process.env.TILESERVER_BACKEND_PORT ?? '8080';
+const ADMIN_PORT = process.env.TILESERVER_ADMIN_PORT ?? '8081';
+const BACKEND = `http://localhost:${BACKEND_PORT}`;
+const ADMIN = `http://localhost:${ADMIN_PORT}`;
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -177,28 +182,34 @@ export default defineNuxtConfig({
       ],
     },
     server: {
+      // Dev-only proxy. Production builds embed the SPA in the Rust binary
+      // (nitro.preset: 'static'), so requests are same-origin and ports
+      // are whatever the operator sets in config.toml.
+      //
+      // Override at dev time (these are build-time env vars consumed by
+      // nuxt.config.ts itself, so they use the unprefixed `TILESERVER_*`
+      // convention rather than `NUXT_*` — the latter is reserved by Nuxt
+      // for `runtimeConfig` auto-mapping, which we don't use here):
+      //   TILESERVER_BACKEND_PORT=9000 TILESERVER_ADMIN_PORT=9001 pnpm dev
+      //
+      // Defaults match data/configs/dev.toml + data/configs/mcp.toml.
       proxy: {
-        // Proxy API requests to Rust backend
-        '/health': 'http://localhost:8080',
-        '/ping': 'http://localhost:8080',
-        '/data.json': 'http://localhost:8080',
-        '/styles.json': 'http://localhost:8080',
-        '/fonts.json': 'http://localhost:8080',
-        // Use regex to match .json and tile requests but not page routes
-        '^/data/[^/]+\\.json$': 'http://localhost:8080',
-        '^/data/[^/]+/\\d+/\\d+/\\d+': 'http://localhost:8080',
-        '^/styles/[^/]+/style\\.json$': 'http://localhost:8080',
-        '^/styles/[^/]+/static/': 'http://localhost:8080',
-        '^/styles/[^/]+/\\d+/\\d+/\\d+': 'http://localhost:8080',
-        '^/fonts/': 'http://localhost:8080',
-        // Spatial API for LLM tool integration
-        '^/api/spatial/': 'http://localhost:8080',
-        // Upload API for drag-and-drop file visualization
-        '^/api/upload': 'http://localhost:8080',
-        // Admin endpoints — backend mounts these on a SEPARATE bind (default
-        // 127.0.0.1:8081, see config.server.admin_bind). Required for the
-        // /admin/mcp/* pages to talk to /__admin/oauth/*.
-        '^/__admin/': 'http://localhost:8081',
+        '/health': BACKEND,
+        '/ping': BACKEND,
+        '/data.json': BACKEND,
+        '/styles.json': BACKEND,
+        '/fonts.json': BACKEND,
+        '^/data/[^/]+\\.json$': BACKEND,
+        '^/data/[^/]+/\\d+/\\d+/\\d+': BACKEND,
+        '^/styles/[^/]+/style\\.json$': BACKEND,
+        '^/styles/[^/]+/static/': BACKEND,
+        '^/styles/[^/]+/\\d+/\\d+/\\d+': BACKEND,
+        '^/fonts/': BACKEND,
+        '^/api/spatial/': BACKEND,
+        '^/api/upload': BACKEND,
+        // Admin endpoints — backend mounts these on a SEPARATE bind
+        // (config.server.admin_bind, default 127.0.0.1:8081).
+        '^/__admin/': ADMIN,
       },
     },
   },
