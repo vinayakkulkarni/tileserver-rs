@@ -195,6 +195,10 @@ export default defineNuxtConfig({
         '^/api/spatial/': 'http://localhost:8080',
         // Upload API for drag-and-drop file visualization
         '^/api/upload': 'http://localhost:8080',
+        // Admin endpoints — backend mounts these on a SEPARATE bind (default
+        // 127.0.0.1:8081, see config.server.admin_bind). Required for the
+        // /admin/mcp/* pages to talk to /__admin/oauth/*.
+        '^/__admin/': 'http://localhost:8081',
       },
     },
   },
