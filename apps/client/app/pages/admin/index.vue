@@ -79,11 +79,18 @@
             {{ reload.isPending.value ? 'Reloading…' : 'Reload config' }}
           </button>
           <p
-            v-if="reload.isSuccess.value"
+            v-if="reload.isSuccess.value && reload.data.value?.reloaded"
             class="flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-success uppercase"
           >
             <Check class="size-3" />
             Config reloaded
+          </p>
+          <p
+            v-else-if="reload.isSuccess.value"
+            class="flex items-center gap-1.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+          >
+            <Check class="size-3" />
+            Already up to date
           </p>
           <p
             v-else-if="reload.isError.value"
