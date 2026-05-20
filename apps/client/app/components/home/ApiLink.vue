@@ -16,9 +16,7 @@
       class="overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
     >
       <div class="flex items-center gap-3 p-4">
-        <div
-          class="flex size-8 items-center justify-center bg-muted/50"
-        >
+        <div class="flex size-8 items-center justify-center bg-muted/50">
           <ExternalLink class="size-4 text-muted-foreground" />
         </div>
         <div class="flex-1">

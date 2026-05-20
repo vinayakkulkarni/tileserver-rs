@@ -46,10 +46,9 @@
             <p
               class="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
             >
-              <code
-                class="bg-muted px-1.5 py-0.5 text-xs font-medium"
-                >{{ source.id }}</code
-              >
+              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
+                source.id
+              }}</code>
               <Badge variant="outline" class="text-[10px]">
                 z{{ source.minzoom }}-{{ source.maxzoom }}
               </Badge>

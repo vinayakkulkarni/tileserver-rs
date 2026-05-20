@@ -46,15 +46,11 @@
             class="size-4 text-muted-foreground transition-transform duration-200"
             :class="{ 'rotate-90': isOpen }"
           />
-          <div
-            class="flex size-8 items-center justify-center bg-primary/10"
-          >
+          <div class="flex size-8 items-center justify-center bg-primary/10">
             <Palette class="size-4 text-primary" />
           </div>
           <span class="font-medium">Styles</span>
-          <Badge variant="secondary" class="ml-auto">{{
-            styles.length
-          }}</Badge>
+          <Badge variant="secondary" class="ml-auto">{{ styles.length }}</Badge>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <HomeStyleListContent

@@ -1,5 +1,7 @@
 <template>
   <div class="min-h-dvh bg-background text-foreground antialiased">
-    <NuxtPage />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </div>
 </template>

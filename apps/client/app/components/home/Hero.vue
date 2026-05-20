@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { Globe, Moon, Sun } from '@lucide/vue';
+  import { Globe, Moon, Settings, Sun } from '@lucide/vue';
   import { motion } from 'motion-v';
 
   defineProps<{
@@ -34,15 +34,22 @@
           </p>
         </div>
       </motion.div>
-      <Button
-        variant="ghost"
-        size="icon"
-        class=""
-        @click="emit('toggleTheme')"
-      >
-        <Sun v-if="isDark" class="size-5" />
-        <Moon v-else class="size-5" />
-      </Button>
+      <div class="flex items-center gap-1">
+        <NuxtLink to="/admin" aria-label="Open admin">
+          <Button variant="ghost" size="icon" as="span">
+            <Settings class="size-5" />
+          </Button>
+        </NuxtLink>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Toggle color mode"
+          @click="emit('toggleTheme')"
+        >
+          <Sun v-if="isDark" class="size-5" />
+          <Moon v-else class="size-5" />
+        </Button>
+      </div>
     </div>
   </header>
 </template>

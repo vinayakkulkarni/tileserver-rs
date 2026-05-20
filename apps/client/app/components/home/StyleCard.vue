@@ -58,10 +58,9 @@
           <div>
             <h3 class="font-semibold">{{ style.name }}</h3>
             <p class="mt-0.5 text-sm text-muted-foreground">
-              <code
-                class="bg-muted px-1.5 py-0.5 text-xs font-medium"
-                >{{ style.id }}</code
-              >
+              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
+                style.id
+              }}</code>
             </p>
           </div>
           <Button as-child size="sm" class="">

@@ -46,9 +46,7 @@
             class="size-4 text-muted-foreground transition-transform duration-200"
             :class="{ 'rotate-90': isOpen }"
           />
-          <div
-            class="flex size-8 items-center justify-center bg-primary/10"
-          >
+          <div class="flex size-8 items-center justify-center bg-primary/10">
             <Database class="size-4 text-primary" />
           </div>
           <span class="font-medium">Data Sources</span>
