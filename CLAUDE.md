@@ -549,7 +549,7 @@ z.string().min(5, 'Too short');
 
 **The ENTIRE Nuxt client — public viewer (`/`, `/styles/*`, `/data/*`) AND admin (`/admin/*`) — is locked to "Direction I" — Linear-density-v2 OKLch palette, table-density layout, sharp corners (radius: 0), violet accent.** Every page, component, and styling change MUST follow it.
 
-The public viewer keeps light + dark color modes (daytime map use needs a light variant). Both modes use OKLch derivatives of the same direction-I palette so light/dark/admin all share visual continuity. The `/admin/*` pages force the dark variant regardless of viewer toggle (via `.admin-theme` class on the layout root) because they're an operator console — light mode is wrong for them.
+The entire client (public viewer AND `/admin/*`) honors the user's light/dark toggle. Both modes use OKLch derivatives of the same direction-I palette so the surfaces share visual continuity regardless of mode.
 
 **Before writing ANY page or styling code:**
 
@@ -557,9 +557,9 @@ The public viewer keeps light + dark color modes (daytime map use needs a light 
 2. **Use ONLY semantic tokens** from `apps/client/app/assets/css/tailwind.css` (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`, `border-border`, `bg-success`, `bg-destructive`) — never raw hex, never Tailwind default colors, never pure `#fff`/`#000`
 3. **Run the 5-dimensional self-critique** before declaring work complete — see `~/.claude/skills/design-discipline/references/critique.md`
 
-**Direction I token highlights (light + dark + admin overlay):**
+**Direction I token highlights (light + dark):**
 
-| Token                | Light                              | Dark / Admin                        |
+| Token                | Light                              | Dark                                |
 | -------------------- | ---------------------------------- | ----------------------------------- |
 | `--color-background` | `oklch(0.985 0.004 270)`           | `oklch(0.18 0.012 270)`             |
 | `--color-foreground` | `oklch(0.2 0.012 270)`             | `oklch(0.96 0.005 270)`             |
@@ -577,7 +577,7 @@ The public viewer keeps light + dark color modes (daytime map use needs a light 
 - Gradient text headlines (`bg-clip-text` + `bg-gradient-to-*`)
 - `rounded-*` classes (radius is 0 — direction-I locks sharp corners; the class is dead weight + a violation)
 
-**Why one direction across both viewer + admin?** Earlier the public viewer used HSL + Tailwind-default-blue while admin used OKLch + violet — two parallel palettes drifting apart. Direction I is now the canonical, single-source palette; light mode is a perceptually-uniform desaturation, dark mode and admin share identical tokens.
+**Why one direction across both viewer + admin?** Earlier the public viewer used HSL + Tailwind-default-blue while admin used OKLch + violet — two parallel palettes drifting apart. Direction I is now the canonical, single-source palette; light mode is a perceptually-uniform desaturation of the dark tokens.
 
 ---
 
