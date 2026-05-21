@@ -9,60 +9,11 @@
  * to a Rust config struct, add the same entry to this file AND to the docs
  * page in the same PR.
  *
- * The `/admin/config` page reads this catalog plus the live loaded TOML
- * (from `GET /__admin/config`) and renders an annotated view that shows:
- *   - keys currently set in the user's config (full color)
- *   - optional/feature-gated keys NOT currently set (muted, commented out,
- *     with type + default + description as inline hints)
- *
- * Authoring rules:
- *  - One entry per leaf field; one section per `[section]` or `[[array]]`.
- *  - `default` is rendered verbatim into the TOML, so quote strings,
- *    bracket arrays, etc. Use `null` for fields with no compile-time default.
- *  - `optional: true` means the field is omittable. Optional fields with no
- *    runtime default are rendered as commented suggestions.
- *  - `featureGate` documents the Cargo feature that must be enabled for
- *    the field to exist. The viewer shows these inside a "FEATURE-GATED"
- *    badge so users understand why a section may not appear in their build.
+ * Type definitions for the schema live in `~/types/admin-config-schema`;
+ * this file only holds the catalog data.
  */
 
-export type ConfigFieldType =
-  | 'bool'
-  | 'string'
-  | 'path'
-  | 'u8'
-  | 'u16'
-  | 'u32'
-  | 'u64'
-  | 'usize'
-  | 'f64'
-  | 'string[]'
-  | 'f64[4]'
-  | 'enum'
-  | 'table'
-  | 'table[]';
-
-export interface ConfigFieldSchema {
-  key: string;
-  type: ConfigFieldType;
-  default: string | null;
-  description: string;
-  optional?: boolean;
-  enumValues?: readonly string[];
-}
-
-export interface ConfigSectionSchema {
-  /** TOML section header, e.g. `[server]`, `[[sources]]`, `[postgres.cache]`. */
-  header: string;
-  /** Short prose explaining what this section is for. Rendered as a kicker. */
-  blurb: string;
-  /** All leaf fields, in display order. */
-  fields: readonly ConfigFieldSchema[];
-  /** Cargo feature gate, if any. */
-  featureGate?: string;
-  /** True when the section is an array-of-tables (`[[…]]`). */
-  isArray?: boolean;
-}
+import type { ConfigSectionSchema } from '~/types/admin-config-schema';
 
 export const CONFIG_SCHEMA: readonly ConfigSectionSchema[] = [
   {

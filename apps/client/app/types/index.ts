@@ -1,5 +1,12 @@
 export type { AdminConfigPayload } from './admin-config';
 export type {
+  ConfigFieldSchema,
+  ConfigFieldType,
+  ConfigLine,
+  ConfigSectionSchema,
+  ConfigSectionView,
+} from './admin-config-schema';
+export type {
   AdminBreadcrumbCrumb,
   AdminFriendlyError,
   AdminMcpClient,
@@ -9,6 +16,7 @@ export type {
   AdminNavItem,
 } from './admin-mcp';
 export type { Data, VectorLayer } from './data';
+export type { OfetchLikeError } from './fetch';
 export type { VMapOptions } from './map';
 export type { PingResponse } from './server';
 export type { Style, TileJSON } from './style';

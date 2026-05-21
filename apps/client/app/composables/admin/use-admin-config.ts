@@ -1,39 +1,19 @@
 import { useQuery } from '@tanstack/vue-query';
-import type { AdminBreadcrumbCrumb } from '~/types';
+import type {
+  AdminBreadcrumbCrumb,
+  ConfigLine,
+  ConfigSectionSchema,
+  ConfigSectionView,
+} from '~/types';
 import { adminConfigQueryOptions } from '~/utils/api/admin-config';
 import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
-import {
-  CONFIG_SCHEMA,
-  type ConfigFieldSchema,
-  type ConfigSectionSchema,
-} from './config-schema';
+import { CONFIG_SCHEMA } from './config-schema';
 
 const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
   { label: 'Home', to: '/' },
   { label: 'Admin', to: '/admin' },
   { label: 'Configuration' },
 ];
-
-/**
- * One line of the annotated config view. The page renders each kind with
- * a different style so the user sees at a glance what's loaded versus
- * available.
- */
-export type ConfigLine =
-  | { kind: 'blank' }
-  | { kind: 'section-header'; header: string; blurb: string; featureGate?: string }
-  | { kind: 'set'; key: string; rendered: string; schema: ConfigFieldSchema | null }
-  | { kind: 'suggestion'; key: string; schema: ConfigFieldSchema };
-
-export interface ConfigSectionView {
-  schema: ConfigSectionSchema;
-  /** Lines rendered for the section: section header, then set keys, then suggestions. */
-  lines: readonly ConfigLine[];
-  /** True if the loaded config has at least one occurrence of this section. */
-  isPresent: boolean;
-  /** Number of occurrences (`[[…]]` arrays can have multiple). */
-  occurrences: number;
-}
 
 const LINE_RE = /^([a-z_][\w.-]*)\s*=/i;
 

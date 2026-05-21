@@ -1,13 +1,5 @@
 import type { AdminFriendlyError } from '~/types/admin-mcp';
-
-interface OfetchLikeError extends Error {
-  statusCode?: number;
-  status?: number;
-  statusMessage?: string;
-  response?: { status?: number; statusText?: string };
-  data?: unknown;
-  request?: string;
-}
+import type { OfetchLikeError } from '~/types/fetch';
 
 function statusOf(error: Error | null): number | null {
   if (!error) return null;
