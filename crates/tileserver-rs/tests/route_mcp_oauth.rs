@@ -488,3 +488,163 @@ signing_key_path = "/dev/null"
         "error mentions mutual exclusion: {msg}",
     );
 }
+
+#[tokio::test]
+async fn oob_redirect_uri_round_trip_succeeds() {
+    let server = test_server(test_state());
+
+    let resp = server
+        .post("/register")
+        .json(&json!({
+            "client_name": "oob-cli-client",
+            "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"],
+            "grant_types": ["authorization_code"],
+        }))
+        .await;
+    resp.assert_status(StatusCode::CREATED);
+    let body: Value = resp.json();
+    let client_id = body["client_id"]
+        .as_str()
+        .expect("client_id present")
+        .to_string();
+    assert_eq!(
+        body["redirect_uris"][0], "urn:ietf:wg:oauth:2.0:oob",
+        "OOB URI accepted at registration",
+    );
+
+    let approve_resp = server
+        .post("/approve")
+        .form(&[
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", "urn:ietf:wg:oauth:2.0:oob"),
+            ("scope", "mcp"),
+            ("state", "oob-state"),
+            (
+                "code_challenge",
+                pkce_challenge("verifier-must-be-43-chars-aaaaaaaaaaaaaaaaaaa").as_str(),
+            ),
+            ("code_challenge_method", "S256"),
+            ("approved", "true"),
+        ])
+        .await;
+
+    assert!(
+        approve_resp.status_code().is_redirection(),
+        "OOB approve still issues a redirect (the OOB URI itself is the Location)",
+    );
+    let location = approve_resp
+        .headers()
+        .get(header::LOCATION)
+        .expect("Location on OOB approve")
+        .to_str()
+        .expect("ascii Location");
+    assert!(
+        location.starts_with("urn:ietf:wg:oauth:2.0:oob"),
+        "OOB redirect carries the URN scheme back: {location}",
+    );
+    assert!(
+        location.contains("code="),
+        "OOB redirect carries the auth code: {location}",
+    );
+}
+
+#[tokio::test]
+async fn approve_with_unregistered_redirect_uri_is_rejected() {
+    let server = test_server(test_state());
+    let client_id = register_client(&server).await;
+
+    let resp = server
+        .post("/approve")
+        .form(&[
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", "https://attacker.example.com/cb"),
+            ("scope", "mcp"),
+            ("state", "x"),
+            (
+                "code_challenge",
+                pkce_challenge("verifier-must-be-43-chars-aaaaaaaaaaaaaaaaaaa").as_str(),
+            ),
+            ("code_challenge_method", "S256"),
+            ("approved", "true"),
+        ])
+        .await;
+    resp.assert_status(StatusCode::BAD_REQUEST);
+    let body: Value = resp.json();
+    assert_eq!(body["error"], "invalid_redirect_uri");
+}
+
+#[tokio::test]
+async fn redirect_uri_comparison_is_exact_no_trailing_slash_normalisation() {
+    let server = test_server(test_state());
+    let resp = server
+        .post("/register")
+        .json(&json!({
+            "client_name": "exact-match-client",
+            "redirect_uris": ["https://app.example.com/cb"],
+            "grant_types": ["authorization_code"],
+        }))
+        .await;
+    resp.assert_status(StatusCode::CREATED);
+    let body: Value = resp.json();
+    let client_id = body["client_id"].as_str().expect("client_id").to_string();
+
+    let approve = server
+        .post("/approve")
+        .form(&[
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", "https://app.example.com/cb/"),
+            ("scope", "mcp"),
+            ("state", "x"),
+            (
+                "code_challenge",
+                pkce_challenge("verifier-must-be-43-chars-aaaaaaaaaaaaaaaaaaa").as_str(),
+            ),
+            ("code_challenge_method", "S256"),
+            ("approved", "true"),
+        ])
+        .await;
+    approve.assert_status(StatusCode::BAD_REQUEST);
+    let body: Value = approve.json();
+    assert_eq!(body["error"], "invalid_redirect_uri");
+}
+
+#[tokio::test]
+async fn dcr_returns_429_when_client_cap_is_reached() {
+    use std::sync::Arc;
+    use tileserver_rs::mcp::auth::{MAX_REGISTERED_CLIENTS, RegisteredClient};
+    use tileserver_rs::mcp::auth_store::{InMemoryStore, OAuthBackend};
+
+    let backend = Arc::new(InMemoryStore::new());
+    for i in 0..MAX_REGISTERED_CLIENTS {
+        let id = format!("preloaded-{i}");
+        backend
+            .insert_client(
+                id.clone(),
+                RegisteredClient {
+                    client_id: id,
+                    client_secret: None,
+                    redirect_uris: vec![TEST_REDIRECT.to_string()],
+                    client_name: None,
+                },
+            )
+            .await
+            .expect("seed");
+    }
+
+    let mut state = test_state();
+    state.store = backend;
+    let server = test_server(state);
+
+    let resp = server
+        .post("/register")
+        .json(&json!({
+            "client_name": "one-too-many",
+            "redirect_uris": [TEST_REDIRECT],
+            "grant_types": ["authorization_code"],
+        }))
+        .await;
+
+    resp.assert_status(StatusCode::TOO_MANY_REQUESTS);
+    let body: Value = resp.json();
+    assert_eq!(body["error"], "too_many_clients");
+}

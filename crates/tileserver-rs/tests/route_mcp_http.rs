@@ -17,20 +17,11 @@
 
 mod common;
 
-use std::sync::Arc;
-
 use axum::Router;
-use axum::extract::Request;
 use axum::http::{StatusCode, header::AUTHORIZATION};
-use axum::middleware::{self, Next};
-use axum::response::Response;
 use axum_test::TestServer;
-use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
-use rmcp::transport::streamable_http_server::tower::{
-    StreamableHttpServerConfig, StreamableHttpService,
-};
 use serde_json::{Value, json};
-use tileserver_rs::mcp::McpHandler;
+use tileserver_rs::mcp::transport::{McpAuthMode, mcp_router};
 use tileserver_rs::reload::SharedState;
 
 const MCP_ACCEPT: &str = "application/json, text/event-stream";
@@ -49,38 +40,11 @@ fn parse_sse_json(body: &str) -> Value {
 }
 
 fn mcp_test_router(shared: SharedState, auth_token: Option<String>) -> Router {
-    let factory_state = shared;
-    let svc = StreamableHttpService::new(
-        move || Ok(McpHandler::new(factory_state.load())),
-        Arc::new(LocalSessionManager::default()),
-        StreamableHttpServerConfig::default().disable_allowed_hosts(),
-    );
-    let mut router = Router::new().nest_service("/mcp", svc);
-    if let Some(token) = auth_token {
-        let state = TestAuthToken(Arc::new(token));
-        router = router.layer(middleware::from_fn_with_state(state, test_bearer_auth));
-    }
-    router
-}
-
-#[derive(Clone)]
-struct TestAuthToken(Arc<String>);
-
-async fn test_bearer_auth(
-    axum::extract::State(token): axum::extract::State<TestAuthToken>,
-    req: Request,
-    next: Next,
-) -> std::result::Result<Response, StatusCode> {
-    let provided = req
-        .headers()
-        .get(AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "));
-    if provided == Some(token.0.as_str()) {
-        Ok(next.run(req).await)
-    } else {
-        Err(StatusCode::UNAUTHORIZED)
-    }
+    let auth = match auth_token {
+        Some(token) => McpAuthMode::StaticBearer(token),
+        None => McpAuthMode::None,
+    };
+    mcp_router(shared, auth, &[])
 }
 
 fn empty_mcp_server() -> TestServer {
@@ -579,6 +543,55 @@ async fn mcp_bearer_auth_rejects_missing_token() {
     let resp = server
         .post("/mcp")
         .add_header("accept", MCP_ACCEPT)
+        .json(&initialize_payload())
+        .await;
+    assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    let www_auth = resp
+        .headers()
+        .get(axum::http::header::WWW_AUTHENTICATE)
+        .expect("RFC 6750 §3 requires WWW-Authenticate on every Bearer 401")
+        .to_str()
+        .unwrap();
+    assert!(
+        www_auth.starts_with("Bearer"),
+        "WWW-Authenticate must use Bearer scheme, got: {www_auth}"
+    );
+    assert!(
+        www_auth.contains(r#"error="invalid_token""#),
+        "WWW-Authenticate should carry invalid_token error param, got: {www_auth}"
+    );
+}
+
+#[tokio::test]
+async fn mcp_bearer_auth_rejects_wrong_token_with_challenge() {
+    let shared = common::minimal_shared_state();
+    let router = mcp_test_router(shared, Some("the-real-secret".into()));
+    let server = TestServer::new(router);
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header(AUTHORIZATION, "Bearer not-the-real-secret")
+        .json(&initialize_payload())
+        .await;
+    assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    assert!(
+        resp.headers()
+            .contains_key(axum::http::header::WWW_AUTHENTICATE)
+    );
+}
+
+#[tokio::test]
+async fn mcp_bearer_auth_rejects_unequal_length_tokens() {
+    let shared = common::minimal_shared_state();
+    let router = mcp_test_router(shared, Some("short".into()));
+    let server = TestServer::new(router);
+    let resp = server
+        .post("/mcp")
+        .add_header("accept", MCP_ACCEPT)
+        .add_header(
+            AUTHORIZATION,
+            "Bearer a-token-much-longer-than-the-real-one",
+        )
         .json(&initialize_payload())
         .await;
     assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);

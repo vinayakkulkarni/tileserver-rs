@@ -7,6 +7,20 @@ function statusOf(error: Error | null): number | null {
   return e.statusCode ?? e.status ?? e.response?.status ?? null;
 }
 
+function isNetworkError(error: Error | null, status: number | null): boolean {
+  if (!error) return false;
+  if (status !== null) return false;
+  const e = error as OfetchLikeError;
+  if (e.response) return false;
+  const message = error.message ?? '';
+  return (
+    /failed to fetch/i.test(message) ||
+    /network ?error/i.test(message) ||
+    /ERR_CONNECTION_REFUSED/i.test(message) ||
+    /load failed/i.test(message)
+  );
+}
+
 function statusMessageOf(error: Error | null): string | null {
   if (!error) return null;
   const e = error as OfetchLikeError;
@@ -48,15 +62,34 @@ export function friendlyAdminError(error: Error | null): AdminFriendlyError {
   const requestPath = requestPathOf(error);
   const requestLabel = requestPath ? `Request: ${requestPath}` : null;
 
+  if (isNetworkError(error, status)) {
+    return {
+      title: 'Admin server not reachable',
+      body:
+        'The browser could not open a TCP connection to the admin bind address. ' +
+        'Either tileserver-rs is not running, the admin server was started without ' +
+        '[server].admin_bind in config.toml, or a firewall is dropping the connection.',
+      hint: joinHint([
+        'Confirm `tileserver-rs --config <your-config.toml>` is running and ' +
+          'that [server].admin_bind is set (e.g. "127.0.0.1:8081"). ' +
+          'Without admin_bind, /__admin/* is not served at all.',
+        requestLabel,
+      ]),
+    };
+  }
+
   if (status === 404) {
     return {
       title: 'Admin endpoint not found',
       body:
         backendMessage ??
-        'The MCP admin endpoint did not exist on this tileserver-rs build, ' +
-          'or the admin server is disabled.',
+        'The admin server responded but does not expose this endpoint. ' +
+          'This usually means the MCP OAuth store is not configured ' +
+          '(no `[mcp.oauth]` block in config.toml), so the /__admin/oauth/* ' +
+          'routes are not mounted.',
       hint: joinHint([
-        'Enable [server].admin_bind in config.toml, then restart tileserver-rs.',
+        'Add an `[mcp.oauth]` block to config.toml to enable MCP OAuth, ' +
+          'then restart tileserver-rs. The MCP guide has the minimal config.',
         requestLabel,
       ]),
     };

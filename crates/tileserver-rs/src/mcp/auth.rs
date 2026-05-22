@@ -23,11 +23,35 @@
 //!
 //! # Token store
 //!
-//! The OAuth store (registered clients, outstanding auth codes, refresh
-//! tokens) is held entirely in memory. **Restarting the server invalidates
-//! every issued token** — clients must re-authorize. This is acceptable
-//! for a tile server; a database-backed store would be a future
-//! improvement.
+//! Backed by [`super::auth_store::OAuthBackend`]; the default
+//! [`InMemoryStore`] loses state on restart, the SQLite-backed
+//! implementation (feature `mcp-persistence`) survives.
+//!
+//! # Redirect URIs
+//!
+//! Comparison is **exact-match per RFC 6819 §5.2.3.5** — no normalisation,
+//! no path/query wildcards, trailing slashes matter (`https://x/cb` and
+//! `https://x/cb/` are different URIs). The OOB redirect_uri
+//! `urn:ietf:wg:oauth:2.0:oob` (CLI flows, RFC 8252 §7.3) is accepted on
+//! the basis that it is a syntactically valid URI string; clients that
+//! want CLI support must register it explicitly at DCR time. There is no
+//! special server-side handling for OOB — `approve` issues the auth code
+//! and renders the redirect just like any other URI; the client polls
+//! out-of-band.
+//!
+//! `redirect_uris.contains()` is O(n) on a `Vec<String>`. Typical clients
+//! register 1–2 URIs so this is unmeasurable in practice; if a future
+//! workload registers hundreds of URIs per client, switch to a `HashSet`
+//! in [`RegisteredClient`].
+//!
+//! # Abuse protection
+//!
+//! DCR (`POST /register`) is unauthenticated by design (anyone can
+//! register an MCP client). [`MAX_REGISTERED_CLIENTS`] hard-caps the
+//! number of clients to prevent unbounded `HashMap` / disk growth from a
+//! flood of registrations; once the cap is reached, further `register`
+//! calls return HTTP 429 until an operator revokes clients via the admin
+//! UI.
 //!
 //! # References
 //!
@@ -35,6 +59,7 @@
 //! - <https://claude.com/docs/connectors/building/authentication>
 //! - <https://datatracker.ietf.org/doc/html/rfc7591> (DCR)
 //! - <https://datatracker.ietf.org/doc/html/rfc8414> (Authorization Server Metadata)
+//! - <https://datatracker.ietf.org/doc/html/rfc8252> (OAuth 2.0 for Native Apps — OOB redirect)
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -58,6 +83,7 @@ use rsa::pkcs8::DecodePrivateKey;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -73,6 +99,17 @@ const AUTH_CODE_TTL_SECS: u64 = 600;
 
 /// Lifetime of an issued refresh token (30 days).
 const REFRESH_TOKEN_TTL_SECS: u64 = 60 * 60 * 24 * 30;
+
+/// Hard cap on the number of DCR clients the backend will hold at once.
+///
+/// DCR is unauthenticated, so without a cap an attacker can flood
+/// `POST /register` to exhaust RAM (in-memory store) or disk
+/// (`mcp-persistence` store). The cap is well above any plausible
+/// legitimate workload — an operator running 50 connected apps with 10
+/// clients each is at 1% of the limit. New registrations past the cap
+/// return HTTP 429 with `error: "too_many_clients"`; operators clear room
+/// by revoking from `/admin/mcp/connected-apps`.
+pub const MAX_REGISTERED_CLIENTS: usize = 10_000;
 
 /// Errors raised while building or operating the OAuth authorization
 /// server.
@@ -316,6 +353,24 @@ async fn register(
             "invalid_redirect_uri",
             "redirect_uris must contain at least one URI",
         );
+    }
+
+    match state.store.list_clients().await {
+        Ok(clients) if clients.len() >= MAX_REGISTERED_CLIENTS => {
+            tracing::warn!(
+                registered = clients.len(),
+                cap = MAX_REGISTERED_CLIENTS,
+                "DCR cap reached; rejecting new client registration"
+            );
+            return error_json(
+                StatusCode::TOO_MANY_REQUESTS,
+                "too_many_clients",
+                "the MCP authorization server has reached its DCR client cap; \
+                 ask the operator to revoke unused clients via the admin UI",
+            );
+        }
+        Ok(_) => {}
+        Err(e) => return backend_error_response(&e),
     }
 
     let client_id = format!("client-{}", Uuid::new_v4());
@@ -661,11 +716,14 @@ async fn token_authorization_code(state: OAuthState, form: TokenForm) -> Respons
         );
     }
 
-    // PKCE S256 verification: BASE64URL-NO-PAD(SHA256(verifier)) must
-    // equal the challenge captured at consent.
     let digest = Sha256::digest(verifier.as_bytes());
     let computed = URL_SAFE_NO_PAD.encode(digest);
-    if computed != entry.code_challenge {
+    if computed
+        .as_bytes()
+        .ct_eq(entry.code_challenge.as_bytes())
+        .unwrap_u8()
+        != 1
+    {
         return error_json(
             StatusCode::BAD_REQUEST,
             "invalid_grant",

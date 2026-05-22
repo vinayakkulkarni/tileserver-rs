@@ -16,16 +16,17 @@ use axum::Router;
 use axum::extract::Request;
 use axum::http::{
     HeaderValue, Method, StatusCode,
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, WWW_AUTHENTICATE},
 };
 use axum::middleware::{self, Next};
-use axum::response::Response;
+use axum::response::{IntoResponse, Response};
 use rmcp::ServiceExt;
 use rmcp::transport::stdio;
 use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
 use rmcp::transport::streamable_http_server::tower::{
     StreamableHttpServerConfig, StreamableHttpService,
 };
+use subtle::ConstantTimeEq;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
 use crate::config::McpConfig;
@@ -203,18 +204,33 @@ async fn bearer_auth(
     axum::extract::State(token): axum::extract::State<McpBearerToken>,
     req: Request,
     next: Next,
-) -> std::result::Result<Response, StatusCode> {
-    let expected = token.0.as_str();
+) -> Response {
+    let expected = token.0.as_bytes();
     let provided = req
         .headers()
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "));
 
-    match provided {
-        Some(actual) if actual == expected => Ok(next.run(req).await),
-        _ => Err(StatusCode::UNAUTHORIZED),
+    let ok = match provided {
+        Some(actual) => actual.as_bytes().ct_eq(expected).unwrap_u8() == 1,
+        None => false,
+    };
+
+    if ok {
+        next.run(req).await
+    } else {
+        static_bearer_challenge()
     }
+}
+
+fn static_bearer_challenge() -> Response {
+    let mut resp = StatusCode::UNAUTHORIZED.into_response();
+    resp.headers_mut().insert(
+        WWW_AUTHENTICATE,
+        HeaderValue::from_static(r#"Bearer realm="mcp", error="invalid_token""#),
+    );
+    resp
 }
 
 /// Run the MCP server over stdio until the client disconnects.

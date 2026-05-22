@@ -76,6 +76,11 @@ reqwest          = { version = "0.13.3", default-features = false, features = ["
 
 # Cryptography / hashing
 sha2             = "0.11.0"
+# Constant-time primitives (already a transitive dep via `rsa`; declared
+# explicitly here so `src/mcp/auth.rs` + `src/mcp/transport.rs` can use
+# `ConstantTimeEq` for bearer/PKCE comparisons without a sneaky version
+# drift between our direct use and rsa's transitive pin).
+subtle           = "2.6"
 uuid             = { version = "1.23.1", features = ["v4"] }
 
 # Binary formats / data

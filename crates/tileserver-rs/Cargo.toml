@@ -109,11 +109,14 @@ base64           = { version = "0.22", optional = true }
 # OAuth 2.0 support for the MCP HTTP transport (RFC 7591 DCR + claude.ai
 # Custom Connectors). Pulled in only when both `mcp` and the operator's
 # `[mcp.oauth]` block opt into OAuth — see `src/mcp/auth.rs`. JWT access
-# tokens are signed with RS256.
+# tokens are signed with RS256. `subtle` powers the constant-time PKCE +
+# bearer comparisons; declared optional under `mcp` so it does not enter
+# default builds even though it is a transitive dep via `rsa`.
 jsonwebtoken     = { version = "10", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
 askama           = { version = "0.15", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 rsa              = { version = "0.9", optional = true, features = ["pem"] }
+subtle           = { workspace = true, optional = true }
 
 [features]
 default = ["postgres", "raster", "mlt", "cloud", "stac"]
@@ -127,7 +130,9 @@ geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-c
 duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
 # MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
-# and avoid pulling rmcp into every `cargo build` invocation.
+# and avoid pulling rmcp into every `cargo build` invocation. The `subtle`
+# crate is enabled here so the OAuth bearer + PKCE comparisons in
+# `src/mcp/transport.rs` and `src/mcp/auth.rs` are constant-time.
 mcp = [
   "dep:rmcp",
   "dep:schemars",
@@ -136,12 +141,16 @@ mcp = [
   "dep:askama",
   "dep:serde_urlencoded",
   "dep:rsa",
+  "dep:subtle",
 ]
 # Disk-backed SQLite persistence for the MCP OAuth store (registered
 # clients, outstanding authorization codes, refresh tokens). Without this
 # feature the store is purely in-memory and a server restart invalidates
-# every issued token. Requires `mcp`. Reuses the non-optional `rusqlite`
-# dep declared for MBTiles — no extra build-time cost beyond compiling
+# every issued token. `mcp-persistence = ["mcp"]` is load-bearing: it
+# guarantees `cargo build --features mcp-persistence` alone still works
+# without an explicit `--features mcp` (Cargo feature unification follows
+# the implication transitively). Reuses the non-optional `rusqlite` dep
+# declared for MBTiles — no extra build-time cost beyond compiling
 # `src/mcp/auth_store_sqlite.rs`.
 mcp-persistence = ["mcp"]
 

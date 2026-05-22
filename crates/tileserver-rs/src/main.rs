@@ -282,6 +282,14 @@ async fn main() -> anyhow::Result<()> {
     let admin_bind = &config.server.admin_bind;
     if admin_bind != "127.0.0.1:0" {
         let admin_addr: SocketAddr = admin_bind.parse()?;
+        if !admin_addr.ip().is_loopback() {
+            tracing::warn!(
+                bind = %admin_addr,
+                "admin_bind is NOT a loopback address — destructive admin endpoints (/__admin/reload, /__admin/cache/flush, /__admin/oauth/*) are reachable on ALL interfaces. \
+                 In production, set [server].admin_bind to '127.0.0.1:<port>' and reverse-proxy with auth. \
+                 See https://github.com/vinayakkulkarni/tileserver-rs/blob/main/apps/docs/content/4.guides/16.mcp.md#admin-security"
+            );
+        }
         let admin_shared = shared.clone();
         #[cfg(feature = "mcp")]
         let admin_oauth_store = mcp_oauth_store.clone();

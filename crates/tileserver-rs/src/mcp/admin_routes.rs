@@ -39,6 +39,13 @@ use super::auth_store::{BackendError, OAuthBackend};
 const REFRESH_TOKEN_TTL_SECS: u64 = 60 * 60 * 24 * 90;
 
 /// Operator-facing view of a registered DCR client.
+///
+/// The fields here are deliberately enumerated (rather than
+/// `#[serde(flatten)]`-ing the storage type [`super::auth::RegisteredClient`])
+/// because `RegisteredClient.client_secret` MUST NOT be exposed on this
+/// admin endpoint. Flattening would silently leak the secret on a future
+/// add-a-field change to the storage struct — the explicit enumeration is
+/// the security boundary.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdminClient {
     /// Public OAuth `client_id`.
