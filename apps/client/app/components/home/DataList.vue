@@ -37,7 +37,7 @@
   >
     <Collapsible :open="isOpen" @update:open="$emit('update:isOpen', $event)">
       <Card
-        class="overflow-hidden rounded-xl border-border/50 bg-card/50 backdrop-blur-sm"
+        class="overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm"
       >
         <CollapsibleTrigger
           class="flex w-full items-center gap-3 p-4 transition-colors hover:bg-muted/30"
@@ -46,13 +46,11 @@
             class="size-4 text-muted-foreground transition-transform duration-200"
             :class="{ 'rotate-90': isOpen }"
           />
-          <div
-            class="flex size-8 items-center justify-center rounded-lg bg-primary/10"
-          >
+          <div class="flex size-8 items-center justify-center bg-primary/10">
             <Database class="size-4 text-primary" />
           </div>
           <span class="font-medium">Data Sources</span>
-          <Badge variant="secondary" class="ml-auto rounded-lg">{{
+          <Badge variant="secondary" class="ml-auto">{{
             sources.length
           }}</Badge>
         </CollapsibleTrigger>

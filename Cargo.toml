@@ -60,13 +60,27 @@ geo-types        = "0.7.19"
 mlt-core         = { version = "0.9.3" }
 
 # MBTiles / SQLite
-rusqlite         = { version = "0.39.0", features = ["bundled"] }
+#
+# Linkage policy (LOAD-BEARING): rusqlite uses the system sqlite3 shared
+# library, NOT the bundled static one. mbgl-sys statically embeds its own
+# sqlite3 (for MapLibre Native's tile/style storage); if rusqlite were
+# `bundled` too, both archives would export every sqlite3_* symbol and
+# rust-lld errors with `duplicate symbol` on Linux GNU-ld. System sqlite is
+# always present on macOS (/usr/lib/libsqlite3.dylib), Linux distros ship
+# libsqlite3-dev in default repos, and CI/Docker installs it explicitly.
+# Windows is handled separately via the `bundled-windows` feature.
+rusqlite         = { version = "0.39.0", features = ["bundled-windows"] }
 
 # HTTP client
 reqwest          = { version = "0.13.3", default-features = false, features = ["rustls", "json"] }
 
 # Cryptography / hashing
 sha2             = "0.11.0"
+# Constant-time primitives (already a transitive dep via `rsa`; declared
+# explicitly here so `src/mcp/auth.rs` + `src/mcp/transport.rs` can use
+# `ConstantTimeEq` for bearer/PKCE comparisons without a sneaky version
+# drift between our direct use and rsa's transitive pin).
+subtle           = "2.6"
 uuid             = { version = "1.23.1", features = ["v4"] }
 
 # Binary formats / data

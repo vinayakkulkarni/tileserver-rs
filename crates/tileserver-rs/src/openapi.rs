@@ -29,7 +29,8 @@ use utoipa::OpenApi;
         (name = "Files", description = "Static file serving"),
         (name = "Upload", description = "File upload for drag-and-drop visualization"),
         (name = "Spatial", description = "Spatial queries and source schema inspection for LLM tool integration"),
-        (name = "OGC", description = "OGC API Features (Parts 1-5): read-only GeoJSON feature access for PostGIS table sources, consumed natively by QGIS, ArcGIS Pro and FME")
+        (name = "OGC", description = "OGC API Features (Parts 1-5): read-only GeoJSON feature access for PostGIS table sources, consumed natively by QGIS, ArcGIS Pro and FME"),
+        (name = "Admin", description = "Operator-facing endpoints served on the admin listener (`server.admin_bind`). Includes MCP OAuth client + device session management (`mcp` feature)")
     ),
     paths(
         health_check,
@@ -68,6 +69,10 @@ use utoipa::OpenApi;
         ogc_queryables,
         ogc_sortables,
         ogc_schema,
+        admin_list_mcp_clients,
+        admin_delete_mcp_client,
+        admin_list_mcp_sessions,
+        admin_delete_mcp_session,
     ),
     components(schemas(
         TileJSON,
@@ -89,6 +94,9 @@ use utoipa::OpenApi;
         OgcFeature,
         OgcFeatureCollection,
         OgcLink,
+        AdminMcpClient,
+        AdminMcpSession,
+        AdminDeleteResponse,
     ))
 )]
 pub struct ApiDoc;
@@ -403,6 +411,64 @@ pub struct OgcFeatureCollection {
     #[schema(rename = "numberReturned")]
     pub number_returned: i64,
     pub links: Vec<OgcLink>,
+}
+
+/// Operator-facing view of a registered MCP OAuth client (admin listener,
+/// `mcp` feature).
+#[derive(utoipa::ToSchema)]
+#[schema(example = json!({
+    "client_id": "client-abc-123",
+    "client_name": "Claude.ai",
+    "redirect_uris": ["https://claude.ai/api/oauth/callback"],
+    "active_sessions": 2,
+    "scopes": ["identify", "read", "render", "query"],
+    "first_granted_at": 1729450000,
+    "last_seen_at": 1729536800
+}))]
+pub struct AdminMcpClient {
+    pub client_id: String,
+    #[schema(nullable)]
+    pub client_name: Option<String>,
+    pub redirect_uris: Vec<String>,
+    pub active_sessions: u32,
+    pub scopes: Vec<String>,
+    #[schema(nullable)]
+    pub first_granted_at: Option<u64>,
+    #[schema(nullable)]
+    pub last_seen_at: Option<u64>,
+}
+
+/// Operator-facing view of a single outstanding MCP refresh token.
+/// From the UI's perspective each token is a "device session"
+/// (admin listener, `mcp` feature).
+#[derive(utoipa::ToSchema)]
+#[schema(example = json!({
+    "token_id": "rt-abc-...",
+    "client_id": "client-abc-123",
+    "client_name": "Claude.ai",
+    "scope": "identify read render query",
+    "granted_at": 1729450000,
+    "expires_at": 1737226000
+}))]
+pub struct AdminMcpSession {
+    pub token_id: String,
+    pub client_id: String,
+    #[schema(nullable)]
+    pub client_name: Option<String>,
+    pub scope: String,
+    pub granted_at: u64,
+    pub expires_at: u64,
+}
+
+/// Idempotent response body for the admin DELETE endpoints
+/// (admin listener, `mcp` feature).
+#[derive(utoipa::ToSchema)]
+#[schema(example = json!({ "ok": true, "deleted": true, "revoked_sessions": 2 }))]
+pub struct AdminDeleteResponse {
+    pub ok: bool,
+    pub deleted: bool,
+    #[schema(nullable)]
+    pub revoked_sessions: Option<u32>,
 }
 
 // ============================================================
@@ -1057,6 +1123,81 @@ pub async fn ogc_sortables() {}
 )]
 pub async fn ogc_schema() {}
 
+/// List MCP OAuth clients (admin listener)
+///
+/// Returns every DCR client currently registered with the MCP OAuth server
+/// along with derived stats: number of outstanding refresh tokens
+/// ("active sessions"), distinct granted scopes, and approximate first /
+/// last sign-in timestamps. Mounted on the admin listener only
+/// (`server.admin_bind`); requires the `mcp` Cargo feature.
+#[utoipa::path(
+    get,
+    path = "/__admin/oauth/clients",
+    tag = "Admin",
+    responses(
+        (status = 200, description = "Registered clients with derived stats", body = Vec<AdminMcpClient>),
+        (status = 500, description = "OAuth backend storage failure", body = ApiError)
+    )
+)]
+pub async fn admin_list_mcp_clients() {}
+
+/// Revoke an MCP OAuth client (admin listener)
+///
+/// Deletes the client. Every refresh token issued to the client is
+/// cascade-deleted atomically by the backend trait. Idempotent: a
+/// `deleted: false` response indicates the client did not exist.
+/// Requires the `mcp` Cargo feature.
+#[utoipa::path(
+    delete,
+    path = "/__admin/oauth/clients/{client_id}",
+    tag = "Admin",
+    params(
+        ("client_id" = String, Path, description = "Public OAuth `client_id`")
+    ),
+    responses(
+        (status = 200, description = "Client deleted (or did not exist)", body = AdminDeleteResponse),
+        (status = 500, description = "OAuth backend storage failure", body = ApiError)
+    )
+)]
+pub async fn admin_delete_mcp_client() {}
+
+/// List MCP OAuth device sessions (admin listener)
+///
+/// Returns every outstanding refresh token with the joined client name
+/// and granted scope. Each refresh token is treated as a single device
+/// session from the UI's perspective. Requires the `mcp` Cargo feature.
+#[utoipa::path(
+    get,
+    path = "/__admin/oauth/sessions",
+    tag = "Admin",
+    responses(
+        (status = 200, description = "Outstanding refresh tokens", body = Vec<AdminMcpSession>),
+        (status = 500, description = "OAuth backend storage failure", body = ApiError)
+    )
+)]
+pub async fn admin_list_mcp_sessions() {}
+
+/// Revoke a single MCP device session (admin listener)
+///
+/// Deletes a single refresh token without touching other sessions for the
+/// same client. Idempotent: a `deleted: false` response indicates the
+/// token did not exist (e.g. it already expired or was rotated). The
+/// `revoked_sessions` field is always `null` for this endpoint.
+/// Requires the `mcp` Cargo feature.
+#[utoipa::path(
+    delete,
+    path = "/__admin/oauth/sessions/{token}",
+    tag = "Admin",
+    params(
+        ("token" = String, Path, description = "Opaque refresh-token identifier (the same value the GET endpoint returns as `token_id`)")
+    ),
+    responses(
+        (status = 200, description = "Session deleted (or did not exist)", body = AdminDeleteResponse),
+        (status = 500, description = "OAuth backend storage failure", body = ApiError)
+    )
+)]
+pub async fn admin_delete_mcp_session() {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1143,9 +1284,28 @@ mod tests {
         assert!(spec.tags.is_some(), "Tags should be defined");
         assert_eq!(
             spec.tags.as_ref().unwrap().len(),
-            8,
-            "Should have 8 tags defined (Health, Data, Styles, Fonts, Files, Upload, Spatial, OGC)"
+            9,
+            "Should have 9 tags defined (Health, Data, Styles, Fonts, Files, Upload, Spatial, OGC, Admin)"
         );
+    }
+
+    #[test]
+    fn test_openapi_admin_oauth_paths_present() {
+        let spec = ApiDoc::openapi();
+        let paths = &spec.paths.paths;
+        assert!(paths.contains_key("/__admin/oauth/clients"));
+        assert!(paths.contains_key("/__admin/oauth/clients/{client_id}"));
+        assert!(paths.contains_key("/__admin/oauth/sessions"));
+        assert!(paths.contains_key("/__admin/oauth/sessions/{token}"));
+    }
+
+    #[test]
+    fn test_openapi_admin_schemas_present() {
+        let spec = ApiDoc::openapi();
+        let schemas = &spec.components.as_ref().unwrap().schemas;
+        assert!(schemas.contains_key("AdminMcpClient"));
+        assert!(schemas.contains_key("AdminMcpSession"));
+        assert!(schemas.contains_key("AdminDeleteResponse"));
     }
 
     #[test]

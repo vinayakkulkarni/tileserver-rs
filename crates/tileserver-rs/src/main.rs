@@ -29,9 +29,13 @@ mod logging;
 mod telemetry;
 
 use cli::Cli;
+#[cfg(feature = "mcp")]
+use cli::Commands;
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
 use tileserver_rs::config;
+#[cfg(feature = "mcp")]
+use tileserver_rs::mcp;
 use tileserver_rs::metrics;
 use tileserver_rs::openapi;
 use tileserver_rs::reload::{
@@ -58,6 +62,12 @@ async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse_args();
+
+    #[cfg(feature = "mcp")]
+    if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
+        return mcp::run_stdio_from_config(config.clone(), *verbose).await;
+    }
+
     let ui_enabled = cli.ui_enabled();
     let verbose = cli.verbose;
 
@@ -135,6 +145,7 @@ async fn main() -> anyhow::Result<()> {
     let controller = Arc::new(ReloadController::new(
         state,
         meta,
+        config.clone(),
         config_path_for_reload,
         runtime,
     ));
@@ -184,6 +195,25 @@ async fn main() -> anyhow::Result<()> {
         .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
 
     let mut router = Router::new().merge(routes::api_router(shared.clone()));
+
+    #[cfg(feature = "mcp")]
+    let mcp_oauth_store: Option<std::sync::Arc<dyn mcp::auth_store::OAuthBackend>> =
+        if config.mcp.enabled {
+            tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
+            let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
+            let oauth_store = match &auth_mode {
+                mcp::transport::McpAuthMode::OAuth(state) => Some(state.store.clone()),
+                _ => None,
+            };
+            router = router.merge(mcp::mcp_router(
+                shared.clone(),
+                auth_mode,
+                &config.mcp.cors_origins,
+            ));
+            oauth_store
+        } else {
+            None
+        };
 
     // OpenAPI JSON endpoint (must be before SPA fallback)
     let mut openapi_spec = openapi::ApiDoc::openapi();
@@ -252,9 +282,25 @@ async fn main() -> anyhow::Result<()> {
     let admin_bind = &config.server.admin_bind;
     if admin_bind != "127.0.0.1:0" {
         let admin_addr: SocketAddr = admin_bind.parse()?;
+        if !admin_addr.ip().is_loopback() {
+            tracing::warn!(
+                bind = %admin_addr,
+                "admin_bind is NOT a loopback address — destructive admin endpoints (/__admin/reload, /__admin/cache/flush, /__admin/oauth/*) are reachable on ALL interfaces. \
+                 In production, set [server].admin_bind to '127.0.0.1:<port>' and reverse-proxy with auth. \
+                 See https://github.com/vinayakkulkarni/tileserver-rs/blob/main/apps/docs/content/4.guides/16.mcp.md#admin-security"
+            );
+        }
         let admin_shared = shared.clone();
+        #[cfg(feature = "mcp")]
+        let admin_oauth_store = mcp_oauth_store.clone();
         tokio::spawn(async move {
-            let admin_app = admin::admin_router(admin_shared);
+            #[allow(unused_mut)]
+            let mut admin_app = admin::admin_router(admin_shared);
+            #[cfg(feature = "mcp")]
+            if let Some(store) = admin_oauth_store {
+                admin_app = admin_app.merge(mcp::admin_routes::admin_router(store));
+                tracing::info!("MCP admin OAuth routes mounted at /__admin/oauth/*");
+            }
             tracing::info!("Admin server listening on http://{}", admin_addr);
             match TcpListener::bind(admin_addr).await {
                 Ok(admin_listener) => {

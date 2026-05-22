@@ -13,7 +13,7 @@ use axum_test::TestServer;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tileserver_rs::{
-    config::StyleConfig,
+    config::{Config, StyleConfig},
     reload::{ReloadController, SharedState},
     routes::api_router,
     styles::StyleManager,
@@ -45,7 +45,13 @@ fn style_test_server() -> TestServer {
 
     let meta = common::minimal_meta();
     let runtime = common::minimal_runtime();
-    let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        runtime,
+    ));
     let shared = SharedState::new(controller);
     let router = api_router(shared);
     TestServer::new(router)

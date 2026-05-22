@@ -1,0 +1,68 @@
+# tileserver-rs MCP (Model Context Protocol) example configuration.
+#
+# Enable the `mcp` feature on build to use this:
+#   cargo run --features mcp -- --config data/configs/mcp.toml
+#
+# This boots the regular HTTP tile server and additionally mounts a
+# Streamable HTTP MCP service at /mcp on the same listener. Local clients
+# (Claude Desktop) should use the `mcp-stdio` subcommand instead:
+#   cargo run --features mcp -- mcp-stdio --config data/configs/mcp.toml
+
+[server]
+host = "127.0.0.1"
+port = 8080
+cors_origins = ["*"]
+admin_bind = "127.0.0.1:8081"
+
+[mcp]
+# Mount the Streamable HTTP MCP service at /mcp. Required for Cursor / MCP
+# Inspector / mcp-remote bridges. Stdio mode (`mcp-stdio` subcommand) does
+# not depend on this flag.
+enabled = true
+
+# Optional bearer token. When set, requests to /mcp must include:
+#   Authorization: Bearer <token>
+# Leave commented out to disable HTTP auth (acceptable when bound to
+# 127.0.0.1 or behind another auth layer).
+# auth_token = "replace-me-with-a-real-secret"
+
+# CORS allow-list for the /mcp endpoint. Defaults to ["*"] (wildcard) so
+# browsers and remote inspectors can hit the service out of the box. For a
+# production deployment behind a known web client, lock this down to the
+# exact origins that should be allowed:
+#   cors_origins = ["https://claude.ai", "https://app.cursor.com"]
+# Empty list and ["*"] both fall back to wildcard; invalid entries are
+# skipped with a warning at startup.
+cors_origins = ["*"]
+
+# --------------------------------------------------------------------------
+# OAuth 2.0 for claude.ai Custom Connectors (RFC 7591 DCR).
+# Mutually exclusive with `auth_token` — `Config::load` errors when both are
+# enabled. The issued token store is in-memory only; restarting the server
+# invalidates every access and refresh token.
+#
+# Generate a 2048-bit RSA key:
+#   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+#     -out /etc/tileserver-rs/mcp-jwt-key.pem
+# --------------------------------------------------------------------------
+# [mcp.oauth]
+# enabled = true
+# issuer_url = "https://tiles.example.com"
+# signing_key_path = "/etc/tileserver-rs/mcp-jwt-key.pem"
+# token_ttl_secs = 3600  # max 86 400 (24 h); larger values are clamped down
+
+# At least one source is needed for the MCP tools to return useful results.
+# Swap the path for a real PMTiles or MBTiles file on disk.
+[[sources]]
+id = "openmaptiles"
+type = "pmtiles"
+path = "/data/tiles/openmaptiles.pmtiles"
+name = "OpenMapTiles"
+attribution = "© OpenMapTiles © OpenStreetMap contributors"
+
+# Optional: register a style so tileserver_render_static_map has something
+# to draw. The style.json should reference /data/openmaptiles via the
+# inline tile URL pattern (the server rewrites relative URLs at runtime).
+# [[styles]]
+# id = "osm-bright"
+# path = "/data/styles/osm-bright/style.json"

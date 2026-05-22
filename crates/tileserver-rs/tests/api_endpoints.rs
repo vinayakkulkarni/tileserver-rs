@@ -104,8 +104,8 @@ mod openapi_tests {
         assert!(spec.tags.is_some());
 
         let tags = spec.tags.as_ref().unwrap();
-        // Tags: Health, Data, Styles, Fonts, Files, Upload, Spatial, OGC.
-        assert_eq!(tags.len(), 8, "Should have 8 tags");
+        // Tags: Health, Data, Styles, Fonts, Files, Upload, Spatial, OGC, Admin.
+        assert_eq!(tags.len(), 9, "Should have 9 tags");
     }
 
     #[test]
@@ -148,6 +148,17 @@ mod openapi_tests {
         // Note: Exact version check would require reading Cargo.toml
     }
 
+    // The OpenAPI snapshot bakes in every endpoint registered via `#[utoipa::path]`,
+    // so the schema shape is feature-dependent. Pin the snapshot to the canonical
+    // default feature set (postgres + raster + mlt + cloud + stac) to keep it
+    // stable; running with `--features mcp` alone or `--all-features` produces a
+    // different schema that would require parallel snapshots and add no test value.
+    #[cfg(all(
+        feature = "postgres",
+        feature = "raster",
+        feature = "stac",
+        not(feature = "mcp")
+    ))]
     #[test]
     fn test_openapi_json_snapshot() {
         use tileserver_rs::openapi::ApiDoc;

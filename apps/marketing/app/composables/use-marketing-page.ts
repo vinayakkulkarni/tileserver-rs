@@ -23,6 +23,7 @@ import {
   Timer,
   Satellite,
   FileCode2,
+  Plug,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -185,6 +186,13 @@ export function useMarketingPage() {
         'Point at any STAC API (Element84, Planetary Computer, USGS) and serve COGs as tiles. Static discovery, dynamic per-tile bbox search, and multi-asset mosaic compositing — all without preprocessing.',
       category: 'Data formats',
     },
+    {
+      icon: Plug,
+      title: 'MCP Server',
+      description:
+        'First Rust tile server with built-in Model Context Protocol. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
+      category: 'Intelligence',
+    },
   ];
 
   const CATEGORY_ORDER: FeatureCategory[] = [
@@ -281,6 +289,16 @@ export function useMarketingPage() {
     },
     {
       feature: 'Browser-local AI',
+      values: {
+        'tileserver-rs': '✓',
+        martin: '✗',
+        'tileserver-gl': '✗',
+        pg_tileserv: '✗',
+        titiler: '✗',
+      },
+    },
+    {
+      feature: 'MCP server (stdio + HTTP)',
       values: {
         'tileserver-rs': '✓',
         martin: '✗',

@@ -68,6 +68,19 @@ impl SharedState {
         self.controller.meta.load_full()
     }
 
+    /// Returns the currently-loaded [`Config`]. Cheap (one Arc clone).
+    #[must_use]
+    pub fn config(&self) -> Arc<Config> {
+        self.controller.config.load_full()
+    }
+
+    /// Returns the path the config was loaded from, if any. `None` when the
+    /// server was started without `--config` (zero-config auto-detect mode).
+    #[must_use]
+    pub fn config_path(&self) -> Option<&std::path::Path> {
+        self.controller.config_path.as_deref()
+    }
+
     pub async fn reload(&self, flush: bool) -> anyhow::Result<ReloadResult> {
         self.controller.reload(flush).await
     }
@@ -118,6 +131,10 @@ pub struct ReloadResult {
 pub struct ReloadController {
     pub app: ArcSwap<AppState>,
     pub meta: ArcSwap<ReloadMeta>,
+    /// The loaded [`Config`] that produced the current [`AppState`]. Held
+    /// alongside `app`/`meta` so the admin UI can render it back as TOML
+    /// without re-reading the source file.
+    pub config: ArcSwap<Config>,
     config_path: Option<PathBuf>,
     runtime: RuntimeSettings,
     reload_mutex: Mutex<()>,
@@ -128,12 +145,14 @@ impl ReloadController {
     pub fn new(
         state: AppState,
         meta: ReloadMeta,
+        config: Config,
         config_path: Option<PathBuf>,
         runtime: RuntimeSettings,
     ) -> Self {
         Self {
             app: ArcSwap::new(Arc::new(state)),
             meta: ArcSwap::new(Arc::new(meta)),
+            config: ArcSwap::new(Arc::new(config)),
             config_path,
             runtime,
             reload_mutex: Mutex::new(()),
@@ -182,6 +201,7 @@ impl ReloadController {
 
         self.app.store(Arc::new(new_state));
         self.meta.store(Arc::new(new_meta));
+        self.config.store(Arc::new(load.config));
 
         Ok(result)
     }
@@ -426,7 +446,7 @@ mod tests {
         let state = make_test_app_state();
         let meta = make_test_meta();
         let runtime = make_test_runtime();
-        let controller = ReloadController::new(state, meta, None, runtime);
+        let controller = ReloadController::new(state, meta, Config::default(), None, runtime);
         let loaded = controller.app.load_full();
         assert_eq!(loaded.base_url, "http://localhost:8080");
     }
@@ -436,7 +456,13 @@ mod tests {
         let state = make_test_app_state();
         let meta = make_test_meta();
         let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            Config::default(),
+            None,
+            runtime,
+        ));
         let shared = SharedState::new(controller);
         let loaded = shared.load();
         assert_eq!(loaded.base_url, "http://localhost:8080");
@@ -447,7 +473,13 @@ mod tests {
         let state = make_test_app_state();
         let meta = make_test_meta();
         let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            Config::default(),
+            None,
+            runtime,
+        ));
         let shared = SharedState::new(controller);
         let loaded_meta = shared.meta();
         assert_eq!(loaded_meta.config_hash, "test-hash");
@@ -458,7 +490,13 @@ mod tests {
         let state = make_test_app_state();
         let meta = make_test_meta();
         let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            Config::default(),
+            None,
+            runtime,
+        ));
         let shared = SharedState::new(controller);
         let _ = shared.uploads();
     }
@@ -475,7 +513,13 @@ mod tests {
         let state = make_test_app_state();
         let meta = make_test_meta();
         let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(state, meta, None, runtime));
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            Config::default(),
+            None,
+            runtime,
+        ));
         let shared = SharedState::new(controller);
 
         let mut replacement = make_test_app_state();
@@ -636,7 +680,13 @@ mod tests {
             renderer_enabled: initial_state.renderer.is_some(),
             prometheus_listener_active: false,
         };
-        let controller = ReloadController::new(initial_state, meta, Some(cfg_path), runtime);
+        let controller = ReloadController::new(
+            initial_state,
+            meta,
+            load.config.clone(),
+            Some(cfg_path),
+            runtime,
+        );
 
         let result = controller.reload(false).await.unwrap();
         assert!(
@@ -664,7 +714,13 @@ mod tests {
             renderer_enabled: initial_state.renderer.is_some(),
             prometheus_listener_active: false,
         };
-        let controller = ReloadController::new(initial_state, meta, Some(cfg_path), runtime);
+        let controller = ReloadController::new(
+            initial_state,
+            meta,
+            load.config.clone(),
+            Some(cfg_path),
+            runtime,
+        );
 
         let result = controller.reload(true).await.unwrap();
         assert!(result.reloaded, "flush=true must force a rebuild");
@@ -695,8 +751,13 @@ mod tests {
             renderer_enabled: false,
             prometheus_listener_active: true,
         };
-        let controller =
-            ReloadController::new(initial_state, meta, Some(cfg_path.clone()), runtime);
+        let controller = ReloadController::new(
+            initial_state,
+            meta,
+            load.config.clone(),
+            Some(cfg_path.clone()),
+            runtime,
+        );
 
         let mut new_cfg = crate::config::Config::default();
         new_cfg.server.port = 9999;
@@ -735,6 +796,7 @@ mod tests {
         let controller = Arc::new(ReloadController::new(
             initial_state,
             meta,
+            load.config.clone(),
             Some(cfg_path),
             runtime,
         ));

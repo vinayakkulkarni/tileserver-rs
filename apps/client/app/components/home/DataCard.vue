@@ -30,11 +30,11 @@
     :initial="{ opacity: 0, y: 12 }"
     :animate="{ opacity: 1, y: 0 }"
     :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group rounded-xl border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
   >
     <div class="flex items-start gap-4">
       <div
-        class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted ring-1 ring-border/50"
+        class="flex size-12 shrink-0 items-center justify-center bg-muted ring-1 ring-border/50"
       >
         <Layers class="size-6 text-muted-foreground" />
       </div>
@@ -46,11 +46,10 @@
             <p
               class="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
             >
-              <code
-                class="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium"
-                >{{ source.id }}</code
-              >
-              <Badge variant="outline" class="rounded-md text-[10px]">
+              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
+                source.id
+              }}</code>
+              <Badge variant="outline" class="text-[10px]">
                 z{{ source.minzoom }}-{{ source.maxzoom }}
               </Badge>
             </p>
@@ -60,7 +59,7 @@
             as-child
             variant="secondary"
             size="sm"
-            class="rounded-lg"
+            class=""
           >
             <NuxtLink :to="`/data/${source.id}/`">
               <Layers class="mr-1.5 size-4" />

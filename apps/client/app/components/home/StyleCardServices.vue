@@ -23,14 +23,14 @@
   <div class="mt-2 flex items-center gap-3">
     <NuxtLink
       :to="`/styles/${style.id}/?raster`"
-      class="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <Image class="size-3.5" />
       Raster
     </NuxtLink>
     <NuxtLink
       :to="`/styles/${style.id}/#2/0/0`"
-      class="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <Grid3x3 class="size-3.5" />
       Vector
@@ -67,7 +67,7 @@
 
   <div
     v-if="isXyzExpanded"
-    class="mt-2 flex items-center gap-2 rounded-lg bg-muted/50 p-2"
+    class="mt-2 flex items-center gap-2 bg-muted/50 p-2"
   >
     <code class="flex-1 truncate text-xs text-muted-foreground">{{
       xyzUrl
@@ -75,10 +75,10 @@
     <Button
       variant="ghost"
       size="icon"
-      class="size-7 shrink-0 rounded-lg"
+      class="size-7 shrink-0"
       @click="emit('copyUrl', xyzUrl)"
     >
-      <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-green-500" />
+      <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-success" />
       <Copy v-else class="size-3.5" />
     </Button>
   </div>

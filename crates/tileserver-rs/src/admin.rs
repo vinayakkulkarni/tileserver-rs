@@ -4,9 +4,10 @@ use axum::{
     Json, Router,
     extract::{Query, State},
     http::StatusCode,
-    routing::post,
+    routing::{get, post},
 };
 
+use crate::config_schema::{CONFIG_SCHEMA, ConfigSectionSchema};
 use crate::reload::SharedState;
 
 #[derive(Debug, serde::Deserialize, Default)]
@@ -55,11 +56,41 @@ struct CacheFlushResponse {
     freed_bytes: u64,
 }
 
+#[derive(serde::Serialize)]
+struct ConfigViewResponse {
+    ok: bool,
+    toml: String,
+    source_path: Option<String>,
+    config_hash: String,
+    loaded_at_unix: u64,
+}
+
+#[derive(serde::Serialize)]
+struct ConfigViewErrorResponse {
+    ok: bool,
+    error: String,
+}
+
+#[derive(serde::Serialize)]
+struct ConfigSchemaResponse {
+    ok: bool,
+    sections: &'static [ConfigSectionSchema],
+}
+
 pub fn admin_router(state: SharedState) -> Router {
     Router::new()
         .route("/__admin/reload", post(admin_reload))
         .route("/__admin/cache/flush", post(admin_cache_flush))
+        .route("/__admin/config", get(admin_config))
+        .route("/__admin/config/schema", get(admin_config_schema))
         .with_state(state)
+}
+
+async fn admin_config_schema() -> Json<ConfigSchemaResponse> {
+    Json(ConfigSchemaResponse {
+        ok: true,
+        sections: CONFIG_SCHEMA,
+    })
 }
 
 pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse> {
@@ -83,6 +114,30 @@ pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse>
         cache_entries,
         cache_bytes,
     })
+}
+
+async fn admin_config(
+    State(shared): State<SharedState>,
+) -> Result<Json<ConfigViewResponse>, (StatusCode, Json<ConfigViewErrorResponse>)> {
+    let config = shared.config();
+    let meta = shared.meta();
+    let source_path = shared.config_path().map(|p| p.display().to_string());
+    let toml = toml::to_string_pretty(&*config).map_err(|err| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ConfigViewErrorResponse {
+                ok: false,
+                error: format!("failed to serialize loaded config as TOML: {err}"),
+            }),
+        )
+    })?;
+    Ok(Json(ConfigViewResponse {
+        ok: true,
+        toml,
+        source_path,
+        config_hash: meta.config_hash.clone(),
+        loaded_at_unix: meta.loaded_at_unix,
+    }))
 }
 
 async fn admin_cache_flush(State(shared): State<SharedState>) -> Json<CacheFlushResponse> {
@@ -203,6 +258,7 @@ path = "{}"
         let controller = Arc::new(ReloadController::new(
             state,
             meta,
+            load.config.clone(),
             Some(config_path.to_path_buf()),
             runtime,
         ));

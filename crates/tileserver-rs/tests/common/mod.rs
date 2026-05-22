@@ -8,9 +8,11 @@ use async_trait::async_trait;
 use axum_test::TestServer;
 use bytes::Bytes;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tileserver_rs::{
     TileCompression, TileData, TileFormat, TileSource,
+    config::{Config, StyleConfig},
     reload::{
         AppState, ReloadController, ReloadMeta, RuntimeSettings, SharedState, now_unix_seconds,
     },
@@ -62,7 +64,13 @@ pub fn minimal_app_state() -> AppState {
 pub fn minimal_shared_state() -> SharedState {
     let state = minimal_app_state();
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     SharedState::new(controller)
 }
 
@@ -193,8 +201,120 @@ pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
     let mut state = minimal_app_state();
     state.sources = Arc::new(SourceManager::from_sources(map));
     let meta = minimal_meta();
-    let controller = Arc::new(ReloadController::new(state, meta, None, minimal_runtime()));
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
     let shared = SharedState::new(controller);
     let router = api_router(shared);
     TestServer::new(router)
+}
+
+// ============================================================
+// Populated state builders for MCP behavioral tests
+// ============================================================
+
+/// Build a `StyleManager` containing the on-disk `protomaps-light` style.
+///
+/// The style fixture is resolved relative to `CARGO_MANIFEST_DIR` so the
+/// builder works regardless of the test's CWD.
+#[must_use]
+pub fn protomaps_light_style_manager() -> StyleManager {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let style_path = manifest_dir.join("../../data/styles/protomaps-light/style.json");
+    let style_config = StyleConfig {
+        id: "protomaps-light".to_string(),
+        path: style_path,
+        name: Some("Protomaps Light".to_string()),
+    };
+    StyleManager::from_configs(&[style_config]).expect("load protomaps-light style")
+}
+
+/// Build a [`SharedState`] populated with two mock vector sources
+/// (`alpha-source`, `beta-source`) but no styles or renderer.
+///
+/// Used by MCP handler tests that need source listing, get-by-id, and tile
+/// metadata fixtures without a real PMTiles/MBTiles file on disk.
+#[must_use]
+pub fn shared_state_with_two_sources() -> SharedState {
+    let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::with_capacity(2);
+    map.insert(
+        "alpha-source".to_string(),
+        Arc::new(MockSource::pbf("alpha-source")),
+    );
+    map.insert(
+        "beta-source".to_string(),
+        Arc::new(MockSource::pbf("beta-source")),
+    );
+
+    let mut state = minimal_app_state();
+    state.sources = Arc::new(SourceManager::from_sources(map));
+
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
+    SharedState::new(controller)
+}
+
+/// Build a [`SharedState`] populated with one mock source plus the
+/// `protomaps-light` style — gives MCP tests a single end-to-end fixture
+/// covering both source and style code paths.
+#[must_use]
+pub fn shared_state_populated() -> SharedState {
+    let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::with_capacity(2);
+    map.insert(
+        "alpha-source".to_string(),
+        Arc::new(MockSource::pbf("alpha-source")),
+    );
+    map.insert(
+        "beta-source".to_string(),
+        Arc::new(MockSource::pbf("beta-source")),
+    );
+
+    let mut state = minimal_app_state();
+    state.sources = Arc::new(SourceManager::from_sources(map));
+    state.styles = Arc::new(protomaps_light_style_manager());
+
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
+    SharedState::new(controller)
+}
+
+/// Build a [`SharedState`] containing one source whose `get_tile` always
+/// returns `Ok(None)` — exercises the `TileNotFound` branch in
+/// `tileserver_get_tile` without depending on a real tile store.
+#[must_use]
+pub fn shared_state_with_empty_source() -> SharedState {
+    let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::with_capacity(1);
+    map.insert(
+        "empty-source".to_string(),
+        Arc::new(MockSource::empty("empty-source")),
+    );
+
+    let mut state = minimal_app_state();
+    state.sources = Arc::new(SourceManager::from_sources(map));
+
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
+    SharedState::new(controller)
 }

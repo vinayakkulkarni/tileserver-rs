@@ -37,7 +37,7 @@
 
     <div
       v-if="isXyzExpanded"
-      class="mt-2 flex items-center gap-2 rounded-lg bg-muted/50 p-2"
+      class="mt-2 flex items-center gap-2 bg-muted/50 p-2"
     >
       <code class="flex-1 truncate text-xs text-muted-foreground">{{
         xyzUrl
@@ -45,10 +45,10 @@
       <Button
         variant="ghost"
         size="icon"
-        class="size-7 shrink-0 rounded-lg"
+        class="size-7 shrink-0"
         @click="emit('copyUrl', xyzUrl)"
       >
-        <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-green-500" />
+        <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-success" />
         <Copy v-else class="size-3.5" />
       </Button>
     </div>
