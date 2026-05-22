@@ -3,6 +3,7 @@ export type {
   ConfigFieldSchema,
   ConfigFieldType,
   ConfigLine,
+  ConfigSchemaPayload,
   ConfigSectionSchema,
   ConfigSectionView,
 } from './admin-config-schema';

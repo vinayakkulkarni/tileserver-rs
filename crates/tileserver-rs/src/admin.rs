@@ -7,6 +7,7 @@ use axum::{
     routing::{get, post},
 };
 
+use crate::config_schema::{CONFIG_SCHEMA, ConfigSectionSchema};
 use crate::reload::SharedState;
 
 #[derive(Debug, serde::Deserialize, Default)]
@@ -70,12 +71,26 @@ struct ConfigViewErrorResponse {
     error: String,
 }
 
+#[derive(serde::Serialize)]
+struct ConfigSchemaResponse {
+    ok: bool,
+    sections: &'static [ConfigSectionSchema],
+}
+
 pub fn admin_router(state: SharedState) -> Router {
     Router::new()
         .route("/__admin/reload", post(admin_reload))
         .route("/__admin/cache/flush", post(admin_cache_flush))
         .route("/__admin/config", get(admin_config))
+        .route("/__admin/config/schema", get(admin_config_schema))
         .with_state(state)
+}
+
+async fn admin_config_schema() -> Json<ConfigSchemaResponse> {
+    Json(ConfigSchemaResponse {
+        ok: true,
+        sections: CONFIG_SCHEMA,
+    })
 }
 
 pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse> {

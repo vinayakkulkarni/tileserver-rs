@@ -5,9 +5,11 @@ import type {
   ConfigSectionSchema,
   ConfigSectionView,
 } from '~/types';
-import { adminConfigQueryOptions } from '~/utils/api/admin-config';
+import {
+  adminConfigQueryOptions,
+  adminConfigSchemaQueryOptions,
+} from '~/utils/api/admin-config';
 import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
-import { CONFIG_SCHEMA } from './config-schema';
 
 const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
   { label: 'Home', to: '/' },
@@ -16,10 +18,12 @@ const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
 ];
 
 const LINE_RE = /^([a-z_][\w.-]*)\s*=/i;
+const ROOT_HEADER = '(root)';
 
 function parseLoadedToml(toml: string): Map<string, string[]> {
   const sections = new Map<string, string[]>();
-  let currentHeader = '';
+  sections.set(ROOT_HEADER, []);
+  let currentHeader = ROOT_HEADER;
   for (const raw of toml.split('\n')) {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
@@ -28,7 +32,6 @@ function parseLoadedToml(toml: string): Map<string, string[]> {
       if (!sections.has(currentHeader)) sections.set(currentHeader, []);
       continue;
     }
-    if (currentHeader === '') continue;
     const bucket = sections.get(currentHeader) ?? [];
     bucket.push(raw);
     sections.set(currentHeader, bucket);
@@ -37,6 +40,10 @@ function parseLoadedToml(toml: string): Map<string, string[]> {
 }
 
 function countSectionOccurrences(toml: string, header: string): number {
+  if (header === ROOT_HEADER) {
+    const root = parseLoadedToml(toml).get(ROOT_HEADER) ?? [];
+    return root.some((l) => LINE_RE.test(l.trim())) ? 1 : 0;
+  }
   if (!header.startsWith('[[')) {
     return toml.includes(`${header}\n`) || toml.endsWith(header) ? 1 : 0;
   }
@@ -92,10 +99,16 @@ function buildLinesForSection(
 
 export function useAdminConfig() {
   const configQuery = useQuery(adminConfigQueryOptions());
+  const schemaQuery = useQuery(adminConfigSchemaQueryOptions());
 
   const payload = computed(() => configQuery.data.value ?? null);
-  const isPending = computed(() => configQuery.isPending.value);
-  const error = computed(() => configQuery.error.value);
+  const schemaSections = computed<readonly ConfigSectionSchema[]>(
+    () => schemaQuery.data.value?.sections ?? [],
+  );
+  const isPending = computed(
+    () => configQuery.isPending.value || schemaQuery.isPending.value,
+  );
+  const error = computed(() => configQuery.error.value ?? schemaQuery.error.value);
   const friendly = computed(() => friendlyAdminError(error.value));
 
   const loadedToml = computed(() => payload.value?.toml ?? '');
@@ -107,7 +120,7 @@ export function useAdminConfig() {
 
   const sections = computed<readonly ConfigSectionView[]>(() => {
     const toml = loadedToml.value;
-    return CONFIG_SCHEMA.map((section) => {
+    return schemaSections.value.map((section) => {
       const { lines, occurrences, isPresent } = buildLinesForSection(section, toml);
       return { schema: section, lines, occurrences, isPresent };
     });

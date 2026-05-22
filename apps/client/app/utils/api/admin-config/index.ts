@@ -1,1 +1,1 @@
-export { adminConfigQueryOptions } from './queries';
+export { adminConfigQueryOptions, adminConfigSchemaQueryOptions } from './queries';

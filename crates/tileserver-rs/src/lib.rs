@@ -7,6 +7,7 @@ pub mod autodetect;
 pub mod cache;
 pub mod cache_control;
 pub mod config;
+pub mod config_schema;
 pub mod error;
 #[cfg(feature = "mcp")]
 pub mod mcp;
