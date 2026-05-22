@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.29.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.28.0...v2.29.0) (2026-05-22)
+
+
+### Features
+
+* **admin:** expose loaded config as TOML via GET /__admin/config ([de2798d](https://github.com/vinayakkulkarni/tileserver-rs/commit/de2798d1453d5b7eedf37235e693fa226bb76966))
+* **config:** move config schema catalog into rust + drift detection ([77de215](https://github.com/vinayakkulkarni/tileserver-rs/commit/77de21589f16ddb54fe8a83141d9772b12f00b73))
+* **mcp:** add Model Context Protocol server with stdio and HTTP transports ([842eb5a](https://github.com/vinayakkulkarni/tileserver-rs/commit/842eb5a67f8fecebc1c3f2b7c40c3991d28de321))
+* **mcp:** add Model Context Protocol server with stdio and HTTP transports ([#943](https://github.com/vinayakkulkarni/tileserver-rs/issues/943)) ([4f21e1a](https://github.com/vinayakkulkarni/tileserver-rs/commit/4f21e1acba77e548512c87644cf1788e64aa90e7))
+* **mcp:** admin REST endpoints + OpenAPI Admin tag for OAuth store ([5979fd5](https://github.com/vinayakkulkarni/tileserver-rs/commit/5979fd50a8c86e4891ca53b75826283259111f02)), closes [#943](https://github.com/vinayakkulkarni/tileserver-rs/issues/943)
+* **mcp:** hand-rolled OAuth 2.0 DCR for claude.ai connectors ([74a3a80](https://github.com/vinayakkulkarni/tileserver-rs/commit/74a3a808299fa843371a78405fc9f5f72995e566))
+* **mcp:** pluggable OAuth store with optional SQLite persistence ([9516932](https://github.com/vinayakkulkarni/tileserver-rs/commit/951693267d18f60d3c592e2837245fbf8803993a))
+* **mcp:** strict CORS, prompt templates, and coverage CI inclusion ([dce6a35](https://github.com/vinayakkulkarni/tileserver-rs/commit/dce6a3505f2ec400234b9741400e36310684100f))
+
+
+### Bug Fixes
+
+* **deps:** complete otel 0.32 family — swap text-exporter for official opentelemetry-prometheus ([#925](https://github.com/vinayakkulkarni/tileserver-rs/issues/925)) ([0c52d30](https://github.com/vinayakkulkarni/tileserver-rs/commit/0c52d30760d1f764eb0269b10193b02dee87dab6))
+* **mcp:** gate postgres/stac absence tests on feature off ([94ec637](https://github.com/vinayakkulkarni/tileserver-rs/commit/94ec637ca43d10f53068ac3cd429e3ba86a6e2b5))
+* **mcp:** suppress dead_code on Cli.command without runtime placeholder ([ef3a2fd](https://github.com/vinayakkulkarni/tileserver-rs/commit/ef3a2fd66d3bec1de9fad0a0b50dea10f5dfd6d2))
+* **mcp:** tighten oauth + bearer flows per oracle review ([c7b7113](https://github.com/vinayakkulkarni/tileserver-rs/commit/c7b7113faae02e5a8f6e3b980fac139609421854))
+
+
+### Miscellaneous
+
+* **changelog:** consolidate legacy root into crates/tileserver-rs and add redirect ([#880](https://github.com/vinayakkulkarni/tileserver-rs/issues/880)) ([1673bb5](https://github.com/vinayakkulkarni/tileserver-rs/commit/1673bb56564673d30c34413ebbad2dd4b6dc490b))
+* **deps:** upgrade vite to 8, mlt-core to 0.9, cql2 to 0.5.6 ([#916](https://github.com/vinayakkulkarni/tileserver-rs/issues/916)) ([74a4b68](https://github.com/vinayakkulkarni/tileserver-rs/commit/74a4b680e77cd4dcef1ca34082e6dcb92a3a2ffc))
+
+
+### Code Refactoring
+
+* **mcp:** move startup wiring into lib for testability + coverage ([27f63c5](https://github.com/vinayakkulkarni/tileserver-rs/commit/27f63c57a329c600b5547310a9d2bfaab9e4281d))
+
 ## [2.28.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.27.0...v2.28.0) (2026-05-06)
 
 
