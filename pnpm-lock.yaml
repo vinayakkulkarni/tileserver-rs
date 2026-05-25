@@ -41,8 +41,8 @@ catalogs:
       specifier: ^9.3.2
       version: 9.3.2
     '@geoql/v-maplibre':
-      specifier: ^1.9.0
-      version: 1.9.0
+      specifier: ^1.10.0
+      version: 1.10.0
     '@luma.gl/engine':
       specifier: ~9.3.3
       version: 9.3.3
@@ -281,7 +281,7 @@ importers:
         version: 9.3.2(@deck.gl/core@9.3.2)(@loaders.gl/core@4.4.1)(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/gltf@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3))
       '@geoql/v-maplibre':
         specifier: catalog:client
-        version: 1.9.0(1d7bae43a63b38c52016640fc86ff2f7)
+        version: 1.10.0(1d7bae43a63b38c52016640fc86ff2f7)
       '@lucide/vue':
         specifier: catalog:default
         version: 1.16.0(vue@3.5.34(typescript@6.0.3))
@@ -1626,8 +1626,8 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
-  '@geoql/v-maplibre@1.9.0':
-    resolution: {integrity: sha512-7yg30xdp/+PjXq5QeNjdhMgCR+V5gU6aidqekqLiG6O2YAFGtsPtS6FhPvBq3gwCxwHO54bvZEg80ZU/hLT1qg==}
+  '@geoql/v-maplibre@1.10.0':
+    resolution: {integrity: sha512-MlmzT8Wz06aN86o1J6m2I8Bob9iOE7B4i+EBsS32vbLDMuBHhz5rs9/4hMRCFiK257J1KP+jCFj5q+jkIkYwBg==}
     peerDependencies:
       '@deck.gl/aggregation-layers': ^9.3.0
       '@deck.gl/core': ^9.3.0
@@ -1641,6 +1641,7 @@ packages:
       '@developmentseed/geotiff': ^0.6.0
       '@developmentseed/proj': ^0.6.0
       '@geoql/maplibre-gl-starfield': ^0.1.0
+      apache-arrow: ^17.0.0
       maplibre-gl-lidar: ^0.13.0
       maplibre-gl-wind: ^0.2.0
       three: '>=0.176.0'
@@ -1670,6 +1671,8 @@ packages:
       '@developmentseed/proj':
         optional: true
       '@geoql/maplibre-gl-starfield':
+        optional: true
+      apache-arrow:
         optional: true
       maplibre-gl-lidar:
         optional: true
@@ -9299,7 +9302,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@geoql/v-maplibre@1.9.0(1d7bae43a63b38c52016640fc86ff2f7)':
+  '@geoql/v-maplibre@1.10.0(1d7bae43a63b38c52016640fc86ff2f7)':
     dependencies:
       maplibre-gl: 5.24.0
       pmtiles: 4.4.1
