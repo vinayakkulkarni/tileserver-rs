@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { Map } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Style } from '~/types/style';
 
   const props = defineProps<{
@@ -29,19 +28,26 @@
   function handleServiceCopyUrl(url: string) {
     emit('copyUrl', url);
   }
+
+  const coverageLeft = computed(
+    () => `${((props.style.minzoom ?? 0) * 100) / 18}%`,
+  );
+  const coverageWidth = computed(
+    () =>
+      `${(((props.style.maxzoom ?? 18) - (props.style.minzoom ?? 0)) * 100) / 18}%`,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border bg-background p-3.5 transition-all duration-[var(--d-fast,120ms)] hover:border-primary hover:bg-primary/2.5 focus-within:border-primary"
+  <article
+    class="card group border border-border bg-background p-3.5 transition-all duration-[var(--d-fast,120ms)] hover:border-primary hover:bg-primary/10 focus-within:border-primary"
+    style="
+      --tw-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
+    "
   >
     <div class="flex gap-3.5">
-      <!-- 56x56 thumbnail per A2 -->
       <div
-        class="flex size-14 shrink-0 items-center justify-center overflow-hidden border border-border bg-surface-2"
+        class="thumb size-14 shrink-0 overflow-hidden border border-border bg-surface-2 grid place-items-center"
       >
         <img
           v-if="!imgError"
@@ -54,16 +60,17 @@
         <Map v-else class="size-5.5 text-muted-foreground" />
       </div>
 
-      <!-- Card content -->
-      <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-2.5">
+      <div class="card-main min-w-0 flex-1">
+        <div class="card-top flex items-start justify-between gap-2.5">
           <div class="min-w-0">
-            <h3 class="text-[15px] font-bold leading-snug tracking-[-0.005em]">
+            <h3
+              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
+            >
               {{ style.name }}
             </h3>
-            <p class="mt-0.5">
+            <p class="mt-1.5">
               <code
-                class="inline-block bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground"
+                class="card-id font-mono text-[11px] bg-surface-2 px-1.5 py-0.5 text-muted-foreground tracking-wide"
               >
                 {{ style.id }}
               </code>
@@ -71,7 +78,7 @@
           </div>
           <Button as-child size="sm" class="shrink-0">
             <NuxtLink :to="`/styles/${style.id}/`">
-              <Map class="mr-1.5 size-4" />
+              <Map class="size-4 mr-1.5" />
               Viewer
             </NuxtLink>
           </Button>
@@ -85,7 +92,24 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage"
+            role="img"
+            :aria-label="`Zoom range ${style.minzoom ?? 0} to ${style.maxzoom ?? 18}`"
+          >
+            <div
+              class="coverage-fill"
+              :style="{ left: coverageLeft, width: coverageWidth }"
+            ></div>
+          </div>
+          <div class="coverage-labels">
+            <span>z{{ style.minzoom ?? 0 }}</span>
+            <span>z{{ style.maxzoom ?? 18 }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>

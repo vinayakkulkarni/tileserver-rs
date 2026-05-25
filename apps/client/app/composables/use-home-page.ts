@@ -17,7 +17,7 @@ export function useHomePage() {
     hasData,
   } = useTileserverData();
 
-  const pingQuery = usePingStats();
+  const { pingQuery } = usePingStats();
 
   const { copy } = useClipboard();
 

@@ -5,15 +5,13 @@
 </script>
 
 <template>
-  <footer class="mt-auto border-t border-border/50 py-6">
-    <p class="text-center text-sm text-muted-foreground">
-      Tileserver RS — Built with Rust + Axum + MapLibre GL JS
-    </p>
-    <p
-      v-if="versionLabel"
-      class="mt-1 text-center font-mono text-xs text-muted-foreground/60"
-    >
+  <footer
+    class="footer border-t border-border py-5 flex flex-wrap gap-3 items-center justify-between text-[12px] text-muted-foreground"
+    role="contentinfo"
+  >
+    <div>tileserver-rs · MIT · © 2026</div>
+    <div v-if="versionLabel" class="font-mono text-[11px] tracking-[0.12em]">
       {{ versionLabel }}
-    </p>
+    </div>
   </footer>
 </template>

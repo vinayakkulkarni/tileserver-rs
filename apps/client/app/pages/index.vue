@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { Database, Palette } from '@lucide/vue';
   import HomeToast from '~/components/ui/toast/Toast.vue';
 
   const {
@@ -25,6 +26,14 @@
     baseUrl,
     pingQuery,
   } = useHomePage();
+
+  const handleSearch = (value: string) => {
+    searchQuery.value = value;
+  };
+
+  const handleFilter = (category: FilterCategory) => {
+    setFilter(category);
+  };
 </script>
 
 <template>
@@ -38,39 +47,99 @@
       :search-query="searchQuery"
       :all-chips="allChips"
       :active-filter="activeFilter"
-      @update:search-query="searchQuery = $event"
-      @select-filter="setFilter"
+      @update:search-query="handleSearch"
+      @select-filter="handleFilter"
     />
 
-    <main id="main" class="w-full flex-1">
-      <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-        <HomeStyleList
-          :styles="filteredStyles"
-          :is-loading="isLoadingStyles"
-          :has-styles="hasStyles"
+    <main id="main" class="w-full flex-1" role="main">
+      <div
+        class="mx-auto max-w-[1600px] px-[clamp(12px,4vw,24px)] py-5 flex flex-col gap-4"
+      >
+        <HomeSection
+          title="Map styles"
+          :count="filteredStyles.length"
+          :icon="Palette"
           :is-open="stylesOpen"
-          :search-query="searchQuery"
-          :base-url="baseUrl"
-          :expanded-xyz="expandedStyleXyz"
-          :copied-url="copiedUrl"
-          @update:is-open="stylesOpen = $event"
-          @toggle-xyz="toggleStyleXyz"
-          @copy-url="copyUrl"
-        />
+          @toggle-section="stylesOpen = !stylesOpen"
+        >
+          <template v-if="isLoadingStyles">
+            <HomeStyleCardSkeleton v-for="i in 5" :key="i" />
+          </template>
+          <template v-else-if="!hasStyles">
+            <div class="col-span-full py-12 text-center">
+              <div
+                class="mx-auto mb-4 flex size-16 items-center justify-center bg-surface-2"
+              >
+                <Palette class="size-8 text-muted-foreground" />
+              </div>
+              <p class="font-medium">No styles configured</p>
+              <p class="mt-1 text-sm text-muted-foreground">
+                Add styles to your config.toml
+              </p>
+            </div>
+          </template>
+          <template v-else-if="filteredStyles.length === 0">
+            <div class="col-span-full py-12 text-center text-muted-foreground">
+              No styles match "{{ searchQuery }}"
+            </div>
+          </template>
+          <template v-else>
+            <HomeStyleCard
+              v-for="(style, i) in filteredStyles"
+              :key="style.id"
+              :style="style"
+              :index="i"
+              :base-url="baseUrl"
+              :is-xyz-expanded="expandedStyleXyz.has(style.id)"
+              :copied-url="copiedUrl"
+              @toggle-xyz="toggleStyleXyz"
+              @copy-url="copyUrl"
+            />
+          </template>
+        </HomeSection>
 
-        <HomeDataList
-          :sources="filteredDataSources"
-          :is-loading="isLoadingData"
-          :has-data="hasData"
+        <HomeSection
+          title="Data sources"
+          :count="filteredDataSources.length"
+          :icon="Database"
           :is-open="dataOpen"
-          :search-query="searchQuery"
-          :base-url="baseUrl"
-          :expanded-xyz="expandedDataXyz"
-          :copied-url="copiedUrl"
-          @update:is-open="dataOpen = $event"
-          @toggle-xyz="toggleDataXyz"
-          @copy-url="copyUrl"
-        />
+          @toggle-section="dataOpen = !dataOpen"
+        >
+          <template v-if="isLoadingData">
+            <HomeDataCardSkeleton v-for="i in 5" :key="i" />
+          </template>
+          <template v-else-if="!hasData">
+            <div class="col-span-full py-12 text-center">
+              <div
+                class="mx-auto mb-4 flex size-16 items-center justify-center bg-surface-2"
+              >
+                <Database class="size-8 text-muted-foreground" />
+              </div>
+              <p class="font-medium">No data sources configured</p>
+              <p class="mt-1 text-sm text-muted-foreground">
+                Add PMTiles or MBTiles to config.toml
+              </p>
+            </div>
+          </template>
+          <template v-else-if="filteredDataSources.length === 0">
+            <div class="col-span-full py-12 text-center text-muted-foreground">
+              No data sources match "{{ searchQuery }}"
+            </div>
+          </template>
+          <template v-else>
+            <HomeDataCard
+              v-for="(source, i) in filteredDataSources"
+              :key="source.id"
+              :source="source"
+              :index="i"
+              :base-url="baseUrl"
+              :is-xyz-expanded="expandedDataXyz.has(source.id)"
+              :copied-url="copiedUrl"
+              @toggle-xyz="toggleDataXyz"
+              @copy-url="copyUrl"
+            />
+          </template>
+        </HomeSection>
 
         <HomeApiLink />
       </div>

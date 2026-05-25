@@ -317,7 +317,7 @@
   opacity: 0;
 }
 
-/* Reduced motion — CLAUDE.md Rule #20.I */
+/* Reduced motion — CLAUDE.md Rule #20.J */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -330,4 +330,18 @@
   .hero-dot::after {
     animation: none;
   }
+}
+
+/* A2 section expand/collapse — CSS grid-template-rows (Rule #20.H) */
+.section-body-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--d-slow) var(--ease);
+}
+.section.open .section-body-wrap {
+  grid-template-rows: 1fr;
+}
+.section-body-inner {
+  min-height: 0;
+  overflow: hidden;
 }

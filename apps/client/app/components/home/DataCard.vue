@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { Layers } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
 
   const props = defineProps<{
@@ -23,42 +22,49 @@
   function handleServiceCopyUrl(url: string) {
     emit('copyUrl', url);
   }
+
+  const coverageLeft = computed(
+    () => `${((props.source.minzoom ?? 0) * 100) / 18}%`,
+  );
+  const coverageWidth = computed(
+    () =>
+      `${(((props.source.maxzoom ?? 18) - (props.source.minzoom ?? 0)) * 100) / 18}%`,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border bg-background p-3.5 transition-all duration-[var(--d-fast,120ms)] hover:border-primary hover:bg-primary/2.5 focus-within:border-primary"
+  <article
+    class="card group border border-border bg-background p-3.5 transition-all duration-[var(--d-fast,120ms)] hover:border-primary hover:bg-primary/10 focus-within:border-primary"
+    style="
+      --tw-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
+    "
   >
     <div class="flex gap-3.5">
-      <!-- 56x56 icon box per A2 -->
       <div
-        class="flex size-14 shrink-0 items-center justify-center border border-border bg-surface-2"
+        class="thumb size-14 shrink-0 border border-border bg-surface-2 grid place-items-center"
       >
         <Layers class="size-5.5 text-muted-foreground" />
       </div>
 
-      <!-- Card content -->
-      <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-2.5">
+      <div class="card-main min-w-0 flex-1">
+        <div class="card-top flex items-start justify-between gap-2.5">
           <div class="min-w-0">
-            <h3 class="text-[15px] font-bold leading-snug tracking-[-0.005em]">
+            <h3
+              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
+            >
               {{ source.name || source.id }}
             </h3>
-            <p class="mt-0.5 flex flex-wrap items-center gap-2">
+            <p class="mt-1.5 flex flex-wrap items-center gap-2">
               <code
-                class="inline-block bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground"
+                class="card-id font-mono text-[11px] bg-surface-2 px-1.5 py-0.5 text-muted-foreground tracking-wide"
               >
                 {{ source.id }}
               </code>
-              <Badge
-                variant="outline"
-                class="font-mono text-[10px] tracking-[0.06em]"
+              <span
+                class="badge-outline font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground px-1.5 py-0.5 border border-border font-medium"
               >
-                z{{ source.minzoom }}–{{ source.maxzoom }}
-              </Badge>
+                z{{ source.minzoom ?? 0 }}–{{ source.maxzoom ?? 18 }}
+              </span>
             </p>
           </div>
           <Button
@@ -69,7 +75,7 @@
             class="shrink-0"
           >
             <NuxtLink :to="`/data/${source.id}/`">
-              <Layers class="mr-1.5 size-4" />
+              <Layers class="size-4 mr-1.5" />
               Inspect
             </NuxtLink>
           </Button>
@@ -83,7 +89,24 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage"
+            role="img"
+            :aria-label="`Zoom range ${source.minzoom ?? 0} to ${source.maxzoom ?? 18}`"
+          >
+            <div
+              class="coverage-fill"
+              :style="{ left: coverageLeft, width: coverageWidth }"
+            ></div>
+          </div>
+          <div class="coverage-labels">
+            <span>z{{ source.minzoom ?? 0 }}</span>
+            <span>z{{ source.maxzoom ?? 18 }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>

@@ -7,29 +7,32 @@
 
 <template>
   <header
-    class="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md"
+    class="header sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md"
   >
     <div
-      class="mx-auto flex min-h-14 max-w-[1600px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-6"
+      class="mx-auto flex min-h-14 max-w-[1600px] items-center justify-between gap-3 px-[clamp(12px,4vw,24px)]"
+      style="min-height: 56px"
     >
       <NuxtLink
         to="/"
-        class="flex items-center gap-3"
+        class="brand flex items-center gap-3 min-w-0"
         aria-label="Tileserver RS home"
       >
         <div
-          class="flex size-9 items-center justify-center bg-primary"
+          class="brand-glyph size-9 bg-primary grid place-items-center text-primary-foreground shrink-0 transition-filter duration-[var(--d-fast,120ms)]"
           aria-hidden="true"
         >
-          <Globe class="size-5 text-primary-foreground" />
+          <Globe class="size-5" />
         </div>
         <div>
-          <div class="text-lg font-semibold leading-none tracking-tight">
+          <div
+            class="brand-name text-[15px] font-bold tracking-tight leading-none"
+          >
             Tileserver RS
           </div>
           <div
             v-if="pingQuery.data.value"
-            class="text-xs text-muted-foreground"
+            class="brand-tag font-mono text-[10.5px] tracking-[0.14em] uppercase text-muted-foreground mt-0.5 font-medium"
           >
             v{{ pingQuery.data.value.version }} · MCP
           </div>
@@ -37,20 +40,22 @@
       </NuxtLink>
 
       <div class="flex items-center gap-1">
-        <NuxtLink to="/admin" aria-label="Open admin">
-          <Button variant="ghost" size="icon" as="span">
-            <Settings class="size-5" />
-          </Button>
+        <NuxtLink
+          to="/admin"
+          aria-label="Open admin settings"
+          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-surface hover:text-foreground"
+        >
+          <Settings class="size-[18px]" />
         </NuxtLink>
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
+          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-surface hover:text-foreground"
           aria-label="Toggle color mode"
           @click="toggleColorMode"
         >
-          <Sun v-if="isDark" class="size-5" />
-          <Moon v-else class="size-5" />
-        </Button>
+          <Sun v-if="isDark" class="size-[18px]" />
+          <Moon v-else class="size-[18px]" />
+        </button>
       </div>
     </div>
   </header>

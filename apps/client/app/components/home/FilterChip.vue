@@ -15,12 +15,13 @@
 
 <template>
   <button
+    type="button"
     :aria-pressed="active"
     class="inline-flex shrink-0 items-center gap-1.5 border px-3 py-1.5 font-mono text-[11px] font-medium tracking-[0.06em] transition-colors duration-[var(--d-fast,120ms)]"
     :class="
       active
         ? 'border-primary bg-primary/10 text-primary'
-        : 'border-border bg-surface text-muted-foreground hover:border-border-strong hover:text-foreground'
+        : 'border-border bg-surface text-muted-foreground hover:border-foreground/20 hover:text-foreground'
     "
     @click="emit('select-filter', category)"
   >

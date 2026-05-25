@@ -1,10 +1,31 @@
 <script setup lang="ts">
-  import { Check, X } from '@lucide/vue';
   import { useHomePage } from '~/composables/use-home-page';
 
   const { pingQuery } = useHomePage();
 
   const statusOk = computed(() => pingQuery.data.value?.status === 'ok');
+  const isLoading = computed(() => pingQuery.isLoading.value);
+
+  const versionLabel = computed(() => {
+    if (!pingQuery.data.value) return '';
+    return `v${pingQuery.data.value.version}`;
+  });
+
+  const rendererEnabled = computed(
+    () => pingQuery.data.value?.renderer_enabled ?? false,
+  );
+
+  const cacheMb = computed(() => {
+    if (!pingQuery.data.value) return '—';
+    if (pingQuery.data.value.cache_enabled === false) {
+      return pingQuery.data.value.renderer_enabled ? '✓' : '✗';
+    }
+    return `${(pingQuery.data.value.cache_bytes / 1024 / 1024).toFixed(0)}`;
+  });
+
+  const cacheEnabled = computed(
+    () => pingQuery.data.value?.cache_enabled ?? false,
+  );
 
   function formatUptime(unix: number): string {
     const now = Date.now() / 1000;
@@ -15,133 +36,147 @@
     return `${Math.floor(diff / 86400)}d`;
   }
 
-  const cacheMb = computed(() => {
-    if (!pingQuery.data.value) return '—';
-    if (pingQuery.data.value.cache_enabled === false) {
-      return pingQuery.data.value.renderer_enabled ? '✓' : '✗';
-    }
-    return `${(pingQuery.data.value.cache_bytes / 1024 / 1024).toFixed(0)}`;
+  const uptime = computed(() => {
+    const unix = pingQuery.data.value?.loaded_at_unix;
+    if (!unix) return '—';
+    return formatUptime(unix);
   });
-
-  const isLoading = computed(() => pingQuery.isLoading.value);
-
-  const stats = computed(() => [
-    { label: 'Sources', value: pingQuery.data.value?.loaded_sources ?? '—' },
-    { label: 'Styles', value: pingQuery.data.value?.loaded_styles ?? '—' },
-    { label: 'Cache', value: cacheMb.value, unit: 'MB' },
-    {
-      label: 'Uptime',
-      value: pingQuery.data.value?.loaded_at_unix
-        ? formatUptime(pingQuery.data.value.loaded_at_unix)
-        : '—',
-      unit: '',
-    },
-  ]);
 </script>
 
 <template>
   <section
-    class="mx-auto w-full max-w-[1600px] border-b border-border px-4 pb-5 pt-7 sm:px-6 sm:pb-8 sm:pt-12 lg:px-8"
+    class="hero w-full max-w-[1600px] mx-auto border-b border-border grid gap-6 px-[clamp(16px,4vw,32px)] py-[clamp(20px,4vw,32px)]"
+    style="grid-template-columns: 1fr"
     aria-labelledby="hero-title"
   >
-    >
-    <div
-      class="grid grid-cols-1 items-end gap-6 sm:grid-cols-[1fr_auto] sm:gap-12"
-    >
-      <!-- Left: kicker pills + headline + subtitle -->
-      <div>
-        <div class="mb-3.5 flex flex-wrap gap-1.5">
-          <!-- Live pill -->
-          <span
-            v-if="!isLoading"
-            class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border"
-            :class="
-              statusOk
-                ? 'border-success/30 bg-success/10 text-success'
-                : 'border-destructive/30 bg-destructive/10 text-destructive'
-            "
-          >
-            <span
-              class="hero-dot relative size-2 rounded-full bg-success"
-            ></span>
-            <span
-              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase"
-              :class="statusOk ? 'text-success' : 'text-destructive'"
-              >Live</span
-            >
-          </span>
-          <!-- Renderer pill -->
-          <span
-            v-if="!isLoading"
-            class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5"
-          >
-            <Check
-              v-if="pingQuery.data.value?.renderer_enabled"
-              class="size-3 text-success"
-            />
-            <X v-else class="size-3 text-muted-foreground" />
-            <span
-              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase text-muted-foreground"
-              >Renderer</span
-            >
-          </span>
-          <!-- Version pill -->
-          <span
-            v-if="pingQuery.data.value"
-            class="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1.5"
-          >
-            <span
-              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase text-muted-foreground"
-              >v{{ pingQuery.data.value.version }}</span
-            >
-          </span>
-        </div>
-
-        <h1
-          id="hero-title"
-          class="font-bold text-[clamp(28px,5vw,42px)] leading-[1.04] tracking-[-0.03em] mb-2.5 max-w-[22ch]"
+    <div class="flex flex-col justify-end">
+      <div class="hero-meta-row flex flex-wrap gap-1.5 mb-3.5">
+        <span
+          v-if="!isLoading"
+          class="hero-meta inline-flex items-center gap-2.5 px-3 py-1.5 text-[11px] font-medium border"
+          :class="
+            statusOk
+              ? 'border-success/30 bg-success/10 text-success'
+              : 'border-destructive/30 bg-destructive/10 text-destructive'
+          "
         >
-          Self-hosted tile server
-        </h1>
-        <p
-          class="text-[15px] text-muted-foreground leading-[1.55] max-w-[56ch]"
+          <span
+            class="hero-dot size-2 rounded-full bg-current shrink-0"
+            :class="statusOk ? 'text-success' : 'text-destructive'"
+            aria-hidden="true"
+          ></span>
+          <span
+            class="uc-mono font-mono text-[11px] font-semibold tracking-[0.10em] uppercase"
+            >Live</span
+          >
+        </span>
+        <span
+          class="hero-meta neutral inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium border border-border bg-surface text-muted-foreground"
         >
-          PMTiles, MBTiles, COG, STAC, OGC API and an MCP server in one Rust
-          binary.
-        </p>
+          <span
+            class="uc-mono font-mono text-[11px] tracking-[0.10em] uppercase"
+            >Renderer {{ rendererEnabled ? '✓' : '✗' }}</span
+          >
+        </span>
+        <span
+          v-if="versionLabel"
+          class="hero-meta neutral inline-flex items-center px-3 py-1.5 text-[11px] font-medium border border-border bg-surface text-muted-foreground"
+        >
+          <span
+            class="uc-mono font-mono text-[11px] tracking-[0.10em] uppercase"
+            >{{ versionLabel }}</span
+          >
+        </span>
       </div>
 
-      <!-- Right: stats grid -->
+      <h1
+        id="hero-title"
+        class="text-[clamp(28px,5vw,42px)] font-bold leading-[1.04] tracking-[-0.03em] mb-2.5 max-w-[22ch]"
+      >
+        Self-hosted tile server
+      </h1>
+      <p class="text-[15px] text-muted-foreground leading-[1.55] max-w-[56ch]">
+        PMTiles, MBTiles, COG, STAC, OGC API and an MCP server in one Rust
+        binary.
+      </p>
+    </div>
+
+    <div
+      class="hero-stats grid gap-0 border border-border bg-surface"
+      style="
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 460px;
+        margin-top: 16px;
+      "
+      role="list"
+      aria-label="Runtime metrics"
+    >
       <div
-        v-if="!isLoading"
-        class="stats-grid grid grid-cols-2 border border-border bg-surface sm:grid-cols-4 sm:max-w-[460px]"
+        class="hero-stat border-r border-b border-border p-3"
+        role="listitem"
       >
         <div
-          v-for="(stat, idx) in stats"
-          :key="stat.label"
-          class="px-3.5 py-3 border-r border-border"
-          :class="[
-            idx % 2 === 1 ? 'border-r-0 sm:border-r' : '',
-            idx >= stats.length - 2 ? 'border-b-0' : 'border-b sm:border-b-0',
-            idx === stats.length - 1 ? 'sm:border-r-0' : '',
-          ]"
+          class="hero-stat-l font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium mb-1"
         >
-          <div
-            class="text-[10px] font-mono font-medium uppercase tracking-[0.12em] text-muted-foreground"
-          >
-            {{ stat.label }}
-          </div>
-          <div
-            class="mt-0.5 text-lg font-semibold tabular-nums text-foreground"
-          >
-            {{ stat.value
-            }}<span
-              v-if="'unit' in stat && stat.unit"
-              class="ml-0.5 text-sm font-medium text-muted-foreground"
+          Sources
+        </div>
+        <div
+          class="hero-stat-v font-mono text-[22px] font-semibold text-foreground tracking-[-0.02em] tabular-nums"
+        >
+          {{ pingQuery.data.value?.loaded_sources ?? '—' }}
+        </div>
+      </div>
+      <div
+        class="hero-stat border-r border-b border-border p-3"
+        style="border-right: none"
+        role="listitem"
+      >
+        <div
+          class="hero-stat-l font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium mb-1"
+        >
+          Styles
+        </div>
+        <div
+          class="hero-stat-v font-mono text-[22px] font-semibold text-foreground tracking-[-0.02em] tabular-nums"
+        >
+          {{ pingQuery.data.value?.loaded_styles ?? '—' }}
+        </div>
+      </div>
+      <div class="hero-stat border-r border-border p-3" role="listitem">
+        <div
+          class="hero-stat-l font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium mb-1"
+        >
+          Cache
+        </div>
+        <div
+          class="hero-stat-v font-mono text-[22px] font-semibold text-foreground tracking-[-0.02em] tabular-nums flex items-baseline gap-1"
+        >
+          <span v-if="!cacheEnabled">—</span>
+          <template v-else>
+            {{ cacheMb }}
+            <span class="unit text-[11px] font-medium text-muted-foreground"
+              >MB</span
             >
-              {{ stat.unit }}</span
-            >
-          </div>
+          </template>
+        </div>
+      </div>
+      <div
+        class="hero-stat border-r-0 p-3"
+        style="border-right: none"
+        role="listitem"
+      >
+        <div
+          class="hero-stat-l font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground font-medium mb-1"
+        >
+          Uptime
+        </div>
+        <div
+          class="hero-stat-v font-mono text-[22px] font-semibold text-foreground tracking-[-0.02em] tabular-nums flex items-baseline gap-1"
+        >
+          <span v-if="!uptime">—</span>
+          <template v-else>
+            {{ uptime }}
+          </template>
         </div>
       </div>
     </div>

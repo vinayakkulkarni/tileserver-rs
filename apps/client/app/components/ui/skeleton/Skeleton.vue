@@ -5,8 +5,5 @@
 </script>
 
 <template>
-  <div
-    :class="cn('animate-pulse bg-muted', props.class)"
-    aria-hidden="true"
-  ></div>
+  <div :class="cn('skel', props.class)" aria-hidden="true"></div>
 </template>
