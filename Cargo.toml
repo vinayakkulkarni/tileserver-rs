@@ -87,7 +87,7 @@ uuid             = { version = "1.23.1", features = ["v4"] }
 bytes            = "1.11.1"
 image            = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 ndarray          = { version = "0.17.2", features = ["rayon"] }
-exmex            = "0.20.5"
+exmex            = "0.21.0"
 
 # Concurrency
 arc-swap         = "1.9.1"
