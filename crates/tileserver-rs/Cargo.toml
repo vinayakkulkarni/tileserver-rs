@@ -1,6 +1,6 @@
 [package]
 name = "tileserver-rs"
-version = "2.29.0"
+version = "2.29.1"
 edition.workspace = true
 rust-version.workspace = true
 authors = ["Vinayak Kulkarni <inbox.vinayak@gmail.com>"]
@@ -113,7 +113,7 @@ base64           = { version = "0.22", optional = true }
 # bearer comparisons; declared optional under `mcp` so it does not enter
 # default builds even though it is a transitive dep via `rsa`.
 jsonwebtoken     = { version = "10", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
-askama           = { version = "0.16", optional = true }
+askama           = { version = "0.15", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 rsa              = { version = "0.9", optional = true, features = ["pem"] }
 subtle           = { workspace = true, optional = true }
