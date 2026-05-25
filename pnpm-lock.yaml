@@ -180,8 +180,8 @@ catalogs:
       specifier: ^1.9.17
       version: 1.9.17
     reka-ui:
-      specifier: ^2.9.7
-      version: 2.9.7
+      specifier: ^2.9.8
+      version: 2.9.8
     shadcn-nuxt:
       specifier: ^2.7.3
       version: 2.7.3
@@ -356,7 +356,7 @@ importers:
         version: 1.9.17(vue@3.5.34(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.7(vue@3.5.34(typescript@6.0.3))
+        version: 2.9.8(vue@3.5.34(typescript@6.0.3))
       shpjs:
         specifier: catalog:client
         version: 6.2.0
@@ -474,7 +474,7 @@ importers:
         version: 1.9.17(vue@3.5.34(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.7(vue@3.5.34(typescript@6.0.3))
+        version: 2.9.8(vue@3.5.34(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.6.0
@@ -574,7 +574,7 @@ importers:
         version: 1.9.17(vue@3.5.34(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.9.7(vue@3.5.34(typescript@6.0.3))
+        version: 2.9.8(vue@3.5.34(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.6.0
@@ -7218,8 +7218,8 @@ packages:
   reinterval@1.1.0:
     resolution: {integrity: sha512-QIRet3SYrGp0HUHO88jVskiG6seqUGC5iAG7AwI/BV4ypGcuqk9Du6YQBUOUqm9c8pw1eyLoIaONifRua1lsEQ==}
 
-  reka-ui@2.9.7:
-    resolution: {integrity: sha512-aX7foYYR20v4+majO58OJJdBNfLMm0eJb448l9N4JVy8JB7GXOr4H/S4a+J1pkcoxZH8Cb7YHpJ855+miAm7sA==}
+  reka-ui@2.9.8:
+    resolution: {integrity: sha512-7dxaBJ6nQ0zOQZXPV45219tTEgZPstmihBLS9ABPhSiPiJ8SiF0sacfZHFaBptS0v9N4tzsevq+8MNBpE4p5JQ==}
     peerDependencies:
       vue: '>= 3.4.0'
 
@@ -16090,7 +16090,7 @@ snapshots:
 
   reinterval@1.1.0: {}
 
-  reka-ui@2.9.7(vue@3.5.34(typescript@6.0.3)):
+  reka-ui@2.9.8(vue@3.5.34(typescript@6.0.3)):
     dependencies:
       '@floating-ui/dom': 1.7.6
       '@floating-ui/vue': 1.1.11(vue@3.5.34(typescript@6.0.3))
