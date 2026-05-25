@@ -2,13 +2,10 @@
   import HomeToast from '~/components/ui/toast/Toast.vue';
 
   const {
-    isDark,
-    toggleColorMode,
     isLoadingData,
     isLoadingStyles,
     hasStyles,
     hasData,
-    ping,
     searchQuery,
     activeFilter,
     allChips,
@@ -26,14 +23,16 @@
     stylesOpen,
     dataOpen,
     baseUrl,
+    pingQuery,
   } = useHomePage();
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col bg-background">
-    <a class="skip-link" href="#main"> Skip to content </a>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-    <HomeHero :is-dark="isDark" @toggle-theme="toggleColorMode" />
+    <HomeHeader />
+    <HomeHero />
 
     <HomeToolbar
       :search-query="searchQuery"
@@ -44,7 +43,7 @@
     />
 
     <main id="main" class="w-full flex-1">
-      <div class="mx-auto max-w-7xl space-y-4 px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-6 sm:px-6 lg:px-8">
         <HomeStyleList
           :styles="filteredStyles"
           :is-loading="isLoadingStyles"
@@ -77,7 +76,11 @@
       </div>
     </main>
 
-    <HomeFooter :version-label="ping?.version ? `v${ping.version}` : ''" />
+    <HomeFooter
+      :version-label="
+        pingQuery.data.value?.version ? `v${pingQuery.data.value.version}` : ''
+      "
+    />
 
     <HomeToast :visible="toastVisible" :message="toastMessage" />
   </div>

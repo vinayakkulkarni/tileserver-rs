@@ -19,6 +19,8 @@
   --color-popover-foreground: oklch(0.2 0.012 270);
   --color-primary: oklch(0.55 0.22 295);
   --color-primary-foreground: oklch(0.98 0.005 270);
+  --color-surface: oklch(0.965 0.005 270);
+  --color-surface-2: oklch(0.935 0.007 270);
   --color-secondary: oklch(0.96 0.006 270);
   --color-secondary-foreground: oklch(0.42 0.012 270);
   --color-muted: oklch(0.96 0.006 270);
@@ -78,6 +80,8 @@
 }
 
 .dark {
+  --color-surface: oklch(0.2 0.014 270);
+  --color-surface-2: oklch(0.24 0.016 270);
   --color-background: oklch(0.18 0.012 270);
   --color-foreground: oklch(0.96 0.005 270);
   --color-card: oklch(0.22 0.012 270);

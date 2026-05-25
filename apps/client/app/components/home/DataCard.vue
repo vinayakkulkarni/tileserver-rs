@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Layers } from '@lucide/vue';
+  import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
 
   const props = defineProps<{
@@ -11,50 +12,52 @@
   }>();
 
   const emit = defineEmits<{
-    'toggle-xyz': [dataId: string];
-    'copy-url': [url: string];
+    toggleXyz: [dataId: string];
+    copyUrl: [url: string];
   }>();
 
   function handleToggleXyz() {
-    emit('toggle-xyz', props.source.id);
+    emit('toggleXyz', props.source.id);
   }
 
   function handleServiceCopyUrl(url: string) {
-    emit('copy-url', url);
+    emit('copyUrl', url);
   }
-
-  const coverageLeft = computed(() => (props.source.minzoom * 100) / 18);
-  const coverageWidth = computed(
-    () => ((props.source.maxzoom - props.source.minzoom) * 100) / 18,
-  );
 </script>
 
 <template>
-  <article
-    class="card group border border-border/50 bg-background/50 p-4 transition-[border-color,background,box-shadow] duration-[var(--d-fast,120ms)]"
-    :style="{
-      '--tw-ring-color': 'oklch(from var(--color-primary) l c h / 0.15)',
-    }"
+  <motion.div
+    :initial="{ opacity: 0, y: 12 }"
+    :animate="{ opacity: 1, y: 0 }"
+    :transition="{ duration: 0.3, delay: 0.05 * index }"
+    class="group border border-border bg-background p-3.5 transition-all duration-[var(--d-fast,120ms)] hover:border-primary hover:bg-primary/2.5 focus-within:border-primary"
   >
-    <div class="flex items-start gap-4">
+    <div class="flex gap-3.5">
+      <!-- 56x56 icon box per A2 -->
       <div
-        class="flex size-12 shrink-0 items-center justify-center bg-muted ring-1 ring-border/50"
+        class="flex size-14 shrink-0 items-center justify-center border border-border bg-surface-2"
       >
-        <Layers class="size-6 text-muted-foreground" />
+        <Layers class="size-5.5 text-muted-foreground" />
       </div>
 
+      <!-- Card content -->
       <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-semibold">{{ source.name || source.id }}</h3>
-            <p
-              class="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-            >
-              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
-                source.id
-              }}</code>
-              <Badge variant="outline" class="text-[10px]">
-                z{{ source.minzoom }}-{{ source.maxzoom }}
+        <div class="flex items-start justify-between gap-2.5">
+          <div class="min-w-0">
+            <h3 class="text-[15px] font-bold leading-snug tracking-[-0.005em]">
+              {{ source.name || source.id }}
+            </h3>
+            <p class="mt-0.5 flex flex-wrap items-center gap-2">
+              <code
+                class="inline-block bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] font-medium text-muted-foreground"
+              >
+                {{ source.id }}
+              </code>
+              <Badge
+                variant="outline"
+                class="font-mono text-[10px] tracking-[0.06em]"
+              >
+                z{{ source.minzoom }}–{{ source.maxzoom }}
               </Badge>
             </p>
           </div>
@@ -63,6 +66,7 @@
             as-child
             variant="secondary"
             size="sm"
+            class="shrink-0"
           >
             <NuxtLink :to="`/data/${source.id}/`">
               <Layers class="mr-1.5 size-4" />
@@ -79,40 +83,7 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
-
-        <div class="mt-3">
-          <div
-            class="coverage h-[3px] w-full bg-muted"
-            role="img"
-            :aria-label="`Zoom range ${source.minzoom} to ${source.maxzoom}`"
-          >
-            <div
-              class="coverage-fill h-full bg-primary"
-              :style="{ left: `${coverageLeft}%`, width: `${coverageWidth}%` }"
-            ></div>
-          </div>
-          <div
-            class="mt-1 flex justify-between text-[10px] font-mono tracking-widest text-muted-foreground"
-            style="letter-spacing: 0.1em"
-          >
-            <span>z{{ source.minzoom }}</span>
-            <span>z{{ source.minzoom }}–{{ source.maxzoom }}</span>
-            <span>z18</span>
-          </div>
-        </div>
       </div>
     </div>
-  </article>
+  </motion.div>
 </template>
-
-<style scoped>
-  .card:hover {
-    border-color: var(--color-primary);
-    background: oklch(from var(--color-primary) l c h / 0.025);
-    box-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
-  }
-
-  .card:focus-within {
-    border-color: var(--color-primary);
-  }
-</style>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-  import { Check, Globe, Moon, Settings, Sun, X } from '@lucide/vue';
+  import { Check, X } from '@lucide/vue';
   import { useHomePage } from '~/composables/use-home-page';
 
-  const { isDark, toggleColorMode, pingQuery } = useHomePage();
+  const { pingQuery } = useHomePage();
 
   const statusOk = computed(() => pingQuery.data.value?.status === 'ok');
 
@@ -23,111 +23,127 @@
     return `${(pingQuery.data.value.cache_bytes / 1024 / 1024).toFixed(0)}`;
   });
 
+  const isLoading = computed(() => pingQuery.isLoading.value);
+
   const stats = computed(() => [
     { label: 'Sources', value: pingQuery.data.value?.loaded_sources ?? '—' },
     { label: 'Styles', value: pingQuery.data.value?.loaded_styles ?? '—' },
-    { label: 'Cache', value: cacheMb.value },
+    { label: 'Cache', value: cacheMb.value, unit: 'MB' },
     {
       label: 'Uptime',
       value: pingQuery.data.value?.loaded_at_unix
         ? formatUptime(pingQuery.data.value.loaded_at_unix)
         : '—',
+      unit: '',
     },
   ]);
 </script>
 
 <template>
-  <header
-    class="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
+  <section
+    class="mx-auto w-full max-w-[1600px] border-b border-border px-4 pb-5 pt-7 sm:px-6 sm:pb-8 sm:pt-12 lg:px-8"
+    aria-labelledby="hero-title"
   >
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex h-14 items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="flex size-9 items-center justify-center bg-primary">
-            <Globe class="size-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 class="text-lg font-semibold tracking-tight">Tileserver RS</h1>
-            <p class="text-xs text-muted-foreground">
-              High-performance vector tile server
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-1">
-          <NuxtLink to="/admin" aria-label="Open admin">
-            <Button variant="ghost" size="icon" as="span">
-              <Settings class="size-5" />
-            </Button>
-          </NuxtLink>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle color mode"
-            @click="toggleColorMode"
-          >
-            <Sun v-if="isDark" class="size-5" />
-            <Moon v-else class="size-5" />
-          </Button>
-        </div>
-      </div>
-
-      <div
-        class="flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 sm:grid sm:grid-cols-[1fr_auto] sm:items-center"
-      >
-        <div class="flex items-center gap-3">
+    >
+    <div
+      class="grid grid-cols-1 items-end gap-6 sm:grid-cols-[1fr_auto] sm:gap-12"
+    >
+      <!-- Left: kicker pills + headline + subtitle -->
+      <div>
+        <div class="mb-3.5 flex flex-wrap gap-1.5">
+          <!-- Live pill -->
           <span
-            v-if="pingQuery.data.value"
-            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
+            v-if="!isLoading"
+            class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border"
             :class="
               statusOk
-                ? 'bg-success/10 text-success'
-                : 'bg-destructive/10 text-destructive'
+                ? 'border-success/30 bg-success/10 text-success'
+                : 'border-destructive/30 bg-destructive/10 text-destructive'
             "
           >
             <span
               class="hero-dot relative size-2 rounded-full bg-success"
             ></span>
-            Live
+            <span
+              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase"
+              :class="statusOk ? 'text-success' : 'text-destructive'"
+              >Live</span
+            >
           </span>
+          <!-- Renderer pill -->
           <span
-            v-if="pingQuery.data.value"
-            class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+            v-if="!isLoading"
+            class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5"
           >
             <Check
-              v-if="pingQuery.data.value.renderer_enabled"
-              class="size-3"
+              v-if="pingQuery.data.value?.renderer_enabled"
+              class="size-3 text-success"
             />
-            <X v-else class="size-3" />
-            Renderer
+            <X v-else class="size-3 text-muted-foreground" />
+            <span
+              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase text-muted-foreground"
+              >Renderer</span
+            >
           </span>
+          <!-- Version pill -->
           <span
             v-if="pingQuery.data.value"
-            class="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+            class="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1.5"
           >
-            v{{ pingQuery.data.value.version }}
+            <span
+              class="font-mono text-[11px] font-semibold tracking-[0.10em] uppercase text-muted-foreground"
+              >v{{ pingQuery.data.value.version }}</span
+            >
           </span>
         </div>
 
+        <h1
+          id="hero-title"
+          class="font-bold text-[clamp(28px,5vw,42px)] leading-[1.04] tracking-[-0.03em] mb-2.5 max-w-[22ch]"
+        >
+          Self-hosted tile server
+        </h1>
+        <p
+          class="text-[15px] text-muted-foreground leading-[1.55] max-w-[56ch]"
+        >
+          PMTiles, MBTiles, COG, STAC, OGC API and an MCP server in one Rust
+          binary.
+        </p>
+      </div>
+
+      <!-- Right: stats grid -->
+      <div
+        v-if="!isLoading"
+        class="stats-grid grid grid-cols-2 border border-border bg-surface sm:grid-cols-4 sm:max-w-[460px]"
+      >
         <div
-          class="hidden sm:grid grid-cols-4 divide-x divide-border border border-border text-sm tabular-nums"
+          v-for="(stat, idx) in stats"
+          :key="stat.label"
+          class="px-3.5 py-3 border-r border-border"
+          :class="[
+            idx % 2 === 1 ? 'border-r-0 sm:border-r' : '',
+            idx >= stats.length - 2 ? 'border-b-0' : 'border-b sm:border-b-0',
+            idx === stats.length - 1 ? 'sm:border-r-0' : '',
+          ]"
         >
           <div
-            v-for="stat in stats"
-            :key="stat.label"
-            class="px-3 py-2.5 text-center"
+            class="text-[10px] font-mono font-medium uppercase tracking-[0.12em] text-muted-foreground"
           >
-            <div class="text-lg font-semibold text-foreground tabular-nums">
-              {{ stat.value }}
-            </div>
-            <div
-              class="text-[10px] uppercase tracking-widest text-muted-foreground"
+            {{ stat.label }}
+          </div>
+          <div
+            class="mt-0.5 text-lg font-semibold tabular-nums text-foreground"
+          >
+            {{ stat.value
+            }}<span
+              v-if="'unit' in stat && stat.unit"
+              class="ml-0.5 text-sm font-medium text-muted-foreground"
             >
-              {{ stat.label }}
-            </div>
+              {{ stat.unit }}</span
+            >
           </div>
         </div>
       </div>
     </div>
-  </header>
+  </section>
 </template>
