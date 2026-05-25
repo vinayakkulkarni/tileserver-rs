@@ -159,7 +159,7 @@ arrow-cast       = "58"
 geo              = "0.33"
 
 # DuckDB (optional)
-duckdb           = { version = "1.10503.0", features = ["bundled"] }
+duckdb           = { version = "1.10503.1", features = ["bundled"] }
 
 # FFI
 libc             = "0.2"
