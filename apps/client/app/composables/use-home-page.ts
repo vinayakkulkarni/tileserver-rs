@@ -1,14 +1,10 @@
-/**
- * Home Page Composable
- *
- * Manages all state and logic for the landing page:
- * search filtering, collapsible sections, XYZ URL expansion, clipboard copy.
- */
-
 import { useClipboard, useTimeoutFn } from '@vueuse/core';
-
 import type { Data } from '~/types/data';
 import type { Style } from '~/types/style';
+import { useHomeFilters } from './use-home-filters';
+import { usePingStats } from './use-server-info';
+import { useThemeToggle } from './use-theme-toggle';
+import { useTileserverData } from './use-tileserver-data';
 
 export function useHomePage() {
   const { isDark, toggle: toggleColorMode } = useThemeToggle();
@@ -20,18 +16,26 @@ export function useHomePage() {
     hasStyles,
     hasData,
   } = useTileserverData();
-  const { versionLabel } = useServerInfo();
+
+  const pingQuery = usePingStats();
 
   const { copy } = useClipboard();
 
-  // Search filter
+  const {
+    activeFilter,
+    allChips,
+    filteredStyles: typeFilteredStyles,
+    filteredDataSources: typeFilteredDataSources,
+    setFilter,
+  } = useHomeFilters();
+
   const searchQuery = ref('');
 
-  // Filtered lists
   const filteredStyles = computed(() => {
-    if (!searchQuery.value) return styles.value;
+    const list = typeFilteredStyles.value;
+    if (!searchQuery.value) return list;
     const query = searchQuery.value.toLowerCase();
-    return styles.value.filter(
+    return list.filter(
       (s: Style) =>
         s.name.toLowerCase().includes(query) ||
         s.id.toLowerCase().includes(query),
@@ -39,16 +43,16 @@ export function useHomePage() {
   });
 
   const filteredDataSources = computed(() => {
-    if (!searchQuery.value) return dataSources.value;
+    const list = typeFilteredDataSources.value;
+    if (!searchQuery.value) return list;
     const query = searchQuery.value.toLowerCase();
-    return dataSources.value.filter(
+    return list.filter(
       (s: Data) =>
         (s.name || '').toLowerCase().includes(query) ||
         s.id.toLowerCase().includes(query),
     );
   });
 
-  // Track which XYZ URLs are expanded
   const expandedStyleXyz = ref<Set<string>>(new Set());
   const expandedDataXyz = ref<Set<string>>(new Set());
 
@@ -70,7 +74,17 @@ export function useHomePage() {
     expandedDataXyz.value = new Set(expandedDataXyz.value);
   }
 
-  // Copy with feedback
+  const toastVisible = ref(false);
+  const toastMessage = ref('');
+
+  function showToast(message: string, duration = 1800) {
+    toastMessage.value = message;
+    toastVisible.value = true;
+    setTimeout(() => {
+      toastVisible.value = false;
+    }, duration);
+  }
+
   const copiedUrl = ref<string | null>(null);
   const { start: startCopyTimer } = useTimeoutFn(
     () => {
@@ -83,21 +97,19 @@ export function useHomePage() {
   function copyUrl(url: string) {
     copy(url);
     copiedUrl.value = url;
+    showToast('XYZ URL copied');
     startCopyTimer();
   }
 
-  // Collapsible sections
   const stylesOpen = ref(true);
   const dataOpen = ref(true);
 
   const baseUrl = computed(() => useRequestURL().origin);
 
   return {
-    // Theme
     isDark,
     toggleColorMode,
 
-    // Data
     dataSources,
     styles,
     isLoadingData,
@@ -105,29 +117,29 @@ export function useHomePage() {
     hasStyles,
     hasData,
 
-    // Server
-    versionLabel,
+    pingQuery,
 
-    // Search
     searchQuery,
+    activeFilter,
+    allChips,
+    setFilter,
     filteredStyles,
     filteredDataSources,
 
-    // XYZ expansion
     expandedStyleXyz,
     expandedDataXyz,
     toggleStyleXyz,
     toggleDataXyz,
 
-    // Clipboard
+    toastVisible,
+    toastMessage,
     copiedUrl,
     copyUrl,
+    showToast,
 
-    // Sections
     stylesOpen,
     dataOpen,
 
-    // URL
     baseUrl,
   };
 }

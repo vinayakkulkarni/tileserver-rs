@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { Layers } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
 
   const props = defineProps<{
@@ -12,25 +11,30 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [dataId: string];
-    copyUrl: [url: string];
+    'toggle-xyz': [dataId: string];
+    'copy-url': [url: string];
   }>();
 
   function handleToggleXyz() {
-    emit('toggleXyz', props.source.id);
+    emit('toggle-xyz', props.source.id);
   }
 
   function handleServiceCopyUrl(url: string) {
-    emit('copyUrl', url);
+    emit('copy-url', url);
   }
+
+  const coverageLeft = computed(() => (props.source.minzoom * 100) / 18);
+  const coverageWidth = computed(
+    () => ((props.source.maxzoom - props.source.minzoom) * 100) / 18,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+  <article
+    class="card group border border-border/50 bg-background/50 p-4 transition-[border-color,background,box-shadow] duration-[var(--d-fast,120ms)]"
+    :style="{
+      '--tw-ring-color': 'oklch(from var(--color-primary) l c h / 0.15)',
+    }"
   >
     <div class="flex items-start gap-4">
       <div
@@ -59,7 +63,6 @@
             as-child
             variant="secondary"
             size="sm"
-            class=""
           >
             <NuxtLink :to="`/data/${source.id}/`">
               <Layers class="mr-1.5 size-4" />
@@ -76,7 +79,40 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage h-[3px] w-full bg-muted"
+            role="img"
+            :aria-label="`Zoom range ${source.minzoom} to ${source.maxzoom}`"
+          >
+            <div
+              class="coverage-fill h-full bg-primary"
+              :style="{ left: `${coverageLeft}%`, width: `${coverageWidth}%` }"
+            ></div>
+          </div>
+          <div
+            class="mt-1 flex justify-between text-[10px] font-mono tracking-widest text-muted-foreground"
+            style="letter-spacing: 0.1em"
+          >
+            <span>z{{ source.minzoom }}</span>
+            <span>z{{ source.minzoom }}–{{ source.maxzoom }}</span>
+            <span>z18</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>
+
+<style scoped>
+  .card:hover {
+    border-color: var(--color-primary);
+    background: oklch(from var(--color-primary) l c h / 0.025);
+    box-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
+  }
+
+  .card:focus-within {
+    border-color: var(--color-primary);
+  }
+</style>

@@ -579,6 +579,186 @@ The entire client (public viewer AND `/admin/*`) honors the user's light/dark to
 
 **Why one direction across both viewer + admin?** Earlier the public viewer used HSL + Tailwind-default-blue while admin used OKLch + violet — two parallel palettes drifting apart. Direction I is now the canonical, single-source palette; light mode is a perceptually-uniform desaturation of the dark tokens.
 
+### 🚨 Rule #20: A2 Operator-List Pattern — Hero, Toolbar, Card, Motion, A11y
+
+The `/` home page (and any future list/dashboard surface inside `apps/client/`) uses the **A2 Operator-List pattern**. This rule encodes the visual + interaction language so future work doesn't drift. Reference mock: [`.design-explorations/A2-density-plus.html`](.design-explorations/A2-density-plus.html).
+
+#### A. Hero composition (mandatory shape)
+
+Two-column grid (single column `<md`, `1fr auto` `>=md`). Left column: kicker pill row + headline + sub. Right column: 4-stat strip.
+
+**Kicker pill row** — 3 pills, all live data from `/ping`, all border-radius `999px`:
+
+| Pill | Source field | Treatment |
+|---|---|---|
+| `Live` | `status==="ok"` | success-tinted bg + animated ping dot |
+| `Renderer ✓ / ✗` | `renderer_enabled` | neutral bg, check/cross glyph |
+| `v<version>` | `version` | neutral bg |
+
+**4-stat strip** — `Sources / Styles / Cache MB / Uptime` only. All derived from `/ping`:
+
+- `Sources` ← `loaded_sources`
+- `Styles` ← `loaded_styles`
+- `Cache` ← `(cache_bytes / 1024 / 1024).toFixed(0)` MB — when `cache_enabled=false`, swap cell for `Renderer ✓/✗`
+- `Uptime` ← `formatDistance(loaded_at_unix)` formatted via `date-fns`
+
+> **HONEST-DATA RULE**: NEVER show metrics `/ping` does not return — no fake `p50`, no fake `p99`, no fake region label, no fake QPS. The PingResponse fields are the entire surface. If a metric is unavailable, show `—` or omit the cell.
+
+#### B. Sticky toolbar (search + filter chips)
+
+Single sticky row directly under the hero. Two children:
+
+1. **Search input** — 44px tall (touch-target floor), border-tinted-violet + 3px ring on `:focus`, search-icon switches to `text-primary` on focus.
+2. **Filter chip strip** — horizontally scrollable on mobile (`overflow-x: auto` + `scrollbar-width: thin`, 0-height scrollbar on WebKit). Each chip = `aria-pressed` button with a count badge. Active chip uses `border-primary + bg-primary-tint`.
+
+Chips MUST be derived from the actual loaded source/style counts — not hardcoded. Generate from grouping over `Style.type` (raster / vector) and `Data.type` (pmtiles / mlt / stac / postgis / etc.).
+
+#### C. Card hover — NO layout shift (HARD)
+
+**FORBIDDEN on any card / row / tile hover state:**
+
+- `transform: translateY(...)`, `transform: translateX(...)`, `transform: scale(...)` — even GPU-accelerated transforms read as motion-shift to the eye
+- Shadow growth that visually pushes the card up
+- Padding / margin changes
+- Width / height changes
+- `font-size` / `font-weight` shifts on the title
+
+**REQUIRED hover affordance:**
+
+```css
+.card { transition: border-color, background, box-shadow var(--d-fast) var(--ease); }
+.card:hover {
+  border-color: var(--primary);
+  background: oklch(from var(--primary) l c h / 0.025);   /* 2.5% tint */
+  box-shadow: inset 0 0 0 1px oklch(from var(--primary) l c h / 0.15);
+}
+.card:focus-within { border-color: var(--primary); }
+```
+
+Color + inset ring only. Zero motion. Tested at 320×568 (smallest mobile) through 2560×1440 (4k).
+
+#### D. Coverage bar (zoom-range visualization)
+
+Each StyleCard / DataCard renders a 3px horizontal bar showing the source's zoom range as a fraction of `[0, 18]`:
+
+```html
+<div class="coverage" role="img" aria-label="Zoom range 0 to 15">
+  <div class="coverage-fill" style="left: 0%; width: 83.33%;"></div>
+</div>
+<div class="coverage-labels"><span>z0</span><span>z0–15</span><span>z18</span></div>
+```
+
+Math: `left = minzoom * 100 / 18`, `width = (maxzoom - minzoom) * 100 / 18`. Fill uses `var(--primary)`. Labels use `var(--font-mono)` at 9.5–10px with `letter-spacing: 0.10em`.
+
+#### E. Conditional `Inspect` button
+
+`Inspect` ONLY renders when `source.vector_layers?.length > 0`. Raster STAC sources, PostGIS sources without a vector-layer manifest, and any source without inspectable layers MUST render the card with the right-side action slot empty — the title block flexes to fill.
+
+```vue
+<a v-if="source.vector_layers?.length" :href="`/data/${source.id}/`" class="btn">Inspect</a>
+```
+
+#### F. Skeleton shimmer (loading state)
+
+Use the existing `~/components/ui/skeleton/Skeleton.vue` with the linear-gradient shimmer keyframe. NEVER show a spinner inside a card. NEVER show a centered loading message. ALWAYS render the actual card scaffold with `<Skeleton>` blocks shaped like the real content:
+
+```vue
+<div class="card">
+  <Skeleton class="size-14" />            <!-- thumb -->
+  <Skeleton class="h-4 w-2/3" />          <!-- title (% widths only) -->
+  <Skeleton class="h-3 w-1/3 mt-2" />     <!-- id chip -->
+  <Skeleton class="h-3 w-4/5 mt-3" />     <!-- services row -->
+</div>
+```
+
+Skeleton widths use **percentages**, never fixed `w-N` pixel values — those overflow narrow mobile columns (the original Wave 0 bug).
+
+#### G. Toast (XYZ URL copied feedback)
+
+Bottom-center, slides up from below the viewport over 320ms, auto-dismisses after 1800ms. ARIA contract:
+
+```html
+<div class="toast" role="status" aria-live="polite">
+  <CheckIcon class="text-success" />
+  XYZ URL copied
+</div>
+```
+
+NEVER use `role="alert"` for non-error confirmations.
+
+#### H. Motion tokens
+
+Declare once in `tailwind.css` `@theme`:
+
+```css
+@theme {
+  --d-fast: 120ms;          /* hover, focus, simple state */
+  --d-base: 180ms;          /* section toggle chevron rotate */
+  --d-slow: 320ms;          /* section expand/collapse, toast slide */
+  --ease:   cubic-bezier(0.16, 1, 0.3, 1);   /* ease-out, slight overshoot */
+}
+```
+
+Section toggles use `grid-template-rows: 0fr → 1fr` (smooth, no `max-height` kludge). Section chevron uses `transform: rotate(180deg)` on `.section.open`.
+
+#### I. Hero status pill ping animation
+
+The `Live` pill's dot ships a 2.2-second pulse halo via a single keyframe:
+
+```css
+.hero-dot { position: relative; }
+.hero-dot::after {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%;
+  background: var(--success); opacity: 0.45; animation: pulse 2.2s var(--ease) infinite;
+}
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.45; } 100% { transform: scale(2.6); opacity: 0; } }
+```
+
+Animation MUST be inside the `@media (prefers-reduced-motion: reduce)` reset that disables all transitions/animations site-wide.
+
+#### J. A11y baseline (NON-OPTIONAL on every page)
+
+| Requirement | Implementation |
+|---|---|
+| Skip-to-content link | `<a class="skip-link" href="#main">` — slides down from top on `:focus-visible` |
+| Focus-visible rings | `:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }` on every interactive element |
+| Touch targets | All buttons `min-height: 36px` desktop / `40px` mobile; icon-only `min-height: 44px` (iOS minimum) |
+| Reduced motion | `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }` |
+| Semantic HTML | `<article>` per card, `<button>` for collapsibles (NOT `<div onclick>`), `<main id="main">`, `<header role="banner">`, `<footer role="contentinfo">` |
+| ARIA on collapsibles | `aria-expanded="true|false"` + `aria-controls="<body-id>"` on the section toggle button |
+| ARIA on icon-only buttons | `aria-label="..."` mandatory on every icon-only button (Viewer arrow, theme toggle, settings, copy) |
+| ARIA on status feedback | Toast: `role="status" aria-live="polite"`. Error banner: `role="alert"`. |
+| `sr-only` labels | Search input + every visible-icon-only-but-needs-label control |
+| Coverage bar accessibility | `role="img" aria-label="Zoom range N to M"` on the bar; visible numeric labels below for sighted users |
+
+#### K. Component-file mapping (for the migration)
+
+| Concept | File |
+|---|---|
+| Hero (pill row + 4-stat strip + headline) | `app/components/home/Hero.vue` |
+| Sticky toolbar (search + filter chips) | `app/components/home/Toolbar.vue` (NEW — combines old `SearchBar.vue`) |
+| Filter chip | `app/components/home/FilterChip.vue` (NEW — chiplet) |
+| Section (collapsible header + body) | `app/components/home/Section.vue` (REPLACES `StyleList.vue` + `DataList.vue` Card/Collapsible wrappers) |
+| StyleCard (thumb + name + id + Viewer + Raster/Vector pills + services + XYZ + coverage) | `app/components/home/StyleCard.vue` |
+| DataCard (icon + name + id + badges + conditional Inspect + services + XYZ + coverage) | `app/components/home/DataCard.vue` |
+| Toast | `app/components/ui/toast/Toast.vue` (NEW under shadcn-vue path) |
+| Filter state | `app/composables/use-home-filters.ts` (NEW) |
+| Ping query | `app/utils/api/server/queries.ts` (EXISTS — verify shape matches `PingResponse` from `src/admin.rs`) |
+
+#### L. Anti-patterns (5-dimensional critique trip wires)
+
+If your A2-derived page would fail any of these, REBUILD before declaring done:
+
+1. **Layout shift on hover** — see Rule #20.C; any `translateY` / `scale` on cards is an automatic fail
+2. **Fictional /ping fields** — `p50`, `p99`, `qps`, `region`, anything not in `PingResponse` (lines 19–31 of `crates/tileserver-rs/src/admin.rs`)
+3. **Hardcoded filter chips** — chip set must be derived from actual loaded source/style types, not a static array of 6 chips
+4. **Spinner inside card** — always skeleton; spinners only allowed on full-page route load
+5. **Pixel-width skeleton bars** — must use `%` widths or `w-1/2`, `w-2/3`, `w-4/5` Tailwind fractions; never `w-48`, `w-56`, `w-40`
+6. **Inspect on raster/STAC sources** — conditional render gate is `source.vector_layers?.length`
+7. **Missing skip-link** — every page that mounts `<header>` MUST also ship `<a class="skip-link" href="#main">`
+8. **`role="alert"` for confirmations** — copy-success is `role="status"`, not alert (alert is for genuine errors)
+9. **`rounded-*` anywhere** — direction-I locks radius to 0; the class is dead weight + a Rule #19 violation
+
 ---
 
 ## Project Structure

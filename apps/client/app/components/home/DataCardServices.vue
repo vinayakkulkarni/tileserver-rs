@@ -10,8 +10,8 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [];
-    copyUrl: [url: string];
+    'toggle-xyz': [];
+    'copy-url': [url: string];
   }>();
 
   const xyzUrl = computed(
@@ -20,37 +20,38 @@
 </script>
 
 <template>
-  <template v-if="source.vector_layers?.length">
-    <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-      <span class="text-muted-foreground">Services:</span>
-      <a
-        :href="`/data/${source.id}.json`"
-        target="_blank"
-        class="text-primary hover:underline"
-        >TileJSON</a
-      >
-      <span class="text-muted-foreground/30">•</span>
-      <button class="text-primary hover:underline" @click="emit('toggleXyz')">
-        XYZ URL
-      </button>
-    </div>
-
-    <div
-      v-if="isXyzExpanded"
-      class="mt-2 flex items-center gap-2 bg-muted/50 p-2"
+  <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+    <span class="text-muted-foreground">Services:</span>
+    <a
+      :href="`/data/${source.id}.json`"
+      target="_blank"
+      class="text-primary transition-colors hover:underline"
+      >TileJSON</a
     >
-      <code class="flex-1 truncate text-xs text-muted-foreground">{{
-        xyzUrl
-      }}</code>
-      <Button
-        variant="ghost"
-        size="icon"
-        class="size-7 shrink-0"
-        @click="emit('copyUrl', xyzUrl)"
-      >
-        <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-success" />
-        <Copy v-else class="size-3.5" />
-      </Button>
-    </div>
-  </template>
+    <span class="text-muted-foreground/30">•</span>
+    <button
+      class="text-primary transition-colors hover:underline"
+      @click="emit('toggle-xyz')"
+    >
+      XYZ URL
+    </button>
+  </div>
+
+  <div
+    v-if="isXyzExpanded"
+    class="mt-2 flex items-center gap-2 bg-muted/50 p-2"
+  >
+    <code class="flex-1 truncate text-xs text-muted-foreground">{{
+      xyzUrl
+    }}</code>
+    <Button
+      variant="ghost"
+      size="icon"
+      class="size-7 shrink-0"
+      @click="emit('copy-url', xyzUrl)"
+    >
+      <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-success" />
+      <Copy v-else class="size-3.5" />
+    </Button>
+  </div>
 </template>

@@ -193,3 +193,137 @@
     @apply bg-muted font-semibold;
   }
 }
+
+/* Motion tokens — direction I (CLAUDE.md Rule #20.H) */
+@theme {
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-slow: 320ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A11y baseline — CLAUDE.md Rule #20.I + Rule #20.J */
+@layer base {
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Hero ping animation — CLAUDE.md Rule #20.I */
+.hero-dot {
+  position: relative;
+}
+.hero-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--color-success);
+  opacity: 0.45;
+  animation: pulse 2.2s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Coverage bar — zoom-range visualization (CLAUDE.md Rule #20.D) */
+.coverage {
+  position: relative;
+  height: 3px;
+  background: var(--color-muted);
+  overflow: hidden;
+}
+.coverage-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--color-primary);
+}
+.coverage-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-muted-foreground);
+  margin-top: 2px;
+}
+
+/* Section toggle — grid-template-rows animation (Rule #20.H) */
+.section-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--d-slow) var(--ease);
+}
+.section-body[data-open='false'] {
+  grid-template-rows: 0fr;
+}
+.section-body > .section-inner {
+  overflow: hidden;
+}
+
+/* Service link underline animation (Rule #20.H) */
+.service-link {
+  position: relative;
+  text-decoration: none;
+}
+.service-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--d-fast) var(--ease);
+}
+.service-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Toast — bottom-center slide-up (Rule #20.G) */
+.toast-enter-active {
+  transition:
+    transform var(--d-slow) var(--ease),
+    opacity var(--d-base) ease;
+}
+.toast-leave-active {
+  transition:
+    transform var(--d-base) ease,
+    opacity var(--d-base) ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Reduced motion — CLAUDE.md Rule #20.I */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .hero-dot::after {
+    animation: none;
+  }
+}

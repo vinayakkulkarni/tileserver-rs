@@ -10,8 +10,8 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [];
-    copyUrl: [url: string];
+    'toggle-xyz': [];
+    'copy-url': [url: string];
   }>();
 
   const xyzUrl = computed(
@@ -23,14 +23,14 @@
   <div class="mt-2 flex items-center gap-3">
     <NuxtLink
       :to="`/styles/${style.id}/?raster`"
-      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-[border-color,background] duration-[var(--d-fast,120ms)] hover:bg-muted hover:text-foreground"
     >
       <Image class="size-3.5" />
       Raster
     </NuxtLink>
     <NuxtLink
       :to="`/styles/${style.id}/#2/0/0`"
-      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      class="flex items-center gap-1.5 bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-[border-color,background] duration-[var(--d-fast,120ms)] hover:bg-muted hover:text-foreground"
     >
       <Grid3x3 class="size-3.5" />
       Vector
@@ -42,25 +42,28 @@
     <a
       :href="`/styles/${style.id}/style.json`"
       target="_blank"
-      class="text-primary hover:underline"
+      class="text-primary transition-colors hover:underline"
       >GL Style</a
     >
     <span class="text-muted-foreground/30">•</span>
     <a
       :href="`/styles/${style.id}.json`"
       target="_blank"
-      class="text-primary hover:underline"
+      class="text-primary transition-colors hover:underline"
       >TileJSON</a
     >
     <span class="text-muted-foreground/30">•</span>
     <a
       :href="`/styles/${style.id}/wmts.xml`"
       target="_blank"
-      class="text-primary hover:underline"
+      class="text-primary transition-colors hover:underline"
       >WMTS</a
     >
     <span class="text-muted-foreground/30">•</span>
-    <button class="text-primary hover:underline" @click="emit('toggleXyz')">
+    <button
+      class="text-primary transition-colors hover:underline"
+      @click="emit('toggle-xyz')"
+    >
       XYZ URL
     </button>
   </div>
@@ -76,7 +79,7 @@
       variant="ghost"
       size="icon"
       class="size-7 shrink-0"
-      @click="emit('copyUrl', xyzUrl)"
+      @click="emit('copy-url', xyzUrl)"
     >
       <Check v-if="copiedUrl === xyzUrl" class="size-3.5 text-success" />
       <Copy v-else class="size-3.5" />

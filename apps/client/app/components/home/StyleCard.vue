@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { Map } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Style } from '~/types/style';
 
   const props = defineProps<{
@@ -12,8 +11,8 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [styleId: string];
-    copyUrl: [url: string];
+    'toggle-xyz': [styleId: string];
+    'copy-url': [url: string];
   }>();
 
   const imgError = ref(false);
@@ -23,20 +22,25 @@
   }
 
   function handleToggleXyz() {
-    emit('toggleXyz', props.style.id);
+    emit('toggle-xyz', props.style.id);
   }
 
   function handleServiceCopyUrl(url: string) {
-    emit('copyUrl', url);
+    emit('copy-url', url);
   }
+
+  const coverageLeft = computed(() => (props.style.minzoom * 100) / 18);
+  const coverageWidth = computed(
+    () => ((props.style.maxzoom - props.style.minzoom) * 100) / 18,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+  <article
+    class="card group border border-border/50 bg-background/50 p-4 transition-[border-color,background,box-shadow] duration-[var(--d-fast,120ms)]"
+    :style="{
+      '--tw-ring-color': 'oklch(from var(--color-primary) l c h / 0.15)',
+    }"
   >
     <div class="flex gap-4">
       <div
@@ -46,7 +50,7 @@
           v-if="!imgError"
           :src="`/styles/${style.id}/static/0,0,1/160x160.png`"
           :alt="style.name"
-          class="size-full object-cover transition-transform group-hover:scale-105"
+          class="size-full object-cover"
           loading="lazy"
           @error="handleImgError"
         />
@@ -63,7 +67,7 @@
               }}</code>
             </p>
           </div>
-          <Button as-child size="sm" class="">
+          <Button as-child size="sm">
             <NuxtLink :to="`/styles/${style.id}/`">
               <Map class="mr-1.5 size-4" />
               Viewer
@@ -79,7 +83,40 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage h-[3px] w-full bg-muted"
+            role="img"
+            :aria-label="`Zoom range ${style.minzoom} to ${style.maxzoom}`"
+          >
+            <div
+              class="coverage-fill h-full bg-primary"
+              :style="{ left: `${coverageLeft}%`, width: `${coverageWidth}%` }"
+            ></div>
+          </div>
+          <div
+            class="mt-1 flex justify-between text-[10px] font-mono tracking-widest text-muted-foreground"
+            style="letter-spacing: 0.1em"
+          >
+            <span>z{{ style.minzoom }}</span>
+            <span>z{{ style.minzoom }}–{{ style.maxzoom }}</span>
+            <span>z18</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>
+
+<style scoped>
+  .card:hover {
+    border-color: var(--color-primary);
+    background: oklch(from var(--color-primary) l c h / 0.025);
+    box-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
+  }
+
+  .card:focus-within {
+    border-color: var(--color-primary);
+  }
+</style>

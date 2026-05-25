@@ -43,8 +43,8 @@
         Operator console
       </h1>
       <p class="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Runtime status, connected MCP clients, and active device sessions
-        for this tileserver-rs instance.
+        Runtime status, connected MCP clients, and active device sessions for
+        this tileserver-rs instance.
       </p>
     </header>
 
