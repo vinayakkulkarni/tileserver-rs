@@ -2,18 +2,19 @@
   defineProps<{
     versionLabel: string;
   }>();
+
+  const currentYear = new Date().getFullYear();
 </script>
 
 <template>
-  <footer class="mt-auto border-t border-border/50 py-6">
-    <p class="text-center text-sm text-muted-foreground">
-      Tileserver RS — Built with Rust + Axum + MapLibre GL JS
-    </p>
-    <p
-      v-if="versionLabel"
-      class="mt-1 text-center font-mono text-xs text-muted-foreground/60"
+  <footer class="footer shrink-0 border-t border-border" role="contentinfo">
+    <div
+      class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3 px-[clamp(12px,4vw,24px)] py-5 text-[12px] text-muted-foreground"
     >
-      {{ versionLabel }}
-    </p>
+      <div>tileserver-rs · MIT · © {{ currentYear }}</div>
+      <div v-if="versionLabel" class="font-mono text-[11px] tracking-[0.12em]">
+        {{ versionLabel }}
+      </div>
+    </div>
   </footer>
 </template>

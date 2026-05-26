@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Layers } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Data } from '~/types/data';
+  import { useCoverageBar } from '~/composables/use-coverage-bar';
 
   const props = defineProps<{
     source: Data;
@@ -12,46 +12,52 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [dataId: string];
-    copyUrl: [url: string];
+    'toggle-xyz': [dataId: string];
+    'copy-url': [url: string];
   }>();
 
   function handleToggleXyz() {
-    emit('toggleXyz', props.source.id);
+    emit('toggle-xyz', props.source.id);
   }
 
   function handleServiceCopyUrl(url: string) {
-    emit('copyUrl', url);
+    emit('copy-url', url);
   }
+
+  const coverage = useCoverageBar(
+    () => props.source.minzoom,
+    () => props.source.maxzoom,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
-  >
-    <div class="flex items-start gap-4">
+  <article class="card group p-3.5">
+    <div class="flex gap-3.5">
       <div
-        class="flex size-12 shrink-0 items-center justify-center bg-muted ring-1 ring-border/50"
+        class="thumb size-14 shrink-0 border border-border bg-muted grid place-items-center"
       >
-        <Layers class="size-6 text-muted-foreground" />
+        <Layers class="size-5.5 text-muted-foreground" />
       </div>
 
-      <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-semibold">{{ source.name || source.id }}</h3>
-            <p
-              class="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+      <div class="card-main min-w-0 flex-1">
+        <div class="card-top flex items-start justify-between gap-2.5">
+          <div class="min-w-0">
+            <h3
+              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
             >
-              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
-                source.id
-              }}</code>
-              <Badge variant="outline" class="text-[10px]">
-                z{{ source.minzoom }}-{{ source.maxzoom }}
-              </Badge>
+              {{ source.name || source.id }}
+            </h3>
+            <p class="mt-1.5 flex flex-wrap items-center gap-2">
+              <code
+                class="card-id font-mono text-[11px] bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
+              >
+                {{ source.id }}
+              </code>
+              <span
+                class="badge-outline font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground px-1.5 py-0.5 border border-border font-medium"
+              >
+                {{ coverage.rangeLabel.value }}
+              </span>
             </p>
           </div>
           <Button
@@ -59,10 +65,10 @@
             as-child
             variant="secondary"
             size="sm"
-            class=""
+            class="shrink-0"
           >
             <NuxtLink :to="`/data/${source.id}/`">
-              <Layers class="mr-1.5 size-4" />
+              <Layers class="size-4 mr-1.5" />
               Inspect
             </NuxtLink>
           </Button>
@@ -76,7 +82,27 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage"
+            role="img"
+            :aria-label="coverage.ariaLabel.value"
+          >
+            <div
+              class="coverage-fill"
+              :style="{
+                left: coverage.left.value,
+                width: coverage.width.value,
+              }"
+            ></div>
+          </div>
+          <div class="coverage-labels">
+            <span>{{ coverage.floorLabel }}</span>
+            <span>{{ coverage.ceilingLabel }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>

@@ -1,55 +1,214 @@
 <script setup lang="ts">
-  import { Globe, Moon, Settings, Sun } from '@lucide/vue';
-  import { motion } from 'motion-v';
+  import { useHomeHero } from '~/composables/use-home-hero';
 
-  defineProps<{
-    isDark: boolean;
-  }>();
-
-  const emit = defineEmits<{
-    toggleTheme: [];
-  }>();
+  const {
+    statusOk,
+    isLoading,
+    versionLabel,
+    rendererEnabled,
+    cacheEnabled,
+    cacheMb,
+    uptime,
+    sourceCount,
+    styleCount,
+  } = useHomeHero();
 </script>
 
 <template>
-  <header
-    class="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl"
+  <section
+    class="hero shrink-0 border-b border-border"
+    aria-label="Runtime status"
   >
-    <div class="flex h-14 items-center justify-between px-4">
-      <motion.div
-        :initial="{ opacity: 0, x: -12 }"
-        :animate="{ opacity: 1, x: 0 }"
-        :transition="{ duration: 0.4 }"
-        class="flex items-center gap-3"
+    <!-- Compact strip (<lg) — single horizontal row, mobile-first. -->
+    <div class="lg:hidden">
+      <div
+        class="mx-auto flex max-w-screen-2xl flex-col gap-2 px-[clamp(12px,4vw,24px)] py-3"
       >
-        <div
-          class="flex size-9 items-center justify-center bg-linear-to-br from-primary to-primary/80 shadow-lg shadow-primary/20"
+        <p
+          class="flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
         >
-          <Globe class="size-5 text-primary-foreground" />
-        </div>
-        <div>
-          <h1 class="text-lg font-semibold tracking-tight">Tileserver RS</h1>
-          <p class="text-xs text-muted-foreground">
-            High-performance vector tile server
-          </p>
-        </div>
-      </motion.div>
-      <div class="flex items-center gap-1">
-        <NuxtLink to="/admin" aria-label="Open admin">
-          <Button variant="ghost" size="icon" as="span">
-            <Settings class="size-5" />
-          </Button>
-        </NuxtLink>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Toggle color mode"
-          @click="emit('toggleTheme')"
+          <span
+            v-if="!isLoading"
+            class="inline-flex items-center gap-1.5 border px-2 py-0.5 font-semibold"
+            :class="
+              statusOk
+                ? 'border-success/30 bg-success/10 text-success'
+                : 'border-destructive/30 bg-destructive/10 text-destructive'
+            "
+          >
+            <span
+              class="hero-dot size-1.5 shrink-0 bg-current"
+              aria-hidden="true"
+              style="border-radius: 50%"
+            ></span>
+            Live
+          </span>
+          <span>Renderer {{ rendererEnabled ? '✓' : '✗' }}</span>
+          <span v-if="versionLabel">{{ versionLabel }}</span>
+        </p>
+        <dl
+          class="grid grid-cols-4 gap-x-3 text-foreground"
+          aria-label="Runtime metrics"
         >
-          <Sun v-if="isDark" class="size-5" />
-          <Moon v-else class="size-5" />
-        </Button>
+          <div class="flex flex-col">
+            <dt
+              class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Sources
+            </dt>
+            <dd
+              class="font-mono text-[15px] font-semibold leading-none tabular-nums"
+            >
+              {{ sourceCount }}
+            </dd>
+          </div>
+          <div class="flex flex-col">
+            <dt
+              class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Styles
+            </dt>
+            <dd
+              class="font-mono text-[15px] font-semibold leading-none tabular-nums"
+            >
+              {{ styleCount }}
+            </dd>
+          </div>
+          <div class="flex flex-col">
+            <dt
+              class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Cache
+            </dt>
+            <dd
+              class="flex items-baseline gap-0.5 font-mono text-[15px] font-semibold leading-none tabular-nums"
+            >
+              <span v-if="!cacheEnabled" class="text-muted-foreground">—</span>
+              <template v-else>
+                {{ cacheMb
+                }}<span class="text-[10px] font-medium text-muted-foreground"
+                  >MB</span
+                >
+              </template>
+            </dd>
+          </div>
+          <div class="flex flex-col">
+            <dt
+              class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+            >
+              Uptime
+            </dt>
+            <dd
+              class="font-mono text-[15px] font-semibold leading-none tabular-nums"
+            >
+              {{ uptime }}
+            </dd>
+          </div>
+        </dl>
       </div>
     </div>
-  </header>
+
+    <!-- Admin-style band (lg+) — 2-col 3fr_2fr grid mirroring /admin Operator console. -->
+    <div class="mx-auto hidden max-w-screen-2xl lg:grid lg:grid-cols-[3fr_2fr]">
+      <div
+        class="flex flex-col justify-between gap-2 border-r border-border px-[clamp(16px,4vw,32px)] py-3"
+      >
+        <p
+          class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+        >
+          Catalog
+        </p>
+        <p
+          v-if="isLoading"
+          class="font-display text-[32px] font-semibold leading-none tabular-nums tracking-tight text-muted-foreground"
+        >
+          —
+        </p>
+        <p
+          v-else
+          class="font-display text-[32px] font-semibold leading-none tabular-nums tracking-tight text-foreground"
+        >
+          {{ uptime }}
+        </p>
+        <p
+          class="flex flex-wrap items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+        >
+          <span
+            class="inline-flex items-center gap-1.5 border px-2 py-0.5 font-semibold"
+            :class="
+              statusOk
+                ? 'border-success/30 bg-success/10 text-success'
+                : 'border-destructive/30 bg-destructive/10 text-destructive'
+            "
+          >
+            <span
+              class="hero-dot size-1.5 shrink-0 bg-current"
+              aria-hidden="true"
+              style="border-radius: 50%"
+            ></span>
+            Live
+          </span>
+          <span>· Renderer {{ rendererEnabled ? '✓' : '✗' }}</span>
+          <span v-if="versionLabel">· {{ versionLabel }}</span>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 grid-rows-2">
+        <div class="border-b border-border px-5 py-2.5">
+          <p
+            class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Sources
+          </p>
+          <p
+            class="mt-1 font-display text-2xl font-semibold leading-none tabular-nums text-foreground"
+          >
+            {{ sourceCount }}
+          </p>
+        </div>
+        <div class="border-b border-l border-border px-5 py-2.5">
+          <p
+            class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Styles
+          </p>
+          <p
+            class="mt-1 font-display text-2xl font-semibold leading-none tabular-nums text-foreground"
+          >
+            {{ styleCount }}
+          </p>
+        </div>
+        <div class="px-5 py-2.5">
+          <p
+            class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Cache
+          </p>
+          <p
+            class="mt-1 flex items-baseline gap-0.5 font-display text-2xl font-semibold leading-none tabular-nums text-foreground"
+          >
+            <span v-if="!cacheEnabled" class="text-muted-foreground">—</span>
+            <template v-else>
+              {{ cacheMb
+              }}<span class="text-[10px] font-medium text-muted-foreground"
+                >MB</span
+              >
+            </template>
+          </p>
+        </div>
+        <div class="border-l border-border px-5 py-2.5">
+          <p
+            class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Renderer
+          </p>
+          <p
+            class="mt-1 font-display text-2xl font-semibold leading-none tabular-nums text-foreground"
+          >
+            {{ rendererEnabled ? '✓' : '✗' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>

@@ -17,6 +17,7 @@ export type {
   AdminNavItem,
 } from './admin-mcp';
 export type { Data, VectorLayer } from './data';
+export type { FilterCategory, FilterChip } from './home-filters';
 export type { OfetchLikeError } from './fetch';
 export type { VMapOptions } from './map';
 export type { PingResponse } from './server';
