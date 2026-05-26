@@ -3,6 +3,8 @@ export interface Style {
   name: string;
   url: string;
   version: number;
+  minzoom?: number;
+  maxzoom?: number;
 }
 
 export interface TileJSON {

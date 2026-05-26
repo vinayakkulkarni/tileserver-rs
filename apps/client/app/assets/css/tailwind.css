@@ -9,20 +9,29 @@
   --font-display: 'General Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
 
-  /* Light surfaces — warm off-white, NEVER #fff; warm-cool 270 hue stays
-     consistent with the dark/admin palette for cross-mode visual continuity. */
+  /* Direction I — Linear-density-v2 OKLch palette. Three elevation levels for
+     light mode (CLAUDE.md Rule #19). warm-cool 270 hue stays consistent across
+     light + dark so surfaces share visual continuity regardless of mode.
+
+     Elevation philosophy: bg = lightest, card slightly darker (visible border
+     against bg), muted darker still (chips, code, count badges).
+
+         bg          0.985   page background, card hover tint, search focus bg
+         card        0.965   sections, hero stat strip, search input, filter chips
+         muted       0.935   thumbnails, code tags, count badges, section icons
+  */
   --color-background: oklch(0.985 0.004 270);
-  --color-foreground: oklch(0.2 0.012 270);
-  --color-card: oklch(0.99 0.003 270);
-  --color-card-foreground: oklch(0.2 0.012 270);
-  --color-popover: oklch(0.99 0.003 270);
-  --color-popover-foreground: oklch(0.2 0.012 270);
-  --color-primary: oklch(0.55 0.22 295);
-  --color-primary-foreground: oklch(0.98 0.005 270);
-  --color-secondary: oklch(0.96 0.006 270);
+  --color-foreground: oklch(0.18 0.014 270);
+  --color-card: oklch(0.965 0.005 270);
+  --color-card-foreground: oklch(0.18 0.014 270);
+  --color-popover: oklch(0.965 0.005 270);
+  --color-popover-foreground: oklch(0.18 0.014 270);
+  --color-primary: oklch(0.54 0.22 295);
+  --color-primary-foreground: oklch(0.99 0.005 295);
+  --color-secondary: oklch(0.965 0.005 270);
   --color-secondary-foreground: oklch(0.42 0.012 270);
-  --color-muted: oklch(0.96 0.006 270);
-  --color-muted-foreground: oklch(0.5 0.012 270);
+  --color-muted: oklch(0.935 0.007 270);
+  --color-muted-foreground: oklch(0.46 0.012 270);
   --color-accent: oklch(0.93 0.012 295);
   --color-accent-foreground: oklch(0.3 0.018 295);
   --color-destructive: oklch(0.62 0.22 25);
@@ -78,18 +87,18 @@
 }
 
 .dark {
-  --color-background: oklch(0.18 0.012 270);
+  --color-background: oklch(0.16 0.012 270);
   --color-foreground: oklch(0.96 0.005 270);
-  --color-card: oklch(0.22 0.012 270);
+  --color-card: oklch(0.2 0.014 270);
   --color-card-foreground: oklch(0.96 0.005 270);
-  --color-popover: oklch(0.2 0.012 270);
+  --color-popover: oklch(0.2 0.014 270);
   --color-popover-foreground: oklch(0.96 0.005 270);
-  --color-primary: oklch(0.65 0.22 295);
-  --color-primary-foreground: oklch(0.98 0.005 270);
-  --color-secondary: oklch(0.26 0.012 270);
+  --color-primary: oklch(0.66 0.22 295);
+  --color-primary-foreground: oklch(0.18 0.012 270);
+  --color-secondary: oklch(0.2 0.014 270);
   --color-secondary-foreground: oklch(0.85 0.01 270);
-  --color-muted: oklch(0.24 0.012 270);
-  --color-muted-foreground: oklch(0.62 0.012 270);
+  --color-muted: oklch(0.24 0.016 270);
+  --color-muted-foreground: oklch(0.7 0.012 270);
   --color-accent: oklch(0.28 0.06 295);
   --color-accent-foreground: oklch(0.96 0.005 270);
   --color-destructive: oklch(0.62 0.22 25);
@@ -192,4 +201,166 @@
   .ai-prose th {
     @apply bg-muted font-semibold;
   }
+}
+
+/* Motion tokens — direction I (CLAUDE.md Rule #20.H) */
+@theme {
+  --d-fast: 120ms;
+  --d-base: 180ms;
+  --d-slow: 320ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A11y baseline — CLAUDE.md Rule #20.I + Rule #20.J */
+@layer base {
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus:ring-2 focus:ring-ring;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Hero ping animation — CLAUDE.md Rule #20.I */
+.hero-dot {
+  position: relative;
+}
+.hero-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--color-success);
+  opacity: 0.45;
+  animation: pulse 2.2s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Coverage bar — zoom-range visualization (CLAUDE.md Rule #20.D) */
+.coverage {
+  position: relative;
+  height: 3px;
+  background: var(--color-muted);
+  overflow: hidden;
+}
+.coverage-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--color-primary);
+}
+.coverage-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-muted-foreground);
+  margin-top: 2px;
+}
+
+/* Card — color + inset ring hover, NO transform (Rule #20.C) */
+.card {
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  transition:
+    border-color var(--d-fast) var(--ease),
+    background var(--d-fast) var(--ease),
+    box-shadow var(--d-fast) var(--ease);
+  min-width: 0;
+  position: relative;
+}
+.card:hover {
+  border-color: var(--color-primary);
+  background: oklch(from var(--color-primary) l c h / 0.025);
+  box-shadow: inset 0 0 0 1px oklch(from var(--color-primary) l c h / 0.15);
+}
+.card:focus-within {
+  border-color: var(--color-primary);
+}
+
+/* Section — body grid-template-rows animation handled below by .section-body-wrap */
+.section {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  overflow: hidden;
+}
+
+/* Service link underline animation (Rule #20.H) */
+.service-link {
+  position: relative;
+  text-decoration: none;
+}
+.service-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--d-fast) var(--ease);
+}
+.service-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Toast — bottom-center slide-up (Rule #20.G) */
+.toast-enter-active {
+  transition:
+    transform var(--d-slow) var(--ease),
+    opacity var(--d-base) ease;
+}
+.toast-leave-active {
+  transition:
+    transform var(--d-base) ease,
+    opacity var(--d-base) ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Reduced motion — CLAUDE.md Rule #20.J */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .hero-dot::after {
+    animation: none;
+  }
+}
+
+/* A2 section expand/collapse — CSS grid-template-rows (Rule #20.H) */
+.section-body-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--d-slow) var(--ease);
+}
+.section.open .section-body-wrap {
+  grid-template-rows: 1fr;
+}
+.section-body-inner {
+  min-height: 0;
+  overflow: hidden;
 }

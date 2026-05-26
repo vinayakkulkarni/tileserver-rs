@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Map } from '@lucide/vue';
-  import { motion } from 'motion-v';
   import type { Style } from '~/types/style';
+  import { useCoverageBar } from '~/composables/use-coverage-bar';
 
   const props = defineProps<{
     style: Style;
@@ -12,8 +12,8 @@
   }>();
 
   const emit = defineEmits<{
-    toggleXyz: [styleId: string];
-    copyUrl: [url: string];
+    'toggle-xyz': [styleId: string];
+    'copy-url': [url: string];
   }>();
 
   const imgError = ref(false);
@@ -23,49 +23,55 @@
   }
 
   function handleToggleXyz() {
-    emit('toggleXyz', props.style.id);
+    emit('toggle-xyz', props.style.id);
   }
 
   function handleServiceCopyUrl(url: string) {
-    emit('copyUrl', url);
+    emit('copy-url', url);
   }
+
+  const coverage = useCoverageBar(
+    () => props.style.minzoom,
+    () => props.style.maxzoom,
+  );
 </script>
 
 <template>
-  <motion.div
-    :initial="{ opacity: 0, y: 12 }"
-    :animate="{ opacity: 1, y: 0 }"
-    :transition="{ duration: 0.3, delay: 0.05 * index }"
-    class="group border border-border/50 bg-background/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
-  >
-    <div class="flex gap-4">
+  <article class="card group p-3.5">
+    <div class="flex gap-3.5">
       <div
-        class="flex size-20 shrink-0 items-center justify-center overflow-hidden bg-muted ring-1 ring-border/50"
+        class="thumb size-14 shrink-0 overflow-hidden border border-border bg-muted grid place-items-center"
       >
         <img
           v-if="!imgError"
           :src="`/styles/${style.id}/static/0,0,1/160x160.png`"
           :alt="style.name"
-          class="size-full object-cover transition-transform group-hover:scale-105"
+          class="size-full object-cover"
           loading="lazy"
           @error="handleImgError"
         />
-        <Map v-else class="size-8 text-muted-foreground" />
+        <Map v-else class="size-5.5 text-muted-foreground" />
       </div>
 
-      <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <h3 class="font-semibold">{{ style.name }}</h3>
-            <p class="mt-0.5 text-sm text-muted-foreground">
-              <code class="bg-muted px-1.5 py-0.5 text-xs font-medium">{{
-                style.id
-              }}</code>
+      <div class="card-main min-w-0 flex-1">
+        <div class="card-top flex items-start justify-between gap-2.5">
+          <div class="min-w-0">
+            <h3
+              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
+            >
+              {{ style.name }}
+            </h3>
+            <p class="mt-1.5">
+              <code
+                class="card-id font-mono text-[11px] bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
+              >
+                {{ style.id }}
+              </code>
             </p>
           </div>
-          <Button as-child size="sm" class="">
+          <Button as-child size="sm" class="shrink-0">
             <NuxtLink :to="`/styles/${style.id}/`">
-              <Map class="mr-1.5 size-4" />
+              <Map class="size-4 mr-1.5" />
               Viewer
             </NuxtLink>
           </Button>
@@ -79,7 +85,27 @@
           @toggle-xyz="handleToggleXyz"
           @copy-url="handleServiceCopyUrl"
         />
+
+        <div class="mt-3">
+          <div
+            class="coverage"
+            role="img"
+            :aria-label="coverage.ariaLabel.value"
+          >
+            <div
+              class="coverage-fill"
+              :style="{
+                left: coverage.left.value,
+                width: coverage.width.value,
+              }"
+            ></div>
+          </div>
+          <div class="coverage-labels">
+            <span>{{ coverage.floorLabel }}</span>
+            <span>{{ coverage.ceilingLabel }}</span>
+          </div>
+        </div>
       </div>
     </div>
-  </motion.div>
+  </article>
 </template>
