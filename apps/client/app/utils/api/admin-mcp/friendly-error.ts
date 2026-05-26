@@ -50,7 +50,9 @@ function requestPathOf(error: Error | null): string | null {
   return null;
 }
 
-function joinHint(parts: ReadonlyArray<string | null | undefined>): string | undefined {
+function joinHint(
+  parts: ReadonlyArray<string | null | undefined>,
+): string | undefined {
   const present = parts.filter((p): p is string => Boolean(p));
   return present.length > 0 ? present.join(' · ') : undefined;
 }

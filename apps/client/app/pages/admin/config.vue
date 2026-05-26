@@ -32,10 +32,10 @@
         </span>
       </div>
       <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-        Read-only view of the loaded server config. Each section shows the
-        keys you have set, followed by every other key available to add —
-        muted, with type, default, and description inline. Edit the source
-        file in your editor; tileserver-rs hot-reloads on file changes.
+        Read-only view of the loaded server config. Each section shows the keys
+        you have set, followed by every other key available to add — muted, with
+        type, default, and description inline. Edit the source file in your
+        editor; tileserver-rs hot-reloads on file changes.
       </p>
     </header>
 
@@ -52,7 +52,9 @@
         v-else-if="error"
         class="flex max-w-2xl flex-col gap-3 border border-destructive/40 bg-destructive/10 p-6"
       >
-        <div class="flex items-center gap-2 font-mono text-[11px] tracking-wider text-destructive uppercase">
+        <div
+          class="flex items-center gap-2 font-mono text-[11px] tracking-wider text-destructive uppercase"
+        >
           <TriangleAlert class="size-4" />
           {{ friendly.title }}
         </div>
@@ -95,7 +97,9 @@
             </span>
           </header>
 
-          <pre class="overflow-x-auto border border-border bg-card p-4 font-mono text-[13px] leading-relaxed"><template
+          <pre
+            class="overflow-x-auto border border-border bg-card p-4 font-mono text-[13px] leading-relaxed"
+          ><template
             v-for="(line, idx) in section.lines"
             :key="`${section.schema.header}-${idx}`"
           ><span
@@ -123,15 +127,18 @@
           <div class="flex flex-col gap-1.5 text-xs text-muted-foreground">
             <p>
               This view is read-only. To change a key, edit
-              <code v-if="sourcePath" class="text-foreground">{{ sourcePath }}</code>
+              <code v-if="sourcePath" class="text-foreground">{{
+                sourcePath
+              }}</code>
               <span v-else>your config file</span>
               in your editor and restart the server (or send
               <code class="text-foreground">POST /__admin/reload</code>).
             </p>
             <p>
               Type signatures, defaults, and feature gates are sourced from
-              <code class="text-foreground">crates/tileserver-rs/src/config.rs</code>.
-              See the Configuration reference in the docs for full details.
+              <code class="text-foreground"
+                >crates/tileserver-rs/src/config.rs</code
+              >. See the Configuration reference in the docs for full details.
             </p>
           </div>
         </footer>
