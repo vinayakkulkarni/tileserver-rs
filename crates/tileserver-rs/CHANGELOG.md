@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.29.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.29.0...v2.29.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **deps:** bump askama from 0.15.6 to 0.16.0 ([#979](https://github.com/vinayakkulkarni/tileserver-rs/issues/979)) ([5ce4b25](https://github.com/vinayakkulkarni/tileserver-rs/commit/5ce4b251cfc066f3736f32c6c105161146ac7e9e))
+
 ## [2.29.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.28.0...v2.29.0) (2026-05-22)
 
 
