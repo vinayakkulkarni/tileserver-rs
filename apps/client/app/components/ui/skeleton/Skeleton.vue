@@ -6,7 +6,7 @@
 
 <template>
   <div
-    :class="cn('animate-pulse bg-muted', props.class)"
+    :class="cn('animate-pulse bg-muted/70', props.class)"
     aria-hidden="true"
   ></div>
 </template>
