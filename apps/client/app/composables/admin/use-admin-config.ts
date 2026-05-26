@@ -108,7 +108,9 @@ export function useAdminConfig() {
   const isPending = computed(
     () => configQuery.isPending.value || schemaQuery.isPending.value,
   );
-  const error = computed(() => configQuery.error.value ?? schemaQuery.error.value);
+  const error = computed(
+    () => configQuery.error.value ?? schemaQuery.error.value,
+  );
   const friendly = computed(() => friendlyAdminError(error.value));
 
   const loadedToml = computed(() => payload.value?.toml ?? '');
@@ -121,7 +123,10 @@ export function useAdminConfig() {
   const sections = computed<readonly ConfigSectionView[]>(() => {
     const toml = loadedToml.value;
     return schemaSections.value.map((section) => {
-      const { lines, occurrences, isPresent } = buildLinesForSection(section, toml);
+      const { lines, occurrences, isPresent } = buildLinesForSection(
+        section,
+        toml,
+      );
       return { schema: section, lines, occurrences, isPresent };
     });
   });
