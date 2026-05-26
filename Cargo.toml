@@ -72,7 +72,7 @@ mlt-core         = { version = "0.9.3" }
 rusqlite         = { version = "0.40.0", features = ["bundled-windows"] }
 
 # HTTP client
-reqwest          = { version = "0.13.3", default-features = false, features = ["rustls", "json"] }
+reqwest          = { version = "0.13.4", default-features = false, features = ["rustls", "json"] }
 
 # Cryptography / hashing
 sha2             = "0.11.0"
