@@ -9,17 +9,6 @@
   --font-display: 'General Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
 
-  /* Direction I — Linear-density-v2 OKLch palette. Three elevation levels for
-     light mode (CLAUDE.md Rule #19). warm-cool 270 hue stays consistent across
-     light + dark so surfaces share visual continuity regardless of mode.
-
-     Elevation philosophy: bg = lightest, card slightly darker (visible border
-     against bg), muted darker still (chips, code, count badges).
-
-         bg          0.985   page background, card hover tint, search focus bg
-         card        0.965   sections, hero stat strip, search input, filter chips
-         muted       0.935   thumbnails, code tags, count badges, section icons
-  */
   --color-background: oklch(0.985 0.004 270);
   --color-foreground: oklch(0.18 0.014 270);
   --color-card: oklch(0.965 0.005 270);
