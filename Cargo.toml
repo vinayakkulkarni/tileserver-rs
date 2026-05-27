@@ -116,10 +116,10 @@ scalar_api_reference = { version = "0.2", features = ["axum"] }
 # The `opentelemetry` group in `.github/dependabot.yml` bumps these crates
 # atomically — never solo-bump.
 opentelemetry    = "0.32.0"
-opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio"] }
+opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "metrics", "logs"] }
 opentelemetry-semantic-conventions = "0.32.0"
-tracing-opentelemetry = "0.32.1"
+tracing-opentelemetry = "0.33.0"
 # Official `opentelemetry-prometheus` crate, un-deprecated and re-released
 # on 2026-05-08 by open-telemetry/opentelemetry-rust under OTel 0.32 family.
 # Replaces the community fork `opentelemetry-prometheus-text-exporter` we
@@ -212,13 +212,3 @@ opt-level = 3
 [patch.crates-io]
 gdal     = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }
 gdal-sys = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }
-# `tracing-opentelemetry` 0.32.1 (latest on crates.io, published 2026-01-12)
-# still pins `opentelemetry ^0.31.0` on its public deps. PR
-# tokio-rs/tracing-opentelemetry#258 — "chore: Upgrade to OpenTelemetry
-# 0.32" — merged on 2026-05-15 at commit 44521fa onto the `v0.1.x` branch,
-# but a new crates.io release has not shipped yet. Without this override we
-# get two copies of `opentelemetry` in the dep graph and fail to compile
-# with "the trait bound SdkTracer: opentelemetry::trace::Tracer is not
-# satisfied". Drop this entry the moment a `tracing-opentelemetry` version
-# > 0.32.1 publishes on crates.io with `opentelemetry ^0.32` deps.
-tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry.git", rev = "44521fa" }
