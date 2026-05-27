@@ -20,7 +20,8 @@
         "homebrew/Formula/tileserver-rs.rb"
       ],
       "exclude-paths": [
-        "apps",
+        "apps/docs",
+        "apps/marketing",
         "benchmarks",
         "Cargo.lock",
         "crates/mbgl-sys",
