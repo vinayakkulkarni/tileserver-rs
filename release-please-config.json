@@ -5,17 +5,19 @@
   "commit-search-depth": 200,
   "release-search-depth": 50,
   "packages": {
-    "crates/tileserver-rs": {
+    ".": {
       "release-type": "rust",
       "component": "tileserver-rs",
       "include-component-in-tag": false,
-      "changelog-path": "CHANGELOG.md",
+      "changelog-path": "crates/tileserver-rs/CHANGELOG.md",
+      "version-file": "crates/tileserver-rs/Cargo.toml",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
       "prerelease": false,
       "extra-label": "backend,rust,frontend,javascript",
       "extra-files": [
+        "crates/tileserver-rs/Cargo.toml",
         "apps/client/package.json",
         "homebrew/Formula/tileserver-rs.rb"
       ],
@@ -23,33 +25,13 @@
         "apps/docs",
         "apps/marketing",
         "benchmarks",
-        "Cargo.lock",
         "crates/mbgl-sys",
         "data",
         "deploy",
         "docs",
         ".github",
-        "homebrew",
         "scripts",
-        "tests",
-        ".dockerignore",
-        ".gitattributes",
-        ".gitignore",
-        ".release-please-manifest.json",
-        "ARCHITECTURE.md",
-        "CLAUDE.md",
-        "CODE_OF_CONDUCT.md",
-        "CONTRIBUTING.md",
-        "Dockerfile",
-        "LICENSE",
-        "README.md",
-        "SECURITY.md",
-        "codecov.yml",
-        "package.json",
-        "pnpm-lock.yaml",
-        "pnpm-workspace.yaml",
-        "release-please-config.json",
-        "rust-toolchain.toml"
+        "tests"
       ]
     },
     "crates/mbgl-sys": {
