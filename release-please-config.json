@@ -5,17 +5,19 @@
   "commit-search-depth": 200,
   "release-search-depth": 50,
   "packages": {
-    "crates/tileserver-rs": {
+    ".": {
       "release-type": "rust",
       "component": "tileserver-rs",
       "include-component-in-tag": false,
-      "changelog-path": "CHANGELOG.md",
+      "changelog-path": "crates/tileserver-rs/CHANGELOG.md",
+      "version-file": "crates/tileserver-rs/Cargo.toml",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
       "prerelease": false,
       "extra-label": "backend,rust,frontend,javascript",
       "extra-files": [
+        "crates/tileserver-rs/Cargo.toml",
         "apps/client/package.json",
         "homebrew/Formula/tileserver-rs.rb"
       ],
