@@ -14,6 +14,12 @@ packages:
 overrides:
   vite: ^8.0.14
 
+# pnpm 11's supply-chain policy defaults to a 24-hour minimumReleaseAge,
+# which blocks legitimate routine dep bumps when CI runs within a day of
+# an upstream patch release (e.g. cloudflare/wrangler, cloudflare/miniflare).
+# 60 minutes still prevents publish-and-pivot attacks but unblocks normal flow.
+minimumReleaseAge: 60
+
 # pnpm 11 blocks all package build scripts by default. The allowBuilds
 # map below is security-sensitive — true = postinstall runs; false = skipped.
 # Warning: pnpm auto-manages this block. Edits made while pnpm install is
