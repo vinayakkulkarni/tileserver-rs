@@ -116,7 +116,7 @@ scalar_api_reference = { version = "0.2", features = ["axum"] }
 # The `opentelemetry` group in `.github/dependabot.yml` bumps these crates
 # atomically — never solo-bump.
 opentelemetry    = "0.32.0"
-opentelemetry_sdk = { version = "0.32.0", features = ["rt-tokio"] }
+opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "metrics", "logs"] }
 opentelemetry-semantic-conventions = "0.32.0"
 tracing-opentelemetry = "0.32.1"
