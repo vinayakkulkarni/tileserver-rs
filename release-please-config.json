@@ -6,7 +6,7 @@
   "release-search-depth": 50,
   "packages": {
     ".": {
-      "release-type": "rust",
+      "release-type": "simple",
       "component": "tileserver-rs",
       "include-component-in-tag": false,
       "changelog-path": "crates/tileserver-rs/CHANGELOG.md",
@@ -17,8 +17,16 @@
       "prerelease": false,
       "extra-label": "backend,rust,frontend,javascript",
       "extra-files": [
-        "crates/tileserver-rs/Cargo.toml",
-        "apps/client/package.json",
+        {
+          "type": "toml",
+          "path": "crates/tileserver-rs/Cargo.toml",
+          "jsonpath": "$.package.version"
+        },
+        {
+          "type": "json",
+          "path": "apps/client/package.json",
+          "jsonpath": "$.version"
+        },
         "homebrew/Formula/tileserver-rs.rb"
       ],
       "exclude-paths": [
