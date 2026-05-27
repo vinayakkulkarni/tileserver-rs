@@ -173,7 +173,7 @@ tar              = "0.4"
 
 # Dev / test dependencies
 tower            = { version = "0.5.3", features = ["util"] }
-axum-test        = "20.0.0"
+axum-test        = "20.1.0"
 tempfile         = "3.27.0"
 insta            = { version = "1.47.2", features = ["json"] }
 criterion        = { version = "0.8.2", features = ["html_reports"] }
