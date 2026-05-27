@@ -10,7 +10,6 @@
       "component": "tileserver-rs",
       "include-component-in-tag": false,
       "changelog-path": "crates/tileserver-rs/CHANGELOG.md",
-      "version-file": "crates/tileserver-rs/Cargo.toml",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
       "draft": false,
