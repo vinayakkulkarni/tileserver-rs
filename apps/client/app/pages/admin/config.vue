@@ -18,7 +18,9 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header class="border-b border-border px-10 py-6">
+    <header
+      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+    >
       <AdminBreadcrumb :items="breadcrumbs" />
       <div class="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <h1 class="text-2xl font-semibold tracking-tight text-foreground">
@@ -39,7 +41,7 @@
       </p>
     </header>
 
-    <section class="flex-1 px-10 py-8">
+    <section class="flex-1 px-[clamp(16px,4vw,40px)] py-6 sm:py-8">
       <div v-if="isPending" class="flex flex-col gap-3">
         <div
           v-for="i in 8"

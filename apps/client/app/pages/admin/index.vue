@@ -35,10 +35,12 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header class="border-b border-border px-10 py-6">
+    <header
+      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+    >
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1
-        class="mt-3 font-display text-5xl font-semibold tracking-tight text-foreground"
+        class="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl"
       >
         Operator console
       </h1>
@@ -48,8 +50,11 @@
       </p>
     </header>
 
-    <section v-if="pingError" class="border-b border-border px-10 py-8">
-      <div class="max-w-2xl border border-border px-6 py-6">
+    <section
+      v-if="pingError"
+      class="border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8"
+    >
+      <div class="max-w-2xl border border-border px-5 py-5 sm:px-6 sm:py-6">
         <p
           class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
         >
@@ -70,29 +75,29 @@
     <section v-else class="border-b border-border">
       <div class="grid grid-cols-1 lg:grid-cols-[3fr_2fr]">
         <div
-          class="flex flex-col justify-between border-b border-border px-10 py-8 lg:border-r lg:border-b-0"
+          class="flex flex-col justify-between gap-3 border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8 lg:border-r lg:border-b-0"
         >
           <p
             class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
           >
             Uptime
           </p>
-          <div v-if="isLoading" class="mt-4">
-            <Skeleton class="h-16 w-48" />
+          <div v-if="isLoading">
+            <Skeleton class="h-12 w-40 sm:h-14 sm:w-48 lg:h-16" />
           </div>
           <p
             v-else
-            class="mt-4 font-display text-7xl font-semibold tabular-nums tracking-tight text-foreground"
+            class="font-display text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl lg:text-7xl"
           >
             {{ uptimeLabel }}
           </p>
-          <p class="mt-4 font-mono text-[11px] text-muted-foreground">
+          <p class="font-mono text-[11px] text-muted-foreground">
             since last config reload
           </p>
         </div>
 
         <div class="grid grid-cols-2 grid-rows-2">
-          <div class="border-b border-border px-6 py-6">
+          <div class="border-b border-border px-5 py-5 sm:px-6 sm:py-6">
             <p
               class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
             >
@@ -104,7 +109,9 @@
               {{ loadedSources }}
             </p>
           </div>
-          <div class="border-b border-l border-border px-6 py-6">
+          <div
+            class="border-b border-l border-border px-5 py-5 sm:px-6 sm:py-6"
+          >
             <p
               class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
             >
@@ -116,7 +123,7 @@
               {{ loadedStyles }}
             </p>
           </div>
-          <div class="px-6 py-6">
+          <div class="px-5 py-5 sm:px-6 sm:py-6">
             <p
               class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
             >
@@ -128,7 +135,7 @@
               {{ clientsCount }}
             </p>
           </div>
-          <div class="border-l border-border px-6 py-6">
+          <div class="border-l border-border px-5 py-5 sm:px-6 sm:py-6">
             <p
               class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
             >
@@ -145,7 +152,9 @@
     </section>
 
     <section class="grid flex-1 grid-cols-1 lg:grid-cols-[2fr_1fr]">
-      <div class="border-b border-border px-10 py-8 lg:border-r lg:border-b-0">
+      <div
+        class="border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8 lg:border-r lg:border-b-0"
+      >
         <div class="flex items-baseline justify-between">
           <p
             class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
@@ -181,7 +190,7 @@
 
         <div
           v-else-if="clientsAreEmpty"
-          class="mt-6 border border-border px-6 py-10"
+          class="mt-6 border border-border px-5 py-8 sm:px-6 sm:py-10"
         >
           <p
             class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
@@ -222,7 +231,7 @@
       <aside class="flex flex-col">
         <NuxtLink
           to="/admin/mcp/connected-apps"
-          class="group flex items-start gap-4 border-b border-border px-6 py-6 transition-colors hover:bg-secondary/40"
+          class="group flex items-start gap-4 border-b border-border px-5 py-5 sm:px-6 sm:py-6 transition-colors hover:bg-secondary/40"
         >
           <div
             class="flex size-10 shrink-0 items-center justify-center border border-border bg-card"
@@ -244,7 +253,7 @@
 
         <NuxtLink
           to="/admin/mcp/devices"
-          class="group flex items-start gap-4 border-b border-border px-6 py-6 transition-colors hover:bg-secondary/40"
+          class="group flex items-start gap-4 border-b border-border px-5 py-5 sm:px-6 sm:py-6 transition-colors hover:bg-secondary/40"
         >
           <div
             class="flex size-10 shrink-0 items-center justify-center border border-border bg-card"
@@ -264,7 +273,7 @@
           />
         </NuxtLink>
 
-        <div class="flex-1 border-b border-border px-6 py-6">
+        <div class="flex-1 border-b border-border px-5 py-5 sm:px-6 sm:py-6">
           <p
             class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
           >
@@ -298,7 +307,7 @@
           </dl>
         </div>
 
-        <div class="px-6 py-6">
+        <div class="px-5 py-5 sm:px-6 sm:py-6">
           <p
             class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
           >

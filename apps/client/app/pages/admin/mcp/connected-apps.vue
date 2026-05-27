@@ -26,7 +26,9 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header class="border-b border-border px-10 py-6">
+    <header
+      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+    >
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
         Connected apps
@@ -38,9 +40,9 @@
       </p>
     </header>
 
-    <section class="flex-1 px-10 py-8">
-      <div v-if="isLoading" class="border border-border">
-        <table class="w-full border-collapse">
+    <section class="flex-1 px-[clamp(16px,4vw,40px)] py-6 sm:py-8">
+      <div v-if="isLoading" class="overflow-x-auto border border-border">
+        <table class="w-full min-w-[640px] border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
@@ -146,8 +148,8 @@
         </div>
       </div>
 
-      <div v-else class="border border-border">
-        <table class="w-full border-collapse">
+      <div v-else class="overflow-x-auto border border-border">
+        <table class="w-full min-w-[640px] border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
