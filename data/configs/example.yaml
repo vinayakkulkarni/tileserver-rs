@@ -54,6 +54,12 @@ cache:
   enabled: true
   max_size_mb: 512
   ttl_seconds: 3600
+  # Scratch / state directory (uploads). Overridden by --cache-dir and
+  # TILESERVER_CACHE_DIR. Defaults to <system temp dir>/tileserver-rs.
+  # dir: /var/lib/tileserver-rs
+  # Scratch / cache directory. Overridden by --cache-dir / TILESERVER_CACHE_DIR.
+  # Defaults to <system temp dir>/tileserver-rs when unset.
+  # dir: /var/cache/tileserver-rs
 
 # ----------------------------------------------------------------------------
 # Tile sources — add multiple entries, each with a unique `id`

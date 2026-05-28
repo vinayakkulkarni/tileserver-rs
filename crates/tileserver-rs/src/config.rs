@@ -202,6 +202,13 @@ pub struct CacheConfig {
     /// Time-to-live for cache entries in seconds (default: 3600)
     #[serde(default = "default_global_cache_ttl_seconds")]
     pub ttl_seconds: u64,
+    /// Scratch / state directory for on-disk subsystems (today: uploads).
+    /// Storage location only — NOT a cache eviction policy; tile/dataset
+    /// cache lifetime is governed by `max_size_mb` / `ttl_seconds`.
+    /// Overridden by `--cache-dir` / `TILESERVER_CACHE_DIR`. See
+    /// [`Config::resolve_cache_dir`].
+    #[serde(default)]
+    pub dir: Option<PathBuf>,
 }
 
 fn default_global_cache_max_size_mb() -> u64 {
@@ -217,6 +224,7 @@ impl Default for CacheConfig {
             enabled: false,
             max_size_mb: default_global_cache_max_size_mb(),
             ttl_seconds: default_global_cache_ttl_seconds(),
+            dir: None,
         }
     }
 }
@@ -1094,6 +1102,41 @@ impl Config {
     /// Load configuration from environment or file.
     pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
         Ok(Self::load_with_metadata(config_path)?.config)
+    }
+
+    /// Resolve the effective scratch directory. Precedence (highest first):
+    /// `cli_override` (the `--cache-dir` flag, itself populated from
+    /// `TILESERVER_CACHE_DIR` by clap), then `[cache].dir`, then
+    /// `std::env::temp_dir().join("tileserver-rs")`.
+    pub fn resolve_cache_dir(&self, cli_override: Option<&std::path::Path>) -> PathBuf {
+        if let Some(p) = cli_override {
+            return p.to_path_buf();
+        }
+        if let Some(p) = &self.cache.dir {
+            return p.clone();
+        }
+        std::env::temp_dir().join("tileserver-rs")
+    }
+
+    /// Create the scratch directory (if missing) and verify it is writable
+    /// by round-tripping a probe file. Subsystem subdirs are created lazily
+    /// by their owners, not here.
+    pub fn ensure_cache_dir_writable(cache_dir: &std::path::Path) -> anyhow::Result<()> {
+        std::fs::create_dir_all(cache_dir).map_err(|e| {
+            anyhow::anyhow!(
+                "cache directory `{}` could not be created: {e}",
+                cache_dir.display()
+            )
+        })?;
+        let probe = cache_dir.join(".tileserver-rs-writable");
+        std::fs::write(&probe, b"").map_err(|e| {
+            anyhow::anyhow!(
+                "cache directory `{}` is not writable: {e}",
+                cache_dir.display()
+            )
+        })?;
+        let _ = std::fs::remove_file(&probe);
+        Ok(())
     }
 }
 

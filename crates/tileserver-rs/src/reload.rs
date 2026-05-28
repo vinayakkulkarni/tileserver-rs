@@ -307,7 +307,7 @@ pub async fn build_app_state(
     let upload_dir = if let Some(ref dir) = config.server.upload_dir {
         Some(dir.clone())
     } else {
-        Some(std::env::temp_dir().join("tileserver-uploads"))
+        Some(config.resolve_cache_dir(None).join("uploads"))
     };
 
     if let Some(ref dir) = upload_dir {
@@ -597,8 +597,8 @@ mod tests {
 
         let upload = state.upload_dir.expect("default upload dir set");
         assert!(
-            upload.ends_with("tileserver-uploads"),
-            "got: {}",
+            upload.ends_with("tileserver-rs/uploads"),
+            "default upload dir must live under the resolved cache dir, got: {}",
             upload.display()
         );
         assert!(upload.exists(), "upload dir must be created");

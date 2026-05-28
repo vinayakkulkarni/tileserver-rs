@@ -3,14 +3,14 @@
 use axum::{
     Router,
     http::{
-        HeaderValue, Method,
+        Method,
         header::{ACCEPT, CONTENT_TYPE},
     },
     response::IntoResponse,
 };
 #[cfg(feature = "frontend")]
 use axum::{
-    http::{HeaderMap, StatusCode, Uri, header::CACHE_CONTROL},
+    http::{HeaderMap, HeaderValue, StatusCode, Uri, header::CACHE_CONTROL},
     response::Html,
 };
 #[cfg(feature = "frontend")]
@@ -105,6 +105,11 @@ async fn main() -> anyhow::Result<()> {
     if let Some(public_url) = cli.public_url {
         config.server.public_url = Some(public_url);
     }
+
+    let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
+    config::Config::ensure_cache_dir_writable(&cache_dir)?;
+    tracing::info!("Cache directory: {}", cache_dir.display());
+    config.cache.dir = Some(cache_dir);
 
     let runtime = RuntimeSettings {
         ui_enabled,

@@ -96,12 +96,12 @@ render_timeout_secs = 30
 # PostgreSQL sources have their own [postgres.cache] section.
 # ============================================================================
 [cache]
-# Enable the global tile cache (default: false)
-enabled = true
-# Maximum cache size in megabytes (default: 512)
+enabled = false
 max_size_mb = 512
-# Cache entry time-to-live in seconds (default: 3600 = 1 hour)
 ttl_seconds = 3600
+# Scratch / cache directory. Overridden by --cache-dir / TILESERVER_CACHE_DIR.
+# Defaults to <system temp dir>/tileserver-rs when unset.
+# dir = "/var/cache/tileserver-rs"
 
 # ============================================================================
 # TILE SOURCES

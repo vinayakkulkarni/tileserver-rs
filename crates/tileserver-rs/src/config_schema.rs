@@ -276,6 +276,17 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "dir",
+                field_type: "path",
+                default: None,
+                description: "Scratch / state directory for on-disk subsystems (uploads). \
+                    Storage location only, not a cache eviction policy. Overridden by \
+                    --cache-dir CLI flag and TILESERVER_CACHE_DIR env; falls back to \
+                    the system temp dir + /tileserver-rs when all three are unset.",
+                optional: true,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {
