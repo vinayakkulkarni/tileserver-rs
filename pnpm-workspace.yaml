@@ -94,7 +94,7 @@ catalogs:
     '@deck.gl/mesh-layers': ^9.3.2
     '@geoql/v-maplibre': ^1.10.0
     '@luma.gl/engine': ~9.3.3
-    '@maplibre/mlt': ^1.1.10
+    '@maplibre/mlt': ^1.1.11
     '@mlc-ai/web-llm': ^0.2.83
     '@tanstack/ai': ^0.22.0
     '@tanstack/ai-vue': ^0.10.10
