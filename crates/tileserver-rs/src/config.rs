@@ -999,7 +999,12 @@ impl Config {
     fn from_file_with_metadata(path: &PathBuf) -> anyhow::Result<ConfigLoadMetadata> {
         let content = std::fs::read_to_string(path)?;
         let content = Self::substitute_env_vars(&content);
-        let config: Config = toml::from_str(&content)?;
+        let config: Config = match path.extension().and_then(|s| s.to_str()) {
+            Some(ext) if ext.eq_ignore_ascii_case("yaml") || ext.eq_ignore_ascii_case("yml") => {
+                serde_yaml_ng::from_str(&content)?
+            }
+            _ => toml::from_str(&content)?,
+        };
         config.validate()?;
         Ok(ConfigLoadMetadata {
             config,
@@ -1045,7 +1050,11 @@ impl Config {
 
         let default_paths = vec![
             PathBuf::from("config.toml"),
+            PathBuf::from("config.yaml"),
+            PathBuf::from("config.yml"),
             PathBuf::from("/etc/tileserver-rs/config.toml"),
+            PathBuf::from("/etc/tileserver-rs/config.yaml"),
+            PathBuf::from("/etc/tileserver-rs/config.yml"),
         ];
 
         for path in default_paths {
@@ -1113,6 +1122,121 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&SourceType::MBTiles).unwrap(),
             "\"mbtiles\""
+        );
+    }
+
+    #[test]
+    fn test_config_load_yaml() {
+        use std::io::Write as _;
+
+        let yaml_content = "\
+server:
+  host: 127.0.0.1
+  port: 3000
+sources:
+  - id: osm
+    type: pmtiles
+    path: /data/osm.pmtiles
+    name: OpenStreetMap
+styles:
+  - id: bright
+    path: /data/styles/bright/style.json
+";
+
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("Config::load should accept .yaml files");
+
+        assert_eq!(config.server.host, "127.0.0.1");
+        assert_eq!(config.server.port, 3000);
+        assert_eq!(config.sources.len(), 1);
+        assert_eq!(config.sources[0].id, "osm");
+        assert_eq!(config.sources[0].source_type, SourceType::PMTiles);
+        assert_eq!(config.styles.len(), 1);
+        assert_eq!(config.styles[0].id, "bright");
+    }
+
+    #[test]
+    fn test_config_load_yml_extension() {
+        use std::io::Write as _;
+
+        let yaml_content = "server:\n  port: 4000\n";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yml")
+            .tempfile()
+            .expect("create temp .yml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("Config::load should accept .yml files");
+        assert_eq!(config.server.port, 4000);
+    }
+
+    #[test]
+    fn test_config_load_yaml_env_var_substitution() {
+        use std::io::Write as _;
+
+        // SAFETY: test-only env var manipulation; no concurrent threads access
+        // this var elsewhere in the test suite.
+        unsafe { std::env::set_var("TEST_YAML_SUB_PORT", "5678") };
+
+        let yaml_content = "server:\n  port: ${TEST_YAML_SUB_PORT}\n";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("env-var substitution should work on YAML configs");
+        assert_eq!(config.server.port, 5678);
+
+        // SAFETY: same as above — single-threaded teardown.
+        unsafe { std::env::remove_var("TEST_YAML_SUB_PORT") };
+    }
+
+    #[test]
+    fn test_config_toml_yaml_parity() {
+        use std::io::Write as _;
+
+        let toml_str = "[server]\nhost = \"127.0.0.1\"\nport = 3000\ncors_origins = [\"*\"]\n";
+        let yaml_str = "server:\n  host: 127.0.0.1\n  port: 3000\n  cors_origins:\n    - '*'\n";
+
+        let mut toml_file = tempfile::Builder::new()
+            .suffix(".toml")
+            .tempfile()
+            .expect("create temp .toml file");
+        toml_file
+            .write_all(toml_str.as_bytes())
+            .expect("write TOML content");
+
+        let mut yaml_file = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        yaml_file
+            .write_all(yaml_str.as_bytes())
+            .expect("write YAML content");
+
+        let toml_config = Config::load(Some(toml_file.path().to_path_buf())).expect("load TOML");
+        let yaml_config = Config::load(Some(yaml_file.path().to_path_buf())).expect("load YAML");
+
+        assert_eq!(toml_config.server.host, yaml_config.server.host);
+        assert_eq!(toml_config.server.port, yaml_config.server.port);
+        assert_eq!(
+            toml_config.server.cors_origins,
+            yaml_config.server.cors_origins
         );
     }
 
