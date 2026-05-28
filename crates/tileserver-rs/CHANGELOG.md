@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.30.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.0...v2.30.1) (2026-05-28)
+
+
+### Bug Fixes
+
+* **deps:** bump @maplibre/mlt from 1.1.9 to 1.1.11 ([#1032](https://github.com/vinayakkulkarni/tileserver-rs/issues/1032)) ([ffd759e](https://github.com/vinayakkulkarni/tileserver-rs/commit/ffd759e31a7f3e3b3346562d8742e9fc36e641e8))
+* **deps:** bump @mlc-ai/web-llm from 0.2.83 to 0.2.84 ([#1033](https://github.com/vinayakkulkarni/tileserver-rs/issues/1033)) ([28ce6f6](https://github.com/vinayakkulkarni/tileserver-rs/commit/28ce6f67124949618d5548863d38371153c8c3ff))
+* **deps:** bump @tanstack/ai from 0.22.0 to 0.22.1 ([#1036](https://github.com/vinayakkulkarni/tileserver-rs/issues/1036)) ([c1221ca](https://github.com/vinayakkulkarni/tileserver-rs/commit/c1221ca3525b343a294d63c83d9f8a5b7e7629b3))
+* **deps:** bump @tanstack/ai-vue from 0.10.10 to 0.10.11 ([#1037](https://github.com/vinayakkulkarni/tileserver-rs/issues/1037)) ([829f2c4](https://github.com/vinayakkulkarni/tileserver-rs/commit/829f2c433f2ac311891bf49d94963865a01e9074))
+* **deps:** bump vue from 3.5.34 to 3.5.35 ([#1034](https://github.com/vinayakkulkarni/tileserver-rs/issues/1034)) ([119ba27](https://github.com/vinayakkulkarni/tileserver-rs/commit/119ba271b5810345105409a07a531e7a1b76de5c))
+
 ## [2.30.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.29.0...v2.30.0) (2026-05-27)
 
 
