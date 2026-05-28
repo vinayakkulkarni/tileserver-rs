@@ -17,6 +17,7 @@ pub mod openapi;
 pub mod raster;
 pub mod reload;
 pub mod render;
+pub mod response_headers;
 pub mod routes;
 pub mod sources;
 pub mod startup;

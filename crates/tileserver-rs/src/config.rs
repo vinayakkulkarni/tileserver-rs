@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[cfg(feature = "raster")]
@@ -270,6 +271,23 @@ pub struct ServerConfig {
     /// Maximum upload file size in megabytes (default: 500 MB)
     #[serde(default = "default_upload_max_size_mb")]
     pub upload_max_size_mb: u32,
+    /// User-defined response headers applied to every HTTP response.
+    ///
+    /// Header names must conform to RFC 7230 token grammar (alphanumeric
+    /// plus `!#$%&'*+-.^_`|~`). Reserved headers managed by the transport
+    /// (`Content-Length`, `Transfer-Encoding`, `Date`, `Connection`) are
+    /// rejected at startup. An empty string value removes the header,
+    /// which is useful to drop a header that an upstream middleware would
+    /// have otherwise emitted.
+    ///
+    /// ```toml
+    /// [server.extra_response_headers]
+    /// "Cache-Control" = "public, max-age=86400, immutable"
+    /// "CDN-Cache-Control" = "max-age=604800"
+    /// "X-Robots-Tag" = "noindex, nofollow"
+    /// ```
+    #[serde(default)]
+    pub extra_response_headers: Option<HashMap<String, String>>,
 }
 
 fn default_host() -> String {
@@ -298,6 +316,7 @@ impl Default for ServerConfig {
             public_url: None,
             upload_dir: None,
             upload_max_size_mb: default_upload_max_size_mb(),
+            extra_response_headers: None,
         }
     }
 }
@@ -1037,6 +1056,7 @@ impl Config {
                 );
             }
         }
+        validate_extra_response_headers(self.server.extra_response_headers.as_ref())?;
         Ok(())
     }
 
@@ -1075,6 +1095,54 @@ impl Config {
     pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
         Ok(Self::load_with_metadata(config_path)?.config)
     }
+}
+
+/// Validate `[server.extra_response_headers]` against the rules documented
+/// on `ServerConfig::extra_response_headers`. Pulled out as a free function
+/// so unit tests can exercise it without constructing a full `Config`.
+fn validate_extra_response_headers(
+    headers: Option<&HashMap<String, String>>,
+) -> anyhow::Result<()> {
+    let Some(headers) = headers else {
+        return Ok(());
+    };
+    // Reserved headers managed by the transport. Lowercase for the case-insensitive compare.
+    const RESERVED: &[&str] = &["content-length", "transfer-encoding", "date", "connection"];
+    for name in headers.keys() {
+        let lower = name.to_ascii_lowercase();
+        if RESERVED.contains(&lower.as_str()) {
+            anyhow::bail!(
+                "`[server.extra_response_headers]` cannot set reserved header `{name}` (managed by the transport)"
+            );
+        }
+        let is_valid_token = !name.is_empty()
+            && name.bytes().all(|b| {
+                b.is_ascii_alphanumeric()
+                    || matches!(
+                        b,
+                        b'!' | b'#'
+                            | b'$'
+                            | b'%'
+                            | b'&'
+                            | b'\''
+                            | b'*'
+                            | b'+'
+                            | b'-'
+                            | b'.'
+                            | b'^'
+                            | b'_'
+                            | b'`'
+                            | b'|'
+                            | b'~'
+                    )
+            });
+        if !is_valid_token {
+            anyhow::bail!(
+                "`[server.extra_response_headers]` has invalid header name `{name}` (must match RFC 7230 token grammar)"
+            );
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1204,6 +1272,119 @@ styles:
 
         // SAFETY: same as above — single-threaded teardown.
         unsafe { std::env::remove_var("TEST_YAML_SUB_PORT") };
+    }
+
+    #[test]
+    fn test_extra_response_headers_deserialize_toml() {
+        let toml = r#"
+            [server]
+            host = "127.0.0.1"
+            port = 8080
+
+            [server.extra_response_headers]
+            "X-Custom" = "value1"
+            "Cache-Control" = "public, max-age=86400"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse TOML with extra_response_headers");
+        let headers = config
+            .server
+            .extra_response_headers
+            .as_ref()
+            .expect("extra_response_headers should be Some when configured");
+        assert_eq!(headers.get("X-Custom").map(String::as_str), Some("value1"));
+        assert_eq!(
+            headers.get("Cache-Control").map(String::as_str),
+            Some("public, max-age=86400")
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_deserialize_yaml() {
+        use std::io::Write as _;
+
+        let yaml_content = "\
+server:
+  extra_response_headers:
+    X-Custom: value-from-yaml
+    X-Robots-Tag: noindex
+";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write yaml");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("YAML with extra_response_headers should load");
+        let headers = config
+            .server
+            .extra_response_headers
+            .as_ref()
+            .expect("extra_response_headers should be Some");
+        assert_eq!(
+            headers.get("X-Custom").map(String::as_str),
+            Some("value-from-yaml")
+        );
+        assert_eq!(
+            headers.get("X-Robots-Tag").map(String::as_str),
+            Some("noindex")
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_rejects_reserved() {
+        let toml = r#"
+            [server.extra_response_headers]
+            "Content-Length" = "100"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse");
+        let err = config
+            .validate()
+            .expect_err("should reject reserved header Content-Length");
+        let msg = format!("{err:#}").to_ascii_lowercase();
+        assert!(
+            msg.contains("content-length"),
+            "error message should name the rejected header, got: {msg}"
+        );
+        assert!(
+            msg.contains("reserved"),
+            "error message should mention 'reserved', got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_rejects_invalid_name() {
+        let mut headers = HashMap::new();
+        headers.insert("Bad Header".to_string(), "value".to_string());
+        let mut cfg = Config::default();
+        cfg.server.extra_response_headers = Some(headers);
+        let err = cfg.validate().expect_err("should reject 'Bad Header'");
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("Bad Header"),
+            "error message should name the invalid header, got: {msg}"
+        );
+        assert!(
+            msg.contains("RFC 7230"),
+            "error message should reference RFC 7230, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_accepts_valid_names() {
+        let toml = r#"
+            [server.extra_response_headers]
+            "X-Custom" = "v"
+            "Cache-Control" = "v"
+            "X-Robots-Tag" = "v"
+            "Strict-Transport-Security" = "v"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse");
+        config
+            .validate()
+            .expect("standard custom headers should validate");
     }
 
     #[test]

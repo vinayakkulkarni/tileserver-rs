@@ -274,6 +274,11 @@ async fn main() -> anyhow::Result<()> {
         .layer(axum::middleware::from_fn(metrics::record_http_request))
         .layer(axum::middleware::from_fn(logging::request_logger));
 
+    let router = tileserver_rs::response_headers::apply_extra_response_headers(
+        router,
+        config.server.extra_response_headers.as_ref(),
+    );
+
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);
 

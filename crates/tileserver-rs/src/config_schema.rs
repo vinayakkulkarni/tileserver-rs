@@ -209,6 +209,17 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "extra_response_headers",
+                field_type: "table<string,string>",
+                default: None,
+                description: "User-defined HTTP response headers applied to every response. \
+                    Header names must conform to RFC 7230 token grammar; reserved headers \
+                    (Content-Length, Transfer-Encoding, Date, Connection) are rejected at startup. \
+                    Empty-string values delete a header from outgoing responses.",
+                optional: true,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {
