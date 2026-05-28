@@ -99,6 +99,14 @@ export default defineNuxtConfig({
     },
   },
 
+  routeRules: {
+    // Legacy URL — kept as a 301 redirect so external bookmarks
+    // and old search-engine indexes do not 404 after the dedup in v2.30.1.
+    '/getting-started/configuration': {
+      redirect: { to: '/getting-started/config', statusCode: 301 },
+    },
+  },
+
   future: {
     compatibilityVersion: 4,
   },
