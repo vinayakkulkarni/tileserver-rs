@@ -54,7 +54,8 @@ struct IndexQueryParams {
 }
 
 pub fn api_router(state: SharedState) -> Router {
-    Router::new()
+    let config = state.config();
+    let mut router = Router::new()
         .route("/health", get(health_check))
         .route("/ping", get(admin::ping_check))
         .route("/index.json", get(get_index_json))
@@ -67,18 +68,6 @@ pub fn api_router(state: SharedState) -> Router {
             get(styles::get_wmts_capabilities),
         )
         .route("/styles/{style}/{sprite_file}", get(styles::get_sprite))
-        .route(
-            "/styles/{style}/{z}/{x}/{y_fmt}",
-            get(render::get_raster_tile),
-        )
-        .route(
-            "/styles/{style}/{tile_size}/{z}/{x}/{y_fmt}",
-            get(render::get_raster_tile_with_size),
-        )
-        .route(
-            "/styles/{style}/static/{static_type}/{size_fmt}",
-            get(render::get_static_image),
-        )
         // Font endpoints
         .route("/fonts.json", get(fonts::get_fonts_list))
         .route("/fonts/{fontstack}/{range}", get(fonts::get_font_glyphs))
@@ -105,9 +94,32 @@ pub fn api_router(state: SharedState) -> Router {
             "/api/spatial/stats/{source}",
             get(spatial::get_spatial_stats),
         )
-        .route("/api/spatial/query", post(spatial::post_spatial_query))
-        .merge(ogc_router())
-        .with_state(state)
+        .route("/api/spatial/query", post(spatial::post_spatial_query));
+
+    if !config.server.disable_render {
+        router = router.merge(render_router());
+    }
+    if !config.server.disable_ogc {
+        router = router.merge(ogc_router());
+    }
+
+    router.with_state(state)
+}
+
+fn render_router() -> Router<SharedState> {
+    Router::new()
+        .route(
+            "/styles/{style}/{z}/{x}/{y_fmt}",
+            get(render::get_raster_tile),
+        )
+        .route(
+            "/styles/{style}/{tile_size}/{z}/{x}/{y_fmt}",
+            get(render::get_raster_tile_with_size),
+        )
+        .route(
+            "/styles/{style}/static/{static_type}/{size_fmt}",
+            get(render::get_static_image),
+        )
 }
 
 async fn health_check() -> (StatusCode, &'static str) {

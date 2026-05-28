@@ -220,6 +220,24 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: true,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "disable_render",
+                field_type: "bool",
+                default: Some("false"),
+                description: "Unregister raster render routes (raster tiles + static images) \
+                    at startup. style.json, sprites and WMTS stay served.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "disable_ogc",
+                field_type: "bool",
+                default: Some("false"),
+                description: "Unregister OGC API routes (`/ogc/*`) at startup. No effect \
+                    unless the binary was built with the `postgres` (OGC) feature.",
+                optional: false,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {

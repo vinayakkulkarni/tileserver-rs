@@ -296,6 +296,14 @@ pub struct ServerConfig {
     /// ```
     #[serde(default)]
     pub extra_response_headers: Option<HashMap<String, String>>,
+    /// Disable raster render routes (raster tiles + static images) at
+    /// startup. Style metadata (`style.json`, sprites, WMTS) stays served.
+    #[serde(default)]
+    pub disable_render: bool,
+    /// Disable OGC API routes (`/ogc/*`) at startup. No effect unless the
+    /// binary was built with the `ogc` feature.
+    #[serde(default)]
+    pub disable_ogc: bool,
 }
 
 fn default_host() -> String {
@@ -325,6 +333,8 @@ impl Default for ServerConfig {
             upload_dir: None,
             upload_max_size_mb: default_upload_max_size_mb(),
             extra_response_headers: None,
+            disable_render: false,
+            disable_ogc: false,
         }
     }
 }
