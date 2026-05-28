@@ -6344,6 +6344,7 @@ dependencies = [
  "postgres-types",
  "prometheus",
  "prost 0.14.3",
+ "regex",
  "reqwest 0.13.4",
  "rmcp",
  "rsa",

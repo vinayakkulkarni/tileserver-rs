@@ -42,6 +42,7 @@ prost            = { workspace = true, optional = true }
 geo-types        = { workspace = true, optional = true }
 tokio            = { workspace = true }
 crossbeam-channel = { workspace = true }
+regex            = { workspace = true }
 serde_yaml_ng    = { workspace = true }
 toml             = { workspace = true }
 tower-http       = { workspace = true }

@@ -17,10 +17,7 @@ use axum::{
 use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::{AllowOrigin, CorsLayer},
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 
@@ -157,36 +154,7 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Web UI disabled (use --ui to enable)");
     }
 
-    // Build CORS layer
-    let allow_origin = if config.server.cors_origins.is_empty()
-        || config.server.cors_origins.iter().any(|o| o == "*")
-    {
-        if !config.server.cors_origins.is_empty() {
-            tracing::warn!(
-                "CORS configured with wildcard (*). Consider restricting origins in production."
-            );
-        }
-        AllowOrigin::any()
-    } else {
-        let origins: Vec<HeaderValue> = config
-            .server
-            .cors_origins
-            .iter()
-            .filter_map(|o| {
-                o.parse::<HeaderValue>().ok().or_else(|| {
-                    tracing::warn!("Invalid CORS origin '{}', skipping", o);
-                    None
-                })
-            })
-            .collect();
-
-        if origins.is_empty() {
-            tracing::warn!("No valid CORS origins configured, defaulting to wildcard");
-            AllowOrigin::any()
-        } else {
-            AllowOrigin::list(origins)
-        }
-    };
+    let allow_origin = tileserver_rs::cors_origin::build_allow_origin(&config.server.cors_origins)?;
 
     let cors = CorsLayer::new()
         .allow_headers([ACCEPT, CONTENT_TYPE])
