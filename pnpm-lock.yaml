@@ -50,8 +50,8 @@ catalogs:
       specifier: ^1.1.11
       version: 1.1.11
     '@mlc-ai/web-llm':
-      specifier: ^0.2.83
-      version: 0.2.83
+      specifier: ^0.2.84
+      version: 0.2.84
     '@tanstack/ai':
       specifier: ^0.22.0
       version: 0.22.0
@@ -293,7 +293,7 @@ importers:
         version: 1.1.11
       '@mlc-ai/web-llm':
         specifier: catalog:client
-        version: 0.2.83
+        version: 0.2.84
       '@nuxt/fonts':
         specifier: catalog:default
         version: 0.14.0(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
@@ -2125,8 +2125,8 @@ packages:
   '@minimistjs/subarg@1.0.0':
     resolution: {integrity: sha512-Q/ONBiM2zNeYUy0mVSO44mWWKYM3UHuEK43PKIOzJCbvUnPoMH1K+gk3cf1kgnCVJFlWmddahQQCmrmBGlk9jQ==}
 
-  '@mlc-ai/web-llm@0.2.83':
-    resolution: {integrity: sha512-Ynuses0TM9CcSIs9PfX5+xwGOVFssQTXQaAwKFggfEw++shBbEr8fOjI7yJlY96wv0dwVFE+C2KGcO287+FuHw==}
+  '@mlc-ai/web-llm@0.2.84':
+    resolution: {integrity: sha512-hrOWzK4/nGNmgoRKT8pgVmZZ2oEPpbblIWQOwpqNyvK2dysHw3KVB1gNJOuRcQfKOPhucEhX1NJzXzgMDnwSCQ==}
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
@@ -9901,7 +9901,7 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
-  '@mlc-ai/web-llm@0.2.83':
+  '@mlc-ai/web-llm@0.2.84':
     dependencies:
       loglevel: 1.9.2
 
