@@ -10,7 +10,7 @@ export function useDocsNavigation() {
       children: [
         { title: 'Installation', path: '/getting-started/installation' },
         { title: 'Quickstart', path: '/getting-started/quickstart' },
-        { title: 'Configuration', path: '/getting-started/configuration' },
+        { title: 'Configuration', path: '/getting-started/config' },
       ],
     },
     {
