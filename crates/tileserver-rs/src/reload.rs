@@ -590,16 +590,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn build_app_state_default_upload_dir_lands_in_temp() {
-        let cfg = crate::config::Config::default();
+    async fn build_app_state_default_upload_dir_lands_in_cache_dir() {
+        // Hermetic cache dir: a bare default resolves uploads to the shared
+        // global `temp_dir()/tileserver-rs/uploads`, which parallel tests race
+        // to `create_dir_all`. A unique tempdir exercises the same else-branch
+        // without that race.
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut cfg = crate::config::Config::default();
+        cfg.cache.dir = Some(tempdir.path().to_path_buf());
         let runtime = runtime_for("127.0.0.1", 8080, None);
         let state = build_app_state(&cfg, &runtime).await.unwrap();
 
         let upload = state.upload_dir.expect("default upload dir set");
-        assert!(
-            upload.ends_with("tileserver-rs/uploads"),
-            "default upload dir must live under the resolved cache dir, got: {}",
-            upload.display()
+        assert_eq!(
+            upload,
+            tempdir.path().join("uploads"),
+            "default upload dir must be `<cache_dir>/uploads`"
         );
         assert!(upload.exists(), "upload dir must be created");
     }

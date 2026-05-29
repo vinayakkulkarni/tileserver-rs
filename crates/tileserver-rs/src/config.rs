@@ -273,7 +273,7 @@ pub struct ServerConfig {
     #[serde(default)]
     pub public_url: Option<String>,
     /// Directory for uploaded files (temporary sources).
-    /// Defaults to system temp dir + "tileserver-uploads" if not set.
+    /// Defaults to `<cache_dir>/uploads` (i.e. `resolve_cache_dir(None)`) if not set.
     #[serde(default)]
     pub upload_dir: Option<PathBuf>,
     /// Maximum upload file size in megabytes (default: 500 MB)
