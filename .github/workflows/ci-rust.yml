@@ -108,7 +108,10 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Free disk space for cargo cache
         run: rm -rf ~/.cargo/registry/src
@@ -126,5 +129,20 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Run tests
-        run: cargo test --all --all-features
+      # Runs the full --all-features test suite under llvm instrumentation, so
+      # the gating test run and the LCOV that feeds cargo-crap come from ONE
+      # build instead of two. The crate has no executable Rust doctests (all
+      # fences are toml/sql/ignore), so llvm-cov skipping doctests loses nothing.
+      - name: Run tests + collect coverage
+        run: |
+          cargo llvm-cov --workspace --all-features \
+            --lcov --output-path lcov-all-features.info \
+            --ignore-filename-regex '(vendor|build\.rs)'
+
+      - name: Upload all-features LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-all-features
+          path: lcov-all-features.info
+          retention-days: 1
+          if-no-files-found: error

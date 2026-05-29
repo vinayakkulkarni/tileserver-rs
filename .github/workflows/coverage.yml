@@ -141,3 +141,35 @@ jobs:
           flags: unittests
           name: tileserver-rs
           fail_ci_if_error: false
+
+  # Complexity-vs-coverage (CRAP) gate. Consumes the --all-features LCOV that
+  # ci-rust.yml already produced (no second instrumented build here) and reports
+  # the worst offenders. Advisory for now (continue-on-error) — flip off once a
+  # main baseline is committed and switch to --baseline + regression gating.
+  crap:
+    name: Complexity (CRAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-crap
+        run: cargo install cargo-crap --locked
+
+      - name: Download all-features LCOV
+        uses: actions/download-artifact@v4
+        with:
+          name: lcov-all-features
+
+      - name: Run cargo-crap
+        run: |
+          cargo crap --path crates/tileserver-rs \
+            --lcov lcov-all-features.info \
+            --exclude 'tests/**' --exclude 'benches/**' \
+            --allow 'crates/mbgl-sys/**' \
+            --threshold 30 \
+            --format markdown
