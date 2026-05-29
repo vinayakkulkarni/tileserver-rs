@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[cfg(feature = "raster")]
@@ -201,6 +202,13 @@ pub struct CacheConfig {
     /// Time-to-live for cache entries in seconds (default: 3600)
     #[serde(default = "default_global_cache_ttl_seconds")]
     pub ttl_seconds: u64,
+    /// Scratch / state directory for on-disk subsystems (today: uploads).
+    /// Storage location only — NOT a cache eviction policy; tile/dataset
+    /// cache lifetime is governed by `max_size_mb` / `ttl_seconds`.
+    /// Overridden by `--cache-dir` / `TILESERVER_CACHE_DIR`. See
+    /// [`Config::resolve_cache_dir`].
+    #[serde(default)]
+    pub dir: Option<PathBuf>,
 }
 
 fn default_global_cache_max_size_mb() -> u64 {
@@ -216,6 +224,7 @@ impl Default for CacheConfig {
             enabled: false,
             max_size_mb: default_global_cache_max_size_mb(),
             ttl_seconds: default_global_cache_ttl_seconds(),
+            dir: None,
         }
     }
 }
@@ -264,12 +273,37 @@ pub struct ServerConfig {
     #[serde(default)]
     pub public_url: Option<String>,
     /// Directory for uploaded files (temporary sources).
-    /// Defaults to system temp dir + "tileserver-uploads" if not set.
+    /// Defaults to `<cache_dir>/uploads` (i.e. `resolve_cache_dir(None)`) if not set.
     #[serde(default)]
     pub upload_dir: Option<PathBuf>,
     /// Maximum upload file size in megabytes (default: 500 MB)
     #[serde(default = "default_upload_max_size_mb")]
     pub upload_max_size_mb: u32,
+    /// User-defined response headers applied to every HTTP response.
+    ///
+    /// Header names must conform to RFC 7230 token grammar (alphanumeric
+    /// plus `!#$%&'*+-.^_`|~`). Reserved headers managed by the transport
+    /// (`Content-Length`, `Transfer-Encoding`, `Date`, `Connection`) are
+    /// rejected at startup. An empty string value removes the header,
+    /// which is useful to drop a header that an upstream middleware would
+    /// have otherwise emitted.
+    ///
+    /// ```toml
+    /// [server.extra_response_headers]
+    /// "Cache-Control" = "public, max-age=86400, immutable"
+    /// "CDN-Cache-Control" = "max-age=604800"
+    /// "X-Robots-Tag" = "noindex, nofollow"
+    /// ```
+    #[serde(default)]
+    pub extra_response_headers: Option<HashMap<String, String>>,
+    /// Disable raster render routes (raster tiles + static images) at
+    /// startup. Style metadata (`style.json`, sprites, WMTS) stays served.
+    #[serde(default)]
+    pub disable_render: bool,
+    /// Disable OGC API routes (`/ogc/*`) at startup. No effect unless the
+    /// binary was built with the `ogc` feature.
+    #[serde(default)]
+    pub disable_ogc: bool,
 }
 
 fn default_host() -> String {
@@ -298,6 +332,9 @@ impl Default for ServerConfig {
             public_url: None,
             upload_dir: None,
             upload_max_size_mb: default_upload_max_size_mb(),
+            extra_response_headers: None,
+            disable_render: false,
+            disable_ogc: false,
         }
     }
 }
@@ -999,7 +1036,12 @@ impl Config {
     fn from_file_with_metadata(path: &PathBuf) -> anyhow::Result<ConfigLoadMetadata> {
         let content = std::fs::read_to_string(path)?;
         let content = Self::substitute_env_vars(&content);
-        let config: Config = toml::from_str(&content)?;
+        let config: Config = match path.extension().and_then(|s| s.to_str()) {
+            Some(ext) if ext.eq_ignore_ascii_case("yaml") || ext.eq_ignore_ascii_case("yml") => {
+                serde_yaml_ng::from_str(&content)?
+            }
+            _ => toml::from_str(&content)?,
+        };
         config.validate()?;
         Ok(ConfigLoadMetadata {
             config,
@@ -1032,6 +1074,7 @@ impl Config {
                 );
             }
         }
+        validate_extra_response_headers(self.server.extra_response_headers.as_ref())?;
         Ok(())
     }
 
@@ -1045,7 +1088,11 @@ impl Config {
 
         let default_paths = vec![
             PathBuf::from("config.toml"),
+            PathBuf::from("config.yaml"),
+            PathBuf::from("config.yml"),
             PathBuf::from("/etc/tileserver-rs/config.toml"),
+            PathBuf::from("/etc/tileserver-rs/config.yaml"),
+            PathBuf::from("/etc/tileserver-rs/config.yml"),
         ];
 
         for path in default_paths {
@@ -1066,6 +1113,89 @@ impl Config {
     pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
         Ok(Self::load_with_metadata(config_path)?.config)
     }
+
+    /// Resolve the effective scratch directory. Precedence (highest first):
+    /// `cli_override` (the `--cache-dir` flag, itself populated from
+    /// `TILESERVER_CACHE_DIR` by clap), then `[cache].dir`, then
+    /// `std::env::temp_dir().join("tileserver-rs")`.
+    pub fn resolve_cache_dir(&self, cli_override: Option<&std::path::Path>) -> PathBuf {
+        if let Some(p) = cli_override {
+            return p.to_path_buf();
+        }
+        if let Some(p) = &self.cache.dir {
+            return p.clone();
+        }
+        std::env::temp_dir().join("tileserver-rs")
+    }
+
+    /// Create the scratch directory (if missing) and verify it is writable
+    /// by round-tripping a probe file. Subsystem subdirs are created lazily
+    /// by their owners, not here.
+    pub fn ensure_cache_dir_writable(cache_dir: &std::path::Path) -> anyhow::Result<()> {
+        std::fs::create_dir_all(cache_dir).map_err(|e| {
+            anyhow::anyhow!(
+                "cache directory `{}` could not be created: {e}",
+                cache_dir.display()
+            )
+        })?;
+        let probe = cache_dir.join(".tileserver-rs-writable");
+        std::fs::write(&probe, b"").map_err(|e| {
+            anyhow::anyhow!(
+                "cache directory `{}` is not writable: {e}",
+                cache_dir.display()
+            )
+        })?;
+        let _ = std::fs::remove_file(&probe);
+        Ok(())
+    }
+}
+
+/// Validate `[server.extra_response_headers]` against the rules documented
+/// on `ServerConfig::extra_response_headers`. Pulled out as a free function
+/// so unit tests can exercise it without constructing a full `Config`.
+fn validate_extra_response_headers(
+    headers: Option<&HashMap<String, String>>,
+) -> anyhow::Result<()> {
+    let Some(headers) = headers else {
+        return Ok(());
+    };
+    // Reserved headers managed by the transport. Lowercase for the case-insensitive compare.
+    const RESERVED: &[&str] = &["content-length", "transfer-encoding", "date", "connection"];
+    for name in headers.keys() {
+        let lower = name.to_ascii_lowercase();
+        if RESERVED.contains(&lower.as_str()) {
+            anyhow::bail!(
+                "`[server.extra_response_headers]` cannot set reserved header `{name}` (managed by the transport)"
+            );
+        }
+        let is_valid_token = !name.is_empty()
+            && name.bytes().all(|b| {
+                b.is_ascii_alphanumeric()
+                    || matches!(
+                        b,
+                        b'!' | b'#'
+                            | b'$'
+                            | b'%'
+                            | b'&'
+                            | b'\''
+                            | b'*'
+                            | b'+'
+                            | b'-'
+                            | b'.'
+                            | b'^'
+                            | b'_'
+                            | b'`'
+                            | b'|'
+                            | b'~'
+                    )
+            });
+        if !is_valid_token {
+            anyhow::bail!(
+                "`[server.extra_response_headers]` has invalid header name `{name}` (must match RFC 7230 token grammar)"
+            );
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1113,6 +1243,234 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&SourceType::MBTiles).unwrap(),
             "\"mbtiles\""
+        );
+    }
+
+    #[test]
+    fn test_config_load_yaml() {
+        use std::io::Write as _;
+
+        let yaml_content = "\
+server:
+  host: 127.0.0.1
+  port: 3000
+sources:
+  - id: osm
+    type: pmtiles
+    path: /data/osm.pmtiles
+    name: OpenStreetMap
+styles:
+  - id: bright
+    path: /data/styles/bright/style.json
+";
+
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("Config::load should accept .yaml files");
+
+        assert_eq!(config.server.host, "127.0.0.1");
+        assert_eq!(config.server.port, 3000);
+        assert_eq!(config.sources.len(), 1);
+        assert_eq!(config.sources[0].id, "osm");
+        assert_eq!(config.sources[0].source_type, SourceType::PMTiles);
+        assert_eq!(config.styles.len(), 1);
+        assert_eq!(config.styles[0].id, "bright");
+    }
+
+    #[test]
+    fn test_config_load_yml_extension() {
+        use std::io::Write as _;
+
+        let yaml_content = "server:\n  port: 4000\n";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yml")
+            .tempfile()
+            .expect("create temp .yml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("Config::load should accept .yml files");
+        assert_eq!(config.server.port, 4000);
+    }
+
+    #[test]
+    fn test_config_load_yaml_env_var_substitution() {
+        use std::io::Write as _;
+
+        // SAFETY: test-only env var manipulation; no concurrent threads access
+        // this var elsewhere in the test suite.
+        unsafe { std::env::set_var("TEST_YAML_SUB_PORT", "5678") };
+
+        let yaml_content = "server:\n  port: ${TEST_YAML_SUB_PORT}\n";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write YAML content");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("env-var substitution should work on YAML configs");
+        assert_eq!(config.server.port, 5678);
+
+        // SAFETY: same as above — single-threaded teardown.
+        unsafe { std::env::remove_var("TEST_YAML_SUB_PORT") };
+    }
+
+    #[test]
+    fn test_extra_response_headers_deserialize_toml() {
+        let toml = r#"
+            [server]
+            host = "127.0.0.1"
+            port = 8080
+
+            [server.extra_response_headers]
+            "X-Custom" = "value1"
+            "Cache-Control" = "public, max-age=86400"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse TOML with extra_response_headers");
+        let headers = config
+            .server
+            .extra_response_headers
+            .as_ref()
+            .expect("extra_response_headers should be Some when configured");
+        assert_eq!(headers.get("X-Custom").map(String::as_str), Some("value1"));
+        assert_eq!(
+            headers.get("Cache-Control").map(String::as_str),
+            Some("public, max-age=86400")
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_deserialize_yaml() {
+        use std::io::Write as _;
+
+        let yaml_content = "\
+server:
+  extra_response_headers:
+    X-Custom: value-from-yaml
+    X-Robots-Tag: noindex
+";
+        let mut tmpfile = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml");
+        tmpfile
+            .write_all(yaml_content.as_bytes())
+            .expect("write yaml");
+
+        let config = Config::load(Some(tmpfile.path().to_path_buf()))
+            .expect("YAML with extra_response_headers should load");
+        let headers = config
+            .server
+            .extra_response_headers
+            .as_ref()
+            .expect("extra_response_headers should be Some");
+        assert_eq!(
+            headers.get("X-Custom").map(String::as_str),
+            Some("value-from-yaml")
+        );
+        assert_eq!(
+            headers.get("X-Robots-Tag").map(String::as_str),
+            Some("noindex")
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_rejects_reserved() {
+        let toml = r#"
+            [server.extra_response_headers]
+            "Content-Length" = "100"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse");
+        let err = config
+            .validate()
+            .expect_err("should reject reserved header Content-Length");
+        let msg = format!("{err:#}").to_ascii_lowercase();
+        assert!(
+            msg.contains("content-length"),
+            "error message should name the rejected header, got: {msg}"
+        );
+        assert!(
+            msg.contains("reserved"),
+            "error message should mention 'reserved', got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_rejects_invalid_name() {
+        let mut headers = HashMap::new();
+        headers.insert("Bad Header".to_string(), "value".to_string());
+        let mut cfg = Config::default();
+        cfg.server.extra_response_headers = Some(headers);
+        let err = cfg.validate().expect_err("should reject 'Bad Header'");
+        let msg = format!("{err:#}");
+        assert!(
+            msg.contains("Bad Header"),
+            "error message should name the invalid header, got: {msg}"
+        );
+        assert!(
+            msg.contains("RFC 7230"),
+            "error message should reference RFC 7230, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn test_extra_response_headers_validation_accepts_valid_names() {
+        let toml = r#"
+            [server.extra_response_headers]
+            "X-Custom" = "v"
+            "Cache-Control" = "v"
+            "X-Robots-Tag" = "v"
+            "Strict-Transport-Security" = "v"
+        "#;
+        let config: Config = toml::from_str(toml).expect("parse");
+        config
+            .validate()
+            .expect("standard custom headers should validate");
+    }
+
+    #[test]
+    fn test_config_toml_yaml_parity() {
+        use std::io::Write as _;
+
+        let toml_str = "[server]\nhost = \"127.0.0.1\"\nport = 3000\ncors_origins = [\"*\"]\n";
+        let yaml_str = "server:\n  host: 127.0.0.1\n  port: 3000\n  cors_origins:\n    - '*'\n";
+
+        let mut toml_file = tempfile::Builder::new()
+            .suffix(".toml")
+            .tempfile()
+            .expect("create temp .toml file");
+        toml_file
+            .write_all(toml_str.as_bytes())
+            .expect("write TOML content");
+
+        let mut yaml_file = tempfile::Builder::new()
+            .suffix(".yaml")
+            .tempfile()
+            .expect("create temp .yaml file");
+        yaml_file
+            .write_all(yaml_str.as_bytes())
+            .expect("write YAML content");
+
+        let toml_config = Config::load(Some(toml_file.path().to_path_buf())).expect("load TOML");
+        let yaml_config = Config::load(Some(yaml_file.path().to_path_buf())).expect("load YAML");
+
+        assert_eq!(toml_config.server.host, yaml_config.server.host);
+        assert_eq!(toml_config.server.port, yaml_config.server.port);
+        assert_eq!(
+            toml_config.server.cors_origins,
+            yaml_config.server.cors_origins
         );
     }
 

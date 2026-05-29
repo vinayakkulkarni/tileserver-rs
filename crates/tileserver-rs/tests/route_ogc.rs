@@ -410,3 +410,53 @@ async fn post_items_rejects_malformed_json_body() {
         "malformed JSON body must surface a 4xx, got {status}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// server.disable_ogc route gating (#1004)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn disable_ogc_unregisters_landing_page() {
+    let mut config = tileserver_rs::config::Config::default();
+    config.server.disable_ogc = true;
+    let server = common::test_server_with_config(config);
+    let resp = server.get("/ogc").await;
+    assert_eq!(
+        resp.status_code().as_u16(),
+        404,
+        "OGC landing page must be unregistered when disable_ogc = true"
+    );
+}
+
+#[tokio::test]
+async fn disable_ogc_unregisters_collections() {
+    let mut config = tileserver_rs::config::Config::default();
+    config.server.disable_ogc = true;
+    let server = common::test_server_with_config(config);
+    let resp = server.get("/ogc/collections").await;
+    assert_eq!(resp.status_code().as_u16(), 404);
+}
+
+#[tokio::test]
+async fn disable_ogc_keeps_data_routes() {
+    let mut config = tileserver_rs::config::Config::default();
+    config.server.disable_ogc = true;
+    let server = common::test_server_with_config(config);
+    let resp = server.get("/data.json").await;
+    assert_ne!(
+        resp.status_code().as_u16(),
+        404,
+        "data.json must remain registered when only OGC is disabled"
+    );
+}
+
+#[tokio::test]
+async fn ogc_enabled_by_default_keeps_landing_registered() {
+    let server = common::empty_test_server();
+    let resp = server.get("/ogc").await;
+    assert_ne!(
+        resp.status_code().as_u16(),
+        404,
+        "OGC landing must be registered by default under the postgres feature"
+    );
+}

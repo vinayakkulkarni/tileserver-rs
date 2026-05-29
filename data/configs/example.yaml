@@ -1,0 +1,84 @@
+# Tileserver-RS Configuration Example (YAML)
+#
+# This is the YAML equivalent of `example.toml`. Every option that exists in
+# `example.toml` is also accepted in YAML; only the surface syntax changes.
+# When in doubt, treat `example.toml` as the canonical, exhaustively-commented
+# reference and use this file as a syntax hint.
+#
+# Format detection is by file extension:
+#   - `.toml`           → TOML parser (default, unchanged behavior)
+#   - `.yaml` / `.yml`  → YAML parser
+#   - anything else     → falls through to the TOML parser
+#
+# Pass with: `tileserver-rs --config /path/to/this/config.yaml`
+
+# ----------------------------------------------------------------------------
+# Root-level options (must come before nested keys, same constraint as TOML)
+# ----------------------------------------------------------------------------
+# fonts: /data/fonts
+# files: /data/files
+
+# ----------------------------------------------------------------------------
+# Server
+# ----------------------------------------------------------------------------
+server:
+  host: 0.0.0.0
+  port: 8080
+  cors_origins:
+    - '*'
+  # admin_bind: 127.0.0.1:9099
+  # public_url: http://localhost:4000
+
+# ----------------------------------------------------------------------------
+# Telemetry — see example.toml for the full option matrix + Prometheus knobs
+# ----------------------------------------------------------------------------
+telemetry:
+  enabled: false
+  endpoint: http://localhost:4317
+  service_name: tileserver-rs
+  sample_rate: 1.0
+  metrics_enabled: true
+  metrics_export_interval_secs: 60
+
+# ----------------------------------------------------------------------------
+# Native renderer pool (server-side raster tile generation)
+# ----------------------------------------------------------------------------
+render:
+  pool_size: 4
+  render_timeout_secs: 30
+
+# ----------------------------------------------------------------------------
+# Global tile cache (in-process, byte-weighted, shared across non-PG sources)
+# ----------------------------------------------------------------------------
+cache:
+  enabled: true
+  max_size_mb: 512
+  ttl_seconds: 3600
+  # Scratch / state directory (uploads). Overridden by --cache-dir and
+  # TILESERVER_CACHE_DIR. Defaults to <system temp dir>/tileserver-rs.
+  # dir: /var/lib/tileserver-rs
+  # Scratch / cache directory. Overridden by --cache-dir / TILESERVER_CACHE_DIR.
+  # Defaults to <system temp dir>/tileserver-rs when unset.
+  # dir: /var/cache/tileserver-rs
+
+# ----------------------------------------------------------------------------
+# Tile sources — add multiple entries, each with a unique `id`
+# ----------------------------------------------------------------------------
+# sources:
+#   - id: osm
+#     type: pmtiles
+#     path: /data/osm.pmtiles
+#     name: OpenStreetMap
+#     attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>'
+#
+#   - id: terrain
+#     type: mbtiles
+#     path: /data/terrain.mbtiles
+#     name: Terrain data
+
+# ----------------------------------------------------------------------------
+# Styles — add multiple entries, each with a unique `id`
+# ----------------------------------------------------------------------------
+# styles:
+#   - id: bright
+#     path: /data/styles/bright/style.json

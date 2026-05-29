@@ -8,6 +8,7 @@ pub mod cache;
 pub mod cache_control;
 pub mod config;
 pub mod config_schema;
+pub mod cors_origin;
 pub mod error;
 #[cfg(feature = "mcp")]
 pub mod mcp;
@@ -17,6 +18,7 @@ pub mod openapi;
 pub mod raster;
 pub mod reload;
 pub mod render;
+pub mod response_headers;
 pub mod routes;
 pub mod sources;
 pub mod startup;

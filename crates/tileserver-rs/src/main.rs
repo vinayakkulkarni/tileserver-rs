@@ -3,24 +3,21 @@
 use axum::{
     Router,
     http::{
-        HeaderValue, Method,
+        Method,
         header::{ACCEPT, CONTENT_TYPE},
     },
     response::IntoResponse,
 };
 #[cfg(feature = "frontend")]
 use axum::{
-    http::{HeaderMap, StatusCode, Uri, header::CACHE_CONTROL},
+    http::{HeaderMap, HeaderValue, StatusCode, Uri, header::CACHE_CONTROL},
     response::Html,
 };
 #[cfg(feature = "frontend")]
 use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::{
-    compression::CompressionLayer,
-    cors::{AllowOrigin, CorsLayer},
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 
@@ -109,6 +106,11 @@ async fn main() -> anyhow::Result<()> {
         config.server.public_url = Some(public_url);
     }
 
+    let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
+    config::Config::ensure_cache_dir_writable(&cache_dir)?;
+    tracing::info!("Cache directory: {}", cache_dir.display());
+    config.cache.dir = Some(cache_dir);
+
     let runtime = RuntimeSettings {
         ui_enabled,
         runtime_host: config.server.host.clone(),
@@ -157,36 +159,7 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Web UI disabled (use --ui to enable)");
     }
 
-    // Build CORS layer
-    let allow_origin = if config.server.cors_origins.is_empty()
-        || config.server.cors_origins.iter().any(|o| o == "*")
-    {
-        if !config.server.cors_origins.is_empty() {
-            tracing::warn!(
-                "CORS configured with wildcard (*). Consider restricting origins in production."
-            );
-        }
-        AllowOrigin::any()
-    } else {
-        let origins: Vec<HeaderValue> = config
-            .server
-            .cors_origins
-            .iter()
-            .filter_map(|o| {
-                o.parse::<HeaderValue>().ok().or_else(|| {
-                    tracing::warn!("Invalid CORS origin '{}', skipping", o);
-                    None
-                })
-            })
-            .collect();
-
-        if origins.is_empty() {
-            tracing::warn!("No valid CORS origins configured, defaulting to wildcard");
-            AllowOrigin::any()
-        } else {
-            AllowOrigin::list(origins)
-        }
-    };
+    let allow_origin = tileserver_rs::cors_origin::build_allow_origin(&config.server.cors_origins)?;
 
     let cors = CorsLayer::new()
         .allow_headers([ACCEPT, CONTENT_TYPE])
@@ -273,6 +246,11 @@ async fn main() -> anyhow::Result<()> {
         .layer(CompressionLayer::new())
         .layer(axum::middleware::from_fn(metrics::record_http_request))
         .layer(axum::middleware::from_fn(logging::request_logger));
+
+    let router = tileserver_rs::response_headers::apply_extra_response_headers(
+        router,
+        config.server.extra_response_headers.as_ref(),
+    );
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);

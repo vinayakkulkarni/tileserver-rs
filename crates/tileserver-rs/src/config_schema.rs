@@ -209,6 +209,35 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "extra_response_headers",
+                field_type: "table<string,string>",
+                default: None,
+                description: "User-defined HTTP response headers applied to every response. \
+                    Header names must conform to RFC 7230 token grammar; reserved headers \
+                    (Content-Length, Transfer-Encoding, Date, Connection) are rejected at startup. \
+                    Empty-string values delete a header from outgoing responses.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "disable_render",
+                field_type: "bool",
+                default: Some("false"),
+                description: "Unregister raster render routes (raster tiles + static images) \
+                    at startup. style.json, sprites and WMTS stay served.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "disable_ogc",
+                field_type: "bool",
+                default: Some("false"),
+                description: "Unregister OGC API routes (`/ogc/*`) at startup. No effect \
+                    unless the binary was built with the `postgres` (OGC) feature.",
+                optional: false,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {
@@ -263,6 +292,17 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 default: Some("3600"),
                 description: "Time-to-live for cache entries in seconds.",
                 optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "dir",
+                field_type: "path",
+                default: None,
+                description: "Scratch / state directory for on-disk subsystems (uploads). \
+                    Storage location only, not a cache eviction policy. Overridden by \
+                    --cache-dir CLI flag and TILESERVER_CACHE_DIR env; falls back to \
+                    the system temp dir + /tileserver-rs when all three are unset.",
+                optional: true,
                 enum_values: None,
             },
         ],

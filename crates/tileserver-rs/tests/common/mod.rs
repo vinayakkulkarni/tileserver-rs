@@ -83,6 +83,23 @@ pub fn empty_test_server() -> TestServer {
     TestServer::new(router)
 }
 
+/// Build a [`TestServer`] from an empty [`AppState`] but a caller-supplied
+/// [`Config`]. Lets route-gating tests flip `server.disable_render` /
+/// `server.disable_ogc` and assert the affected routes are unregistered.
+pub fn test_server_with_config(config: Config) -> TestServer {
+    let state = minimal_app_state();
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        config,
+        None,
+        minimal_runtime(),
+    ));
+    let shared = SharedState::new(controller);
+    TestServer::new(api_router(shared))
+}
+
 // ============================================================
 // MockSource — in-memory tile source for integration tests
 // ============================================================

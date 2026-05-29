@@ -22,6 +22,15 @@ pub struct Cli {
     #[arg(short, long, value_name = "FILE", env = "TILESERVER_CONFIG")]
     pub config: Option<PathBuf>,
 
+    /// Directory for tileserver scratch / cache state.
+    ///
+    /// Precedence (highest first): this flag → `TILESERVER_CACHE_DIR` env →
+    /// `[cache].dir` in the config file → default `std::env::temp_dir()/tileserver-rs`.
+    /// The directory is created (with subsystem subdirs) on startup and the
+    /// resolved path is logged.
+    #[arg(long, value_name = "PATH", env = "TILESERVER_CACHE_DIR")]
+    pub cache_dir: Option<PathBuf>,
+
     /// Host to bind to
     #[arg(long, env = "TILESERVER_HOST")]
     pub host: Option<String>,
@@ -119,9 +128,16 @@ mod tests {
     }
 
     #[test]
-    fn test_cli_config_long() {
-        let cli = parse(&["tileserver-rs", "--config", "/etc/ts.toml"]);
-        assert_eq!(cli.config.unwrap(), PathBuf::from("/etc/ts.toml"));
+    fn parses_config_flag() {
+        let cli = Cli::parse_from(["tileserver-rs", "--config", "/etc/ts.toml"]);
+        assert_eq!(cli.config, Some(PathBuf::from("/etc/ts.toml")));
+        assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn parses_cache_dir_flag() {
+        let cli = Cli::parse_from(["tileserver-rs", "--cache-dir", "/var/cache/ts"]);
+        assert_eq!(cli.cache_dir, Some(PathBuf::from("/var/cache/ts")));
     }
 
     #[test]

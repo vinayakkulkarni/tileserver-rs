@@ -5766,6 +5766,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml_ng"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b4db627b98b36d4203a7b458cf3573730f2bb591b28871d916dfa9efabfd41f"
+dependencies = [
+ "indexmap 2.14.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6283,7 +6296,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.29.0"
+version = "2.30.1"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -6331,6 +6344,7 @@ dependencies = [
  "postgres-types",
  "prometheus",
  "prost 0.14.3",
+ "regex",
  "reqwest 0.13.4",
  "rmcp",
  "rsa",
@@ -6342,6 +6356,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "serde_yaml_ng",
  "sha2 0.11.0",
  "shellexpand",
  "stac",
@@ -6882,6 +6897,12 @@ name = "union-find"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617b646852504df7924cff3b0ca6c8f07a3c91099b48076fab58d4298faf47ca"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"
