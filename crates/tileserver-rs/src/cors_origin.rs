@@ -249,4 +249,38 @@ mod tests {
             "error should mention the source: {msg}"
         );
     }
+
+    #[test]
+    fn display_renders_all_variants() {
+        assert_eq!(CorsOriginPattern::classify("*").unwrap().to_string(), "*");
+        assert_eq!(
+            CorsOriginPattern::classify("https://example.com")
+                .unwrap()
+                .to_string(),
+            "https://example.com"
+        );
+        let glob = CorsOriginPattern::classify("*.example.com")
+            .unwrap()
+            .to_string();
+        assert!(
+            glob.starts_with('/') && glob.ends_with('/'),
+            "matcher renders as /regex/, got: {glob}"
+        );
+    }
+
+    #[test]
+    fn build_allow_origin_skips_invalid_literal_keeps_valid() {
+        // A control char makes the literal fail `HeaderValue::parse` while
+        // staying off the predicate path (no `*`, no `/.../`).
+        let _: AllowOrigin = build_allow_origin(&[
+            "https://good.example.com".to_string(),
+            "bad\nliteral".to_string(),
+        ])
+        .unwrap();
+    }
+
+    #[test]
+    fn build_allow_origin_all_invalid_literals_fall_back_to_any() {
+        let _: AllowOrigin = build_allow_origin(&["bad\nliteral".to_string()]).unwrap();
+    }
 }

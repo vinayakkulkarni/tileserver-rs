@@ -136,4 +136,17 @@ mod tests {
         resp.assert_status_ok();
         assert_eq!(resp.header("X-Good").to_str().unwrap(), "ok");
     }
+
+    #[tokio::test]
+    async fn invalid_value_is_skipped_not_panicked() {
+        // A newline in the value fails `HeaderValue::try_from`; the bad row
+        // must be skipped while a sibling valid row still applies.
+        let mut h = HashMap::new();
+        h.insert("X-Bad".to_string(), "bad\nvalue".to_string());
+        h.insert("X-Good".to_string(), "ok".to_string());
+        let server = TestServer::new(router_with(Some(h)));
+        let resp = server.get("/ping").await;
+        resp.assert_status_ok();
+        assert_eq!(resp.header("X-Good").to_str().unwrap(), "ok");
+    }
 }
