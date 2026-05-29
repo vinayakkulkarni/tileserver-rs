@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.31.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.1...v2.31.0) (2026-05-29)
+
+
+### Features
+
+* **config:** bundle a — yaml configs, extra headers, cors patterns, --cache-dir, disable_render/ogc ([#1040](https://github.com/vinayakkulkarni/tileserver-rs/issues/1040)) ([2f5ca42](https://github.com/vinayakkulkarni/tileserver-rs/commit/2f5ca420a027022dd2a0f4c20cefb40713d7be0c))
+
+
+### Bug Fixes
+
+* **deps:** bump @lucide/vue from 1.16.0 to 1.17.0 ([#1041](https://github.com/vinayakkulkarni/tileserver-rs/issues/1041)) ([06eece9](https://github.com/vinayakkulkarni/tileserver-rs/commit/06eece9390b8046d001cc8200430f0023f73a5b5))
+
+
+### Miscellaneous
+
+* ignore omo agents artefacts ([4cca134](https://github.com/vinayakkulkarni/tileserver-rs/commit/4cca13444e6f1971324f5658ee3afcefb1ea688b))
+
 ## [2.30.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.0...v2.30.1) (2026-05-28)
 
 
