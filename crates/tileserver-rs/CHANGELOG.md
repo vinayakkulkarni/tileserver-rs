@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.31.0...v2.31.1) (2026-05-29)
+
+
+### Miscellaneous
+
+* sync Cargo.lock self-version to 2.31.0 ([c502b7f](https://github.com/vinayakkulkarni/tileserver-rs/commit/c502b7fa41b7ced7864b12a088fc3f9bcd5a3ff7))
+
 ## [2.31.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.1...v2.31.0) (2026-05-29)
 
 
