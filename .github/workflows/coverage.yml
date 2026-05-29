@@ -166,10 +166,22 @@ jobs:
           name: lcov-all-features
 
       - name: Run cargo-crap
+        # `|| true` keeps this advisory: the report is still written + posted
+        # even when functions exceed the threshold (cargo-crap exits non-zero).
         run: |
           cargo crap --path crates/tileserver-rs \
             --lcov lcov-all-features.info \
             --exclude 'tests/**' --exclude 'benches/**' \
             --allow 'crates/mbgl-sys/**' \
             --threshold 30 \
-            --format markdown
+            --format pr-comment \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --commit-ref "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --output crap-report.md || true
+
+      - name: Post CRAP report as PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: cargo-crap
+          path: crap-report.md
