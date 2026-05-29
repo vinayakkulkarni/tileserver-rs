@@ -24,6 +24,7 @@ fn bench_cache(c: &mut Criterion) {
             z: 14,
             x: 8192,
             y: 5461,
+            encoding: TileCompression::None,
         };
         let tile = make_tile(4096);
         rt.block_on(cache.insert(key.clone(), tile));
@@ -37,6 +38,7 @@ fn bench_cache(c: &mut Criterion) {
             z: 14,
             x: 9999,
             y: 9999,
+            encoding: TileCompression::None,
         };
         b.iter(|| rt.block_on(black_box(cache.get(&key))));
     });
@@ -52,6 +54,7 @@ fn bench_cache(c: &mut Criterion) {
                     z: 14,
                     x: counter,
                     y: counter,
+                    encoding: TileCompression::None,
                 };
                 counter = counter.wrapping_add(1);
                 rt.block_on(cache.insert(black_box(key), black_box(tile.clone())));

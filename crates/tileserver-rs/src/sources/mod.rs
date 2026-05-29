@@ -90,7 +90,7 @@ impl FromStr for TileFormat {
 
 /// Tile compression enum
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TileCompression {
     None,
     Gzip,

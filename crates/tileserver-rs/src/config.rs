@@ -36,6 +36,9 @@ pub struct Config {
     /// Global in-process tile cache
     #[serde(default)]
     pub cache: CacheConfig,
+    /// Tile body compression negotiation (`Accept-Encoding` → br/zstd/gzip)
+    #[serde(default)]
+    pub compression: CompressionConfig,
     /// Model Context Protocol (MCP) server configuration.
     ///
     /// Only present when the binary is compiled with `--features mcp`.
@@ -226,6 +229,57 @@ impl Default for CacheConfig {
             ttl_seconds: default_global_cache_ttl_seconds(),
             dir: None,
         }
+    }
+}
+
+/// Tile body compression negotiation knobs (`[compression]`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompressionConfig {
+    /// Brotli quality, 0-11 (default: 5 — balances ratio against encode latency).
+    #[serde(default = "default_br_quality")]
+    pub br_quality: u8,
+    /// Zstandard level, 1-22 (default: 3).
+    #[serde(default = "default_zstd_level")]
+    pub zstd_level: i32,
+    /// When `true`, never decode/re-encode — always serve the source's stored
+    /// encoding regardless of `Accept-Encoding` (today's passthrough behaviour).
+    #[serde(default)]
+    pub minimal_recompression: bool,
+}
+
+fn default_br_quality() -> u8 {
+    5
+}
+fn default_zstd_level() -> i32 {
+    3
+}
+
+impl Default for CompressionConfig {
+    fn default() -> Self {
+        Self {
+            br_quality: default_br_quality(),
+            zstd_level: default_zstd_level(),
+            minimal_recompression: false,
+        }
+    }
+}
+
+impl CompressionConfig {
+    /// Validate the compression knobs against their accepted ranges.
+    pub fn validate(&self) -> crate::error::Result<()> {
+        if self.br_quality > 11 {
+            return Err(crate::error::TileServerError::ConfigError(format!(
+                "compression.br_quality must be 0-11, got {}",
+                self.br_quality
+            )));
+        }
+        if !(1..=22).contains(&self.zstd_level) {
+            return Err(crate::error::TileServerError::ConfigError(format!(
+                "compression.zstd_level must be 1-22, got {}",
+                self.zstd_level
+            )));
+        }
+        Ok(())
     }
 }
 
@@ -1075,6 +1129,7 @@ impl Config {
             }
         }
         validate_extra_response_headers(self.server.extra_response_headers.as_ref())?;
+        self.compression.validate()?;
         Ok(())
     }
 
@@ -1201,6 +1256,74 @@ fn validate_extra_response_headers(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_compression_defaults() {
+        let c = CompressionConfig::default();
+        assert_eq!(c.br_quality, 5);
+        assert_eq!(c.zstd_level, 3);
+        assert!(!c.minimal_recompression);
+    }
+
+    #[test]
+    fn test_compression_present_on_default_config() {
+        let config = Config::default();
+        assert_eq!(config.compression.br_quality, 5);
+        assert_eq!(config.compression.zstd_level, 3);
+    }
+
+    #[test]
+    fn test_compression_deserialize_from_toml() {
+        let toml = r#"
+[compression]
+br_quality = 9
+zstd_level = 19
+minimal_recompression = true
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.compression.br_quality, 9);
+        assert_eq!(config.compression.zstd_level, 19);
+        assert!(config.compression.minimal_recompression);
+    }
+
+    #[test]
+    fn test_compression_validate_rejects_br_quality_over_11() {
+        let c = CompressionConfig {
+            br_quality: 12,
+            ..Default::default()
+        };
+        assert!(c.validate().is_err());
+    }
+
+    #[test]
+    fn test_compression_validate_rejects_zstd_level_out_of_range() {
+        let too_low = CompressionConfig {
+            zstd_level: 0,
+            ..Default::default()
+        };
+        let too_high = CompressionConfig {
+            zstd_level: 23,
+            ..Default::default()
+        };
+        assert!(too_low.validate().is_err());
+        assert!(too_high.validate().is_err());
+    }
+
+    #[test]
+    fn test_compression_validate_accepts_boundaries() {
+        let lo = CompressionConfig {
+            br_quality: 0,
+            zstd_level: 1,
+            minimal_recompression: false,
+        };
+        let hi = CompressionConfig {
+            br_quality: 11,
+            zstd_level: 22,
+            minimal_recompression: true,
+        };
+        assert!(lo.validate().is_ok());
+        assert!(hi.validate().is_ok());
+    }
 
     #[test]
     fn test_default_config() {

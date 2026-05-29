@@ -6308,6 +6308,7 @@ dependencies = [
  "axum",
  "axum-test",
  "base64",
+ "brotli",
  "bytes",
  "clap",
  "cql2",
@@ -6375,6 +6376,7 @@ dependencies = [
  "urlencoding",
  "utoipa",
  "uuid",
+ "zstd",
 ]
 
 [[package]]

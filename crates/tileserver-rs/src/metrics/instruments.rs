@@ -88,3 +88,10 @@ pub(super) static RENDER_ERRORS_TOTAL: LazyLock<Counter<u64>> = LazyLock::new(||
         .with_description("Native MapLibre render failures by reason")
         .build()
 });
+
+pub(super) static TILE_COMPRESSION_TOTAL: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    meter()
+        .u64_counter("tile_compression_total")
+        .with_description("Tile encoding negotiation outcomes by source, encoding, and action")
+        .build()
+});

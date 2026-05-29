@@ -144,6 +144,7 @@ const PROTOCOL_SUPPORT = {
   raster: { 'tileserver-gl': '✓', 'tileserver-rs': '✓', martin: '✗', titiler: '✗' },
   ogc: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '✗' },
   stac: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '◐' },
+  compression: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '◐', titiler: '✗' },
 };
 
 // Test tiles - coordinates calculated from actual data bounds using:
@@ -660,6 +661,78 @@ async function benchmarkServerStac(serverKey) {
   return results;
 }
 
+// ─── Compression Benchmark ─────────────────────────────────────────────────────
+
+const COMPRESSION_ENCODINGS = ['br', 'zstd', 'gzip', 'identity'];
+
+// Representative mid-zoom tile for compression measurement
+const COMPRESSION_TILE = TEST_TILES.pmtiles[3]; // { z: 13, x: 4352, y: 2986 }
+
+async function benchmarkServerCompression(serverKey) {
+  const server = SERVERS[serverKey];
+  if (!server) return [];
+
+  if (!server.pmtiles) {
+    console.log(chalk.gray(`  ${server.name}: PMTiles N/A (protocol not supported), skipping`));
+    return [];
+  }
+
+  const results = [];
+  const tile = COMPRESSION_TILE;
+  const url = server.pmtiles.tileUrl(tile.z, tile.x, tile.y);
+
+  console.log(server.color(`\n  Testing ${server.name} (Accept-Encoding negotiation)...`));
+
+  for (const encoding of COMPRESSION_ENCODINGS) {
+    const name = `pmtiles Accept-Encoding: ${encoding}`;
+    process.stdout.write(chalk.gray(`    ${name.padEnd(32)}... `));
+
+    try {
+      // Probe: fetch once to capture actual Content-Encoding and payload size
+      const probeRes = await fetch(url, { headers: { 'Accept-Encoding': encoding } });
+      const probeBytes = (await probeRes.arrayBuffer()).byteLength;
+      const actualEncoding = probeRes.headers.get('Content-Encoding') || 'identity';
+
+      // Load test
+      const result = await runBenchmark(url, `${server.name} ${name}`, {
+        headers: { 'Accept-Encoding': encoding },
+      });
+
+      const reqPerSec = (result.requests.total / BENCHMARK_CONFIG.duration).toFixed(0);
+      const latencyAvg = result.latency.average.toFixed(2);
+      const errors = result.errors + (result.non2xx || 0);
+
+      let perfColor = chalk.green;
+      if (result.latency.average > 50) perfColor = chalk.yellow;
+      if (result.latency.average > 200 || errors > 0) perfColor = chalk.red;
+
+      const sizeStr = `${formatBytes(probeBytes)} (${actualEncoding})`;
+      console.log(perfColor(`${reqPerSec} req/s, ${latencyAvg}ms avg, ${sizeStr}${errors ? ` (${errors} errors)` : ''}`));
+
+      results.push({
+        server: server.name,
+        serverId: serverKey,
+        format: 'compression',
+        zoom: tile.z,
+        desc: name,
+        requests: result.requests.total,
+        throughput: result.throughput.total,
+        latencyAvg: result.latency.average,
+        latencyP50: result.latency.p50,
+        latencyP99: result.latency.p99,
+        errors,
+        encoding,
+        payloadBytes: probeBytes,
+        actualEncoding,
+      });
+    } catch (err) {
+      console.log(chalk.red(`Error: ${err.message}`));
+    }
+  }
+
+  return results;
+}
+
 // ─── Results Display ───────────────────────────────────────────────────────────
 
 /**
@@ -715,6 +788,46 @@ function printResults(results, format) {
   }
 
   console.log(`\n${chalk.bold(format.toUpperCase() + ' Results:')}`);
+  console.log(table.toString());
+}
+
+function printCompressionResults(results) {
+  const filtered = results.filter((r) => r.format === 'compression');
+  if (filtered.length === 0) return;
+
+  const table = new Table({
+    head: [
+      chalk.bold('Server'),
+      chalk.bold('Encoding'),
+      chalk.bold('Actual'),
+      chalk.bold('Payload'),
+      chalk.bold('Req/sec'),
+      chalk.bold('Throughput'),
+      chalk.bold('Avg (ms)'),
+      chalk.bold('P99 (ms)'),
+      chalk.bold('Errors'),
+    ],
+    colAligns: ['left', 'left', 'left', 'right', 'right', 'right', 'right', 'right', 'right'],
+  });
+
+  for (const r of filtered) {
+    const server = SERVERS[r.serverId];
+    const colorFn = server?.color || chalk.white;
+    const matchStr = r.encoding === r.actualEncoding ? '' : chalk.red(' ← fallback');
+    table.push([
+      colorFn(r.server),
+      r.encoding,
+      (r.actualEncoding || 'identity') + matchStr,
+      formatBytes(r.payloadBytes),
+      (r.requests / BENCHMARK_CONFIG.duration).toFixed(0),
+      formatBytes(r.throughput / BENCHMARK_CONFIG.duration) + '/s',
+      r.latencyAvg.toFixed(2),
+      r.latencyP99.toFixed(2),
+      r.errors > 0 ? chalk.red(r.errors) : '0',
+    ]);
+  }
+
+  console.log(`\n${chalk.bold('Compression Results:')}`);
   console.log(table.toString());
 }
 
@@ -923,7 +1036,7 @@ ${generateProtocolMatrix()}### Summary
 
   md += `\n### Detailed Results\n\n`;
 
-  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac']) {
+  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']) {
     const filtered = results.filter((r) => r.format === format);
     if (filtered.length === 0) continue;
 
@@ -989,7 +1102,7 @@ simultaneously to fill the viewport. This benchmark measures **time to fill one 
 
   md += `\n### Detailed Results\n\n`;
 
-  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac']) {
+  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']) {
     const filtered = results.filter((r) => r.format === format);
     if (filtered.length === 0) continue;
 
@@ -1034,7 +1147,7 @@ async function main() {
   program
     .option('-s, --server <server>', 'Server to test: tileserver-rs, martin, tileserver-gl, titiler, or all', 'all')
     .option('-f, --format <format>', 'Alias for --type (legacy)', undefined)
-    .option('-t, --type <type>', 'Benchmark type: pmtiles, mbtiles, postgres, postgres_function, cog, raster, ogc, stac, or all', 'all')
+    .option('-t, --type <type>', 'Benchmark type: pmtiles, mbtiles, postgres, postgres_function, cog, raster, ogc, stac, compression, or all', 'all')
     .option('-d, --duration <seconds>', 'Test duration in seconds (single mode)', '10')
     .option('-c, --connections <num>', 'Number of connections (single mode)', '100')
     .option('-m, --mode <mode>', 'Benchmark mode: single (throughput) or grid (viewport simulation)', 'single')
@@ -1070,7 +1183,7 @@ async function main() {
   const typeArg = opts.type ?? opts.format ?? 'all';
   const formatsToTest =
     typeArg === 'all'
-      ? ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac']
+      ? ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']
       : [typeArg];
 
   // Check server availability
@@ -1115,6 +1228,8 @@ async function main() {
         results = await benchmarkServerOgc(serverId);
       } else if (format === 'stac') {
         results = await benchmarkServerStac(serverId);
+      } else if (format === 'compression') {
+        results = await benchmarkServerCompression(serverId);
       } else if (mode === 'grid') {
         results = await benchmarkServerGrid(serverId, format, gridConfig);
       } else {
@@ -1126,6 +1241,8 @@ async function main() {
     if (!opts.markdown) {
       if (mode === 'grid') {
         printGridResults(allResults, format);
+      } else if (format === 'compression') {
+        printCompressionResults(allResults);
       } else {
         printResults(allResults, format);
       }

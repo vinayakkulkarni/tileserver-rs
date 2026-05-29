@@ -87,6 +87,7 @@ impl SourceManager {
                 z,
                 x,
                 y,
+                encoding: crate::sources::TileCompression::None,
             };
             if let Some(cached) = cache.get(&key).await {
                 crate::metrics::cache_hit_recorded(id);
@@ -758,6 +759,7 @@ mod tests {
             z: 1,
             x: 2,
             y: 3,
+            encoding: crate::sources::TileCompression::None,
         };
         let cached = cache.get(&key).await;
         assert!(cached.is_some());
@@ -933,6 +935,7 @@ mod tests {
             z: 2,
             x: 1,
             y: 1,
+            encoding: crate::sources::TileCompression::None,
         };
         assert!(cache.get(&key).await.is_none());
     }

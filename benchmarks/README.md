@@ -30,6 +30,7 @@ pnpm --filter @tileserver-rs/benchmarks run bench
 | `raster`             | tileserver-gl, tileserver-rs                      | Native MapLibre raster rendering          |
 | **`ogc`**            | **tileserver-rs only**                            | OGC API Features (CQL2, schema, CRUD)     |
 | **`stac`**           | **tileserver-rs, titiler**                        | STAC raster tiles (dynamic + static)      |
+| **`compression`**    | **tileserver-rs, martin**                        | Brotli/zstd Accept-Encoding negotiation — payload size + throughput vs martin's gzip-only |
 
 Pass `--type all` (default) to run everything. The harness auto-skips servers
 that don't support a given protocol with an `N/A (protocol not supported)`
@@ -82,6 +83,26 @@ Endpoints exercised:
 > internet latency. titiler hits a local COG fixture (faster baseline) — this is
 > intentional: it shows the cost of the STAC abstraction.
 
+## Compression benchmark
+
+Compares tileserver-rs's Brotli/zstd Accept-Encoding negotiation against
+[martin](https://maplibre.org/martin/)'s gzip-only baseline. For each encoding
+(`br`, `zstd`, `gzip`, `identity`) the harness:
+
+1. Issues a single `HEAD`/`GET` request with `Accept-Encoding: <encoding>` and
+   reads the `Content-Encoding` response header + payload byte size
+2. Runs a 10-second, 100-connection autocannon throughput test at the same encoding
+
+The output table shows requested encoding, actual encoding the server returned,
+compressed payload size, req/s, and latency. If a server doesn't support an
+encoding (e.g. martin receives `br` but only implements `gzip`), it falls back
+silently and the "Actual" column flags the mismatch with `← fallback` in red.
+
+```bash
+docker compose -f benchmarks/docker-compose.yml --profile all up -d
+pnpm --filter @tileserver-rs/benchmarks run bench -- --type compression
+```
+
 ## Profiles
 
 `docker-compose.yml` ships with these profiles:
@@ -100,7 +121,7 @@ docker compose -f benchmarks/docker-compose.yml --profile titiler up -d titiler
 node run-benchmarks.js [options]
 
   -s, --server <server>      tileserver-rs | tileserver-gl | martin | titiler | all  (default: all)
-  -t, --type <type>          pmtiles | mbtiles | postgres | postgres_function | cog | raster | ogc | stac | all
+  -t, --type <type>          pmtiles | mbtiles | postgres | postgres_function | cog | raster | ogc | stac | compression | all
   -d, --duration <seconds>   measurement duration (single mode)             (default: 10)
   -c, --connections <num>    concurrent connections (single mode)           (default: 100)
   -m, --mode <mode>          single | grid                                  (default: single)

@@ -8,7 +8,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{
         HeaderMap, HeaderValue,
-        header::{CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE},
+        header::{ACCEPT_ENCODING, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE, VARY},
     },
     response::{IntoResponse, Response},
 };
@@ -93,6 +93,7 @@ pub(crate) async fn get_tile(
     State(shared): State<SharedState>,
     Path(params): Path<TileParams>,
     Query(query): Query<std::collections::HashMap<String, String>>,
+    req_headers: HeaderMap,
 ) -> Result<Response, TileServerError> {
     let state = shared.load();
 
@@ -279,18 +280,105 @@ pub(crate) async fn get_tile(
         }
     };
 
+    let accept_encoding = req_headers
+        .get(ACCEPT_ENCODING)
+        .and_then(|v| v.to_str().ok());
+    let compression_cfg = shared.config().compression.clone();
+    let tile = negotiate_tile_encoding(
+        &state.sources,
+        &compression_cfg,
+        TileId {
+            source: &params.source,
+            z: params.z,
+            x: params.x,
+            y,
+        },
+        tile,
+        accept_encoding,
+    )
+    .await?;
+
     let mut headers = HeaderMap::new();
     headers.insert(
         CONTENT_TYPE,
         HeaderValue::from_static(tile.format.content_type()),
     );
     headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+    // Vary is mandatory on every tile response: without it CDNs may serve a
+    // wrong-encoding cached copy to a client that does not accept it.
+    headers.insert(VARY, HeaderValue::from_static("Accept-Encoding"));
 
     if let Some(encoding) = tile.compression.content_encoding() {
         headers.insert(CONTENT_ENCODING, HeaderValue::from_static(encoding));
     }
 
     Ok((headers, tile.data).into_response())
+}
+
+struct TileId<'a> {
+    source: &'a str,
+    z: u8,
+    x: u32,
+    y: u32,
+}
+
+/// Negotiate the response `Content-Encoding` for `tile` and re-encode if needed.
+///
+/// Passthrough (target == source encoding) returns the tile untouched. Otherwise
+/// the re-encoded variant is looked up in / stored to the global tile cache keyed
+/// by `(source, z, x, y, target)`, so the re-encode cost is paid once per
+/// `(tile, encoding)` pair and repeat requests hit the cache.
+async fn negotiate_tile_encoding(
+    sources: &sources::SourceManager,
+    cfg: &crate::config::CompressionConfig,
+    id: TileId<'_>,
+    tile: sources::TileData,
+    accept_encoding: Option<&str>,
+) -> Result<sources::TileData, TileServerError> {
+    let target =
+        crate::compression::negotiate(accept_encoding, tile.compression, tile.data.len(), cfg);
+    let encoding_label = |c: sources::TileCompression| c.content_encoding().unwrap_or("identity");
+
+    if target == tile.compression {
+        crate::metrics::compression_recorded(
+            id.source,
+            encoding_label(target),
+            crate::metrics::CompressionAction::Passthrough,
+        );
+        return Ok(tile);
+    }
+
+    let cache = sources.cache();
+    let key = cache.map(|_| crate::cache::TileCacheKey {
+        source_id: id.source.into(),
+        z: id.z,
+        x: id.x,
+        y: id.y,
+        encoding: target,
+    });
+
+    if let (Some(cache), Some(key)) = (cache, key.as_ref())
+        && let Some(hit) = cache.get(key).await
+    {
+        crate::metrics::compression_recorded(
+            id.source,
+            encoding_label(target),
+            crate::metrics::CompressionAction::TranscodeHit,
+        );
+        return Ok(hit);
+    }
+
+    let recoded = crate::compression::recode(&tile, target, cfg)?;
+    crate::metrics::compression_recorded(
+        id.source,
+        encoding_label(target),
+        crate::metrics::CompressionAction::TranscodeMiss,
+    );
+
+    if let (Some(cache), Some(key)) = (cache, key) {
+        cache.insert(key, recoded.clone()).await;
+    }
+    Ok(recoded)
 }
 
 /// Get a tile as GeoJSON (helper function)
