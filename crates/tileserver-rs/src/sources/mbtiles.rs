@@ -319,6 +319,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Pbf);
@@ -354,6 +356,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Png);
@@ -388,6 +392,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Jpeg);
@@ -422,6 +428,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Mlt);
@@ -458,6 +466,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.minzoom, 5);
@@ -496,6 +506,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let b = meta.bounds.unwrap();
@@ -541,6 +553,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -578,6 +592,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -615,6 +631,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "DB Name");
@@ -652,6 +670,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.attribution.as_deref(), Some("Config Attribution"));
@@ -684,6 +704,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "empty");
@@ -745,6 +767,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         }
     }
 

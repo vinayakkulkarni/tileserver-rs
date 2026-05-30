@@ -21,6 +21,18 @@ type = "mbtiles"
 path = "../../data/tiles/zurich_switzerland.mbtiles"
 name = "Zurich Switzerland"
 
+[[sources]]
+id = "dir-tiles"
+type = "dir"
+path = "tests/fixtures/tiles-dir"
+name = "Directory Tiles"
+
+[[sources]]
+id = "tar-tiles"
+type = "tar"
+path = "tests/fixtures/tiles.tar"
+name = "Tar Tiles"
+
 [[styles]]
 id = "protomaps-light"
 path = "../../data/styles/protomaps-light/style.json"

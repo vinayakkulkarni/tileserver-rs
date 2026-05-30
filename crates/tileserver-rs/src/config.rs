@@ -559,6 +559,18 @@ pub struct SourceConfig {
     /// which preserves pre-4.0 behaviour (first asset wins where opaque).
     #[serde(default)]
     pub pixel_selection: PixelSelectionMethod,
+    /// Tile path layout for `dir` and `tar` sources. `None` defaults to
+    /// `{z}/{x}/{y}.{ext}`. Must contain the `{z}`, `{x}`, and `{y}`
+    /// placeholders; `{ext}` is optional and is replaced with the detected
+    /// (or `serve_as`) extension. Example: `{z}/{x}/{y}@2x.png`.
+    #[serde(default)]
+    pub tile_path_template: Option<String>,
+    /// Tile addressing scheme for `dir` and `tar` sources. `false` (default)
+    /// serves XYZ (Slippy / north-up) — what tippecanoe emits by default and
+    /// what web clients expect. `true` flips the Y axis for TMS (south-up)
+    /// archives.
+    #[serde(default)]
+    pub tms: bool,
 }
 
 /// Pixel-selection strategy for STAC mosaic compositing.
@@ -618,6 +630,12 @@ impl PixelSelectionMethod {
 pub enum SourceType {
     PMTiles,
     MBTiles,
+    /// Directory of tiles on disk (`{z}/{x}/{y}.{ext}`). Zero startup cost;
+    /// each fetch is a direct filesystem read.
+    Dir,
+    /// `.tar` (or `.tar.gz`/`.tar.br`/`.tar.zst`) archive of tiles. Builds an
+    /// in-memory `(z, x, y)` index at startup, then serves via random access.
+    Tar,
     #[cfg(feature = "postgres")]
     Postgres,
     #[cfg(feature = "raster")]

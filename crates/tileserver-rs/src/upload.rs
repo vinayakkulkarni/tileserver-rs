@@ -63,6 +63,8 @@ fn source_type_label(st: &SourceType) -> &'static str {
     match st {
         SourceType::MBTiles => "mbtiles",
         SourceType::PMTiles => "pmtiles",
+        SourceType::Dir => "dir",
+        SourceType::Tar => "tar",
         #[cfg(feature = "postgres")]
         SourceType::Postgres => "postgres",
         #[cfg(feature = "raster")]
@@ -173,6 +175,8 @@ pub async fn upload_file(
         max_items: 100,
         stac_bbox: None,
         pixel_selection: crate::config::PixelSelectionMethod::First,
+        tile_path_template: None,
+        tms: false,
     };
 
     let mut temp_manager = SourceManager::new();

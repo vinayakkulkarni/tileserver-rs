@@ -296,6 +296,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::default(),
+            tile_path_template: None,
+            tms: false,
         }
     }
 

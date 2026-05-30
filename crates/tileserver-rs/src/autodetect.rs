@@ -42,6 +42,8 @@ fn source_type_suffix(source_type: &SourceType) -> &'static str {
     match source_type {
         SourceType::PMTiles => "pmtiles",
         SourceType::MBTiles => "mbtiles",
+        SourceType::Dir => "dir",
+        SourceType::Tar => "tar",
         #[cfg(feature = "postgres")]
         SourceType::Postgres => "postgres",
         #[cfg(feature = "raster")]
@@ -166,6 +168,8 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
                 max_items: 100,
                 stac_bbox: None,
                 pixel_selection: crate::config::PixelSelectionMethod::First,
+                tile_path_template: None,
+                tms: false,
             });
             report.sources.push(AutoDetectedSource {
                 id,
@@ -308,6 +312,8 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         });
         report.sources.push(AutoDetectedSource {
             id,

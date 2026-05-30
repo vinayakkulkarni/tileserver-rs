@@ -1,0 +1,33 @@
+# Directory-of-tiles source example.
+#
+# Serves a `{z}/{x}/{y}.{ext}` pyramid straight from disk with zero startup
+# index cost — every tile fetch is a direct filesystem read. This is the
+# lowest-friction format: point it at tippecanoe `--output-to-directory`
+# output, a `wget --recursive` mirror, or any on-disk tile pyramid and go.
+
+[server]
+host = "0.0.0.0"
+port = 8080
+cors_origins = ["*"]
+
+# Minimal: a standard {z}/{x}/{y}.pbf pyramid (XYZ / north-up).
+[[sources]]
+id = "tippecanoe-output"
+type = "dir"
+path = "/data/tiles/openmaptiles/"
+name = "OpenMapTiles (directory)"
+attribution = "© OpenMapTiles © OpenStreetMap contributors"
+
+# Custom layout: retina PNG tiles with a non-default template.
+[[sources]]
+id = "wget-mirror"
+type = "dir"
+path = "/data/mirrors/example-tiles/"
+tile_path_template = "{z}/{x}/{y}@2x.png"
+
+# TMS (south-up) archive: flip the Y axis to match the on-disk rows.
+[[sources]]
+id = "tms-pyramid"
+type = "dir"
+path = "/data/tiles/legacy-tms/"
+tms = true

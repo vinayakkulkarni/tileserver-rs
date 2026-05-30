@@ -11,6 +11,7 @@ use crate::config::{SourceConfig, SourceType};
 use crate::error::{Result, TileServerError};
 #[cfg(feature = "raster")]
 use crate::sources::cog::CogSource;
+use crate::sources::dir::DirSource;
 #[cfg(feature = "duckdb")]
 use crate::sources::duckdb::DuckDbSource;
 #[cfg(feature = "geoparquet")]
@@ -26,6 +27,7 @@ use crate::sources::postgres::{
 };
 #[cfg(feature = "stac")]
 use crate::sources::stac::StacSource;
+use crate::sources::tar::TarSource;
 use crate::sources::{TileMetadata, TileSource};
 #[cfg(feature = "postgres")]
 use tokio_postgres::types::Type;
@@ -349,6 +351,8 @@ impl SourceManager {
                 }
             }
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),
+            SourceType::Dir => Arc::new(DirSource::from_file(config).await?),
+            SourceType::Tar => Arc::new(TarSource::from_file(config).await?),
             #[cfg(feature = "postgres")]
             SourceType::Postgres => {
                 return Err(TileServerError::ConfigError(
@@ -1033,6 +1037,8 @@ mod tests {
             max_items: 100,
             stac_bbox: None,
             pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         }
     }
 

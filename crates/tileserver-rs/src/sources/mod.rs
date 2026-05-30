@@ -7,6 +7,7 @@ use std::str::FromStr;
 pub mod cog;
 #[cfg(feature = "raster")]
 pub mod dataset_cache;
+pub mod dir;
 #[cfg(feature = "duckdb")]
 pub mod duckdb;
 #[cfg(feature = "geoparquet")]
@@ -18,6 +19,8 @@ pub mod pmtiles;
 pub mod postgres;
 #[cfg(feature = "stac")]
 pub mod stac;
+pub mod tar;
+pub mod tile_layout;
 
 pub use manager::SourceManager;
 
