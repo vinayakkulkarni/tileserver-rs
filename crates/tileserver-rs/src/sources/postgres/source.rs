@@ -278,6 +278,7 @@ impl TileSource for PostgresFunctionSource {
             z,
             x,
             y,
+            encoding: TileCompression::None,
         });
 
         if let (Some(cache), Some(key)) = (&self.cache, &cache_key)

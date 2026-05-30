@@ -24,6 +24,7 @@ import {
   Satellite,
   FileCode2,
   Plug,
+  FileArchive,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -238,6 +239,16 @@ export function useMarketingPage() {
       },
     },
     {
+      feature: 'Cached brotli/zstd compression',
+      values: {
+        'tileserver-rs': '✓',
+        martin: '◐',
+        'tileserver-gl': '✗',
+        pg_tileserv: '✗',
+        titiler: '✗',
+      },
+    },
+    {
       feature: 'Raster tiles from COG',
       values: {
         'tileserver-rs': '✓',
@@ -374,6 +385,12 @@ export function useMarketingPage() {
       label: 'MB/s throughput',
       detail: 'Steady across the city zoom band',
       prefix: '~',
+    },
+    {
+      icon: FileArchive,
+      value: 14,
+      label: '× faster brotli vs martin',
+      detail: 'Cached re-encode: 1,478 vs 107 req/s',
     },
   ];
 

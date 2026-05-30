@@ -36,6 +36,8 @@ sha2             = { workspace = true }
 thiserror        = { workspace = true }
 geozero          = { workspace = true }
 flate2           = { workspace = true }
+brotli           = { workspace = true }
+zstd             = { workspace = true }
 # MLT (MapLibre Tiles) transcoding support (optional)
 mlt-core         = { workspace = true, optional = true }
 prost            = { workspace = true, optional = true }

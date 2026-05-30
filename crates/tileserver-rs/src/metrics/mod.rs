@@ -20,9 +20,9 @@ mod server;
 pub use http_middleware::record_http_request;
 pub use labels::{Cardinality, LabelBank};
 pub use recorder::{
-    HttpEvent, HttpStatusClass, RenderEvent, RenderOutcome, TileEvent, TileOutcome,
-    cache_hit_recorded, cache_miss_recorded, http_request_recorded, init, render_recorded,
-    tile_request_recorded,
+    CompressionAction, HttpEvent, HttpStatusClass, RenderEvent, RenderOutcome, TileEvent,
+    TileOutcome, cache_hit_recorded, cache_miss_recorded, compression_recorded,
+    http_request_recorded, init, render_recorded, tile_request_recorded,
 };
 pub use server::{MetricsServerHandle, spawn_metrics_server};
 

@@ -12,7 +12,7 @@ use opentelemetry::KeyValue;
 use super::instruments::{
     HTTP_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_IN_FLIGHT, HTTP_REQUESTS_TOTAL,
     RENDER_DURATION_SECONDS, RENDER_ERRORS_TOTAL, TILE_CACHE_HITS_TOTAL, TILE_CACHE_MISSES_TOTAL,
-    TILE_REQUEST_BYTES, TILE_REQUEST_DURATION_SECONDS, TILE_REQUESTS_TOTAL,
+    TILE_COMPRESSION_TOTAL, TILE_REQUEST_BYTES, TILE_REQUEST_DURATION_SECONDS, TILE_REQUESTS_TOTAL,
 };
 use super::labels::{Cardinality, LabelBank};
 use crate::sources::TileFormat;
@@ -151,6 +151,38 @@ pub fn cache_miss_recorded(source: &str) {
     TILE_CACHE_MISSES_TOTAL.add(1, &labels);
 }
 
+/// What the encoding-negotiation step did for a tile request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompressionAction {
+    /// Source encoding was already acceptable — served as-is.
+    Passthrough,
+    /// Re-encoded variant served from the tile cache (no re-encode this request).
+    TranscodeHit,
+    /// Decoded + re-encoded this request, then cached.
+    TranscodeMiss,
+}
+
+impl CompressionAction {
+    fn as_label(self) -> &'static str {
+        match self {
+            CompressionAction::Passthrough => "passthrough",
+            CompressionAction::TranscodeHit => "transcode_hit",
+            CompressionAction::TranscodeMiss => "transcode_miss",
+        }
+    }
+}
+
+/// Record an encoding-negotiation outcome. `encoding` is the wire
+/// `Content-Encoding` served (`identity` when uncompressed).
+pub fn compression_recorded(source: &str, encoding: &str, action: CompressionAction) {
+    let attrs: [KeyValue; 3] = [
+        KeyValue::new("source", source.to_string()),
+        KeyValue::new("encoding", encoding.to_string()),
+        KeyValue::new("action", action.as_label()),
+    ];
+    TILE_COMPRESSION_TOTAL.add(1, &attrs);
+}
+
 pub fn http_request_recorded(event: HttpEvent<'_>) {
     let status_class = HttpStatusClass::from_code(event.status).as_label();
     let attrs: [KeyValue; 3] = [
@@ -279,6 +311,25 @@ mod tests {
         cache_hit_recorded("source-x");
         cache_miss_recorded("source-x");
         cache_miss_recorded("source-y");
+    }
+
+    #[test]
+    fn compression_recorded_all_actions_with_noop_meter() {
+        init(Cardinality::Strict);
+        compression_recorded("src", "br", CompressionAction::Passthrough);
+        compression_recorded("src", "zstd", CompressionAction::TranscodeHit);
+        compression_recorded("src", "gzip", CompressionAction::TranscodeMiss);
+        compression_recorded("src", "identity", CompressionAction::TranscodeMiss);
+    }
+
+    #[test]
+    fn compression_action_labels_are_distinct() {
+        assert_eq!(CompressionAction::Passthrough.as_label(), "passthrough");
+        assert_eq!(CompressionAction::TranscodeHit.as_label(), "transcode_hit");
+        assert_eq!(
+            CompressionAction::TranscodeMiss.as_label(),
+            "transcode_miss"
+        );
     }
 
     #[test]

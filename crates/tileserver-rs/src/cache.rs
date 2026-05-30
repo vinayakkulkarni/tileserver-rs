@@ -8,15 +8,21 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::sources::TileData;
+use crate::sources::{TileCompression, TileData};
 
 /// Cache key: uniquely identifies a tile across all sources.
+///
+/// `encoding` makes each `(tile, content-encoding)` pair a distinct entry so a
+/// brotli re-encode never collides with the gzip source bytes. Source-level
+/// caching stores the tile under its native encoding; the tile route caches
+/// re-encoded variants under their negotiated encoding.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TileCacheKey {
     pub source_id: Arc<str>,
     pub z: u8,
     pub x: u32,
     pub y: u32,
+    pub encoding: TileCompression,
 }
 
 impl Hash for TileCacheKey {
@@ -25,6 +31,7 @@ impl Hash for TileCacheKey {
         self.z.hash(state);
         self.x.hash(state);
         self.y.hash(state);
+        self.encoding.hash(state);
     }
 }
 
@@ -108,6 +115,7 @@ mod tests {
             z: 14,
             x: 8580,
             y: 5737,
+            encoding: TileCompression::None,
         };
         cache.insert(key.clone(), make_tile(1024)).await;
         let result = cache.get(&key).await;
@@ -123,6 +131,7 @@ mod tests {
             z: 14,
             x: 8580,
             y: 5737,
+            encoding: TileCompression::None,
         };
         assert!(cache.get(&key).await.is_none());
     }
@@ -136,6 +145,7 @@ mod tests {
                 z: 14,
                 x: i,
                 y: 0,
+                encoding: TileCompression::None,
             };
             cache.insert(key, make_tile(1000)).await;
         }
@@ -151,12 +161,14 @@ mod tests {
             z: 1,
             x: 0,
             y: 0,
+            encoding: TileCompression::None,
         };
         let k2 = TileCacheKey {
             source_id: "source-b".into(),
             z: 1,
             x: 0,
             y: 0,
+            encoding: TileCompression::None,
         };
         cache.insert(k1.clone(), make_tile(100)).await;
         assert!(
@@ -173,6 +185,7 @@ mod tests {
             z: 0,
             x: 0,
             y: 0,
+            encoding: TileCompression::None,
         };
         cache.insert(key.clone(), make_tile(512)).await;
         cache.cache.run_pending_tasks().await;
@@ -195,6 +208,7 @@ mod tests {
                 z: 0,
                 x: i,
                 y: 0,
+                encoding: TileCompression::None,
             };
             cache.insert(key, make_tile(100)).await;
         }
@@ -209,12 +223,14 @@ mod tests {
             z: 1,
             x: 2,
             y: 3,
+            encoding: TileCompression::None,
         };
         let k2 = TileCacheKey {
             source_id: "a".into(),
             z: 1,
             x: 2,
             y: 3,
+            encoding: TileCompression::None,
         };
         assert_eq!(k1, k2);
     }
@@ -226,12 +242,14 @@ mod tests {
             z: 1,
             x: 2,
             y: 3,
+            encoding: TileCompression::None,
         };
         let k2 = TileCacheKey {
             source_id: "a".into(),
             z: 2,
             x: 2,
             y: 3,
+            encoding: TileCompression::None,
         };
         assert_ne!(k1, k2);
     }
@@ -246,12 +264,14 @@ mod tests {
             z: 5,
             x: 10,
             y: 20,
+            encoding: TileCompression::None,
         };
         let k2 = TileCacheKey {
             source_id: "src".into(),
             z: 5,
             x: 10,
             y: 20,
+            encoding: TileCompression::None,
         };
         let mut h1 = DefaultHasher::new();
         let mut h2 = DefaultHasher::new();
@@ -284,10 +304,81 @@ mod tests {
             z: 0,
             x: 0,
             y: 0,
+            encoding: TileCompression::None,
         };
         cache.insert(key.clone(), make_tile(100)).await;
         cache.insert(key.clone(), make_tile(200)).await;
         let result = cache.get(&key).await.unwrap();
         assert_eq!(result.data.len(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_cache_different_encodings_do_not_collide() {
+        let cache = TileCache::new(10, 3600);
+        let gzip_key = TileCacheKey {
+            source_id: "src".into(),
+            z: 4,
+            x: 8,
+            y: 5,
+            encoding: TileCompression::Gzip,
+        };
+        let brotli_key = TileCacheKey {
+            source_id: "src".into(),
+            z: 4,
+            x: 8,
+            y: 5,
+            encoding: TileCompression::Brotli,
+        };
+        cache.insert(gzip_key.clone(), make_tile(100)).await;
+        assert!(
+            cache.get(&brotli_key).await.is_none(),
+            "same tile, different encoding must be a distinct cache entry"
+        );
+        assert!(cache.get(&gzip_key).await.is_some());
+    }
+
+    #[test]
+    fn test_cache_key_inequality_encoding() {
+        let gzip = TileCacheKey {
+            source_id: "a".into(),
+            z: 1,
+            x: 2,
+            y: 3,
+            encoding: TileCompression::Gzip,
+        };
+        let zstd = TileCacheKey {
+            source_id: "a".into(),
+            z: 1,
+            x: 2,
+            y: 3,
+            encoding: TileCompression::Zstd,
+        };
+        assert_ne!(gzip, zstd);
+    }
+
+    #[test]
+    fn test_cache_key_hash_differs_by_encoding() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut h_gzip = DefaultHasher::new();
+        let mut h_brotli = DefaultHasher::new();
+        TileCacheKey {
+            source_id: "src".into(),
+            z: 5,
+            x: 10,
+            y: 20,
+            encoding: TileCompression::Gzip,
+        }
+        .hash(&mut h_gzip);
+        TileCacheKey {
+            source_id: "src".into(),
+            z: 5,
+            x: 10,
+            y: 20,
+            encoding: TileCompression::Brotli,
+        }
+        .hash(&mut h_brotli);
+        assert_ne!(h_gzip.finish(), h_brotli.finish());
     }
 }

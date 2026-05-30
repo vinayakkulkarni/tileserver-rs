@@ -308,6 +308,39 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
         ],
     },
     ConfigSectionSchema {
+        header: "[compression]",
+        blurb: "Tile body compression negotiation (Accept-Encoding -> br/zstd/gzip).",
+        feature_gate: None,
+        is_array: false,
+        fields: &[
+            ConfigFieldSchema {
+                key: "br_quality",
+                field_type: "u8",
+                default: Some("5"),
+                description: "Brotli quality 0-11. Higher = smaller but slower to encode.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "zstd_level",
+                field_type: "i32",
+                default: Some("3"),
+                description: "Zstandard level 1-22. Higher = smaller but slower to encode.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "minimal_recompression",
+                field_type: "bool",
+                default: Some("false"),
+                description: "When true, never re-encode tiles; always serve the source's \
+                    stored encoding regardless of Accept-Encoding.",
+                optional: false,
+                enum_values: None,
+            },
+        ],
+    },
+    ConfigSectionSchema {
         header: "[raster]",
         blurb: "Raster output defaults (resampler + tile size).",
         feature_gate: Some("raster"),

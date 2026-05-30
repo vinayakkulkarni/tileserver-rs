@@ -4,6 +4,7 @@
     'TOML or YAML config, with env-var substitution',
     'In-memory tile caching with TTL',
     'Glob & regex CORS allow-lists, custom response headers',
+    'Brotli & zstd tile compression with Accept-Encoding negotiation',
   ];
 </script>
 
@@ -80,6 +81,11 @@ serve_as = <span class="token-string">"mlt"</span>  <span class="token-comment">
 <span class="token-comment"># Server — glob/regex CORS + custom headers</span>
 <span class="token-keyword">[server]</span>
 cors_origins = [<span class="token-string">"*.example.com"</span>]
+
+<span class="token-comment"># Brotli / zstd Accept-Encoding negotiation</span>
+<span class="token-keyword">[compression]</span>
+br_quality = <span class="token-number">5</span>
+zstd_level = <span class="token-number">3</span>
 
 <span class="token-comment"># PostgreSQL / PostGIS</span>
 <span class="token-keyword">[postgres]</span>

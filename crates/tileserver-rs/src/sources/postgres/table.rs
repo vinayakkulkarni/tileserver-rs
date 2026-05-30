@@ -1109,6 +1109,7 @@ impl TileSource for PostgresTableSource {
             z,
             x,
             y,
+            encoding: TileCompression::None,
         });
 
         if let (Some(cache), Some(key)) = (&self.cache, &cache_key)
