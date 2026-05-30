@@ -32,6 +32,7 @@ import autocannon from 'autocannon';
 import { program } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import { request as httpRequest } from 'node:http';
 
 // Server configurations
 // Use 127.0.0.1 instead of localhost to avoid proxy issues
@@ -668,6 +669,26 @@ const COMPRESSION_ENCODINGS = ['br', 'zstd', 'gzip', 'identity'];
 // Representative mid-zoom tile for compression measurement
 const COMPRESSION_TILE = TEST_TILES.pmtiles[3]; // { z: 13, x: 4352, y: 2986 }
 
+// Measure the true on-wire byte count for a tile at a given Accept-Encoding.
+// Uses raw node:http (NOT fetch): undici's fetch auto-decompresses br/gzip/zstd
+// and strips Content-Encoding, which would report the decoded size for every
+// encoding and hide the compression ratio entirely.
+function probeOnWire(url, encoding) {
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(url, { headers: { 'Accept-Encoding': encoding } }, (res) => {
+      let bytes = 0;
+      res.on('data', (chunk) => {
+        bytes += chunk.length;
+      });
+      res.on('end', () =>
+        resolve({ bytes, contentEncoding: res.headers['content-encoding'] || 'identity' })
+      );
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 async function benchmarkServerCompression(serverKey) {
   const server = SERVERS[serverKey];
   if (!server) return [];
@@ -688,10 +709,10 @@ async function benchmarkServerCompression(serverKey) {
     process.stdout.write(chalk.gray(`    ${name.padEnd(32)}... `));
 
     try {
-      // Probe: fetch once to capture actual Content-Encoding and payload size
-      const probeRes = await fetch(url, { headers: { 'Accept-Encoding': encoding } });
-      const probeBytes = (await probeRes.arrayBuffer()).byteLength;
-      const actualEncoding = probeRes.headers.get('Content-Encoding') || 'identity';
+      // Probe once for the true on-wire payload size + actual Content-Encoding.
+      const probe = await probeOnWire(url, encoding);
+      const probeBytes = probe.bytes;
+      const actualEncoding = probe.contentEncoding;
 
       // Load test
       const result = await runBenchmark(url, `${server.name} ${name}`, {
