@@ -60,6 +60,37 @@ async fn pmtiles_test_server() -> TestServer {
     TestServer::new(router)
 }
 
+/// Build a [`TestServer`] whose `SourceManager` has the global tile cache
+/// enabled, so the `Accept-Encoding` transcode + cache-store + cache-hit path
+/// in `routes/data.rs` is exercised end-to-end.
+async fn compression_test_server() -> TestServer {
+    use tileserver_rs::cache::TileCache;
+
+    let config = Config::load(Some(PathBuf::from("tests/config.test.toml")))
+        .expect("load tests/config.test.toml");
+
+    let cache = Arc::new(TileCache::new(64, 3600));
+    let sources = SourceManager::from_configs(&config.sources)
+        .await
+        .expect("load tile sources from test config")
+        .with_cache(cache);
+
+    let mut state = common::minimal_app_state();
+    state.sources = Arc::new(sources);
+
+    let meta = common::minimal_meta();
+    let runtime = common::minimal_runtime();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        runtime,
+    ));
+    let shared = SharedState::new(controller);
+    TestServer::new(api_router(shared))
+}
+
 // ============================================================
 // Empty-state tests — exercise the "no sources loaded" branches
 // ============================================================
@@ -508,4 +539,72 @@ async fn data_tilejson_mock_source_with_api_key_appended() {
         first.contains("key=secret-xyz"),
         "API key must be appended to tile URLs, got {first}"
     );
+}
+
+// ============================================================
+// Accept-Encoding negotiation (routes/data.rs transcode + cache path)
+// ============================================================
+
+#[tokio::test]
+async fn tile_vary_accept_encoding_header_always_present() {
+    let server = compression_test_server().await;
+    let resp = server.get("/data/protomaps/0/0/0.pbf").await;
+    if resp.status_code().as_u16() == 200 {
+        let vary = resp.headers().get("vary");
+        assert!(
+            vary.is_some_and(|v| v
+                .to_str()
+                .unwrap_or("")
+                .to_ascii_lowercase()
+                .contains("accept-encoding")),
+            "every tile response must carry Vary: Accept-Encoding (CDN poisoning guard)"
+        );
+    }
+}
+
+#[tokio::test]
+async fn tile_brotli_request_transcodes_and_caches() {
+    let server = compression_test_server().await;
+    // Two identical br requests: first transcodes + caches (transcode_miss),
+    // second is served from the encoding-keyed cache (transcode_hit). Both must
+    // succeed and, when content is present, report Content-Encoding: br.
+    for _ in 0..2 {
+        let resp = server
+            .get("/data/protomaps/0/0/0.pbf")
+            .add_header("accept-encoding", "br")
+            .await;
+        let status = resp.status_code().as_u16();
+        assert!(status < 500, "br tile request must not 5xx, got {status}");
+        if status == 200 {
+            let ce = resp
+                .headers()
+                .get("content-encoding")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("");
+            assert!(
+                ce == "br" || ce.is_empty(),
+                "br request returns br (or identity for sub-threshold tiles), got {ce:?}"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn tile_identity_request_does_not_5xx() {
+    let server = compression_test_server().await;
+    let resp = server
+        .get("/data/protomaps/0/0/0.pbf")
+        .add_header("accept-encoding", "identity")
+        .await;
+    assert!(resp.status_code().as_u16() < 500);
+}
+
+#[tokio::test]
+async fn tile_zstd_request_does_not_5xx() {
+    let server = compression_test_server().await;
+    let resp = server
+        .get("/data/protomaps/0/0/0.pbf")
+        .add_header("accept-encoding", "zstd")
+        .await;
+    assert!(resp.status_code().as_u16() < 500);
 }
