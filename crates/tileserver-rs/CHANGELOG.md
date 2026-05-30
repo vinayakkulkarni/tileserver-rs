@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.32.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.31.0...v2.32.0) (2026-05-30)
+
+
+### Features
+
+* **admin:** expose server capabilities on /ping and surface in client ([d1e0e74](https://github.com/vinayakkulkarni/tileserver-rs/commit/d1e0e74f5048351e5e6912d470ffa03084eafa72))
+* expose server capabilities on /ping and surface in client ([4d4eb7d](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d4eb7d7aa4ca844406ff0e44ff9038e4817793c))
+* **server:** brotli + zstd tile compression with accept-encoding negotiation ([0677518](https://github.com/vinayakkulkarni/tileserver-rs/commit/0677518fc74f6a0ca5d3e16ae0a47abdbb5e78b9))
+* **server:** brotli + zstd tile compression with accept-encoding negotiation ([3b0cd20](https://github.com/vinayakkulkarni/tileserver-rs/commit/3b0cd201daf971daf61696f6097631c5504ad4bc))
+
+
+### Bug Fixes
+
+* normalize trailing slashes so /_openapi/ no longer 404s ([5749c14](https://github.com/vinayakkulkarni/tileserver-rs/commit/5749c1491aadc14850158899cb120f1a3cd546c3))
+* trailing-slash normalization + compression coverage tests ([c49df27](https://github.com/vinayakkulkarni/tileserver-rs/commit/c49df273d2d1202757f82774330b773e352e4784))
+
+
+### Miscellaneous
+
+* sync Cargo.lock self-version to 2.31.0 ([c502b7f](https://github.com/vinayakkulkarni/tileserver-rs/commit/c502b7fa41b7ced7864b12a088fc3f9bcd5a3ff7))
+
 ## [2.31.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.1...v2.31.0) (2026-05-29)
 
 
