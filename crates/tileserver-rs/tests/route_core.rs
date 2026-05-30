@@ -82,6 +82,26 @@ async fn ping_json_renderer_disabled_on_empty_state() {
 }
 
 #[tokio::test]
+async fn ping_json_exposes_capability_flags() {
+    let server = common::empty_test_server();
+    let body: serde_json::Value = server.get("/ping").await.json();
+    // Defaults: render + OGC + compression all enabled, codecs at default levels.
+    assert_eq!(body["render_enabled"], true);
+    assert_eq!(body["ogc_enabled"], true);
+    assert_eq!(body["compression_enabled"], true);
+    assert_eq!(body["compression_br_quality"], 5);
+    assert_eq!(body["compression_zstd_level"], 3);
+    assert!(
+        body["cors_origins"].is_array(),
+        "cors_origins must be a JSON array"
+    );
+    assert!(
+        body["cache_dir"].as_str().is_some_and(|s| !s.is_empty()),
+        "cache_dir must be a non-empty resolved path"
+    );
+}
+
+#[tokio::test]
 async fn data_json_empty_state_returns_empty_array() {
     let server = common::empty_test_server();
     let response = server.get("/data.json").await;

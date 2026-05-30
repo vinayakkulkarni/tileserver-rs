@@ -18,6 +18,162 @@ expression: value
     "version": "2.8.0"
   },
   "paths": {
+    "/__admin/oauth/clients": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List MCP OAuth clients (admin listener)",
+        "description": "Returns every DCR client currently registered with the MCP OAuth server\nalong with derived stats: number of outstanding refresh tokens\n(\"active sessions\"), distinct granted scopes, and approximate first /\nlast sign-in timestamps. Mounted on the admin listener only\n(`server.admin_bind`); requires the `mcp` Cargo feature.",
+        "operationId": "admin_list_mcp_clients",
+        "responses": {
+          "200": {
+            "description": "Registered clients with derived stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminMcpClient"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "OAuth backend storage failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/__admin/oauth/clients/{client_id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke an MCP OAuth client (admin listener)",
+        "description": "Deletes the client. Every refresh token issued to the client is\ncascade-deleted atomically by the backend trait. Idempotent: a\n`deleted: false` response indicates the client did not exist.\nRequires the `mcp` Cargo feature.",
+        "operationId": "admin_delete_mcp_client",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "path",
+            "description": "Public OAuth `client_id`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client deleted (or did not exist)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDeleteResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "OAuth backend storage failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/__admin/oauth/sessions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List MCP OAuth device sessions (admin listener)",
+        "description": "Returns every outstanding refresh token with the joined client name\nand granted scope. Each refresh token is treated as a single device\nsession from the UI's perspective. Requires the `mcp` Cargo feature.",
+        "operationId": "admin_list_mcp_sessions",
+        "responses": {
+          "200": {
+            "description": "Outstanding refresh tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminMcpSession"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "OAuth backend storage failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/__admin/oauth/sessions/{token}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke a single MCP device session (admin listener)",
+        "description": "Deletes a single refresh token without touching other sessions for the\nsame client. Idempotent: a `deleted: false` response indicates the\ntoken did not exist (e.g. it already expired or was rotated). The\n`revoked_sessions` field is always `null` for this endpoint.\nRequires the `mcp` Cargo feature.",
+        "operationId": "admin_delete_mcp_session",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "description": "Opaque refresh-token identifier (the same value the GET endpoint returns as `token_id`)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session deleted (or did not exist)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDeleteResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "OAuth backend storage failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/spatial/query": {
       "post": {
         "tags": [
@@ -1739,6 +1895,151 @@ expression: value
   },
   "components": {
     "schemas": {
+      "AdminDeleteResponse": {
+        "type": "object",
+        "description": "Idempotent response body for the admin DELETE endpoints\n(admin listener, `mcp` feature).",
+        "required": [
+          "ok",
+          "deleted"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "revoked_sessions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "ok": true,
+          "deleted": true,
+          "revoked_sessions": 2
+        }
+      },
+      "AdminMcpClient": {
+        "type": "object",
+        "description": "Operator-facing view of a registered MCP OAuth client (admin listener,\n`mcp` feature).",
+        "required": [
+          "client_id",
+          "redirect_uris",
+          "active_sessions",
+          "scopes"
+        ],
+        "properties": {
+          "active_sessions": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_granted_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "last_seen_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "client_id": "client-abc-123",
+          "client_name": "Claude.ai",
+          "redirect_uris": [
+            "https://claude.ai/api/oauth/callback"
+          ],
+          "active_sessions": 2,
+          "scopes": [
+            "identify",
+            "read",
+            "render",
+            "query"
+          ],
+          "first_granted_at": 1729450000,
+          "last_seen_at": 1729536800
+        }
+      },
+      "AdminMcpSession": {
+        "type": "object",
+        "description": "Operator-facing view of a single outstanding MCP refresh token.\nFrom the UI's perspective each token is a \"device session\"\n(admin listener, `mcp` feature).",
+        "required": [
+          "token_id",
+          "client_id",
+          "scope",
+          "granted_at",
+          "expires_at"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "granted_at": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "scope": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "token_id": "rt-abc-...",
+          "client_id": "client-abc-123",
+          "client_name": "Claude.ai",
+          "scope": "identify read render query",
+          "granted_at": 1729450000,
+          "expires_at": 1737226000
+        }
+      },
       "ApiError": {
         "type": "object",
         "description": "API error response",
@@ -1980,11 +2281,56 @@ expression: value
           "loaded_sources",
           "loaded_styles",
           "renderer_enabled",
-          "version"
+          "prometheus_listener_active",
+          "version",
+          "cache_enabled",
+          "cache_entries",
+          "cache_bytes",
+          "render_enabled",
+          "ogc_enabled",
+          "compression_enabled",
+          "compression_br_quality",
+          "compression_zstd_level",
+          "cors_origins",
+          "cache_dir"
         ],
         "properties": {
+          "cache_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cache_dir": {
+            "type": "string"
+          },
+          "cache_enabled": {
+            "type": "boolean"
+          },
+          "cache_entries": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "compression_br_quality": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "compression_enabled": {
+            "type": "boolean"
+          },
+          "compression_zstd_level": {
+            "type": "integer",
+            "format": "int32"
+          },
           "config_hash": {
             "type": "string"
+          },
+          "cors_origins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "loaded_at_unix": {
             "type": "integer",
@@ -1998,6 +2344,15 @@ expression: value
           "loaded_styles": {
             "type": "integer",
             "minimum": 0
+          },
+          "ogc_enabled": {
+            "type": "boolean"
+          },
+          "prometheus_listener_active": {
+            "type": "boolean"
+          },
+          "render_enabled": {
+            "type": "boolean"
           },
           "renderer_enabled": {
             "type": "boolean"
@@ -2016,7 +2371,20 @@ expression: value
           "loaded_sources": 3,
           "loaded_styles": 2,
           "renderer_enabled": true,
-          "version": "2.8.0"
+          "prometheus_listener_active": false,
+          "version": "2.8.0",
+          "cache_enabled": true,
+          "cache_entries": 128,
+          "cache_bytes": 4194304,
+          "render_enabled": true,
+          "ogc_enabled": true,
+          "compression_enabled": true,
+          "compression_br_quality": 5,
+          "compression_zstd_level": 3,
+          "cors_origins": [
+            "*"
+          ],
+          "cache_dir": "/tmp/tileserver-rs"
         }
       },
       "SpatialQueryRequest": {
@@ -2519,6 +2887,10 @@ expression: value
     {
       "name": "OGC",
       "description": "OGC API Features (Parts 1-5): read-only GeoJSON feature access for PostGIS table sources, consumed natively by QGIS, ArcGIS Pro and FME"
+    },
+    {
+      "name": "Admin",
+      "description": "Operator-facing endpoints served on the admin listener (`server.admin_bind`). Includes MCP OAuth client + device session management (`mcp` feature)"
     }
   ]
 }

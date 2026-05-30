@@ -28,6 +28,18 @@ pub struct PingResponse {
     cache_enabled: bool,
     cache_entries: u64,
     cache_bytes: u64,
+    // Capability flags surfaced to the client UI (Hero pills + admin badges).
+    // NOTE: `/ping` is public + unauthenticated — `cors_origins` and `cache_dir`
+    // are deliberately exposed here per operator request; production deployments
+    // that treat CORS allow-lists or filesystem paths as sensitive should gate
+    // `/ping` behind their reverse proxy.
+    render_enabled: bool,
+    ogc_enabled: bool,
+    compression_enabled: bool,
+    compression_br_quality: u8,
+    compression_zstd_level: i32,
+    cors_origins: Vec<String>,
+    cache_dir: String,
 }
 
 #[derive(serde::Serialize)]
@@ -96,6 +108,7 @@ async fn admin_config_schema() -> Json<ConfigSchemaResponse> {
 pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse> {
     let meta = shared.meta();
     let state = shared.load();
+    let config = shared.config();
     let (cache_enabled, cache_entries, cache_bytes) = if let Some(cache) = state.sources.cache() {
         (true, cache.entry_count(), cache.weighted_size())
     } else {
@@ -113,6 +126,13 @@ pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse>
         cache_enabled,
         cache_entries,
         cache_bytes,
+        render_enabled: !config.server.disable_render,
+        ogc_enabled: !config.server.disable_ogc,
+        compression_enabled: !config.compression.minimal_recompression,
+        compression_br_quality: config.compression.br_quality,
+        compression_zstd_level: config.compression.zstd_level,
+        cors_origins: config.server.cors_origins.clone(),
+        cache_dir: config.resolve_cache_dir(None).display().to_string(),
     })
 }
 
@@ -429,12 +449,22 @@ path = "{}"
             cache_enabled: false,
             cache_entries: 0,
             cache_bytes: 0,
+            render_enabled: true,
+            ogc_enabled: true,
+            compression_enabled: true,
+            compression_br_quality: 5,
+            compression_zstd_level: 3,
+            cors_origins: vec!["*".to_string()],
+            cache_dir: "/tmp/tileserver-rs".to_string(),
         };
         let json = serde_json::to_value(&resp).expect("PingResponse serializes");
         assert_eq!(json["status"], "ok");
         assert_eq!(json["loaded_sources"], 3);
         assert_eq!(json["loaded_styles"], 2);
         assert_eq!(json["cache_enabled"], false);
+        assert_eq!(json["render_enabled"], true);
+        assert_eq!(json["compression_enabled"], true);
+        assert_eq!(json["cors_origins"][0], "*");
     }
 
     #[test]

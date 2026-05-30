@@ -44,6 +44,29 @@ export function useHomeHero() {
   );
   const styleCount = computed(() => pingQuery.data.value?.loaded_styles ?? '—');
 
+  const compressionEnabled = computed(
+    () => pingQuery.data.value?.compression_enabled ?? false,
+  );
+
+  const compressionLabel = computed(() => {
+    const ping = pingQuery.data.value;
+    if (!ping?.compression_enabled) return '—';
+    return `br q${ping.compression_br_quality} · zstd L${ping.compression_zstd_level}`;
+  });
+
+  const ogcEnabled = computed(() => pingQuery.data.value?.ogc_enabled ?? false);
+
+  const renderEnabled = computed(
+    () => pingQuery.data.value?.render_enabled ?? false,
+  );
+
+  const corsLabel = computed(() => {
+    const origins = pingQuery.data.value?.cors_origins;
+    if (!origins?.length) return '—';
+    if (origins.length === 1 && origins[0] === '*') return 'any origin';
+    return `${origins.length} origin${origins.length === 1 ? '' : 's'}`;
+  });
+
   return {
     statusOk,
     isLoading,
@@ -54,5 +77,10 @@ export function useHomeHero() {
     uptime,
     sourceCount,
     styleCount,
+    compressionEnabled,
+    compressionLabel,
+    ogcEnabled,
+    renderEnabled,
+    corsLabel,
   };
 }

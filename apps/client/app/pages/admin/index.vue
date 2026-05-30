@@ -21,6 +21,9 @@
     loadedSources,
     loadedStyles,
     rendererEnabled,
+    compressionEnabled,
+    compressionLabel,
+    ogcEnabled,
     versionLabel,
     configHashShort,
     clientsCount,
@@ -303,6 +306,32 @@
                 class="size-1.5"
               ></span>
               {{ rendererEnabled ? 'enabled' : 'disabled' }}
+            </dd>
+            <dt
+              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+            >
+              Compression
+            </dt>
+            <dd class="flex items-center gap-2 font-mono text-foreground">
+              <span
+                :class="
+                  compressionEnabled ? 'bg-success' : 'bg-muted-foreground'
+                "
+                class="size-1.5"
+              ></span>
+              {{ compressionLabel }}
+            </dd>
+            <dt
+              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+            >
+              OGC API
+            </dt>
+            <dd class="flex items-center gap-2 font-mono text-foreground">
+              <span
+                :class="ogcEnabled ? 'bg-success' : 'bg-muted-foreground'"
+                class="size-1.5"
+              ></span>
+              {{ ogcEnabled ? 'enabled' : 'disabled' }}
             </dd>
           </dl>
         </div>
