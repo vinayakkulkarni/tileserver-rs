@@ -300,6 +300,14 @@ mod tests {
     }
 
     #[test]
+    fn test_compression_error_display_and_status() {
+        let err = TileServerError::CompressionError("brotli encode: oom".to_string());
+        assert_eq!(err.to_string(), "compression error: brotli encode: oom");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
     fn test_upload_error_status_code() {
         let err = TileServerError::UploadError("bad file".to_string());
         let response = err.into_response();

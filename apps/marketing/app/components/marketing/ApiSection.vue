@@ -37,7 +37,7 @@
           Simple, standards-compliant API with a built-in OpenAPI spec —
           something neither tileserver-gl nor martin offer.
           <NuxtLink
-            to="https://demo.tileserver.app/_openapi/"
+            to="https://demo.tileserver.app/_openapi"
             external
             class="
               group ml-1 inline-flex items-center gap-1 font-mono text-xs

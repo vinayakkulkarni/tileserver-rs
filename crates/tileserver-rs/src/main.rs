@@ -1,7 +1,7 @@
 //! Server entry point for tileserver-rs.
 
 use axum::{
-    Router,
+    Router, ServiceExt,
     http::{
         Method,
         header::{ACCEPT, CONTENT_TYPE},
@@ -17,7 +17,10 @@ use axum::{
 use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer};
+use tower::Layer;
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, normalize_path::NormalizePathLayer,
+};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 
@@ -252,6 +255,14 @@ async fn main() -> anyhow::Result<()> {
         config.server.extra_response_headers.as_ref(),
     );
 
+    // Normalize trailing slashes before routing so `/_openapi/` matches the
+    // `/_openapi` route (and likewise for /health, /ping, etc.) instead of
+    // 404ing. NormalizePathLayer must wrap the Router from the OUTSIDE: routing
+    // happens before inner `.layer()` middleware, so applying it via
+    // `Router::layer()` would run too late. The resulting `NormalizePath<Router>`
+    // is served via `ServiceExt::into_make_service`.
+    let app = NormalizePathLayer::trim_trailing_slash().layer(router);
+
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);
 
@@ -328,9 +339,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    axum::serve(listener, router)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        ServiceExt::<axum::extract::Request>::into_make_service(app),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     telemetry::shutdown_telemetry();
 

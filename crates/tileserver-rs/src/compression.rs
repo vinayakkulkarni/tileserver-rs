@@ -430,6 +430,62 @@ mod tests {
     }
 
     #[test]
+    fn best_target_wildcard_accepts_brotli() {
+        // `*` matches any encoding via the quality_of wildcard branch.
+        assert_eq!(best_target_encoding("*"), TileCompression::Brotli);
+    }
+
+    #[test]
+    fn best_target_skips_empty_tokens() {
+        // Leading comma produces an empty segment that must be skipped.
+        assert_eq!(best_target_encoding(", gzip"), TileCompression::Gzip);
+    }
+
+    #[test]
+    fn negotiate_none_source_identity_refused_falls_through() {
+        let cfg = CompressionConfig::default();
+        // source None + identity;q=0 (refused) + a compressible alternative ->
+        // exercises the `None => {}` fall-through then picks the offered encoding.
+        let raw = incompressible(2048);
+        assert_eq!(
+            negotiate(
+                Some("identity;q=0, br"),
+                TileCompression::None,
+                raw.len(),
+                &cfg
+            ),
+            TileCompression::Brotli
+        );
+    }
+
+    #[test]
+    fn negotiate_wildcard_identity_acceptable_for_tiny_tile() {
+        let cfg = CompressionConfig::default();
+        // `*` makes identity acceptable via its wildcard branch; tiny tile -> None.
+        assert_eq!(
+            negotiate(Some("*"), TileCompression::Gzip, 50, &cfg),
+            TileCompression::Gzip
+        );
+    }
+
+    #[test]
+    fn negotiate_unproducible_and_identity_refused_passes_through_source() {
+        let cfg = CompressionConfig::default();
+        // Client accepts only an unknown encoding and refuses identity ->
+        // nothing we can produce, identity refused -> passthrough to source.
+        let raw = incompressible(2048);
+        assert_eq!(
+            negotiate(
+                Some("identity;q=0, unknowncodec"),
+                TileCompression::Gzip,
+                raw.len(),
+                &cfg
+            ),
+            TileCompression::Gzip
+        );
+    }
+
+    #[test]
     fn negotiate_then_recode_full_flow_to_brotli() {
         let cfg = CompressionConfig::default();
         let raw = incompressible(2048);
