@@ -210,7 +210,18 @@ pub struct ApiError {
     "loaded_sources": 3,
     "loaded_styles": 2,
     "renderer_enabled": true,
-    "version": "2.8.0"
+    "prometheus_listener_active": false,
+    "version": "2.8.0",
+    "cache_enabled": true,
+    "cache_entries": 128,
+    "cache_bytes": 4194304,
+    "render_enabled": true,
+    "ogc_enabled": true,
+    "compression_enabled": true,
+    "compression_br_quality": 5,
+    "compression_zstd_level": 3,
+    "cors_origins": ["*"],
+    "cache_dir": "/tmp/tileserver-rs"
 }))]
 pub struct PingResponse {
     pub status: String,
@@ -219,7 +230,18 @@ pub struct PingResponse {
     pub loaded_sources: usize,
     pub loaded_styles: usize,
     pub renderer_enabled: bool,
+    pub prometheus_listener_active: bool,
     pub version: String,
+    pub cache_enabled: bool,
+    pub cache_entries: u64,
+    pub cache_bytes: u64,
+    pub render_enabled: bool,
+    pub ogc_enabled: bool,
+    pub compression_enabled: bool,
+    pub compression_br_quality: u8,
+    pub compression_zstd_level: i32,
+    pub cors_origins: Vec<String>,
+    pub cache_dir: String,
 }
 
 /// Upload response

@@ -16,4 +16,11 @@ export interface PingResponse {
   cache_enabled: boolean;
   cache_entries: number;
   cache_bytes: number;
+  render_enabled: boolean;
+  ogc_enabled: boolean;
+  compression_enabled: boolean;
+  compression_br_quality: number;
+  compression_zstd_level: number;
+  cors_origins: string[];
+  cache_dir: string;
 }

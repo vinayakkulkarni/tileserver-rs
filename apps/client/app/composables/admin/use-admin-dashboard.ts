@@ -51,6 +51,15 @@ export function useAdminDashboard() {
   const loadedSources = computed(() => ping.value?.loaded_sources ?? 0);
   const loadedStyles = computed(() => ping.value?.loaded_styles ?? 0);
   const rendererEnabled = computed(() => ping.value?.renderer_enabled ?? false);
+  const compressionEnabled = computed(
+    () => ping.value?.compression_enabled ?? false,
+  );
+  const compressionLabel = computed(() => {
+    const p = ping.value;
+    if (!p?.compression_enabled) return 'disabled';
+    return `br q${p.compression_br_quality} · zstd L${p.compression_zstd_level}`;
+  });
+  const ogcEnabled = computed(() => ping.value?.ogc_enabled ?? false);
   const versionLabel = computed(() => ping.value?.version ?? '—');
   const configHashShort = computed(() => {
     const h = ping.value?.config_hash;
@@ -88,6 +97,9 @@ export function useAdminDashboard() {
     loadedSources,
     loadedStyles,
     rendererEnabled,
+    compressionEnabled,
+    compressionLabel,
+    ogcEnabled,
     versionLabel,
     configHashShort,
     clientsCount,

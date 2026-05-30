@@ -11,6 +11,9 @@
     uptime,
     sourceCount,
     styleCount,
+    compressionEnabled,
+    compressionLabel,
+    ogcEnabled,
   } = useHomeHero();
 </script>
 
@@ -44,6 +47,8 @@
             Live
           </span>
           <span>Renderer {{ rendererEnabled ? '✓' : '✗' }}</span>
+          <span>Compression {{ compressionEnabled ? '✓' : '✗' }}</span>
+          <span>OGC {{ ogcEnabled ? '✓' : '✗' }}</span>
           <span v-if="versionLabel">{{ versionLabel }}</span>
         </p>
         <dl
@@ -149,6 +154,8 @@
             Live
           </span>
           <span>· Renderer {{ rendererEnabled ? '✓' : '✗' }}</span>
+          <span>· Compression {{ compressionEnabled ? '✓' : '✗' }}</span>
+          <span>· OGC {{ ogcEnabled ? '✓' : '✗' }}</span>
           <span v-if="versionLabel">· {{ versionLabel }}</span>
         </p>
       </div>
@@ -200,12 +207,15 @@
           <p
             class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
           >
-            Renderer
+            Compression
           </p>
           <p
-            class="mt-1 font-display text-2xl font-semibold leading-none tabular-nums text-foreground"
+            class="mt-1 font-mono text-[13px] font-semibold leading-tight text-foreground"
           >
-            {{ rendererEnabled ? '✓' : '✗' }}
+            <span v-if="!compressionEnabled" class="text-muted-foreground"
+              >off</span
+            >
+            <template v-else>{{ compressionLabel }}</template>
           </p>
         </div>
       </div>
