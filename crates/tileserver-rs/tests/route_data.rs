@@ -608,3 +608,56 @@ async fn tile_zstd_request_does_not_5xx() {
         .await;
     assert!(resp.status_code().as_u16() < 500);
 }
+
+// ============================================================
+// Trailing-slash normalization (main.rs Router::trim_trailing_slash)
+// ============================================================
+
+/// Drive a single GET `path` through the production normalization wiring
+/// (`NormalizePathLayer::trim_trailing_slash` wrapping `api_router`) and return
+/// the response status. `axum_test::TestServer` cannot host a `NormalizePath`
+/// service (no `IntoTransportLayer` impl), so we exercise the layer directly via
+/// `tower::ServiceExt::oneshot` — the same path the production `axum::serve` uses.
+async fn normalized_status(path: &str) -> axum::http::StatusCode {
+    use tower::{Layer, ServiceExt};
+    use tower_http::normalize_path::NormalizePathLayer;
+
+    let shared = SharedState::new(Arc::new(ReloadController::new(
+        common::minimal_app_state(),
+        common::minimal_meta(),
+        Config::default(),
+        None,
+        common::minimal_runtime(),
+    )));
+    let app = NormalizePathLayer::trim_trailing_slash().layer(api_router(shared));
+    let req = axum::http::Request::builder()
+        .uri(path)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    resp.status()
+}
+
+#[tokio::test]
+async fn trailing_slash_on_health_resolves() {
+    assert_eq!(
+        normalized_status("/health/").await,
+        axum::http::StatusCode::OK
+    );
+}
+
+#[tokio::test]
+async fn trailing_slash_on_data_json_resolves() {
+    assert_eq!(
+        normalized_status("/data.json/").await,
+        axum::http::StatusCode::OK
+    );
+}
+
+#[tokio::test]
+async fn no_trailing_slash_still_resolves() {
+    assert_eq!(
+        normalized_status("/health").await,
+        axum::http::StatusCode::OK
+    );
+}
