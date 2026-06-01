@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.32.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.31.0...v2.32.0) (2026-06-01)
+
+
+### Features
+
+* **admin:** expose server capabilities on /ping and surface in client ([d1e0e74](https://github.com/vinayakkulkarni/tileserver-rs/commit/d1e0e74f5048351e5e6912d470ffa03084eafa72))
+* expose server capabilities on /ping and surface in client ([4d4eb7d](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d4eb7d7aa4ca844406ff0e44ff9038e4817793c))
+* **server:** brotli + zstd tile compression with accept-encoding negotiation ([0677518](https://github.com/vinayakkulkarni/tileserver-rs/commit/0677518fc74f6a0ca5d3e16ae0a47abdbb5e78b9))
+* **server:** brotli + zstd tile compression with accept-encoding negotiation ([3b0cd20](https://github.com/vinayakkulkarni/tileserver-rs/commit/3b0cd201daf971daf61696f6097631c5504ad4bc))
+
+
+### Bug Fixes
+
+* **deps:** bump @commitlint/cli from 21.0.1 to 21.0.2 ([#1057](https://github.com/vinayakkulkarni/tileserver-rs/issues/1057)) ([05b0672](https://github.com/vinayakkulkarni/tileserver-rs/commit/05b0672c8eee2cc7a3fbd9df71e1eb1249d1ba99))
+* **deps:** bump @commitlint/config-conventional from 21.0.1 to 21.0.2 ([#1054](https://github.com/vinayakkulkarni/tileserver-rs/issues/1054)) ([ee037bc](https://github.com/vinayakkulkarni/tileserver-rs/commit/ee037bcc679f75dea7ace650b466884aaf60dac2))
+* **deps:** bump @geoql/v-maplibre from 1.10.0 to 1.11.0 ([#1066](https://github.com/vinayakkulkarni/tileserver-rs/issues/1066)) ([1dd1940](https://github.com/vinayakkulkarni/tileserver-rs/commit/1dd1940067550d184047c14c609db70a8e2525a4))
+* **deps:** bump @tanstack/ai from 0.22.1 to 0.23.1 ([#1064](https://github.com/vinayakkulkarni/tileserver-rs/issues/1064)) ([fa8473b](https://github.com/vinayakkulkarni/tileserver-rs/commit/fa8473b5305924a859d73d52609d704286ffcba3))
+* **deps:** bump @tanstack/ai-vue from 0.10.11 to 0.11.1 ([#1055](https://github.com/vinayakkulkarni/tileserver-rs/issues/1055)) ([6fe9507](https://github.com/vinayakkulkarni/tileserver-rs/commit/6fe95078d0128e524eaa2733b1f298407b84836c))
+* **deps:** bump brotli from 8.0.2 to 8.0.3 ([#1056](https://github.com/vinayakkulkarni/tileserver-rs/issues/1056)) ([974a695](https://github.com/vinayakkulkarni/tileserver-rs/commit/974a695717bb6af84682a705b172ca895a7a3b1c))
+* **deps:** bump cc from 1.2.62 to 1.2.63 ([#1061](https://github.com/vinayakkulkarni/tileserver-rs/issues/1061)) ([1e679df](https://github.com/vinayakkulkarni/tileserver-rs/commit/1e679dfac559a593c2fa0de9561e7990237e131d))
+* **deps:** bump commander from 2.20.3 to 15.0.0 ([#1063](https://github.com/vinayakkulkarni/tileserver-rs/issues/1063)) ([6dad5cb](https://github.com/vinayakkulkarni/tileserver-rs/commit/6dad5cbcb391fbc3b1374a596e5de7da21109c28))
+* **deps:** bump eslint from 10.4.0 to 10.4.1 ([#1062](https://github.com/vinayakkulkarni/tileserver-rs/issues/1062)) ([15bc438](https://github.com/vinayakkulkarni/tileserver-rs/commit/15bc43863907546e2c473cfa25db09ac2c1e400e))
+* **deps:** bump lint-staged from 17.0.5 to 17.0.7 ([#1059](https://github.com/vinayakkulkarni/tileserver-rs/issues/1059)) ([206a938](https://github.com/vinayakkulkarni/tileserver-rs/commit/206a938d56dcccf29ef6a152797df53dcb3fa3b5))
+* **deps:** bump uuid from 1.23.1 to 1.23.2 ([#1058](https://github.com/vinayakkulkarni/tileserver-rs/issues/1058)) ([a74c1bd](https://github.com/vinayakkulkarni/tileserver-rs/commit/a74c1bdbfedc8985b31a4cbdb46bf28da0484af3))
+* **deps:** bump vue-tsc from 3.3.2 to 3.3.3 ([#1065](https://github.com/vinayakkulkarni/tileserver-rs/issues/1065)) ([0ad5bce](https://github.com/vinayakkulkarni/tileserver-rs/commit/0ad5bceda5815e29b6cdd52d1c7201ddcc5e7e6d))
+* normalize trailing slashes so /_openapi/ no longer 404s ([5749c14](https://github.com/vinayakkulkarni/tileserver-rs/commit/5749c1491aadc14850158899cb120f1a3cd546c3))
+* trailing-slash normalization + compression coverage tests ([c49df27](https://github.com/vinayakkulkarni/tileserver-rs/commit/c49df273d2d1202757f82774330b773e352e4784))
+
+
+### Miscellaneous
+
+* sync Cargo.lock self-version to 2.31.0 ([c502b7f](https://github.com/vinayakkulkarni/tileserver-rs/commit/c502b7fa41b7ced7864b12a088fc3f9bcd5a3ff7))
+
 ## [2.31.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.30.1...v2.31.0) (2026-05-29)
 
 
