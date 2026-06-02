@@ -11,7 +11,12 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 7 feature combos run sequentially as instrumented llvm-cov builds; the
+    # GDAL-heavy raster + stac combos land last. After the free-disk-space fix
+    # unblocked the duckdb combo, total wall-clock crept past the old 45-min cap
+    # (job was ~95% done, cancelled mid-stac). 60 min gives headroom; if it
+    # recurs, split GDAL vs non-GDAL combos into two parallel jobs.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v6
