@@ -18,6 +18,24 @@ jobs:
         with:
           submodules: recursive
 
+      # ubuntu-latest ships with ~14GB free on /. The coverage job runs every
+      # feature combo sequentially, accumulating llvm-cov instrumented artifacts
+      # in target/llvm-cov-target/; the duckdb combo alone (libduckdb-sys
+      # produces ~6GB of object files before archiving) then exceeds the disk.
+      # Clearing pre-installed Android SDK / .NET / Haskell / large-packages
+      # reclaims ~30GB and unblocks the archive step (ar: No space left on
+      # device). Mirrors the same step in ci-rust.yml.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - name: Install system dependencies
         # libgdal-dev + libclang-dev are required by gdal-sys (bindgen) when
         # compiling the `raster` and `stac` feature combos. Other combos
