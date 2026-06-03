@@ -63,7 +63,7 @@ catalogs:
     clsx: ^2.1.1
     eslint: ^10.4.1
     eslint-plugin-better-tailwindcss: ^4.5.0
-    eslint-plugin-oxlint: ^1.67.0
+    eslint-plugin-oxlint: ^1.68.0
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.0.7
