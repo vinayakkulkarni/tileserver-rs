@@ -53,7 +53,7 @@ catalogs:
     '@nuxt/eslint': ^1.15.2
     '@nuxt/eslint-config': ^1.15.2
     '@nuxt/fonts': ^0.14.0
-    '@nuxt/icon': ^2.2.2
+    '@nuxt/icon': ^2.2.3
     '@nuxtjs/color-mode': ^4.0.0
     '@tailwindcss/vite': ^4.3.0
     '@types/node': ^25.9.1

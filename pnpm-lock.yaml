@@ -120,8 +120,8 @@ catalogs:
       specifier: ^0.14.0
       version: 0.14.0
     '@nuxt/icon':
-      specifier: ^2.2.2
-      version: 2.2.2
+      specifier: ^2.2.3
+      version: 2.2.3
     '@nuxtjs/color-mode':
       specifier: ^4.0.0
       version: 4.0.0
@@ -441,7 +441,7 @@ importers:
         version: 0.14.0(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       '@nuxt/icon':
         specifier: catalog:default
-        version: 2.2.2(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        version: 2.2.3(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@nuxtjs/color-mode':
         specifier: catalog:default
         version: 4.0.0(magicast@0.5.2)
@@ -544,7 +544,7 @@ importers:
         version: 0.14.0(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       '@nuxt/icon':
         specifier: catalog:default
-        version: 2.2.2(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
+        version: 2.2.3(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@nuxtjs/color-mode':
         specifier: catalog:default
         version: 4.0.0(magicast@0.5.2)
@@ -1706,8 +1706,8 @@ packages:
   '@iconify-json/simple-icons@1.2.84':
     resolution: {integrity: sha512-v4JVu6xIewGoETD4mm2k6UAdFAbTlY1duw5ZNSxYORfs2yFsHDhoU9Omn/BgrV0nR/ptWkF3ZIr/ZHoYXI/6Jw==}
 
-  '@iconify/collections@1.0.683':
-    resolution: {integrity: sha512-ZfrFEuExsdpcO2PCkbHBMja26eyPRZ+Bh7Af/lGAk5C8t740H9bYPyrJVQzQrxnPFcRwNq1Ehs+Q8aQJRYn/Iw==}
+  '@iconify/collections@1.0.692':
+    resolution: {integrity: sha512-+5uvZPvTtE+rskWeIJZ3lwhltkBXu1epBr1LoAugRQSIekq4yb9ZIu3huswHgD+EgZufpDuSjVyc/z3aeYMHGg==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -2237,8 +2237,8 @@ packages:
   '@nuxt/fonts@0.14.0':
     resolution: {integrity: sha512-4uXQl9fa5F4ibdgU8zomoOcyMdnwgdem+Pi8JEqeDYI5yPR32Kam6HnuRr47dTb97CstaepAvXPWQUUHMtjsFQ==}
 
-  '@nuxt/icon@2.2.2':
-    resolution: {integrity: sha512-K9wINW21M9x5GcKF5JEXzPKAT/Kfxl/vdnEyppw54hh5qoLcdi5HmsYoTfDP9gbJ6Z1T6IdH5JxBWk72HMe1Zg==}
+  '@nuxt/icon@2.2.3':
+    resolution: {integrity: sha512-2HWDoMRWGSOWl7fu8wvvLTjoiaEwM7tSDww+6n4yVrNzKJFNAOLpYB9UevEf0CrK32q2JuA7TZnVpdwiPPdQSQ==}
 
   '@nuxt/kit@3.21.2':
     resolution: {integrity: sha512-Bd6m6mrDrqpBEbX+g0rc66/ALd1sxlgdx5nfK9MAYO0yKLTOSK7McSYz1KcOYn3LQFCXOWfvXwaqih/b+REI1g==}
@@ -6161,6 +6161,10 @@ packages:
     resolution: {integrity: sha512-arhlxbFRmoQHl33a0Zkle/YWlmNwoyt6QNZEIJcqNbdrsix5Lvc4HyyI3EnwxTYlZYc32EbYrQ8SzEZ7dqgg9A==}
     engines: {node: '>=14'}
 
+  local-pkg@1.2.1:
+    resolution: {integrity: sha512-++gUqRDEvcnN6Zhqrr+y/CkVEHhlrR96vZn3nZZPYzMcBUyBtTKzB9NadClFIsIVSsu+3i9tfk/erqy9kAmt7Q==}
+    engines: {node: '>=14'}
+
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
@@ -7763,6 +7767,10 @@ packages:
     resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
     engines: {node: '>=12.0.0'}
 
+  tinyglobby@0.2.17:
+    resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
+    engines: {node: '>=12.0.0'}
+
   tinypool@2.1.0:
     resolution: {integrity: sha512-Pugqs6M0m7Lv1I7FtxN4aoyToKg1C4tu+/381vH35y8oENM/Ai7f7C4StcoK4/+BSw9ebcS8jRiVrORFKCALLw==}
     engines: {node: ^20.0.0 || >=22.0.0}
@@ -9354,7 +9362,7 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify/collections@1.0.683':
+  '@iconify/collections@1.0.692':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -10314,22 +10322,22 @@ snapshots:
       - uploadthing
       - vite
 
-  '@nuxt/icon@2.2.2(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
+  '@nuxt/icon@2.2.3(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@iconify/collections': 1.0.683
+      '@iconify/collections': 1.0.692
       '@iconify/types': 2.0.0
       '@iconify/utils': 3.1.3
       '@iconify/vue': 5.0.1(vue@3.5.35(typescript@6.0.3))
       '@nuxt/devtools-kit': 3.2.4(magicast@0.5.2)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
-      '@nuxt/kit': 4.4.5(magicast@0.5.2)
+      '@nuxt/kit': 4.4.6(magicast@0.5.2)
       consola: 3.4.2
-      local-pkg: 1.1.2
+      local-pkg: 1.2.1
       mlly: 1.8.2
       ohash: 2.0.11
-      pathe: 2.0.3
       picomatch: 4.0.4
       std-env: 4.1.0
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
+      ufo: 1.6.4
     transitivePeerDependencies:
       - magicast
       - vite
@@ -14454,6 +14462,12 @@ snapshots:
       pkg-types: 2.3.0
       quansync: 0.2.11
 
+  local-pkg@1.2.1:
+    dependencies:
+      mlly: 1.8.2
+      pkg-types: 2.3.1
+      quansync: 0.2.11
+
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
@@ -16844,6 +16858,11 @@ snapshots:
   tinyexec@1.2.4: {}
 
   tinyglobby@0.2.16:
+    dependencies:
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+
+  tinyglobby@0.2.17:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
