@@ -1,8 +1,18 @@
 ---
-source: tests/e2e_rendering.rs
+source: crates/tileserver-rs/tests/e2e_rendering.rs
 expression: json
 ---
 [
+  {
+    "tilejson": "3.0.0",
+    "id": "dir-tiles",
+    "tiles": [
+      "http://localhost:8080/data/dir-tiles/{z}/{x}/{y}.pbf"
+    ],
+    "name": "Directory Tiles",
+    "minzoom": 0,
+    "maxzoom": 22
+  },
   {
     "tilejson": "3.0.0",
     "id": "protomaps",
@@ -6385,6 +6395,28 @@ expression: json
         },
         "minzoom": 0,
         "maxzoom": 15
+      }
+    ]
+  },
+  {
+    "tilejson": "3.0.0",
+    "id": "tar-tiles",
+    "tiles": [
+      "http://localhost:8080/data/tar-tiles/{z}/{x}/{y}.pbf"
+    ],
+    "name": "Tar Tiles",
+    "minzoom": 2,
+    "maxzoom": 3,
+    "bounds": [
+      0.0,
+      -79.17133464081945,
+      45.0,
+      -40.97989806962013
+    ],
+    "vector_layers": [
+      {
+        "id": "roads",
+        "fields": {}
       }
     ]
   },

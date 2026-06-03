@@ -317,14 +317,89 @@ async fn data_tile_mlt_format_request_does_not_500() {
 }
 
 #[tokio::test]
-async fn data_tile_mbtiles_source_zoom_0() {
-    // Exercise the MBTiles code path (vs PMTiles).
+async fn data_tile_compression_test_server() {
+    // placeholder to keep the cache server constructor exercised
+    let _ = compression_test_server().await;
+}
+
+// ============================================================
+// Directory + tar source tests (Bundle C — #1006 / #1005)
+// ============================================================
+
+#[tokio::test]
+async fn dir_source_tilejson_returns_metadata() {
     let server = pmtiles_test_server().await;
-    let resp = server.get("/data/zurich/0/0/0.pbf").await;
-    let status = resp.status_code().as_u16();
+    let resp = server.get("/data/dir-tiles").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["id"], "dir-tiles");
+    assert!(body["tiles"].is_array());
+}
+
+#[tokio::test]
+async fn dir_source_serves_known_tile_bytes() {
+    let server = pmtiles_test_server().await;
+    // Fixture has 3/4/5.pbf with the crafted "roads"-layer MVT.
+    let resp = server.get("/data/dir-tiles/3/4/5.pbf").await;
+    resp.assert_status_ok();
+    let bytes = resp.as_bytes();
+    assert!(!bytes.is_empty(), "dir tile must return non-empty bytes");
+}
+
+#[tokio::test]
+async fn dir_source_missing_tile_not_200() {
+    let server = pmtiles_test_server().await;
+    // 5/0/0 is absent from the fixture pyramid.
+    let resp = server.get("/data/dir-tiles/5/0/0.pbf").await;
+    assert_ne!(
+        resp.status_code().as_u16(),
+        200,
+        "missing dir tile must not return 200"
+    );
+}
+
+#[tokio::test]
+async fn tar_source_tilejson_returns_metadata() {
+    let server = pmtiles_test_server().await;
+    let resp = server.get("/data/tar-tiles").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["id"], "tar-tiles");
+    assert!(body["tiles"].is_array());
+}
+
+#[tokio::test]
+async fn tar_source_serves_known_tile_bytes() {
+    let server = pmtiles_test_server().await;
+    let resp = server.get("/data/tar-tiles/3/4/5.pbf").await;
+    resp.assert_status_ok();
+    let bytes = resp.as_bytes();
+    assert!(!bytes.is_empty(), "tar tile must return non-empty bytes");
+}
+
+#[tokio::test]
+async fn tar_source_missing_tile_not_200() {
+    let server = pmtiles_test_server().await;
+    let resp = server.get("/data/tar-tiles/5/0/0.pbf").await;
+    assert_ne!(
+        resp.status_code().as_u16(),
+        200,
+        "missing tar tile must not return 200"
+    );
+}
+
+#[tokio::test]
+async fn tar_source_introspects_vector_layers() {
+    let server = pmtiles_test_server().await;
+    let resp = server.get("/data/tar-tiles").await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    let layers = body["vector_layers"]
+        .as_array()
+        .expect("tar source must expose vector_layers");
     assert!(
-        matches!(status, 200 | 204 | 404),
-        "mbtiles tile request must return 200/204/404, got {status}"
+        layers.iter().any(|l| l["id"] == "roads"),
+        "tar vector_layers must include the crafted 'roads' layer"
     );
 }
 

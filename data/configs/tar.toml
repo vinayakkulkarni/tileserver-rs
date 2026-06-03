@@ -1,0 +1,40 @@
+# Tar-archive tile source example.
+#
+# Serves a `.tar` (or `.tar.gz` / `.tgz` / `.tar.br` / `.tar.zst`) bundle of
+# `{z}/{x}/{y}.{ext}` tiles. The archive is decompressed once at startup and an
+# in-memory `(z, x, y)` index is built; tiles are then served zero-copy.
+#
+# Tradeoff: the whole archive is held in memory. For planet-scale tile sets,
+# PMTiles remains the production choice — its hierarchical directory avoids
+# keeping every tile resident. Tar shines for airgapped/offline kits and
+# `scp`-everywhere deployments where a single portable file matters most.
+
+[server]
+host = "0.0.0.0"
+port = 8080
+cors_origins = ["*"]
+
+# Uncompressed tar.
+[[sources]]
+id = "regional-tiles"
+type = "tar"
+path = "/data/tiles.tar"
+name = "Regional Tiles"
+
+# Gzipped — auto-detected by the .tar.gz extension.
+[[sources]]
+id = "compressed-tiles"
+type = "tar"
+path = "/data/tiles.tar.gz"
+
+# Brotli — matches the versatiles-rs .tar.br convention.
+[[sources]]
+id = "brotli-tiles"
+type = "tar"
+path = "/data/tiles.tar.br"
+
+# Zstandard.
+[[sources]]
+id = "zstd-tiles"
+type = "tar"
+path = "/data/tiles.tar.zst"

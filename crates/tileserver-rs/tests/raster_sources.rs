@@ -633,6 +633,8 @@ mod error_handling {
             max_items: 500,
             stac_bbox: None,
             pixel_selection: tileserver_rs::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         };
 
         let result = CogSource::from_file(&config).await;

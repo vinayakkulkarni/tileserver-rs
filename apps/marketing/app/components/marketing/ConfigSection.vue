@@ -1,6 +1,6 @@
 <script setup lang="ts">
   const configFeatures = [
-    'Multiple tile sources (PMTiles, MBTiles, PostGIS, COG)',
+      'Multiple tile sources (PMTiles, MBTiles, dir, tar, PostGIS, COG)',
     'TOML or YAML config, with env-var substitution',
     'In-memory tile caching with TTL',
     'Glob & regex CORS allow-lists, custom response headers',
@@ -77,6 +77,12 @@ id = <span class="token-string">"openmaptiles"</span>
 type = <span class="token-string">"pmtiles"</span>
 path = <span class="token-string">"/data/tiles.pmtiles"</span>
 serve_as = <span class="token-string">"mlt"</span>  <span class="token-comment"># MVT→MLT on the fly</span>
+
+<span class="token-comment"># Also: dir of {z}/{x}/{y} tiles or a portable .tar</span>
+<span class="token-keyword">[[sources]]</span>
+id = <span class="token-string">"tippecanoe-out"</span>
+type = <span class="token-string">"dir"</span>
+path = <span class="token-string">"/data/tiles/"</span>
 
 <span class="token-comment"># Server — glob/regex CORS + custom headers</span>
 <span class="token-keyword">[server]</span>

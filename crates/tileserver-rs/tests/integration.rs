@@ -1053,6 +1053,8 @@ mod mlt_mbtiles_tests {
             max_items: 500,
             stac_bbox: None,
             pixel_selection: tileserver_rs::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
         }
     }
 

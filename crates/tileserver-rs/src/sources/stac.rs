@@ -126,6 +126,8 @@ impl StacSource {
                 max_items: config.max_items,
                 stac_bbox: config.stac_bbox,
                 pixel_selection: config.pixel_selection,
+                tile_path_template: None,
+                tms: false,
             };
 
             match CogSource::from_file(&cog_config).await {
@@ -594,6 +596,8 @@ async fn render_single_asset(
         max_items: template.max_items,
         stac_bbox: template.stac_bbox,
         pixel_selection: template.pixel_selection,
+        tile_path_template: None,
+        tms: false,
     };
 
     match CogSource::from_file(&cfg).await {
