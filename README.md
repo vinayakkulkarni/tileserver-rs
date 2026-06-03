@@ -18,6 +18,8 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - **PMTiles Support** - Serve tiles from local and remote PMTiles archives
 - **MBTiles Support** - Serve tiles from SQLite-based MBTiles files
+- **Directory Sources** - Serve a `{z}/{x}/{y}.{ext}` tile pyramid straight from disk (zero packaging step)
+- **Tar Archive Sources** - Serve a portable `.tar` / `.tar.gz` / `.tar.br` / `.tar.zst` bundle of tiles
 - **Native Raster Rendering** - Generate PNG/JPEG/WebP tiles using MapLibre Native (C++ FFI)
 - **MLT (MapLibre Tiles)** - Serve and transcode MLT tiles with MLT↔MVT on-the-fly conversion (feature-gated)
 - **PostgreSQL Out-DB Rasters** - Serve VRT/COG tiles via PostGIS functions with dynamic filtering
@@ -34,10 +36,10 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 ## Tech Stack
 
-- **Backend**: Rust 1.75+, Axum 0.8, Tokio
+- **Backend**: Rust 1.95 (MSRV 1.91), Axum 0.8, Tokio
 - **Native Rendering**: MapLibre Native (C++) via FFI bindings
 - **Frontend**: Nuxt 4, Vue 3.5, Tailwind CSS v4, shadcn-vue
-- **Tooling**: Bun workspaces, Docker multi-stage builds
+- **Tooling**: pnpm workspaces, Docker multi-stage builds
 
 ## Table of Contents
 
@@ -57,7 +59,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 ## Requirements
 
-- [Rust 1.75+](https://www.rust-lang.org/)
+- [Rust 1.95](https://www.rust-lang.org/) (workspace MSRV 1.91; the pinned toolchain in `rust-toolchain.toml` is 1.95)
 - [Node.js 24+](https://nodejs.org/) with [pnpm 11](https://pnpm.io/) (via `corepack enable`)
 - (Optional) [Docker](https://www.docker.com/)
 
@@ -126,6 +128,23 @@ brew install vinayakkulkarni/tileserver-rs/tileserver-rs
 # Run the server
 tileserver-rs --config config.toml
 ```
+
+### Using Nix
+
+With [Nix](https://nixos.org/) (flakes enabled) you can run, build, or develop without installing Rust/GDAL by hand:
+
+```bash
+# Run straight from GitHub
+nix run github:vinayakkulkarni/tileserver-rs -- --config config.toml
+
+# Build a package variant: default | slim | full
+nix build github:vinayakkulkarni/tileserver-rs#default
+
+# Dev shell with the pinned toolchain + GDAL + Node 24 + pnpm + gh
+nix develop
+```
+
+The flake exposes `default` (postgres, raster, mlt, cloud, stac, frontend — mirrors Docker `:latest`), `slim` (postgres only), and `full` (all features). The MapLibre Native C++ build for the `raster` feature is slow on first run (~30 min) and cached thereafter via Cachix.
 
 ### Pre-built Binaries
 
@@ -251,6 +270,18 @@ id = "terrain"
 type = "mbtiles"
 path = "/data/terrain.mbtiles"
 name = "Terrain Data"
+
+[[sources]]
+id = "tippecanoe-output"
+type = "dir"                       # serve {z}/{x}/{y}.{ext} straight from disk
+path = "/data/tiles/openmaptiles/"
+name = "OpenMapTiles (directory)"
+
+[[sources]]
+id = "regional"
+type = "tar"                      # .tar / .tar.gz / .tar.br / .tar.zst bundle
+path = "/data/regional.tar"
+name = "Regional Tiles"
 
 [[styles]]
 id = "osm-bright"
@@ -452,15 +483,24 @@ pnpm run build:client
 
 | Feature | Description |
 |---------|-------------|
-| `http` | Enable serving PMTiles from remote HTTP URLs |
+| `frontend` | Embed the Nuxt map viewer + inspector into the binary |
+| `cloud` | Serve PMTiles from remote object storage (S3/GCS/Azure/HTTP) — on by default |
 | `mlt` | Enable MLT (MapLibre Tiles) transcoding support |
+| `raster` | Native MapLibre raster rendering (requires MapLibre Native — see above) |
+| `postgres` | PostgreSQL/PostGIS sources + OGC API Features + out-DB rasters |
+| `stac` | Serve COGs from STAC API catalogs |
+| `geoparquet` | GeoParquet vector sources |
+| `duckdb` | DuckDB-backed sources |
+| `mcp` / `mcp-persistence` | Model Context Protocol server (+ persistence) |
+
+> Note: `dir` and `tar` directory/archive sources, plus PMTiles and MBTiles, are always available — they are not feature-gated.
 
 ```bash
 # Build with MLT support
 cargo build --release --features mlt
 
-# Build with all optional features
-cargo build --release --features http,mlt
+# Build with several optional features
+cargo build --release --features postgres,raster,mlt,stac
 ```
 
 ### Project Structure
@@ -489,6 +529,8 @@ tileserver-rs/
 │   │   ├── dev-postgres.toml # Development with PostGIS + OGC API
 │   │   ├── geoparquet.toml  # GeoParquet source testing
 │   │   ├── duckdb.toml      # DuckDB source testing
+│   │   ├── dir.toml         # Directory-of-tiles source example
+│   │   ├── tar.toml         # Tar archive source example
 │   │   └── benchmark-raster.toml # Raster benchmark config
 │   ├── styles/              # MapLibre GL style JSONs
 │   ├── tiles/, fonts/, raster/, overture/, postgres-dev/

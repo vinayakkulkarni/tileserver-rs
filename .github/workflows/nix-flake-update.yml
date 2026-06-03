@@ -1,0 +1,49 @@
+name: Nix flake update
+
+# Dependabot has no Nix-flake ecosystem, so a scheduled action keeps flake.lock
+# fresh: it bumps the inputs, runs `nix flake check`, and opens a PR only when
+# the updated lock still builds. Mirrors how Dependabot guards the other lockfiles.
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update flake.lock
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Update flake.lock and open PR
+        uses: DeterminateSystems/update-flake-lock@v27
+        with:
+          pr-title: 'build(deps): update flake.lock'
+          pr-labels: |
+            dependencies
+            github_actions
+          branch: deps/flake-lock-update
