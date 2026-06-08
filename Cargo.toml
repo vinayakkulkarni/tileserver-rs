@@ -75,7 +75,7 @@ mlt-core         = { version = "0.9.3" }
 # always present on macOS (/usr/lib/libsqlite3.dylib), Linux distros ship
 # libsqlite3-dev in default repos, and CI/Docker installs it explicitly.
 # Windows is handled separately via the `bundled-windows` feature.
-rusqlite         = { version = "0.40.0", features = ["bundled-windows"] }
+rusqlite         = { version = "0.40.1", features = ["bundled-windows"] }
 
 # HTTP client
 reqwest          = { version = "0.13.4", default-features = false, features = ["rustls", "json"] }
