@@ -97,7 +97,7 @@ catalogs:
     '@maplibre/mlt': ^1.1.11
     '@mlc-ai/web-llm': ^0.2.84
     '@tanstack/ai': ^0.28.0
-    '@tanstack/ai-vue': ^0.13.3
+    '@tanstack/ai-vue': ^0.13.4
     '@tanstack/query-db-collection': ^1.0.39
     '@tanstack/vue-db': ^0.0.118
     '@tanstack/vue-query': ^5.101.0
