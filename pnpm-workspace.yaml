@@ -72,7 +72,7 @@ catalogs:
     motion-v: ^2.3.0
     nuxt: ^4.4.8
     oxfmt: ^0.54.0
-    oxlint: ^1.68.0
+    oxlint: ^1.69.0
     radix-vue: ^1.9.17
     reka-ui: ^2.9.9
     shadcn-nuxt: ^2.7.4
