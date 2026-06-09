@@ -70,7 +70,7 @@ catalogs:
     '@lucide/vue': ^1.17.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.3.0
-    nuxt: ^4.4.7
+    nuxt: ^4.4.8
     oxfmt: ^0.54.0
     oxlint: ^1.68.0
     radix-vue: ^1.9.17
