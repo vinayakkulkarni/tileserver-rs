@@ -105,8 +105,8 @@ catalogs:
       specifier: ^21.0.2
       version: 21.0.2
     '@iconify-json/simple-icons':
-      specifier: ^1.2.85
-      version: 1.2.85
+      specifier: ^1.2.86
+      version: 1.2.86
     '@lucide/vue':
       specifier: ^1.17.0
       version: 1.17.0
@@ -490,7 +490,7 @@ importers:
     devDependencies:
       '@iconify-json/simple-icons':
         specifier: catalog:default
-        version: 1.2.85
+        version: 1.2.86
       '@nuxt/eslint':
         specifier: catalog:default
         version: 1.15.2(@typescript-eslint/utils@8.59.0(eslint@10.4.1(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.35)(eslint@10.4.1(jiti@2.7.0))(magicast@0.5.2)(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
@@ -590,7 +590,7 @@ importers:
     devDependencies:
       '@iconify-json/simple-icons':
         specifier: catalog:default
-        version: 1.2.85
+        version: 1.2.86
       '@nuxt/eslint':
         specifier: catalog:default
         version: 1.15.2(@typescript-eslint/utils@8.59.0(eslint@10.4.1(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.35)(eslint@10.4.1(jiti@2.7.0))(magicast@0.5.2)(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
@@ -1697,8 +1697,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@iconify-json/simple-icons@1.2.85':
-    resolution: {integrity: sha512-Hp5LXvd3LRk+e+1558wtonA7c1Z0/Phmi7xCqpgtb8bs8cuyGnP34GDbt5uhhUXxKlzacnnhAcXgcDxe9bUa1w==}
+  '@iconify-json/simple-icons@1.2.86':
+    resolution: {integrity: sha512-t3jck5qPQuK1qy+bRn9eCoDQhIB7XSazKz1Fjp8hcan3XOAsTI5Mq/s3F0ekOKSvMQqkVORYK6ns6o6T9f5EMA==}
 
   '@iconify/collections@1.0.692':
     resolution: {integrity: sha512-+5uvZPvTtE+rskWeIJZ3lwhltkBXu1epBr1LoAugRQSIekq4yb9ZIu3huswHgD+EgZufpDuSjVyc/z3aeYMHGg==}
@@ -9266,7 +9266,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@iconify-json/simple-icons@1.2.85':
+  '@iconify-json/simple-icons@1.2.86':
     dependencies:
       '@iconify/types': 2.0.0
 
