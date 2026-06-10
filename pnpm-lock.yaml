@@ -123,8 +123,8 @@ catalogs:
       specifier: ^2.2.3
       version: 2.2.3
     '@nuxtjs/color-mode':
-      specifier: ^4.0.0
-      version: 4.0.0
+      specifier: ^4.0.1
+      version: 4.0.1
     '@tailwindcss/vite':
       specifier: ^4.3.0
       version: 4.3.0
@@ -299,7 +299,7 @@ importers:
         version: 0.14.0(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       '@nuxtjs/color-mode':
         specifier: catalog:default
-        version: 4.0.0(magicast@0.5.2)
+        version: 4.0.1(magicast@0.5.2)
       '@tanstack/ai':
         specifier: catalog:client
         version: 0.28.0
@@ -444,7 +444,7 @@ importers:
         version: 2.2.3(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@nuxtjs/color-mode':
         specifier: catalog:default
-        version: 4.0.0(magicast@0.5.2)
+        version: 4.0.1(magicast@0.5.2)
       '@vueuse/core':
         specifier: catalog:default
         version: 14.3.0(vue@3.5.35(typescript@6.0.3))
@@ -547,7 +547,7 @@ importers:
         version: 2.2.3(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       '@nuxtjs/color-mode':
         specifier: catalog:default
-        version: 4.0.0(magicast@0.5.2)
+        version: 4.0.1(magicast@0.5.2)
       '@vueuse/core':
         specifier: catalog:default
         version: 14.3.0(vue@3.5.35(typescript@6.0.3))
@@ -2305,8 +2305,8 @@ packages:
       rollup-plugin-visualizer:
         optional: true
 
-  '@nuxtjs/color-mode@4.0.0':
-    resolution: {integrity: sha512-xyaVR/TPLdMuRa2VOgH6b75jvmFEsn9QKL6ISldaAw38ooFJfWY1ts2F3ye43wcT/goCbcuvPuskF2f8yUZhlw==}
+  '@nuxtjs/color-mode@4.0.1':
+    resolution: {integrity: sha512-eiA7hWXi5zNHaYKyJFCGF6i0wFZtuvR7KDXZ6jiSvwxjCpRFwphrw0MOSmNfArTSSsT1wpW+/2H92cejeVfUlg==}
 
   '@nuxtjs/mdc@0.22.0':
     resolution: {integrity: sha512-4jVc967snO5oOZtVhDnLi2Nu8kSsvGU66bsufKGU/Ixsj5lzA3HdaLMJEkFNs8AXtVXJUbkZ2PhvTttFHo8Kgw==}
@@ -8874,7 +8874,7 @@ snapshots:
   '@dxup/nuxt@0.4.1(magicast@0.5.2)(typescript@6.0.3)':
     dependencies:
       '@dxup/unimport': 0.1.2
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       chokidar: 5.0.0
       pathe: 2.0.3
       tinyglobby: 0.2.17
@@ -9966,7 +9966,7 @@ snapshots:
     dependencies:
       '@nuxt/devtools-kit': 3.2.4(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       '@nuxt/devtools-wizard': 3.2.4
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       '@vue/devtools-core': 8.1.1(vue@3.5.35(typescript@6.0.3))
       '@vue/devtools-kit': 8.1.2
       birpc: 4.0.0
@@ -9993,7 +9993,7 @@ snapshots:
       structured-clone-es: 2.0.0
       tinyglobby: 0.2.17
       vite: 8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)
-      vite-plugin-inspect: 11.3.3(@nuxt/kit@4.4.7(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
+      vite-plugin-inspect: 11.3.3(@nuxt/kit@4.4.8(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       vite-plugin-vue-tracer: 1.3.0(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       which: 6.0.1
       ws: 8.20.1
@@ -10007,7 +10007,7 @@ snapshots:
     dependencies:
       '@nuxt/devtools-kit': 3.2.4(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       '@nuxt/devtools-wizard': 3.2.4
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       '@vue/devtools-core': 8.1.1(vue@3.5.35(typescript@6.0.3))
       '@vue/devtools-kit': 8.1.2
       birpc: 4.0.0
@@ -10034,7 +10034,7 @@ snapshots:
       structured-clone-es: 2.0.0
       tinyglobby: 0.2.17
       vite: 8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)
-      vite-plugin-inspect: 11.3.3(@nuxt/kit@4.4.7(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
+      vite-plugin-inspect: 11.3.3(@nuxt/kit@4.4.8(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
       vite-plugin-vue-tracer: 1.3.0(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))(vue@3.5.35(typescript@6.0.3))
       which: 6.0.1
       ws: 8.20.1
@@ -10309,7 +10309,7 @@ snapshots:
       pkg-types: 2.3.1
       rc9: 3.0.1
       scule: 1.3.0
-      semver: 7.7.4
+      semver: 7.8.1
       tinyglobby: 0.2.17
       ufo: 1.6.4
       unctx: 2.5.0
@@ -10669,19 +10669,19 @@ snapshots:
       - vue-tsc
       - yaml
 
-  '@nuxtjs/color-mode@4.0.0(magicast@0.5.2)':
+  '@nuxtjs/color-mode@4.0.1(magicast@0.5.2)':
     dependencies:
-      '@nuxt/kit': 4.4.2(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       exsolve: 1.0.8
       pathe: 2.0.3
-      pkg-types: 2.3.0
-      semver: 7.7.4
+      pkg-types: 2.3.1
+      semver: 7.8.1
     transitivePeerDependencies:
       - magicast
 
   '@nuxtjs/mdc@0.22.0(magicast@0.5.2)':
     dependencies:
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       '@shikijs/core': 4.0.2
       '@shikijs/engine-javascript': 4.0.2
       '@shikijs/langs': 4.0.2
@@ -15026,7 +15026,7 @@ snapshots:
 
   nuxt-component-meta@0.17.2(magicast@0.5.2):
     dependencies:
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
       citty: 0.1.6
       mlly: 1.8.2
       ohash: 2.0.11
@@ -17090,7 +17090,7 @@ snapshots:
       typescript: 6.0.3
       vue-tsc: 3.3.4(typescript@6.0.3)
 
-  vite-plugin-inspect@11.3.3(@nuxt/kit@4.4.7(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)):
+  vite-plugin-inspect@11.3.3(@nuxt/kit@4.4.8(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)):
     dependencies:
       ansis: 4.2.0
       debug: 4.4.3
@@ -17103,11 +17103,11 @@ snapshots:
       vite: 8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)
       vite-dev-rpc: 1.1.0(vite@8.0.16(@types/node@25.9.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
     optionalDependencies:
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-inspect@11.3.3(@nuxt/kit@4.4.7(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)):
+  vite-plugin-inspect@11.3.3(@nuxt/kit@4.4.8(magicast@0.5.2))(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)):
     dependencies:
       ansis: 4.2.0
       debug: 4.4.3
@@ -17120,7 +17120,7 @@ snapshots:
       vite: 8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)
       vite-dev-rpc: 1.1.0(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
     optionalDependencies:
-      '@nuxt/kit': 4.4.7(magicast@0.5.2)
+      '@nuxt/kit': 4.4.8(magicast@0.5.2)
     transitivePeerDependencies:
       - supports-color
 
