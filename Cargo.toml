@@ -87,7 +87,7 @@ sha2             = "0.11.0"
 # `ConstantTimeEq` for bearer/PKCE comparisons without a sneaky version
 # drift between our direct use and rsa's transitive pin).
 subtle           = "2.6"
-uuid             = { version = "1.23.2", features = ["v4"] }
+uuid             = { version = "1.23.3", features = ["v4"] }
 
 # Binary formats / data
 bytes            = "1.11.1"
