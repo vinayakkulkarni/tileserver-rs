@@ -74,7 +74,7 @@ catalogs:
     oxfmt: ^0.54.0
     oxlint: ^1.69.0
     radix-vue: ^1.9.17
-    reka-ui: ^2.9.9
+    reka-ui: ^2.9.10
     shadcn-nuxt: ^2.7.4
     tailwind-merge: ^3.6.0
     tailwindcss: ^4.3.0
