@@ -86,7 +86,7 @@ catalogs:
     vue-tsc: ^3.3.4
   client:
     '@comark/nuxt': ^0.4.0
-    '@deck.gl/aggregation-layers': ^9.3.3
+    '@deck.gl/aggregation-layers': ^9.3.4
     '@deck.gl/core': ^9.3.3
     '@deck.gl/geo-layers': ^9.3.3
     '@deck.gl/layers': ^9.3.3
