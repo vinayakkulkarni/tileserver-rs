@@ -116,7 +116,7 @@ export default defineNuxtConfig({
   css: [
     '~/assets/css/tailwind.css',
     'maplibre-gl/dist/maplibre-gl.css',
-    '@geoql/v-maplibre/dist/v-maplibre.css',
+    '@geoql/v-maplibre/style.css',
     'maplibre-gl-inspect/dist/style.css',
   ],
 
@@ -154,19 +154,6 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    build: {
-      rollupOptions: {
-        external: [
-          '@developmentseed/geotiff',
-          '@developmentseed/deck.gl-geotiff',
-          '@developmentseed/deck.gl-raster',
-          '@geoql/maplibre-gl-starfield',
-          'maplibre-gl-lidar',
-          'maplibre-gl-wind',
-          'three',
-        ],
-      },
-    },
     optimizeDeps: {
       include: ['maplibre-gl', '@geoql/v-maplibre', '@mlc-ai/web-llm'],
     },
