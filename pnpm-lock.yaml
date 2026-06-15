@@ -41,8 +41,8 @@ catalogs:
       specifier: ^9.3.4
       version: 9.3.4
     '@geoql/v-maplibre':
-      specifier: ^1.11.0
-      version: 1.11.0
+      specifier: ^2.0.1
+      version: 2.0.1
     '@luma.gl/engine':
       specifier: ~9.3.3
       version: 9.3.3
@@ -281,7 +281,7 @@ importers:
         version: 9.3.4(@deck.gl/core@9.3.4)(@loaders.gl/core@4.4.1)(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/gltf@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/engine@9.3.3(@luma.gl/core@9.3.3)(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3)))(@luma.gl/shadertools@9.3.3(@luma.gl/core@9.3.3))
       '@geoql/v-maplibre':
         specifier: catalog:client
-        version: 1.11.0(6d37f64f18bef5d1a1a3237bb3db6d5f)
+        version: 2.0.1(6d37f64f18bef5d1a1a3237bb3db6d5f)
       '@lucide/vue':
         specifier: catalog:default
         version: 1.17.0(vue@3.5.35(typescript@6.0.3))
@@ -1628,8 +1628,8 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
-  '@geoql/v-maplibre@1.11.0':
-    resolution: {integrity: sha512-cPMqzV5v5TrQtekBqwHtfeZZ4OKZYIZVJq75F8ZqggqJBc/uemft+lqEElK1YuMeUg6TURTJQzH4IEFDb88ZeA==}
+  '@geoql/v-maplibre@2.0.1':
+    resolution: {integrity: sha512-tW542bLFJ6ThmbJzUIvkXvmE5a+j+IWuYxSKf/MS0HSQAxAE6JNgVgNhLwshI4JpOnQdW3Sylg8yab0Tc7OcQQ==}
     peerDependencies:
       '@deck.gl/aggregation-layers': ^9.3.0
       '@deck.gl/core': ^9.3.0
@@ -9407,7 +9407,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@geoql/v-maplibre@1.11.0(6d37f64f18bef5d1a1a3237bb3db6d5f)':
+  '@geoql/v-maplibre@2.0.1(6d37f64f18bef5d1a1a3237bb3db6d5f)':
     dependencies:
       maplibre-gl: 5.24.0
       pmtiles: 4.4.1
