@@ -152,10 +152,10 @@ geojson          = "1.0.0"
 cql2             = "0.5.6"
 
 # GeoParquet (optional)
-parquet          = { version = "58", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
-arrow-array      = "58"
-arrow-schema     = "58"
-arrow-cast       = "58"
+parquet          = { version = "59", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
+arrow-array      = "59"
+arrow-schema     = "59"
+arrow-cast       = "59"
 # geo 0.33 unblocked May 8 2026 by cql2 0.5.6 (which finally shipped a
 # .crate with geo = "0.33.0" — earlier 0.5.4 / 0.5.5 release tags carried
 # stale snapshots that still pinned geo ^0.31; see developmentseed/cql2-rs#199).
