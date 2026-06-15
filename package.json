@@ -3,7 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "description": "Tileserver for serving vector maps from data source(s)",
-  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev:client": "pnpm --filter @tileserver-rs/client run dev",
     "dev:docs": "pnpm --filter @tileserver-rs/docs run dev",
@@ -49,5 +48,12 @@
   "engines": {
     "node": ">=24.0.0"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24"
+    }
+  },
+  "packageManager": "pnpm@11.7.0+sha512.19cc852c120c7125760f2443ee6be0ca5b40f9f50598de1a09a1f177503e010e57c23c77646e01e761de59bf874fb22a3398c33ab9691fc13eb946b6f0f4d620",
   "homepage": "https://tileserver.app"
 }
