@@ -670,4 +670,217 @@ mod tests {
         assert_eq!(MAX_IMAGE_DIMENSION, 4096);
         assert_eq!(MAX_SCALE_FACTOR, 4);
     }
+
+    fn center_origin() -> StaticType {
+        StaticType::Center {
+            lon: 0.0,
+            lat: 0.0,
+            zoom: 1.0,
+            bearing: None,
+            pitch: None,
+        }
+    }
+
+    fn for_static_center(
+        st: StaticType,
+        width: u32,
+        height: u32,
+        scale: u8,
+    ) -> Result<RenderOptions, String> {
+        RenderOptions::for_static(
+            "s".to_string(),
+            "{}".to_string(),
+            st,
+            width,
+            height,
+            scale,
+            ImageFormat::Png,
+            StaticQueryParams::default(),
+        )
+    }
+
+    #[test]
+    fn test_render_options_for_static_zero_dimension_message() {
+        let err = for_static_center(center_origin(), 0, 100, 1).unwrap_err();
+        assert!(err.contains("dimensions"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_zero_height_rejected() {
+        let err = for_static_center(center_origin(), 100, 0, 1).unwrap_err();
+        assert!(err.contains("dimensions"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_width_too_large_message() {
+        let err = for_static_center(center_origin(), MAX_IMAGE_DIMENSION + 1, 100, 1).unwrap_err();
+        assert!(err.contains("width"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_height_too_large_message() {
+        let err = for_static_center(center_origin(), 100, MAX_IMAGE_DIMENSION + 1, 1).unwrap_err();
+        assert!(err.contains("height"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_scale_zero_message() {
+        let err = for_static_center(center_origin(), 100, 100, 0).unwrap_err();
+        assert!(err.contains("Scale"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_scale_too_high_message() {
+        let err = for_static_center(center_origin(), 100, 100, MAX_SCALE_FACTOR + 1).unwrap_err();
+        assert!(err.contains("Scale"));
+    }
+
+    #[test]
+    fn test_render_options_for_static_center_defaults_bearing_pitch() {
+        let opts = for_static_center(
+            StaticType::Center {
+                lon: -71.0,
+                lat: 42.0,
+                zoom: 9.0,
+                bearing: None,
+                pitch: None,
+            },
+            256,
+            256,
+            1,
+        )
+        .unwrap();
+        assert!((opts.lon - (-71.0)).abs() < 1e-9);
+        assert!((opts.lat - 42.0).abs() < 1e-9);
+        assert!((opts.zoom - 9.0).abs() < 1e-9);
+        assert_eq!(opts.bearing, 0.0);
+        assert_eq!(opts.pitch, 0.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_center_with_bearing_pitch() {
+        let opts = for_static_center(
+            StaticType::Center {
+                lon: 10.0,
+                lat: 20.0,
+                zoom: 5.0,
+                bearing: Some(90.0),
+                pitch: Some(45.0),
+            },
+            256,
+            256,
+            1,
+        )
+        .unwrap();
+        assert!((opts.bearing - 90.0).abs() < 1e-9);
+        assert!((opts.pitch - 45.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_render_options_for_static_stores_inputs() {
+        let opts = RenderOptions::for_static(
+            "my-style".to_string(),
+            "{\"version\":8}".to_string(),
+            center_origin(),
+            321,
+            123,
+            3,
+            ImageFormat::Jpeg,
+            StaticQueryParams::default(),
+        )
+        .unwrap();
+        assert_eq!(opts.style_id, "my-style");
+        assert_eq!(opts.style_json, "{\"version\":8}");
+        assert_eq!(opts.width, 321);
+        assert_eq!(opts.height, 123);
+        assert_eq!(opts.scale, 3);
+        assert!(matches!(opts.format, ImageFormat::Jpeg));
+    }
+
+    fn bbox_opts(min_lon: f64, min_lat: f64, max_lon: f64, max_lat: f64) -> RenderOptions {
+        for_static_center(
+            StaticType::BoundingBox {
+                min_lon,
+                min_lat,
+                max_lon,
+                max_lat,
+            },
+            256,
+            256,
+            1,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_center_midpoints() {
+        // lon_diff 4, lat_diff 4 → precise path; assert midpoints regardless.
+        let opts = bbox_opts(-2.0, 8.0, 2.0, 12.0);
+        assert!((opts.lon - 0.0).abs() < 1e-9);
+        assert!((opts.lat - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_0() {
+        // lon_diff = 200 > 180 → zoom 0.0
+        let opts = bbox_opts(-100.0, -10.0, 100.0, 10.0);
+        assert_eq!(opts.zoom, 0.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_1() {
+        // lon_diff = 100 (>90, <=180) → zoom 1.0
+        let opts = bbox_opts(-50.0, -5.0, 50.0, 5.0);
+        assert_eq!(opts.zoom, 1.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_2() {
+        // lon_diff = 50 (>45, <=90) → zoom 2.0
+        let opts = bbox_opts(-25.0, -5.0, 25.0, 5.0);
+        assert_eq!(opts.zoom, 2.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_3() {
+        // lon_diff = 30 (>22.5, <=45) → zoom 3.0
+        let opts = bbox_opts(-15.0, -5.0, 15.0, 5.0);
+        assert_eq!(opts.zoom, 3.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_4() {
+        // lon_diff = 20 (>11.25, <=22.5) → zoom 4.0
+        let opts = bbox_opts(-10.0, -5.0, 10.0, 5.0);
+        assert_eq!(opts.zoom, 4.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_5() {
+        // lon_diff = 10 (>5.625, <=11.25) → zoom 5.0
+        let opts = bbox_opts(-5.0, -2.0, 5.0, 2.0);
+        assert_eq!(opts.zoom, 5.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_bbox_zoom_precise_path() {
+        // lon_diff = 1, lat_diff = 1 → max_diff <= 5.625 → precise log2 branch.
+        // zoom_lon = log2(360/1) ≈ 8.49, zoom_lat = log2(180/1) ≈ 7.49
+        // → min().floor() = 7.0
+        let opts = bbox_opts(0.0, 0.0, 1.0, 1.0);
+        assert_eq!(opts.zoom, 7.0);
+        assert!((opts.lon - 0.5).abs() < 1e-9);
+        assert!((opts.lat - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_empty_world_view() {
+        // No path/marker/geojson overlays → calculate_bounds is None → world view.
+        let opts = for_static_center(StaticType::Auto, 256, 256, 1).unwrap();
+        assert_eq!(opts.lon, 0.0);
+        assert_eq!(opts.lat, 0.0);
+        assert_eq!(opts.zoom, 1.0);
+        assert_eq!(opts.bearing, 0.0);
+        assert_eq!(opts.pitch, 0.0);
+    }
 }

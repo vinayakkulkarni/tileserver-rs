@@ -109,6 +109,228 @@ fn ensure_unique_id(base: &str, suffix: &str, used: &mut HashSet<String>) -> (St
     }
 }
 
+/// Build a [`SourceConfig`] for an auto-detected source, leaving all
+/// optional/advanced fields at their auto-detect defaults.
+fn auto_source_config(id: String, source_type: SourceType, path: &Path) -> SourceConfig {
+    SourceConfig {
+        id,
+        source_type,
+        path: path.to_string_lossy().to_string(),
+        name: None,
+        attribution: None,
+        description: None,
+        resampling: None,
+        layer_name: None,
+        geometry_column: None,
+        minzoom: None,
+        maxzoom: None,
+        query: None,
+        serve_as: None,
+        #[cfg(feature = "raster")]
+        colormap: None,
+        options: None,
+        collection: None,
+        asset_role: "visual".to_string(),
+        dynamic: false,
+        max_items: 100,
+        stac_bbox: None,
+        pixel_selection: crate::config::PixelSelectionMethod::First,
+        tile_path_template: None,
+        tms: false,
+    }
+}
+
+/// Handle a single-file auto-detect target, populating `config`/`report`.
+///
+/// Returns an error only for an unsupported file type.
+fn detect_single_file(
+    target: &Path,
+    config: &mut Config,
+    report: &mut AutoDetectReport,
+) -> anyhow::Result<()> {
+    if let Some(source_type) = detect_source_type(target) {
+        let id = file_stem_id(target);
+        config
+            .sources
+            .push(auto_source_config(id.clone(), source_type.clone(), target));
+        report.sources.push(AutoDetectedSource {
+            id,
+            source_type,
+            path: target.to_path_buf(),
+        });
+        return Ok(());
+    }
+
+    if let Some(style_id) = detect_style_id(target) {
+        config.styles.push(StyleConfig {
+            id: style_id.clone(),
+            path: target.to_path_buf(),
+            name: None,
+        });
+        report.styles.push(AutoDetectedStyle {
+            id: style_id,
+            path: target.to_path_buf(),
+        });
+        return Ok(());
+    }
+
+    let ext = target
+        .extension()
+        .map(|e| e.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default();
+    if ext == "geojson" {
+        let parent = target
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."));
+        config.files = Some(parent);
+        report.geojson_files.push(target.to_path_buf());
+        return Ok(());
+    }
+
+    anyhow::bail!("Unsupported file for auto-detection: {}", target.display());
+}
+
+/// Derive a source/style id from a path's file stem, defaulting to `"source"`.
+fn file_stem_id(path: &Path) -> String {
+    path.file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "source".to_string())
+}
+
+/// Collect directories to scan: the target plus its immediate children, and
+/// (one level deeper) the contents of any `styles/` child directory.
+fn collect_scan_dirs(target: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    let mut scan_dirs = vec![target.to_path_buf()];
+    let mut children_dirs = Vec::new();
+
+    for entry in std::fs::read_dir(target)
+        .with_context(|| format!("failed to read directory {}", target.display()))?
+    {
+        let path = entry?.path();
+        if !path.is_dir() {
+            continue;
+        }
+        children_dirs.push(path.clone());
+
+        let is_styles_dir = path
+            .file_name()
+            .map(|name| name.to_string_lossy().eq_ignore_ascii_case("styles"))
+            .unwrap_or(false);
+        if is_styles_dir {
+            for style_entry in std::fs::read_dir(&path)
+                .with_context(|| format!("failed to read styles directory {}", path.display()))?
+            {
+                let style_path = style_entry?.path();
+                if style_path.is_dir() {
+                    children_dirs.push(style_path);
+                }
+            }
+        }
+    }
+
+    children_dirs.sort();
+    scan_dirs.extend(children_dirs);
+    Ok(scan_dirs)
+}
+
+/// Source and style candidates discovered while scanning directories.
+type Candidates = (Vec<(String, SourceType, PathBuf)>, Vec<(String, PathBuf)>);
+
+/// Scan `scan_dirs`, classifying each file as a source, style, or GeoJSON.
+fn collect_candidates(
+    scan_dirs: &[PathBuf],
+    report: &mut AutoDetectReport,
+) -> anyhow::Result<Candidates> {
+    let mut source_candidates: Vec<(String, SourceType, PathBuf)> = Vec::new();
+    let mut style_candidates: Vec<(String, PathBuf)> = Vec::new();
+
+    for dir in scan_dirs {
+        for entry in std::fs::read_dir(dir)
+            .with_context(|| format!("failed to read directory {}", dir.display()))?
+        {
+            let path = entry?.path();
+            if !path.is_file() {
+                continue;
+            }
+
+            if let Some(source_type) = detect_source_type(&path) {
+                source_candidates.push((file_stem_id(&path), source_type, path));
+            } else if let Some(style_id) = detect_style_id(&path) {
+                style_candidates.push((style_id, path));
+            } else if path
+                .extension()
+                .map(|e| e.to_string_lossy().eq_ignore_ascii_case("geojson"))
+                .unwrap_or(false)
+            {
+                report.geojson_files.push(path);
+            }
+        }
+    }
+
+    source_candidates.sort_by(|a, b| a.2.cmp(&b.2));
+    style_candidates.sort_by(|a, b| a.1.cmp(&b.1));
+    report.geojson_files.sort();
+    Ok((source_candidates, style_candidates))
+}
+
+/// Materialize source candidates into `config`/`report`, resolving id conflicts.
+fn materialize_sources(
+    source_candidates: Vec<(String, SourceType, PathBuf)>,
+    config: &mut Config,
+    report: &mut AutoDetectReport,
+) {
+    let mut used_source_ids = HashSet::new();
+    for (base_id, source_type, path) in source_candidates {
+        let suffix = source_type_suffix(&source_type);
+        let (id, conflicted) = ensure_unique_id(&base_id, suffix, &mut used_source_ids);
+        if conflicted {
+            report.conflicts.push(format!(
+                "Source ID '{}' conflicted; using '{}' for {}",
+                base_id,
+                id,
+                path.display()
+            ));
+        }
+
+        config
+            .sources
+            .push(auto_source_config(id.clone(), source_type.clone(), &path));
+        report.sources.push(AutoDetectedSource {
+            id,
+            source_type,
+            path,
+        });
+    }
+}
+
+/// Materialize style candidates into `config`/`report`, resolving id conflicts.
+fn materialize_styles(
+    style_candidates: Vec<(String, PathBuf)>,
+    config: &mut Config,
+    report: &mut AutoDetectReport,
+) {
+    let mut used_style_ids = HashSet::new();
+    for (base_id, path) in style_candidates {
+        let (id, conflicted) = ensure_unique_id(&base_id, "style", &mut used_style_ids);
+        if conflicted {
+            report.conflicts.push(format!(
+                "Style ID '{}' conflicted; using '{}' for {}",
+                base_id,
+                id,
+                path.display()
+            ));
+        }
+
+        config.styles.push(StyleConfig {
+            id: id.clone(),
+            path: path.clone(),
+            name: None,
+        });
+        report.styles.push(AutoDetectedStyle { id, path });
+    }
+}
+
 /// Scan `target_path` and build a [`Config`] plus a report of what was found.
 ///
 /// # Errors
@@ -137,212 +359,16 @@ pub fn detect_config(target_path: PathBuf) -> anyhow::Result<(Config, AutoDetect
         conflicts: Vec::new(),
     };
 
-    // ── Single file ──────────────────────────────────────────────────────
     if target.is_file() {
-        let path = target.clone();
-        if let Some(source_type) = detect_source_type(&path) {
-            let id = path
-                .file_stem()
-                .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or_else(|| "source".to_string());
-            config.sources.push(SourceConfig {
-                id: id.clone(),
-                source_type: source_type.clone(),
-                path: path.to_string_lossy().to_string(),
-                name: None,
-                attribution: None,
-                description: None,
-                resampling: None,
-                layer_name: None,
-                geometry_column: None,
-                minzoom: None,
-                maxzoom: None,
-                query: None,
-                serve_as: None,
-                #[cfg(feature = "raster")]
-                colormap: None,
-                options: None,
-                collection: None,
-                asset_role: "visual".to_string(),
-                dynamic: false,
-                max_items: 100,
-                stac_bbox: None,
-                pixel_selection: crate::config::PixelSelectionMethod::First,
-                tile_path_template: None,
-                tms: false,
-            });
-            report.sources.push(AutoDetectedSource {
-                id,
-                source_type,
-                path,
-            });
-        } else if let Some(style_id) = detect_style_id(&path) {
-            config.styles.push(StyleConfig {
-                id: style_id.clone(),
-                path: path.clone(),
-                name: None,
-            });
-            report.styles.push(AutoDetectedStyle { id: style_id, path });
-        } else {
-            let ext = target
-                .extension()
-                .map(|e| e.to_string_lossy().to_ascii_lowercase())
-                .unwrap_or_default();
-            if ext == "geojson" {
-                let parent = target
-                    .parent()
-                    .map(|p| p.to_path_buf())
-                    .unwrap_or_else(|| PathBuf::from("."));
-                config.files = Some(parent);
-                report.geojson_files.push(target.clone());
-            } else {
-                anyhow::bail!("Unsupported file for auto-detection: {}", target.display());
-            }
-        }
-
+        detect_single_file(&target, &mut config, &mut report)?;
         return Ok((config, report));
     }
 
-    // ── Directory scan ───────────────────────────────────────────────────
-    let mut scan_dirs = vec![target.clone()];
+    let scan_dirs = collect_scan_dirs(&target)?;
+    let (source_candidates, style_candidates) = collect_candidates(&scan_dirs, &mut report)?;
+    materialize_sources(source_candidates, &mut config, &mut report);
+    materialize_styles(style_candidates, &mut config, &mut report);
 
-    let mut children_dirs = Vec::new();
-    for entry in std::fs::read_dir(&target)
-        .with_context(|| format!("failed to read directory {}", target.display()))?
-    {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            children_dirs.push(path.clone());
-
-            if path
-                .file_name()
-                .map(|name| name.to_string_lossy().eq_ignore_ascii_case("styles"))
-                .unwrap_or(false)
-            {
-                for style_entry in std::fs::read_dir(&path).with_context(|| {
-                    format!("failed to read styles directory {}", path.display())
-                })? {
-                    let style_entry = style_entry?;
-                    let style_path = style_entry.path();
-                    if style_path.is_dir() {
-                        children_dirs.push(style_path);
-                    }
-                }
-            }
-        }
-    }
-    children_dirs.sort();
-    scan_dirs.extend(children_dirs);
-
-    let mut source_candidates: Vec<(String, SourceType, PathBuf)> = Vec::new();
-    let mut style_candidates: Vec<(String, PathBuf)> = Vec::new();
-
-    for dir in scan_dirs {
-        for entry in std::fs::read_dir(&dir)
-            .with_context(|| format!("failed to read directory {}", dir.display()))?
-        {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
-
-            if let Some(source_type) = detect_source_type(&path) {
-                let base_id = path
-                    .file_stem()
-                    .map(|s| s.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "source".to_string());
-                source_candidates.push((base_id, source_type, path));
-                continue;
-            }
-
-            if let Some(style_id) = detect_style_id(&path) {
-                style_candidates.push((style_id, path));
-                continue;
-            }
-
-            if path
-                .extension()
-                .map(|e| e.to_string_lossy().eq_ignore_ascii_case("geojson"))
-                .unwrap_or(false)
-            {
-                report.geojson_files.push(path);
-            }
-        }
-    }
-
-    source_candidates.sort_by(|a, b| a.2.cmp(&b.2));
-    style_candidates.sort_by(|a, b| a.1.cmp(&b.1));
-    report.geojson_files.sort();
-
-    let mut used_source_ids = HashSet::new();
-    for (base_id, source_type, path) in source_candidates {
-        let suffix = source_type_suffix(&source_type);
-        let (id, conflicted) = ensure_unique_id(&base_id, suffix, &mut used_source_ids);
-        if conflicted {
-            report.conflicts.push(format!(
-                "Source ID '{}' conflicted; using '{}' for {}",
-                base_id,
-                id,
-                path.display()
-            ));
-        }
-
-        config.sources.push(SourceConfig {
-            id: id.clone(),
-            source_type: source_type.clone(),
-            path: path.to_string_lossy().to_string(),
-            name: None,
-            attribution: None,
-            description: None,
-            resampling: None,
-            layer_name: None,
-            geometry_column: None,
-            minzoom: None,
-            maxzoom: None,
-            query: None,
-            serve_as: None,
-            #[cfg(feature = "raster")]
-            colormap: None,
-            options: None,
-            collection: None,
-            asset_role: "visual".to_string(),
-            dynamic: false,
-            max_items: 100,
-            stac_bbox: None,
-            pixel_selection: crate::config::PixelSelectionMethod::First,
-            tile_path_template: None,
-            tms: false,
-        });
-        report.sources.push(AutoDetectedSource {
-            id,
-            source_type,
-            path,
-        });
-    }
-
-    let mut used_style_ids = HashSet::new();
-    for (base_id, path) in style_candidates {
-        let (id, conflicted) = ensure_unique_id(&base_id, "style", &mut used_style_ids);
-        if conflicted {
-            report.conflicts.push(format!(
-                "Style ID '{}' conflicted; using '{}' for {}",
-                base_id,
-                id,
-                path.display()
-            ));
-        }
-
-        config.styles.push(StyleConfig {
-            id: id.clone(),
-            path: path.clone(),
-            name: None,
-        });
-        report.styles.push(AutoDetectedStyle { id, path });
-    }
-
-    // Well-known directories
     let fonts_dir = target.join("fonts");
     if fonts_dir.is_dir() {
         config.fonts = Some(fonts_dir.clone());
@@ -632,6 +658,35 @@ mod tests {
         let ids: HashSet<_> = config.styles.iter().map(|s| s.id.as_str()).collect();
         assert!(ids.contains("light"));
         assert!(ids.contains("dark"));
+    }
+
+    #[test]
+    fn test_detect_config_directory_mixed_sources_styles_geojson_sorted() {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path().canonicalize().unwrap();
+
+        std::fs::write(root.join("zebra.pmtiles"), b"mock").unwrap();
+        std::fs::write(root.join("alpha.mbtiles"), b"mock").unwrap();
+        std::fs::write(root.join("region.geojson"), b"{}").unwrap();
+
+        let style_dir = root.join("styles/bright");
+        std::fs::create_dir_all(&style_dir).unwrap();
+        std::fs::write(style_dir.join("style.json"), b"{}").unwrap();
+
+        let (config, report) = detect_config(root.clone()).unwrap();
+
+        assert_eq!(config.sources.len(), 2);
+        assert_eq!(config.styles.len(), 1);
+        assert_eq!(config.styles[0].id, "bright");
+        assert_eq!(report.geojson_files.len(), 1);
+        assert_eq!(config.files, Some(root.clone()));
+
+        // source_candidates are sorted by path; "alpha.mbtiles" < "zebra.pmtiles"
+        assert_eq!(config.sources[0].id, "alpha");
+        assert_eq!(config.sources[1].id, "zebra");
+        assert_eq!(config.sources[0].source_type, SourceType::MBTiles);
+        assert_eq!(config.sources[1].source_type, SourceType::PMTiles);
+        assert!(report.conflicts.is_empty());
     }
 
     #[test]
