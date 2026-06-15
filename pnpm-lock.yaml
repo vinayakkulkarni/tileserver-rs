@@ -87,8 +87,8 @@ catalogs:
       specifier: ^1.2.86
       version: 1.2.86
     '@lucide/vue':
-      specifier: ^1.17.0
-      version: 1.17.0
+      specifier: ^1.18.0
+      version: 1.18.0
     '@nuxt/eslint':
       specifier: ^1.16.0
       version: 1.16.0
@@ -245,7 +245,7 @@ importers:
         version: 2.0.1(vue@3.5.38(typescript@6.0.3))
       '@lucide/vue':
         specifier: catalog:default
-        version: 1.17.0(vue@3.5.38(typescript@6.0.3))
+        version: 1.18.0(vue@3.5.38(typescript@6.0.3))
       '@maplibre/mlt':
         specifier: catalog:client
         version: 1.1.11
@@ -390,7 +390,7 @@ importers:
     dependencies:
       '@lucide/vue':
         specifier: catalog:default
-        version: 1.17.0(vue@3.5.38(typescript@6.0.3))
+        version: 1.18.0(vue@3.5.38(typescript@6.0.3))
       '@nuxt/content':
         specifier: catalog:docs
         version: 3.14.0(@valibot/to-json-schema@1.7.1(valibot@1.4.1(typescript@6.0.3)))(better-sqlite3@12.10.0)(magicast@0.5.2)(valibot@1.4.1(typescript@6.0.3))
@@ -496,7 +496,7 @@ importers:
     dependencies:
       '@lucide/vue':
         specifier: catalog:default
-        version: 1.17.0(vue@3.5.38(typescript@6.0.3))
+        version: 1.18.0(vue@3.5.38(typescript@6.0.3))
       '@nuxt/fonts':
         specifier: catalog:default
         version: 0.14.0(db0@0.3.4(better-sqlite3@12.10.0))(ioredis@5.10.1)(magicast@0.5.2)(vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0))
@@ -1842,8 +1842,8 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
-  '@lucide/vue@1.17.0':
-    resolution: {integrity: sha512-6Q1ZHgr5FbmJzKWe5BxlNdjLj2lbmuH1zwDtVzUJofX0w9UREwKgq4F4jwKqFYyyIS4Rj3FiJvDi2k6djukmmw==}
+  '@lucide/vue@1.18.0':
+    resolution: {integrity: sha512-DmnUpDB85PlMZ+ofjZLcKq3JoJnaD1bk7SIj9xwUvqerfNqA6hCLa0/m3gIybH6rdrErABbqvTD8yYJdNqiZ3Q==}
     peerDependencies:
       vue: '>=3.0.1'
 
@@ -9098,7 +9098,7 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
-  '@lucide/vue@1.17.0(vue@3.5.38(typescript@6.0.3))':
+  '@lucide/vue@1.18.0(vue@3.5.38(typescript@6.0.3))':
     dependencies:
       vue: 3.5.38(typescript@6.0.3)
 
