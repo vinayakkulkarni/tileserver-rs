@@ -197,7 +197,7 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
 
     use mlt_core::encoder::EncoderConfig;
 
-    let fc = mlt_core::mvt::mvt_to_feature_collection(mvt_bytes.to_vec())
+    let fc = mlt_core::mvt::mvt_to_feature_collection(mvt_bytes)
         .map_err(|e| TileServerError::MltEncodeError(format!("failed to parse MVT tile: {e}")))?;
 
     let mut layer_map: BTreeMap<String, Vec<&mlt_core::geojson::Feature>> = BTreeMap::new();
