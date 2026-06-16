@@ -883,4 +883,117 @@ mod tests {
         assert_eq!(opts.bearing, 0.0);
         assert_eq!(opts.pitch, 0.0);
     }
+
+    fn for_static_auto(params: StaticQueryParams, width: u32, height: u32) -> RenderOptions {
+        RenderOptions::for_static(
+            "s".to_string(),
+            "{}".to_string(),
+            StaticType::Auto,
+            width,
+            height,
+            1,
+            ImageFormat::Png,
+            params,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_path_fits_bounds() {
+        let params = StaticQueryParams {
+            path: Some("-2.0,8.0|2.0,12.0".to_string()),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert!((opts.lon - 0.0).abs() < 1e-9);
+        assert!((opts.lat - 10.0).abs() < 1e-9);
+        assert!(opts.zoom > 0.0 && opts.zoom <= 18.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_marker_single_point_default_zoom() {
+        // A single marker → bounds collapse to a point → max_diff == 0 → default zoom.
+        let params = StaticQueryParams {
+            marker: Some("10.0,20.0".to_string()),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert!((opts.lon - 10.0).abs() < 1e-9);
+        assert!((opts.lat - 20.0).abs() < 1e-9);
+        assert_eq!(opts.zoom, 14.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_single_point_maxzoom_override() {
+        // Single point + explicit maxzoom → default-zoom branch uses maxzoom.
+        let params = StaticQueryParams {
+            marker: Some("10.0,20.0".to_string()),
+            maxzoom: Some(11),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert_eq!(opts.zoom, 11.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_path_maxzoom_clamps() {
+        // Tight bounds want a high zoom; maxzoom clamps it down.
+        let params = StaticQueryParams {
+            path: Some("0.0,0.0|0.001,0.001".to_string()),
+            maxzoom: Some(8),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert_eq!(opts.zoom, 8.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_latlng_swaps_coords() {
+        // latlng=true means the path coords are parsed lat,lng (Google convention).
+        let params = StaticQueryParams {
+            path: Some("8.0,-2.0|12.0,2.0".to_string()),
+            latlng: true,
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert!((opts.lon - 0.0).abs() < 1e-9);
+        assert!((opts.lat - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_geojson_linestring_fits() {
+        let params = StaticQueryParams {
+            geojson: Some(
+                r#"{"type":"LineString","coordinates":[[-2.0,8.0],[2.0,12.0]]}"#.to_string(),
+            ),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert!((opts.lon - 0.0).abs() < 1e-9);
+        assert!((opts.lat - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_wide_path_zoom_zero() {
+        // Bounds wider than 180° of adjusted diff → zoom clamps to 0.0.
+        let params = StaticQueryParams {
+            path: Some("-100.0,-10.0|100.0,10.0".to_string()),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 256, 256);
+        assert_eq!(opts.zoom, 0.0);
+    }
+
+    #[test]
+    fn test_render_options_for_static_auto_padding_widens_bounds() {
+        // A large padding fraction must still yield a valid finite zoom.
+        let params = StaticQueryParams {
+            path: Some("-1.0,-1.0|1.0,1.0".to_string()),
+            padding: Some(0.5),
+            ..StaticQueryParams::default()
+        };
+        let opts = for_static_auto(params, 512, 256);
+        assert!(opts.zoom.is_finite());
+        assert!(opts.zoom >= 0.0);
+    }
 }

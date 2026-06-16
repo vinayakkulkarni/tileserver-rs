@@ -184,38 +184,23 @@ fn decompress_tile_data(tile: &TileData) -> Result<Vec<u8>> {
 // Phase 2: MVT → MLT encoding
 // ---------------------------------------------------------------------------
 
-/// Convert MVT (protobuf) bytes to MLT format.
+/// Convert MVT (protobuf) bytes to MLT format via `mlt-core`'s native reader.
 ///
-/// Uses `mlt-core` to:
-/// 1. Parse MVT binary into a `FeatureCollection`
-/// 2. Group features by layer (via `_layer` property)
-/// 3. Build decoded geometry, IDs, and column-oriented properties per layer
-/// 4. Encode each column using mlt-core's encoding API
-/// 5. Serialize encoded layers to MLT wire format
+/// `mlt_core::mvt::mvt_to_tile_layers` decodes the MVT directly into one
+/// row-oriented `TileLayer` per MVT layer, inferring each property column's
+/// type from its features (I64/U64 widen to I64, F32/F64 to F64, conflicts fall
+/// back to Str). Each layer is then encoded with `TileLayer::encode`, whose
+/// `EncoderConfig::default` enables FastPFOR, FSST, shared-dictionary, and the
+/// spatial-sort trials. This replaces the older GeoJSON `FeatureCollection`
+/// bridge and its hand-rolled column-type inference.
 fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
-    use std::collections::BTreeMap;
-
     use mlt_core::encoder::EncoderConfig;
 
-    let fc = mlt_core::mvt::mvt_to_feature_collection(mvt_bytes)
+    let tile_layers = mlt_core::mvt::mvt_to_tile_layers(mvt_bytes)
         .map_err(|e| TileServerError::MltEncodeError(format!("failed to parse MVT tile: {e}")))?;
 
-    let mut layer_map: BTreeMap<String, Vec<&mlt_core::geojson::Feature>> = BTreeMap::new();
-    for feature in &fc.features {
-        let layer_name = feature
-            .properties
-            .get("_layer")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
-        layer_map.entry(layer_name).or_default().push(feature);
-    }
-
     let mut output = Vec::with_capacity(mvt_bytes.len());
-    for (layer_name, features) in &layer_map {
-        let tile_layer = build_tile_layer(layer_name, features);
-        // mlt-core 0.9: TileLayer::encode tries sort strategies internally + returns bytes.
-        // (Renamed from TileLayer01 in 0.9.0; identical field layout + encode signature.)
+    for tile_layer in tile_layers {
         let bytes = tile_layer.encode(EncoderConfig::default()).map_err(|e| {
             TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
         })?;
@@ -223,140 +208,6 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     }
 
     Ok(Bytes::from(output))
-}
-
-/// Build a [`TileLayer`] from a set of features belonging to one MVT layer.
-///
-/// Collects unique property keys, infers the dominant type for each key across
-/// all features, and builds per-feature [`PropValue`] vectors parallel to
-/// `property_names`.
-fn build_tile_layer(
-    layer_name: &str,
-    features: &[&mlt_core::geojson::Feature],
-) -> mlt_core::TileLayer {
-    use std::collections::BTreeSet;
-
-    use mlt_core::{PropValue, TileFeature, TileLayer};
-
-    // Extract extent from first feature (injected by mvt_to_feature_collection as _extent)
-    let extent = features
-        .first()
-        .and_then(|f| f.properties.get("_extent"))
-        .and_then(|v| v.as_u64())
-        .map(|v| v as u32)
-        .unwrap_or(4096);
-
-    // Collect all unique property keys (excluding internal _layer, _extent)
-    let mut key_set = BTreeSet::new();
-    for feature in features {
-        for key in feature.properties.keys() {
-            if !key.starts_with('_') {
-                key_set.insert(key.clone());
-            }
-        }
-    }
-    let property_names: Vec<String> = key_set.into_iter().collect();
-
-    // Determine dominant type per property key
-    let key_types: Vec<DominantType> = property_names
-        .iter()
-        .map(|key| infer_dominant_type(features, key))
-        .collect();
-
-    // Build TileFeature per feature
-    let tile_features: Vec<TileFeature> = features
-        .iter()
-        .map(|feature| {
-            let properties: Vec<PropValue> = property_names
-                .iter()
-                .zip(&key_types)
-                .map(|(key, dominant)| json_to_prop_value(feature.properties.get(key), *dominant))
-                .collect();
-
-            TileFeature {
-                id: feature.id,
-                geometry: feature.geometry.clone(),
-                properties,
-            }
-        })
-        .collect();
-
-    TileLayer {
-        name: layer_name.to_string(),
-        extent,
-        property_names,
-        features: tile_features,
-    }
-}
-
-/// Dominant type classification for a property column.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DominantType {
-    String,
-    Bool,
-    Float,
-    Int,
-}
-
-/// Infer the dominant type for a property key by scanning all features.
-///
-/// Priority: String (if mixed or string present) > Bool > Float > Int.
-/// Falls back to String if no values are found.
-fn infer_dominant_type(features: &[&mlt_core::geojson::Feature], key: &str) -> DominantType {
-    let mut has_string = false;
-    let mut has_float = false;
-    let mut has_int = false;
-    let mut has_bool = false;
-
-    for feature in features {
-        if let Some(val) = feature.properties.get(key) {
-            match val {
-                serde_json::Value::String(_) => has_string = true,
-                serde_json::Value::Bool(_) => has_bool = true,
-                serde_json::Value::Number(n) => {
-                    if n.is_f64() && !n.is_i64() && !n.is_u64() {
-                        has_float = true;
-                    } else {
-                        has_int = true;
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    // Mixed types → String (can represent anything)
-    if has_string || (!has_int && !has_float && !has_bool) {
-        DominantType::String
-    } else if has_bool && !has_int && !has_float {
-        DominantType::Bool
-    } else if has_float {
-        DominantType::Float
-    } else {
-        DominantType::Int
-    }
-}
-
-/// Convert a JSON property value to a per-feature [`PropValue`] based on the dominant type.
-fn json_to_prop_value(
-    value: Option<&serde_json::Value>,
-    dominant: DominantType,
-) -> mlt_core::PropValue {
-    use mlt_core::PropValue;
-
-    match dominant {
-        DominantType::String => {
-            let s = value.and_then(|v| match v {
-                serde_json::Value::String(s) => Some(s.clone()),
-                serde_json::Value::Null => None,
-                other => Some(other.to_string()),
-            });
-            PropValue::Str(s)
-        }
-        DominantType::Bool => PropValue::Bool(value.and_then(|v| v.as_bool())),
-        DominantType::Float => PropValue::F64(value.and_then(|v| v.as_f64())),
-        DominantType::Int => PropValue::I64(value.and_then(|v| v.as_i64())),
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1042,230 +893,6 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Type inference tests (infer_dominant_type)
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_infer_dominant_type_all_strings() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "a"})),
-            make_test_feature(serde_json::json!({"k": "b"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_ints() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 10})),
-            make_test_feature(serde_json::json!({"k": 20})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(matches!(dt, DominantType::Int), "Expected Int, got: {dt:?}");
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_bools() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": true})),
-            make_test_feature(serde_json::json!({"k": false})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Bool),
-            "Expected Bool, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_floats() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 1.5})),
-            make_test_feature(serde_json::json!({"k": 2.7})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Float),
-            "Expected Float, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_mixed_int_float_promotes_to_float() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 10})),
-            make_test_feature(serde_json::json!({"k": 2.72})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Float),
-            "Expected Float for mixed int/float, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_mixed_types_falls_back_to_string() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "hello"})),
-            make_test_feature(serde_json::json!({"k": 42})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String for mixed types, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_missing_key() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "present"})),
-            make_test_feature(serde_json::json!({"other": "no k"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String when key present in some features, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_null_values() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": null})),
-            make_test_feature(serde_json::json!({"k": "present"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String when one value is null, got: {dt:?}"
-        );
-    }
-
-    // -------------------------------------------------------------------------
-    // json_to_prop_value tests
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_json_to_prop_value_string() {
-        let val = serde_json::json!("hello");
-        let pv = json_to_prop_value(Some(&val), DominantType::String);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Str(Some(ref s)) if s == "hello"),
-            "Expected Str(Some(\"hello\")), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int() {
-        let val = serde_json::json!(42);
-        let pv = json_to_prop_value(Some(&val), DominantType::Int);
-        assert!(
-            matches!(pv, mlt_core::PropValue::I64(Some(42))),
-            "Expected I64(Some(42)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_bool() {
-        let val = serde_json::json!(true);
-        let pv = json_to_prop_value(Some(&val), DominantType::Bool);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Bool(Some(true))),
-            "Expected Bool(Some(true)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_float() {
-        let val = serde_json::json!(1.23);
-        let pv = json_to_prop_value(Some(&val), DominantType::Float);
-        assert!(
-            matches!(pv, mlt_core::PropValue::F64(Some(v)) if (v - 1.23).abs() < f64::EPSILON),
-            "Expected F64(Some(1.23)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_null_returns_none() {
-        let pv = json_to_prop_value(None, DominantType::Int);
-        assert!(
-            matches!(pv, mlt_core::PropValue::I64(None)),
-            "Expected I64(None) for null, got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int_as_float() {
-        let val = serde_json::json!(10);
-        let pv = json_to_prop_value(Some(&val), DominantType::Float);
-        assert!(
-            matches!(pv, mlt_core::PropValue::F64(Some(v)) if (v - 10.0).abs() < f64::EPSILON),
-            "Expected F64(Some(10.0)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int_as_string() {
-        let val = serde_json::json!(42);
-        let pv = json_to_prop_value(Some(&val), DominantType::String);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Str(Some(ref s)) if s == "42"),
-            "Expected Str(Some(\"42\")), got: {pv:?}"
-        );
-    }
-
-    // -------------------------------------------------------------------------
-    // build_tile_layer tests
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_build_tile_layer_skips_internal_keys() {
-        let features = [make_test_feature(serde_json::json!({
-            "_layer": "internal",
-            "_extent": 4096,
-            "name": "visible"
-        }))];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        // Should only have "name", not _layer or _extent
-        assert_eq!(layer.property_names.len(), 1);
-        assert_eq!(layer.property_names[0], "name");
-    }
-
-    #[test]
-    fn test_build_tile_layer_no_properties() {
-        let features = [make_test_feature(serde_json::json!({}))];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        assert!(layer.property_names.is_empty());
-    }
-
-    #[test]
-    fn test_build_tile_layer_multiple_keys() {
-        let features = [make_test_feature(
-            serde_json::json!({"a": 1, "b": "two", "c": true}),
-        )];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        assert_eq!(layer.property_names.len(), 3);
-        // BTreeSet ordering: a, b, c
-        assert_eq!(layer.property_names, vec!["a", "b", "c"]);
-    }
-
-    // -------------------------------------------------------------------------
     // MLT → MVT tests (Phase 3, existing path)
     // -------------------------------------------------------------------------
 
@@ -1328,25 +955,6 @@ mod tests {
         let last_idx = mlt_bytes.len() - 1;
         mlt_bytes[last_idx] = mlt_bytes[last_idx].wrapping_add(0x7f);
         let _ = mlt_to_mvt(&mlt_bytes);
-    }
-
-    // -------------------------------------------------------------------------
-    // Property helpers for test fixtures
-    // -------------------------------------------------------------------------
-
-    /// Create a test Feature with given properties and a dummy point geometry.
-    fn make_test_feature(properties: serde_json::Value) -> mlt_core::geojson::Feature {
-        use std::collections::BTreeMap;
-        let props: BTreeMap<String, serde_json::Value> = match properties {
-            serde_json::Value::Object(map) => map.into_iter().collect(),
-            _ => BTreeMap::new(),
-        };
-        mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-            id: None,
-            properties: props,
-            ty: String::new(),
-        }
     }
 
     // -------------------------------------------------------------------------

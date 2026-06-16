@@ -1121,7 +1121,7 @@ The `mlt` feature flag enables on-the-fly transcoding between MLT and MVT tile f
 MLT is a next-generation vector tile format from the MapLibre project, designed as a more efficient alternative to MVT (Mapbox Vector Tiles). tileserver-rs supports:
 
 - **Phase 1** (Passthrough): Serve MLT tiles directly from PMTiles/MBTiles sources (always enabled)
-- **Phase 2** (MVT→MLT): Encode MVT tiles as MLT via mlt-core's `TileLayer::encode`
+- **Phase 2** (MVT→MLT): Decode MVT directly into `TileLayer`s via mlt-core's `mvt::mvt_to_tile_layers`, then encode each via `TileLayer::encode`
 - **Phase 3** (MLT→MVT): Decode MLT tiles and re-encode as MVT via mlt-core's `tile_layers_to_mvt` for legacy clients
 
 ### Architecture
@@ -1131,7 +1131,7 @@ src/transcode.rs  (feature-gated: mlt)
 ├── MvtProto module       ─ Prost-derived MVT protobuf types (Tile, Layer, Feature, Value);
 │                            retained as the standalone MVT codec used by benches/tests only
 ├── transcode_tile()      ─ Public API: dispatches format conversion
-├── mvt_to_mlt()          ─ Phase 2: MVT → MLT via mlt-core TileLayer::encode
+├── mvt_to_mlt()          ─ Phase 2: MVT → MLT via mlt-core mvt_to_tile_layers + TileLayer::encode
 ├── mlt_to_mvt()          ─ Phase 3: MLT → MVT via mlt-core's native tile_layers_to_mvt
 └── decompress_tile_data()    ─ Handles gzip decompression of compressed tiles
 ```
