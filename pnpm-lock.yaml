@@ -35,8 +35,8 @@ catalogs:
       specifier: ^0.28.0
       version: 0.28.0
     '@tanstack/ai-vue':
-      specifier: ^0.13.4
-      version: 0.13.4
+      specifier: ^0.13.5
+      version: 0.13.5
     '@tanstack/query-db-collection':
       specifier: ^1.0.40
       version: 1.0.40
@@ -263,7 +263,7 @@ importers:
         version: 0.28.0
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 0.13.4(@tanstack/ai@0.28.0)(vue@3.5.38(typescript@6.0.3))
+        version: 0.13.5(@tanstack/ai@0.28.0)(vue@3.5.38(typescript@6.0.3))
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.0.40(@tanstack/query-core@5.101.0)(typescript@6.0.3)
@@ -3554,22 +3554,36 @@ packages:
     peerDependencies:
       vite: ^8.0.16
 
-  '@tanstack/ai-client@0.16.3':
-    resolution: {integrity: sha512-BOKFTPWFVt39zeNrDl8m+/7ADjW5E4k4Hs2/SlfbuwWhDEIJzd4p0wgnWV+6SvRWshDTsmc7x1c6Zk2qsQSCxQ==}
+  '@tanstack/ai-client@0.17.0':
+    resolution: {integrity: sha512-Qc/5xoj0nO6DHfLiJTtpY7ZU8ZCTTvTwh3SJe0Ux6Vt50PdH9UecoOWOA6S4u1O2yPQSyE2EPLbbACtEX5fhvw==}
 
   '@tanstack/ai-event-client@0.5.4':
     resolution: {integrity: sha512-DoF6LKkGCVeF0N6Vky3DdhYxseTZfvTpOkhEQud/Za/GLQ+5p1xH4egQX8oZJkx1S6HZEZTQA1hKSGFYGULtFw==}
     peerDependencies:
       '@tanstack/ai': 0.28.0
 
-  '@tanstack/ai-vue@0.13.4':
-    resolution: {integrity: sha512-AKheHrQNsQdauLJqCDPzf2fG4kak3v89WGCwrJcB2eF73TBQLZn7VdkLpqnTtKgO8TlTjD6z84eMEO37Uri83w==}
+  '@tanstack/ai-event-client@0.6.0':
+    resolution: {integrity: sha512-8ZqQo0JiRwZ0letOZ/KrOCd8kpPG2K0iWGfaPjjt+S2AtglRwUJ/TlQDhBW8R5m296Pywp1G3Bdf0n3cP2njoA==}
     peerDependencies:
-      '@tanstack/ai': ^0.28.0
+      '@tanstack/ai': 0.29.0
+
+  '@tanstack/ai-vue@0.13.5':
+    resolution: {integrity: sha512-SpIPks//YnUuHwyU1Uwq6D8fdZ8gw1xGUbC/Ipqlrua7eVXLkif24znqqCN4LnnQvnl7O8KcuraysGxbdrsIew==}
+    peerDependencies:
+      '@tanstack/ai': ^0.29.0
       vue: '>=3.5.0'
 
   '@tanstack/ai@0.28.0':
     resolution: {integrity: sha512-DT02H5CeqtsdH90bb1hx3zIxboiyMjuQPzbj7ov3uVkMWIFjuCjhgJbc7w27AY38ewd4d8G63QHYj4AnMSEB9Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.9.0'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@tanstack/ai@0.29.0':
+    resolution: {integrity: sha512-BnwFuQ3yFPg4oANMuTFh58aKyQU+KQKr6L0EMmJzuum/9X8Q1DM4cO/tkpxtW959fvnH6Pm7Q7BSge48b+LapQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': '>=1.9.0'
@@ -10721,10 +10735,10 @@ snapshots:
       tailwindcss: 4.3.1
       vite: 8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.46.1)(yaml@2.9.0)
 
-  '@tanstack/ai-client@0.16.3':
+  '@tanstack/ai-client@0.17.0':
     dependencies:
-      '@tanstack/ai': 0.28.0
-      '@tanstack/ai-event-client': 0.5.4(@tanstack/ai@0.28.0)
+      '@tanstack/ai': 0.29.0
+      '@tanstack/ai-event-client': 0.6.0(@tanstack/ai@0.29.0)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -10733,10 +10747,15 @@ snapshots:
       '@tanstack/ai': 0.28.0
       '@tanstack/devtools-event-client': 0.4.3
 
-  '@tanstack/ai-vue@0.13.4(@tanstack/ai@0.28.0)(vue@3.5.38(typescript@6.0.3))':
+  '@tanstack/ai-event-client@0.6.0(@tanstack/ai@0.29.0)':
+    dependencies:
+      '@tanstack/ai': 0.29.0
+      '@tanstack/devtools-event-client': 0.4.3
+
+  '@tanstack/ai-vue@0.13.5(@tanstack/ai@0.28.0)(vue@3.5.38(typescript@6.0.3))':
     dependencies:
       '@tanstack/ai': 0.28.0
-      '@tanstack/ai-client': 0.16.3
+      '@tanstack/ai-client': 0.17.0
       vue: 3.5.38(typescript@6.0.3)
     transitivePeerDependencies:
       - '@opentelemetry/api'
@@ -10746,6 +10765,13 @@ snapshots:
       '@ag-ui/core': 0.0.52
       '@standard-schema/spec': 1.1.0
       '@tanstack/ai-event-client': 0.5.4(@tanstack/ai@0.28.0)
+      partial-json: 0.1.7
+
+  '@tanstack/ai@0.29.0':
+    dependencies:
+      '@ag-ui/core': 0.0.52
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/ai-event-client': 0.6.0(@tanstack/ai@0.29.0)
       partial-json: 0.1.7
 
   '@tanstack/db-ivm@0.1.18(typescript@6.0.3)':
