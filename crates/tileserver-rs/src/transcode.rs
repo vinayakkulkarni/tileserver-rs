@@ -193,6 +193,11 @@ fn decompress_tile_data(tile: &TileData) -> Result<Vec<u8>> {
 /// `EncoderConfig::default` enables FastPFOR, FSST, shared-dictionary, and the
 /// spatial-sort trials. This replaces the older GeoJSON `FeatureCollection`
 /// bridge and its hand-rolled column-type inference.
+///
+/// Dropping the GeoJSON intermediate measured ~20-23% faster on real-data tiles
+/// (z4 -22.9%, z7 -20.4%, z13 -19.5%); trivial z0 overview tiles regress ~7% as
+/// the native reader's fixed setup cost dominates a near-empty payload. See
+/// `benches/mlt.rs` (`mvt_to_mlt_transcode` group).
 fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     use mlt_core::encoder::EncoderConfig;
 
