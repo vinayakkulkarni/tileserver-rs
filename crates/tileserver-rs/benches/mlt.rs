@@ -14,6 +14,7 @@
 //! | `mlt_decode_all` | Full MLT decode (parse + `decode_all()` per layer) |
 //! | `mvt_decode` | MVT protobuf decode via `prost` |
 //! | `mlt_to_mvt_transcode` | Our full MLT→MVT transcoding pipeline |
+//! | `mvt_to_mlt_transcode` | Our full MVT→MLT transcoding pipeline |
 //! | `format_detection` | MLT format detection overhead |
 //!
 //! ## Fixture Sources
@@ -286,6 +287,49 @@ fn bench_mlt_to_mvt_transcode(c: &mut Criterion) {
     group.finish();
 }
 
+/// Benchmark the complete MVT→MLT transcoding pipeline via `transcode_tile`.
+///
+/// Exercises `mvt_to_mlt`, which (since mlt-core 0.11) decodes MVT directly
+/// into row-oriented `TileLayer`s via `mvt::mvt_to_tile_layers` and re-encodes
+/// each via `TileLayer::encode`, replacing the older hand-rolled GeoJSON
+/// `FeatureCollection` bridge.
+fn bench_mvt_to_mlt_transcode(c: &mut Criterion) {
+    let mut group = c.benchmark_group("mvt_to_mlt_transcode");
+
+    for &zoom in &ZOOM_LEVELS {
+        let fixtures = mvt_fixtures(zoom);
+        if fixtures.is_empty() {
+            continue;
+        }
+
+        let total_bytes: usize = fixtures.iter().map(|f| f.data.len()).sum();
+        group.throughput(Throughput::Bytes(total_bytes as u64));
+
+        let tile_datas: Vec<TileData> = fixtures
+            .iter()
+            .map(|f| TileData {
+                data: Bytes::from_static(f.data),
+                format: TileFormat::Pbf,
+                compression: TileCompression::None,
+            })
+            .collect();
+
+        group.bench_with_input(
+            BenchmarkId::new("zoom", zoom),
+            &tile_datas,
+            |b, tile_datas| {
+                b.iter(|| {
+                    for tile in tile_datas {
+                        let _ = transcode_tile(std::hint::black_box(tile), TileFormat::Mlt);
+                    }
+                });
+            },
+        );
+    }
+
+    group.finish();
+}
+
 // ---------------------------------------------------------------------------
 // Benchmark: MLT format detection overhead
 // ---------------------------------------------------------------------------
@@ -362,6 +406,7 @@ criterion_group!(
     bench_mlt_decode_all,
     bench_mvt_decode,
     bench_mlt_to_mvt_transcode,
+    bench_mvt_to_mlt_transcode,
     bench_format_detection,
     bench_mvt_encode,
     bench_transcode_noop,

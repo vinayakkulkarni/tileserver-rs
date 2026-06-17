@@ -65,7 +65,7 @@ export function useMarketingPage() {
       icon: RefreshCw,
       title: 'MLT Transcoding',
       description:
-        'On-the-fly MLT↔MVT transcoding. Serve next-gen MapLibre Tiles from existing MVT sources — up to 6x smaller tiles.',
+        'On-the-fly MLT↔MVT transcoding via mlt-core 0.11 native reader. Serve next-gen MapLibre Tiles from existing MVT sources — up to 6x smaller tiles, ~22% faster transcode.',
       category: 'Rendering',
     },
     {
@@ -391,6 +391,13 @@ export function useMarketingPage() {
       value: 14,
       label: '× faster brotli vs martin',
       detail: 'Cached re-encode: 1,478 vs 107 req/s',
+    },
+    {
+      icon: RefreshCw,
+      value: 22,
+      label: '% faster MVT→MLT transcode',
+      detail: 'mlt-core 0.11 native reader on z4–z13 tiles',
+      prefix: '~',
     },
   ];
 
