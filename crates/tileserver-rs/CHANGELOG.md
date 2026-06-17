@@ -1,5 +1,77 @@
 # Changelog
 
+## [2.32.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.32.0...v2.32.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **deps:** bump [@deck](https://github.com/deck).gl/aggregation-layers from 9.3.2 to 9.3.3 ([#1083](https://github.com/vinayakkulkarni/tileserver-rs/issues/1083)) ([579585e](https://github.com/vinayakkulkarni/tileserver-rs/commit/579585e7a561e018b9c5effbc16042143067a07c))
+* **deps:** bump [@deck](https://github.com/deck).gl/aggregation-layers from 9.3.3 to 9.3.4 ([#1119](https://github.com/vinayakkulkarni/tileserver-rs/issues/1119)) ([10a10a7](https://github.com/vinayakkulkarni/tileserver-rs/commit/10a10a7cbd4a2589851ad77873c8514058553dc8))
+* **deps:** bump [@deck](https://github.com/deck).gl/core from 9.3.3 to 9.3.4 ([#1120](https://github.com/vinayakkulkarni/tileserver-rs/issues/1120)) ([71e63f8](https://github.com/vinayakkulkarni/tileserver-rs/commit/71e63f8f5f039ad5d561399eb52757c0e92e99c6))
+* **deps:** bump [@deck](https://github.com/deck).gl/geo-layers from 9.3.3 to 9.3.4 ([#1124](https://github.com/vinayakkulkarni/tileserver-rs/issues/1124)) ([66e008d](https://github.com/vinayakkulkarni/tileserver-rs/commit/66e008d0b3fb38fecf11a3084987910b5646a332))
+* **deps:** bump [@deck](https://github.com/deck).gl/layers from 9.3.2 to 9.3.3 ([#1085](https://github.com/vinayakkulkarni/tileserver-rs/issues/1085)) ([50500ff](https://github.com/vinayakkulkarni/tileserver-rs/commit/50500ffabec1236391b4b9270de02eb11a5bb333))
+* **deps:** bump [@deck](https://github.com/deck).gl/mapbox from 9.3.2 to 9.3.3 ([#1088](https://github.com/vinayakkulkarni/tileserver-rs/issues/1088)) ([0677bd7](https://github.com/vinayakkulkarni/tileserver-rs/commit/0677bd7f42604487a9505cbe8042418fe07268b1))
+* **deps:** bump [@deck](https://github.com/deck).gl/mesh-layers from 9.3.3 to 9.3.4 ([#1121](https://github.com/vinayakkulkarni/tileserver-rs/issues/1121)) ([5b12809](https://github.com/vinayakkulkarni/tileserver-rs/commit/5b128092ed49ddd44bc1682457e797c9124e9563))
+* **deps:** bump @comark/nuxt from 0.3.1 to 0.4.0 ([#1090](https://github.com/vinayakkulkarni/tileserver-rs/issues/1090)) ([51217da](https://github.com/vinayakkulkarni/tileserver-rs/commit/51217daa7972038787ad20ee84be27dd321b3ea1))
+* **deps:** bump @iconify-json/simple-icons from 1.2.85 to 1.2.86 ([#1105](https://github.com/vinayakkulkarni/tileserver-rs/issues/1105)) ([1fba685](https://github.com/vinayakkulkarni/tileserver-rs/commit/1fba685d925d452de4e84eb38e976c2851a6ccb3))
+* **deps:** bump @lucide/vue from 1.17.0 to 1.18.0 ([#1127](https://github.com/vinayakkulkarni/tileserver-rs/issues/1127)) ([c0399f7](https://github.com/vinayakkulkarni/tileserver-rs/commit/c0399f71c6d5788b89725f95b1bdaa8e1955f658))
+* **deps:** bump @nuxt/eslint from 1.15.2 to 1.16.0 ([#1114](https://github.com/vinayakkulkarni/tileserver-rs/issues/1114)) ([7a702aa](https://github.com/vinayakkulkarni/tileserver-rs/commit/7a702aaab6a9189996c039f0b05d6f3ceb4b1014))
+* **deps:** bump @nuxt/eslint-config from 1.15.2 to 1.16.0 ([#1113](https://github.com/vinayakkulkarni/tileserver-rs/issues/1113)) ([0b4fe88](https://github.com/vinayakkulkarni/tileserver-rs/commit/0b4fe882a4786502d28b4d977269557f145220a6))
+* **deps:** bump @nuxtjs/color-mode from 4.0.0 to 4.0.1 ([#1106](https://github.com/vinayakkulkarni/tileserver-rs/issues/1106)) ([91817a1](https://github.com/vinayakkulkarni/tileserver-rs/commit/91817a104be85b13a755b49d6a15a17bb1b4fa05))
+* **deps:** bump @tailwindcss/vite from 4.3.0 to 4.3.1 ([#1126](https://github.com/vinayakkulkarni/tileserver-rs/issues/1126)) ([520ffbb](https://github.com/vinayakkulkarni/tileserver-rs/commit/520ffbb849be18ff8b1aa79115e70963a0579097))
+* **deps:** bump @tanstack/ai from 0.23.1 to 0.27.0 ([#1087](https://github.com/vinayakkulkarni/tileserver-rs/issues/1087)) ([ed16aad](https://github.com/vinayakkulkarni/tileserver-rs/commit/ed16aad16c1412a75acb019d145d94d1b33dbd63))
+* **deps:** bump @tanstack/ai from 0.27.0 to 0.28.0 ([#1093](https://github.com/vinayakkulkarni/tileserver-rs/issues/1093)) ([742c092](https://github.com/vinayakkulkarni/tileserver-rs/commit/742c092ec34ee18979e40a351118dc457c3b5059))
+* **deps:** bump @tanstack/ai from 0.29.0 to 0.31.0 ([#1142](https://github.com/vinayakkulkarni/tileserver-rs/issues/1142)) ([726b0e4](https://github.com/vinayakkulkarni/tileserver-rs/commit/726b0e44f00d11b711d08282326c5553991302fd))
+* **deps:** bump @tanstack/ai-vue from 0.13.3 to 0.13.4 ([#1097](https://github.com/vinayakkulkarni/tileserver-rs/issues/1097)) ([ccdc112](https://github.com/vinayakkulkarni/tileserver-rs/commit/ccdc112f175eb054f37d769edc928e6e8a66b50b))
+* **deps:** bump @tanstack/ai-vue from 0.13.4 to 0.13.5 ([#1141](https://github.com/vinayakkulkarni/tileserver-rs/issues/1141)) ([47f8dec](https://github.com/vinayakkulkarni/tileserver-rs/commit/47f8decef7967254737c890445428387a3deadf8))
+* **deps:** bump @tanstack/query-db-collection from 1.0.38 to 1.0.39 ([#1092](https://github.com/vinayakkulkarni/tileserver-rs/issues/1092)) ([be624d3](https://github.com/vinayakkulkarni/tileserver-rs/commit/be624d38bd38a8e9e7bb0046715a6523236092d8))
+* **deps:** bump @tanstack/query-db-collection from 1.0.39 to 1.0.40 ([#1109](https://github.com/vinayakkulkarni/tileserver-rs/issues/1109)) ([ec5caa4](https://github.com/vinayakkulkarni/tileserver-rs/commit/ec5caa4c443e53700e98705e476813fb5bcf4e2e))
+* **deps:** bump @tanstack/vue-db from 0.0.118 to 0.0.119 ([#1095](https://github.com/vinayakkulkarni/tileserver-rs/issues/1095)) ([7d9b190](https://github.com/vinayakkulkarni/tileserver-rs/commit/7d9b190b3b09bf7b9ba9814a212f606ff030d288))
+* **deps:** bump @types/node from 24.12.2 to 25.9.2 ([#1098](https://github.com/vinayakkulkarni/tileserver-rs/issues/1098)) ([9f3aff2](https://github.com/vinayakkulkarni/tileserver-rs/commit/9f3aff28c788139e22e1b62c2e44bc87780c0200))
+* **deps:** bump better-sqlite3 from 12.10.0 to 12.10.1 ([#1132](https://github.com/vinayakkulkarni/tileserver-rs/issues/1132)) ([d4ac4f3](https://github.com/vinayakkulkarni/tileserver-rs/commit/d4ac4f3d9768790e9195bc03d4e1bd06949e511e))
+* **deps:** bump brotli from 8.0.3 to 8.0.4 ([#1130](https://github.com/vinayakkulkarni/tileserver-rs/issues/1130)) ([d020c78](https://github.com/vinayakkulkarni/tileserver-rs/commit/d020c789e6ee58bacc2f606c7403ff1e74f3ec92))
+* **deps:** bump cc from 1.2.63 to 1.2.64 ([#1128](https://github.com/vinayakkulkarni/tileserver-rs/issues/1128)) ([660676c](https://github.com/vinayakkulkarni/tileserver-rs/commit/660676c22e8219d5e5caa1efddd67a93d2a1f95b))
+* **deps:** bump eslint-plugin-better-tailwindcss from 4.5.0 to 4.6.0 ([#1116](https://github.com/vinayakkulkarni/tileserver-rs/issues/1116)) ([3b2880f](https://github.com/vinayakkulkarni/tileserver-rs/commit/3b2880fb007c1296be1f421d826d40f9b459e1ee))
+* **deps:** bump eslint-plugin-oxlint from 1.68.0 to 1.69.0 ([#1101](https://github.com/vinayakkulkarni/tileserver-rs/issues/1101)) ([b5004da](https://github.com/vinayakkulkarni/tileserver-rs/commit/b5004dac4587f260e8f08c12998ced931076d948))
+* **deps:** bump eslint-plugin-oxlint from 1.69.0 to 1.70.0 ([#1140](https://github.com/vinayakkulkarni/tileserver-rs/issues/1140)) ([80f3457](https://github.com/vinayakkulkarni/tileserver-rs/commit/80f34573ace1237ba84007b137f83ef4893b1281))
+* **deps:** bump insta from 1.47.2 to 1.48.0 ([#1122](https://github.com/vinayakkulkarni/tileserver-rs/issues/1122)) ([fe921e8](https://github.com/vinayakkulkarni/tileserver-rs/commit/fe921e80ca75008141cbbb4fae3f18a4f99018e1))
+* **deps:** bump mlt-core from 0.10.0 to 0.10.1 ([#1133](https://github.com/vinayakkulkarni/tileserver-rs/issues/1133)) ([eb3c022](https://github.com/vinayakkulkarni/tileserver-rs/commit/eb3c022e7ee3d668212f0a90820d8d38c5b94cf1))
+* **deps:** bump mlt-core from 0.10.1 to 0.11.0 ([#1148](https://github.com/vinayakkulkarni/tileserver-rs/issues/1148)) ([33e7720](https://github.com/vinayakkulkarni/tileserver-rs/commit/33e772041e285d91a39fb24c093e402c27468880))
+* **deps:** bump mlt-core from 0.9.3 to 0.10.0 ([#1110](https://github.com/vinayakkulkarni/tileserver-rs/issues/1110)) ([731c257](https://github.com/vinayakkulkarni/tileserver-rs/commit/731c257405095be0c90cf81791afc8879befccd2))
+* **deps:** bump motion-v from 2.2.1 to 2.3.0 ([#1103](https://github.com/vinayakkulkarni/tileserver-rs/issues/1103)) ([f977053](https://github.com/vinayakkulkarni/tileserver-rs/commit/f9770534d9ef7c8374396066233293f0b8bee404))
+* **deps:** bump nuxt from 4.4.7 to 4.4.8 ([#1100](https://github.com/vinayakkulkarni/tileserver-rs/issues/1100)) ([30233e8](https://github.com/vinayakkulkarni/tileserver-rs/commit/30233e85d2fa6359642ec8e0beb00e0b5ab5591a))
+* **deps:** bump oxfmt from 0.52.0 to 0.53.0 ([#1084](https://github.com/vinayakkulkarni/tileserver-rs/issues/1084)) ([47a357b](https://github.com/vinayakkulkarni/tileserver-rs/commit/47a357bd049ae3683384b011e39b793aa50b30cc))
+* **deps:** bump oxfmt from 0.53.0 to 0.54.0 ([#1102](https://github.com/vinayakkulkarni/tileserver-rs/issues/1102)) ([5a03eca](https://github.com/vinayakkulkarni/tileserver-rs/commit/5a03ecafedd5e566aa89c999364ea90c22e67632))
+* **deps:** bump oxlint from 1.68.0 to 1.69.0 ([#1104](https://github.com/vinayakkulkarni/tileserver-rs/issues/1104)) ([cdabe99](https://github.com/vinayakkulkarni/tileserver-rs/commit/cdabe99189e42670080c1d98c4b68612e4883c69))
+* **deps:** bump postgres-types from 0.2.13 to 0.2.14 ([#1134](https://github.com/vinayakkulkarni/tileserver-rs/issues/1134)) ([13876ed](https://github.com/vinayakkulkarni/tileserver-rs/commit/13876ed09358c6fbf09d5b56d3ac4a0a006fb580))
+* **deps:** bump prost from 0.14.3 to 0.14.4 ([#1096](https://github.com/vinayakkulkarni/tileserver-rs/issues/1096)) ([fb58fdf](https://github.com/vinayakkulkarni/tileserver-rs/commit/fb58fdfa2897b1a5cf3c54df99e2ee0014455bca))
+* **deps:** bump regex from 1.12.3 to 1.12.4 ([#1112](https://github.com/vinayakkulkarni/tileserver-rs/issues/1112)) ([4766569](https://github.com/vinayakkulkarni/tileserver-rs/commit/47665697038f6e36d527623c7b76c089357eeaaa))
+* **deps:** bump reka-ui from 2.9.9 to 2.9.10 ([#1117](https://github.com/vinayakkulkarni/tileserver-rs/issues/1117)) ([f96e41c](https://github.com/vinayakkulkarni/tileserver-rs/commit/f96e41c370b20ac31fce474caf8eb6c063afbc6d))
+* **deps:** bump rusqlite from 0.40.0 to 0.40.1 ([#1094](https://github.com/vinayakkulkarni/tileserver-rs/issues/1094)) ([1b43adb](https://github.com/vinayakkulkarni/tileserver-rs/commit/1b43adb08ff83fd8f3be707bcc26277c543a8770))
+* **deps:** bump tailwindcss from 4.3.0 to 4.3.1 ([#1139](https://github.com/vinayakkulkarni/tileserver-rs/issues/1139)) ([df08949](https://github.com/vinayakkulkarni/tileserver-rs/commit/df08949a90541e130d810bc236052cae3f0be1fc))
+* **deps:** bump tokio-postgres from 0.7.17 to 0.7.18 ([#1149](https://github.com/vinayakkulkarni/tileserver-rs/issues/1149)) ([4e1e7de](https://github.com/vinayakkulkarni/tileserver-rs/commit/4e1e7de4c25a3fbbbf6da4183a7423290715429f))
+* **deps:** bump tower-http from 0.6.11 to 0.7.0 ([#1146](https://github.com/vinayakkulkarni/tileserver-rs/issues/1146)) ([f0a5b53](https://github.com/vinayakkulkarni/tileserver-rs/commit/f0a5b53b4f8f6c99a217c8bc12371d7261f6c0a9))
+* **deps:** bump vue from 3.5.35 to 3.5.38 ([#1125](https://github.com/vinayakkulkarni/tileserver-rs/issues/1125)) ([6308b5b](https://github.com/vinayakkulkarni/tileserver-rs/commit/6308b5b111e73885bb028a549ce4e51ac269b76e))
+* **deps:** bump vue-tsc from 3.3.3 to 3.3.4 ([#1099](https://github.com/vinayakkulkarni/tileserver-rs/issues/1099)) ([4e3de4f](https://github.com/vinayakkulkarni/tileserver-rs/commit/4e3de4fe8926b49b3363e32f13cd40874aba977b))
+* **deps:** bump wrangler from 4.97.0 to 4.98.0 ([#1089](https://github.com/vinayakkulkarni/tileserver-rs/issues/1089)) ([453e496](https://github.com/vinayakkulkarni/tileserver-rs/commit/453e49613de5966bf236acb03ed7a54bfe586027))
+* **deps:** bump wrangler from 4.98.0 to 4.99.0 ([#1107](https://github.com/vinayakkulkarni/tileserver-rs/issues/1107)) ([33094b5](https://github.com/vinayakkulkarni/tileserver-rs/commit/33094b5269563dcc42727f05db749773c28bd498))
+* **deps:** bump wrangler from 4.99.0 to 4.100.0 ([#1123](https://github.com/vinayakkulkarni/tileserver-rs/issues/1123)) ([cda3ca4](https://github.com/vinayakkulkarni/tileserver-rs/commit/cda3ca4db031b354db70a8905fcd59dc3ca86e25))
+* **transcode:** drop redundant to_vec in mvt_to_feature_collection call ([#1137](https://github.com/vinayakkulkarni/tileserver-rs/issues/1137)) ([f49d969](https://github.com/vinayakkulkarni/tileserver-rs/commit/f49d969107ea3127db8aad10c4b3e9edc58f9674))
+
+
+### Miscellaneous
+
+* dependency upgrade, native mlt-core MVT transcode, and CRAP cleanup ([#1138](https://github.com/vinayakkulkarni/tileserver-rs/issues/1138)) ([3931253](https://github.com/vinayakkulkarni/tileserver-rs/commit/39312530f0e9e7caaabf90ebe67b62e6bfd6c81d))
+* **deps:** bump dependencies ✨ ([f07878b](https://github.com/vinayakkulkarni/tileserver-rs/commit/f07878b1469a07b64d810db01ce954b52e5cd679))
+* **deps:** bump pnpm packages ([7b052bc](https://github.com/vinayakkulkarni/tileserver-rs/commit/7b052bcda234ecbf4c545552f355d9ad131826c6))
+* **deps:** migrate to @geoql/v-maplibre v2.0.1, drop unused deck.gl peers ([#1136](https://github.com/vinayakkulkarni/tileserver-rs/issues/1136)) ([885e4a9](https://github.com/vinayakkulkarni/tileserver-rs/commit/885e4a9c6c190f1d2a3ac44aff206915fe2906b3))
+
+
+### Code Refactoring
+
+* **transcode:** adopt mlt-core 0.11 native MVT reader and finish for_static coverage ([ef18f24](https://github.com/vinayakkulkarni/tileserver-rs/commit/ef18f24f2d4599066e6ec64b2500a19adfb903ac))
+* **transcode:** use mlt-core native MLT to MVT writer ([5446a7a](https://github.com/vinayakkulkarni/tileserver-rs/commit/5446a7a4c1fb8c03a3016e83623bdb6a62dbdd13))
+
 ## [2.32.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.31.0...v2.32.0) (2026-06-03)
 
 
