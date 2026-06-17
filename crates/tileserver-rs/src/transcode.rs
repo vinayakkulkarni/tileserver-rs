@@ -184,38 +184,23 @@ fn decompress_tile_data(tile: &TileData) -> Result<Vec<u8>> {
 // Phase 2: MVT → MLT encoding
 // ---------------------------------------------------------------------------
 
-/// Convert MVT (protobuf) bytes to MLT format.
+/// Convert MVT (protobuf) bytes to MLT format via `mlt-core`'s native reader.
 ///
-/// Uses `mlt-core` to:
-/// 1. Parse MVT binary into a `FeatureCollection`
-/// 2. Group features by layer (via `_layer` property)
-/// 3. Build decoded geometry, IDs, and column-oriented properties per layer
-/// 4. Encode each column using mlt-core's encoding API
-/// 5. Serialize encoded layers to MLT wire format
+/// `mlt_core::mvt::mvt_to_tile_layers` decodes the MVT directly into one
+/// row-oriented `TileLayer` per MVT layer, inferring each property column's
+/// type from its features (I64/U64 widen to I64, F32/F64 to F64, conflicts fall
+/// back to Str). Each layer is then encoded with `TileLayer::encode`, whose
+/// `EncoderConfig::default` enables FastPFOR, FSST, shared-dictionary, and the
+/// spatial-sort trials. This replaces the older GeoJSON `FeatureCollection`
+/// bridge and its hand-rolled column-type inference.
 fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
-    use std::collections::BTreeMap;
-
     use mlt_core::encoder::EncoderConfig;
 
-    let fc = mlt_core::mvt::mvt_to_feature_collection(mvt_bytes)
+    let tile_layers = mlt_core::mvt::mvt_to_tile_layers(mvt_bytes)
         .map_err(|e| TileServerError::MltEncodeError(format!("failed to parse MVT tile: {e}")))?;
 
-    let mut layer_map: BTreeMap<String, Vec<&mlt_core::geojson::Feature>> = BTreeMap::new();
-    for feature in &fc.features {
-        let layer_name = feature
-            .properties
-            .get("_layer")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default")
-            .to_string();
-        layer_map.entry(layer_name).or_default().push(feature);
-    }
-
     let mut output = Vec::with_capacity(mvt_bytes.len());
-    for (layer_name, features) in &layer_map {
-        let tile_layer = build_tile_layer(layer_name, features);
-        // mlt-core 0.9: TileLayer::encode tries sort strategies internally + returns bytes.
-        // (Renamed from TileLayer01 in 0.9.0; identical field layout + encode signature.)
+    for tile_layer in tile_layers {
         let bytes = tile_layer.encode(EncoderConfig::default()).map_err(|e| {
             TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
         })?;
@@ -225,451 +210,38 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     Ok(Bytes::from(output))
 }
 
-/// Build a [`TileLayer`] from a set of features belonging to one MVT layer.
-///
-/// Collects unique property keys, infers the dominant type for each key across
-/// all features, and builds per-feature [`PropValue`] vectors parallel to
-/// `property_names`.
-fn build_tile_layer(
-    layer_name: &str,
-    features: &[&mlt_core::geojson::Feature],
-) -> mlt_core::TileLayer {
-    use std::collections::BTreeSet;
-
-    use mlt_core::{PropValue, TileFeature, TileLayer};
-
-    // Extract extent from first feature (injected by mvt_to_feature_collection as _extent)
-    let extent = features
-        .first()
-        .and_then(|f| f.properties.get("_extent"))
-        .and_then(|v| v.as_u64())
-        .map(|v| v as u32)
-        .unwrap_or(4096);
-
-    // Collect all unique property keys (excluding internal _layer, _extent)
-    let mut key_set = BTreeSet::new();
-    for feature in features {
-        for key in feature.properties.keys() {
-            if !key.starts_with('_') {
-                key_set.insert(key.clone());
-            }
-        }
-    }
-    let property_names: Vec<String> = key_set.into_iter().collect();
-
-    // Determine dominant type per property key
-    let key_types: Vec<DominantType> = property_names
-        .iter()
-        .map(|key| infer_dominant_type(features, key))
-        .collect();
-
-    // Build TileFeature per feature
-    let tile_features: Vec<TileFeature> = features
-        .iter()
-        .map(|feature| {
-            let properties: Vec<PropValue> = property_names
-                .iter()
-                .zip(&key_types)
-                .map(|(key, dominant)| json_to_prop_value(feature.properties.get(key), *dominant))
-                .collect();
-
-            TileFeature {
-                id: feature.id,
-                geometry: feature.geometry.clone(),
-                properties,
-            }
-        })
-        .collect();
-
-    TileLayer {
-        name: layer_name.to_string(),
-        extent,
-        property_names,
-        features: tile_features,
-    }
-}
-
-/// Dominant type classification for a property column.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum DominantType {
-    String,
-    Bool,
-    Float,
-    Int,
-}
-
-/// Infer the dominant type for a property key by scanning all features.
-///
-/// Priority: String (if mixed or string present) > Bool > Float > Int.
-/// Falls back to String if no values are found.
-fn infer_dominant_type(features: &[&mlt_core::geojson::Feature], key: &str) -> DominantType {
-    let mut has_string = false;
-    let mut has_float = false;
-    let mut has_int = false;
-    let mut has_bool = false;
-
-    for feature in features {
-        if let Some(val) = feature.properties.get(key) {
-            match val {
-                serde_json::Value::String(_) => has_string = true,
-                serde_json::Value::Bool(_) => has_bool = true,
-                serde_json::Value::Number(n) => {
-                    if n.is_f64() && !n.is_i64() && !n.is_u64() {
-                        has_float = true;
-                    } else {
-                        has_int = true;
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    // Mixed types → String (can represent anything)
-    if has_string || (!has_int && !has_float && !has_bool) {
-        DominantType::String
-    } else if has_bool && !has_int && !has_float {
-        DominantType::Bool
-    } else if has_float {
-        DominantType::Float
-    } else {
-        DominantType::Int
-    }
-}
-
-/// Convert a JSON property value to a per-feature [`PropValue`] based on the dominant type.
-fn json_to_prop_value(
-    value: Option<&serde_json::Value>,
-    dominant: DominantType,
-) -> mlt_core::PropValue {
-    use mlt_core::PropValue;
-
-    match dominant {
-        DominantType::String => {
-            let s = value.and_then(|v| match v {
-                serde_json::Value::String(s) => Some(s.clone()),
-                serde_json::Value::Null => None,
-                other => Some(other.to_string()),
-            });
-            PropValue::Str(s)
-        }
-        DominantType::Bool => PropValue::Bool(value.and_then(|v| v.as_bool())),
-        DominantType::Float => PropValue::F64(value.and_then(|v| v.as_f64())),
-        DominantType::Int => PropValue::I64(value.and_then(|v| v.as_i64())),
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Phase 3: MLT → MVT decoding
 // ---------------------------------------------------------------------------
 
-/// Convert MLT bytes to MVT (protobuf) format.
+/// Convert MLT bytes to MVT (protobuf) format via `mlt-core`'s native writer.
 ///
-/// Uses `mlt-core` to:
-/// 1. Parse MLT binary into layers
-/// 2. Decode all columns (geometry, properties, IDs)
-/// 3. Convert decoded features to intermediate `FeatureCollection`
-/// 4. Build MVT protobuf from features using prost
+/// `Layer01::into_tile` carries the MLT layer name and extent through directly,
+/// so the `_layer`/`_extent` injected-property convention used by the GeoJSON
+/// (`FeatureCollection::from_layers`) bridge is intentionally not needed here.
+/// `Layer::Unknown` variants carry tags this mlt-core version cannot model as
+/// MVT and are skipped rather than failing the whole tile.
 fn mlt_to_mvt(mlt_bytes: &[u8]) -> Result<Bytes> {
-    use prost::Message;
-
-    // mlt-core 0.7 decoder flow: parse_layers → type-state Layer<Lazy> → decode_all consumes
-    // into ParsedLayer. FeatureCollection::from_layers now takes a single arg (an iterator of
-    // ParsedLayer) because decoding is required before conversion rather than interleaved.
     let mut parser = mlt_core::Parser::default();
     let layers = parser
         .parse_layers(mlt_bytes)
         .map_err(|e| TileServerError::MltDecodeError(format!("failed to parse MLT tile: {e}")))?;
 
-    let mut dec = mlt_core::Decoder::default();
-    let parsed: Vec<_> = layers
-        .into_iter()
-        .map(|layer| {
-            layer.decode_all(&mut dec).map_err(|e| {
+    let mut decoder = mlt_core::Decoder::default();
+    let mut tile_layers: Vec<mlt_core::TileLayer> = Vec::with_capacity(layers.len());
+    for layer in layers {
+        if let mlt_core::Layer::Tag01(tag01) = layer {
+            let tile_layer = tag01.into_tile(&mut decoder).map_err(|e| {
                 TileServerError::MltDecodeError(format!("failed to decode MLT layer: {e}"))
-            })
-        })
-        .collect::<Result<_>>()?;
+            })?;
+            tile_layers.push(tile_layer);
+        }
+    }
 
-    let fc = mlt_core::geojson::FeatureCollection::from_layers(parsed).map_err(|e| {
-        TileServerError::MltDecodeError(format!("failed to convert MLT layers to features: {e}"))
-    })?;
+    let encoded = mlt_core::mvt::tile_layers_to_mvt(tile_layers)
+        .map_err(|e| TileServerError::MltEncodeError(format!("failed to encode MVT tile: {e}")))?;
 
-    // Step 4: Build MVT protobuf from FeatureCollection
-    let mvt_tile = feature_collection_to_mvt(&fc)?;
-
-    // Step 5: Encode MVT protobuf to bytes
-    let encoded = mvt_tile.encode_to_vec();
     Ok(Bytes::from(encoded))
-}
-
-/// Convert an MLT `FeatureCollection` to an MVT protobuf `Tile`.
-///
-/// Maps the GeoJSON-like features (with i32 tile coordinates) back into
-/// the MVT protobuf wire format with keys/values interning.
-///
-/// Features are grouped by the `_layer` property injected by `from_layers`.
-fn feature_collection_to_mvt(fc: &mlt_core::geojson::FeatureCollection) -> Result<MvtProto::Tile> {
-    use std::collections::HashMap;
-
-    let mut mvt_layers: Vec<MvtProto::Layer> = Vec::with_capacity(8);
-
-    // Group features by layer name (stored in _layer property by from_layers)
-    let mut layer_map: HashMap<&str, Vec<&mlt_core::geojson::Feature>> = HashMap::with_capacity(8);
-    for feature in &fc.features {
-        let layer_name = feature
-            .properties
-            .get("_layer")
-            .and_then(|v| v.as_str())
-            .unwrap_or("default");
-        layer_map.entry(layer_name).or_default().push(feature);
-    }
-
-    for (layer_name, features) in &layer_map {
-        // Get extent from first feature (injected by from_layers as _extent)
-        let extent = features
-            .first()
-            .and_then(|f| f.properties.get("_extent"))
-            .and_then(|v| v.as_u64())
-            .map(|v| v as u32)
-            .unwrap_or(4096);
-
-        let mut keys: Vec<String> = Vec::with_capacity(32);
-        let mut values: Vec<MvtProto::Value> = Vec::with_capacity(features.len() * 4);
-        let mut key_index: HashMap<String, u32> = HashMap::with_capacity(32);
-        let mut value_index: HashMap<String, u32> = HashMap::with_capacity(features.len() * 4);
-        let mut mvt_features: Vec<MvtProto::Feature> = Vec::with_capacity(features.len());
-
-        for feature in features {
-            // Encode geometry to MVT command sequence
-            let (geom_type, geometry) = encode_geometry_to_mvt(&feature.geometry);
-
-            // Encode properties as interned key/value tags
-            // Skip internal properties (_layer, _extent)
-            let mut tags = Vec::with_capacity(feature.properties.len() * 2);
-            for (key, val) in &feature.properties {
-                if key.starts_with('_') {
-                    continue; // Skip internal properties
-                }
-
-                let key_idx = *key_index.entry(key.clone()).or_insert_with(|| {
-                    let idx = keys.len() as u32;
-                    keys.push(key.clone());
-                    idx
-                });
-
-                let val_str = val.to_string();
-                let val_idx = *value_index.entry(val_str.clone()).or_insert_with(|| {
-                    let idx = values.len() as u32;
-                    values.push(json_value_to_mvt(val));
-                    idx
-                });
-
-                tags.push(key_idx);
-                tags.push(val_idx);
-            }
-
-            mvt_features.push(MvtProto::Feature {
-                id: feature.id,
-                tags,
-                r#type: Some(geom_type as i32),
-                geometry,
-            });
-        }
-
-        mvt_layers.push(MvtProto::Layer {
-            version: 2,
-            name: layer_name.to_string(),
-            features: mvt_features,
-            keys,
-            values,
-            extent: Some(extent),
-        });
-    }
-
-    Ok(MvtProto::Tile { layers: mvt_layers })
-}
-
-// ---------------------------------------------------------------------------
-// MVT Geometry encoding helpers
-// ---------------------------------------------------------------------------
-
-/// Encode geo_types Geometry<i32> to MVT command-encoded geometry.
-///
-/// Returns `(GeomType, Vec<u32>)` with the MVT command sequence.
-fn encode_geometry_to_mvt(geometry: &geo_types::Geometry<i32>) -> (MvtProto::GeomType, Vec<u32>) {
-    use geo_types::Geometry;
-
-    match geometry {
-        Geometry::Point(point) => {
-            let commands = encode_point(point.x(), point.y());
-            (MvtProto::GeomType::Point, commands)
-        }
-        Geometry::MultiPoint(mp) => {
-            let points = mp.0.as_slice();
-            let mut commands = Vec::with_capacity(points.len() * 3);
-            // MoveTo(count)
-            commands.push(command_integer(1, points.len() as u32));
-            let mut cx = 0i32;
-            let mut cy = 0i32;
-            for point in points {
-                let dx = point.x() - cx;
-                let dy = point.y() - cy;
-                commands.push(zigzag_encode(dx));
-                commands.push(zigzag_encode(dy));
-                cx = point.x();
-                cy = point.y();
-            }
-            (MvtProto::GeomType::Point, commands)
-        }
-        Geometry::LineString(ls) => {
-            let commands = encode_linestring(&ls.0, false);
-            (MvtProto::GeomType::Linestring, commands)
-        }
-        Geometry::MultiLineString(mls) => {
-            let mut commands = Vec::with_capacity(mls.0.len() * 8);
-            for line in &mls.0 {
-                commands.extend(encode_linestring(&line.0, false));
-            }
-            (MvtProto::GeomType::Linestring, commands)
-        }
-        Geometry::Polygon(poly) => {
-            let mut commands = Vec::with_capacity(poly.exterior().0.len() * 2 + 4);
-            // Exterior ring
-            commands.extend(encode_linestring(&poly.exterior().0, true));
-            // Interior rings (holes)
-            for ring in poly.interiors() {
-                commands.extend(encode_linestring(&ring.0, true));
-            }
-            (MvtProto::GeomType::Polygon, commands)
-        }
-        Geometry::MultiPolygon(mp) => {
-            let mut commands = Vec::with_capacity(mp.0.len() * 16);
-            for polygon in &mp.0 {
-                commands.extend(encode_linestring(&polygon.exterior().0, true));
-                for ring in polygon.interiors() {
-                    commands.extend(encode_linestring(&ring.0, true));
-                }
-            }
-            (MvtProto::GeomType::Polygon, commands)
-        }
-        // Unsupported geometry types produce empty geometry
-        _ => (MvtProto::GeomType::Unknown, Vec::new()),
-    }
-}
-
-/// Encode a single point as MVT commands: MoveTo(1) + dx, dy.
-fn encode_point(x: i32, y: i32) -> Vec<u32> {
-    vec![
-        command_integer(1, 1), // MoveTo, count=1
-        zigzag_encode(x),
-        zigzag_encode(y),
-    ]
-}
-
-/// Encode a linestring/ring as MVT commands.
-///
-/// If `close_path` is true, appends ClosePath command (for polygon rings).
-fn encode_linestring(coords: &[geo_types::Coord<i32>], close_path: bool) -> Vec<u32> {
-    if coords.is_empty() {
-        return Vec::new();
-    }
-
-    let mut commands = Vec::with_capacity(coords.len() * 2 + 4);
-    let mut cx = 0i32;
-    let mut cy = 0i32;
-
-    // MoveTo first point
-    commands.push(command_integer(1, 1));
-    let dx = coords[0].x - cx;
-    let dy = coords[0].y - cy;
-    commands.push(zigzag_encode(dx));
-    commands.push(zigzag_encode(dy));
-    cx = coords[0].x;
-    cy = coords[0].y;
-
-    // LineTo remaining points
-    let line_count = if close_path {
-        // For closed rings, skip the last point (ClosePath handles it)
-        coords.len().saturating_sub(2)
-    } else {
-        coords.len() - 1
-    };
-
-    if line_count > 0 {
-        commands.push(command_integer(2, line_count as u32));
-        let end = if close_path {
-            coords.len() - 1
-        } else {
-            coords.len()
-        };
-        for coord in &coords[1..end] {
-            let dx = coord.x - cx;
-            let dy = coord.y - cy;
-            commands.push(zigzag_encode(dx));
-            commands.push(zigzag_encode(dy));
-            cx = coord.x;
-            cy = coord.y;
-        }
-    }
-
-    // ClosePath for polygon rings
-    if close_path {
-        commands.push(command_integer(7, 1));
-    }
-
-    commands
-}
-
-/// Encode an MVT command integer: `(id & 0x7) | (count << 3)`.
-#[inline]
-fn command_integer(id: u32, count: u32) -> u32 {
-    (id & 0x7) | (count << 3)
-}
-
-/// Zigzag-encode a signed integer for protobuf.
-#[inline]
-fn zigzag_encode(n: i32) -> u32 {
-    ((n << 1) ^ (n >> 31)) as u32
-}
-
-// ---------------------------------------------------------------------------
-// MVT Value encoding helpers
-// ---------------------------------------------------------------------------
-
-/// Convert a serde_json::Value to an MVT protobuf Value.
-fn json_value_to_mvt(val: &serde_json::Value) -> MvtProto::Value {
-    match val {
-        serde_json::Value::String(s) => MvtProto::Value {
-            string_value: Some(s.clone()),
-            ..Default::default()
-        },
-        serde_json::Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                MvtProto::Value {
-                    int_value: Some(i),
-                    ..Default::default()
-                }
-            } else if let Some(u) = n.as_u64() {
-                MvtProto::Value {
-                    uint_value: Some(u),
-                    ..Default::default()
-                }
-            } else if let Some(f) = n.as_f64() {
-                MvtProto::Value {
-                    double_value: Some(f),
-                    ..Default::default()
-                }
-            } else {
-                MvtProto::Value::default()
-            }
-        }
-        serde_json::Value::Bool(b) => MvtProto::Value {
-            bool_value: Some(*b),
-            ..Default::default()
-        },
-        _ => MvtProto::Value::default(),
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -679,6 +251,16 @@ fn json_value_to_mvt(val: &serde_json::Value) -> MvtProto::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// MVT command integer: `(id & 0x7) | (count << 3)`.
+    fn command_integer(id: u32, count: u32) -> u32 {
+        (id & 0x7) | (count << 3)
+    }
+
+    /// Zigzag encoding for signed protobuf ints: `(n << 1) ^ (n >> 31)`.
+    fn zigzag_encode(n: i32) -> u32 {
+        ((n << 1) ^ (n >> 31)) as u32
+    }
 
     #[test]
     fn test_zigzag_encode() {
@@ -697,15 +279,6 @@ mod tests {
         assert_eq!(command_integer(2, 3), 26);
         // ClosePath, count=1
         assert_eq!(command_integer(7, 1), 15);
-    }
-
-    #[test]
-    fn test_encode_point() {
-        let commands = encode_point(25, 17);
-        assert_eq!(commands.len(), 3);
-        assert_eq!(commands[0], command_integer(1, 1)); // MoveTo(1)
-        assert_eq!(commands[1], zigzag_encode(25)); // dx=25
-        assert_eq!(commands[2], zigzag_encode(17)); // dy=17
     }
 
     #[test]
@@ -794,27 +367,6 @@ mod tests {
         // gracefully; the key assertion is that we reach this line
         // (no panic propagation).
         let _ = result;
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_string() {
-        let val = serde_json::json!("hello");
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.string_value, Some("hello".to_string()));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_number() {
-        let val = serde_json::json!(42);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.int_value, Some(42));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_bool() {
-        let val = serde_json::json!(true);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.bool_value, Some(true));
     }
 
     // -------------------------------------------------------------------------
@@ -1076,23 +628,41 @@ mod tests {
 
     #[test]
     fn test_roundtrip_mvt_mlt_mvt_point() {
+        use prost::Message;
+
         let mvt_bytes = make_mvt_point_tile("roundtrip", 100, 200);
         let original_tile = TileData {
             data: Bytes::from(mvt_bytes),
             format: TileFormat::Pbf,
             compression: TileCompression::None,
         };
-        // MVT → MLT
         let mlt_tile = transcode_tile(&original_tile, TileFormat::Mlt).unwrap();
         assert_eq!(mlt_tile.format, TileFormat::Mlt);
-        // MLT → MVT
         let roundtripped = transcode_tile(&mlt_tile, TileFormat::Pbf).unwrap();
         assert_eq!(roundtripped.format, TileFormat::Pbf);
-        assert!(!roundtripped.data.is_empty());
+
+        let tile = MvtProto::Tile::decode(roundtripped.data.as_ref())
+            .expect("roundtripped MVT should decode");
+        assert_eq!(tile.layers.len(), 1, "point tile keeps its single layer");
+        let layer = tile
+            .layers
+            .iter()
+            .find(|l| l.name == "roundtrip")
+            .expect("layer name \"roundtrip\" should survive the roundtrip");
+        assert_eq!(layer.features.len(), 1, "single point feature preserved");
+        assert!(
+            layer
+                .features
+                .iter()
+                .any(|f| f.r#type == Some(MvtProto::GeomType::Point as i32)),
+            "point geometry type preserved"
+        );
     }
 
     #[test]
     fn test_roundtrip_mvt_mlt_mvt_multi_feature() {
+        use prost::Message;
+
         let mvt_bytes = make_mvt_multi_feature_tile();
         let original = TileData {
             data: Bytes::from(mvt_bytes),
@@ -1102,11 +672,29 @@ mod tests {
         let mlt = transcode_tile(&original, TileFormat::Mlt).unwrap();
         let roundtripped = transcode_tile(&mlt, TileFormat::Pbf).unwrap();
         assert_eq!(roundtripped.format, TileFormat::Pbf);
-        assert!(!roundtripped.data.is_empty());
+
+        let tile = MvtProto::Tile::decode(roundtripped.data.as_ref())
+            .expect("roundtripped MVT should decode");
+        assert_eq!(tile.layers.len(), 1, "single layer preserved");
+        let layer = tile
+            .layers
+            .iter()
+            .find(|l| l.name == "buildings")
+            .expect("layer name \"buildings\" should survive the roundtrip");
+        assert_eq!(layer.features.len(), 3, "all three features preserved");
+        assert!(
+            layer
+                .features
+                .iter()
+                .any(|f| f.r#type == Some(MvtProto::GeomType::Point as i32)),
+            "point geometry type preserved"
+        );
     }
 
     #[test]
     fn test_roundtrip_mvt_mlt_mvt_multi_layer() {
+        use prost::Message;
+
         let mvt_bytes = make_mvt_multi_layer_tile();
         let original = TileData {
             data: Bytes::from(mvt_bytes),
@@ -1116,12 +704,38 @@ mod tests {
         let mlt = transcode_tile(&original, TileFormat::Mlt).unwrap();
         let roundtripped = transcode_tile(&mlt, TileFormat::Pbf).unwrap();
         assert_eq!(roundtripped.format, TileFormat::Pbf);
-        // Verify roundtripped tile has valid protobuf structure
-        use prost::Message;
-        let tile = MvtProto::Tile::decode(roundtripped.data.as_ref());
-        assert!(tile.is_ok(), "Roundtripped MVT should be valid protobuf");
-        let tile = tile.unwrap();
-        assert_eq!(tile.layers.len(), 2, "Should preserve 2 layers");
+
+        let tile = MvtProto::Tile::decode(roundtripped.data.as_ref())
+            .expect("roundtripped MVT should decode");
+        assert_eq!(tile.layers.len(), 2, "both layers preserved");
+
+        let roads = tile
+            .layers
+            .iter()
+            .find(|l| l.name == "roads")
+            .expect("layer name \"roads\" should survive the roundtrip");
+        assert_eq!(roads.features.len(), 1, "roads keeps its single feature");
+        assert!(
+            roads
+                .features
+                .iter()
+                .any(|f| f.r#type == Some(MvtProto::GeomType::Linestring as i32)),
+            "roads linestring geometry preserved"
+        );
+
+        let water = tile
+            .layers
+            .iter()
+            .find(|l| l.name == "water")
+            .expect("layer name \"water\" should survive the roundtrip");
+        assert_eq!(water.features.len(), 1, "water keeps its single feature");
+        assert!(
+            water
+                .features
+                .iter()
+                .any(|f| f.r#type == Some(MvtProto::GeomType::Polygon as i32)),
+            "water polygon geometry preserved"
+        );
     }
 
     #[test]
@@ -1239,85 +853,6 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Geometry encoding edge case tests
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_encode_point_zero_coords() {
-        let commands = encode_point(0, 0);
-        assert_eq!(commands.len(), 3);
-        assert_eq!(commands[1], 0); // zigzag(0) = 0
-        assert_eq!(commands[2], 0);
-    }
-
-    #[test]
-    fn test_encode_point_negative_coords() {
-        let commands = encode_point(-50, -75);
-        assert_eq!(commands.len(), 3);
-        assert_eq!(commands[1], zigzag_encode(-50));
-        assert_eq!(commands[2], zigzag_encode(-75));
-    }
-
-    #[test]
-    fn test_encode_linestring_empty() {
-        let commands = encode_linestring(&[], false);
-        assert!(commands.is_empty());
-    }
-
-    #[test]
-    fn test_encode_linestring_single_point() {
-        let coords = vec![geo_types::Coord { x: 10, y: 20 }];
-        let commands = encode_linestring(&coords, false);
-        // MoveTo(1) + dx,dy = 3 commands, no LineTo
-        assert_eq!(commands.len(), 3);
-        assert_eq!(commands[0], command_integer(1, 1));
-    }
-
-    #[test]
-    fn test_encode_linestring_two_points() {
-        let coords = vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 50 },
-        ];
-        let commands = encode_linestring(&coords, false);
-        // MoveTo(1) + dx,dy + LineTo(1) + dx,dy = 6 commands
-        assert_eq!(commands.len(), 6);
-        assert_eq!(commands[0], command_integer(1, 1)); // MoveTo
-        assert_eq!(commands[3], command_integer(2, 1)); // LineTo(1)
-    }
-
-    #[test]
-    fn test_encode_linestring_closed_ring() {
-        // Closed ring: first = last point, ClosePath appended
-        let coords = vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 0 },
-            geo_types::Coord { x: 100, y: 100 },
-            geo_types::Coord { x: 0, y: 0 }, // closing point
-        ];
-        let commands = encode_linestring(&coords, true);
-        // MoveTo(1) + dx,dy + LineTo(2) + 2*(dx,dy) + ClosePath = 3+1+4+1 = 9
-        let last = *commands.last().unwrap();
-        assert_eq!(last, command_integer(7, 1), "Should end with ClosePath");
-    }
-
-    #[test]
-    fn test_encode_linestring_delta_encoding() {
-        // Verify delta encoding: second point should be relative to first
-        let coords = vec![
-            geo_types::Coord { x: 10, y: 20 },
-            geo_types::Coord { x: 30, y: 50 },
-        ];
-        let commands = encode_linestring(&coords, false);
-        // MoveTo first point (absolute): dx=10, dy=20
-        assert_eq!(commands[1], zigzag_encode(10));
-        assert_eq!(commands[2], zigzag_encode(20));
-        // LineTo second point (delta): dx=30-10=20, dy=50-20=30
-        assert_eq!(commands[4], zigzag_encode(20));
-        assert_eq!(commands[5], zigzag_encode(30));
-    }
-
-    // -------------------------------------------------------------------------
     // Zigzag encoding edge cases
     // -------------------------------------------------------------------------
 
@@ -1355,303 +890,6 @@ mod tests {
         assert_eq!(command_integer(2, 5), 0b0010_1010); // 42
         // ClosePath = 7
         assert_eq!(command_integer(7, 1), 0b0000_1111); // 15
-    }
-
-    // -------------------------------------------------------------------------
-    // JSON value conversion tests (expanded)
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_json_value_to_mvt_float() {
-        let val = serde_json::json!(2.72);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.double_value, Some(2.72));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_uint() {
-        // Large unsigned value that doesn't fit i64
-        let val = serde_json::json!(u64::MAX);
-        let mvt = json_value_to_mvt(&val);
-        // serde_json stores u64::MAX as u64, which as_i64 returns None,
-        // so it should fall through to as_u64
-        assert!(mvt.uint_value.is_some() || mvt.int_value.is_some());
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_negative_int() {
-        let val = serde_json::json!(-42);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.int_value, Some(-42));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_null() {
-        let val = serde_json::Value::Null;
-        let mvt = json_value_to_mvt(&val);
-        // Null produces default/empty value
-        assert_eq!(mvt, MvtProto::Value::default());
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_array() {
-        // Arrays are not representable in MVT, should produce default
-        let val = serde_json::json!([1, 2, 3]);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt, MvtProto::Value::default());
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_object() {
-        // Objects are not representable in MVT, should produce default
-        let val = serde_json::json!({"nested": true});
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt, MvtProto::Value::default());
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_empty_string() {
-        let val = serde_json::json!("");
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.string_value, Some(String::new()));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_zero() {
-        let val = serde_json::json!(0);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.int_value, Some(0));
-    }
-
-    #[test]
-    fn test_json_value_to_mvt_false() {
-        let val = serde_json::json!(false);
-        let mvt = json_value_to_mvt(&val);
-        assert_eq!(mvt.bool_value, Some(false));
-    }
-
-    // -------------------------------------------------------------------------
-    // Type inference tests (infer_dominant_type)
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_infer_dominant_type_all_strings() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "a"})),
-            make_test_feature(serde_json::json!({"k": "b"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_ints() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 10})),
-            make_test_feature(serde_json::json!({"k": 20})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(matches!(dt, DominantType::Int), "Expected Int, got: {dt:?}");
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_bools() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": true})),
-            make_test_feature(serde_json::json!({"k": false})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Bool),
-            "Expected Bool, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_all_floats() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 1.5})),
-            make_test_feature(serde_json::json!({"k": 2.7})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Float),
-            "Expected Float, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_mixed_int_float_promotes_to_float() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": 10})),
-            make_test_feature(serde_json::json!({"k": 2.72})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::Float),
-            "Expected Float for mixed int/float, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_mixed_types_falls_back_to_string() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "hello"})),
-            make_test_feature(serde_json::json!({"k": 42})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String for mixed types, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_missing_key() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": "present"})),
-            make_test_feature(serde_json::json!({"other": "no k"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String when key present in some features, got: {dt:?}"
-        );
-    }
-
-    #[test]
-    fn test_infer_dominant_type_null_values() {
-        let features = [
-            make_test_feature(serde_json::json!({"k": null})),
-            make_test_feature(serde_json::json!({"k": "present"})),
-        ];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let dt = infer_dominant_type(&refs, "k");
-        assert!(
-            matches!(dt, DominantType::String),
-            "Expected String when one value is null, got: {dt:?}"
-        );
-    }
-
-    // -------------------------------------------------------------------------
-    // json_to_prop_value tests
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_json_to_prop_value_string() {
-        let val = serde_json::json!("hello");
-        let pv = json_to_prop_value(Some(&val), DominantType::String);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Str(Some(ref s)) if s == "hello"),
-            "Expected Str(Some(\"hello\")), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int() {
-        let val = serde_json::json!(42);
-        let pv = json_to_prop_value(Some(&val), DominantType::Int);
-        assert!(
-            matches!(pv, mlt_core::PropValue::I64(Some(42))),
-            "Expected I64(Some(42)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_bool() {
-        let val = serde_json::json!(true);
-        let pv = json_to_prop_value(Some(&val), DominantType::Bool);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Bool(Some(true))),
-            "Expected Bool(Some(true)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_float() {
-        let val = serde_json::json!(1.23);
-        let pv = json_to_prop_value(Some(&val), DominantType::Float);
-        assert!(
-            matches!(pv, mlt_core::PropValue::F64(Some(v)) if (v - 1.23).abs() < f64::EPSILON),
-            "Expected F64(Some(1.23)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_null_returns_none() {
-        let pv = json_to_prop_value(None, DominantType::Int);
-        assert!(
-            matches!(pv, mlt_core::PropValue::I64(None)),
-            "Expected I64(None) for null, got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int_as_float() {
-        let val = serde_json::json!(10);
-        let pv = json_to_prop_value(Some(&val), DominantType::Float);
-        assert!(
-            matches!(pv, mlt_core::PropValue::F64(Some(v)) if (v - 10.0).abs() < f64::EPSILON),
-            "Expected F64(Some(10.0)), got: {pv:?}"
-        );
-    }
-
-    #[test]
-    fn test_json_to_prop_value_int_as_string() {
-        let val = serde_json::json!(42);
-        let pv = json_to_prop_value(Some(&val), DominantType::String);
-        assert!(
-            matches!(pv, mlt_core::PropValue::Str(Some(ref s)) if s == "42"),
-            "Expected Str(Some(\"42\")), got: {pv:?}"
-        );
-    }
-
-    // -------------------------------------------------------------------------
-    // build_tile_layer tests
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_build_tile_layer_skips_internal_keys() {
-        let features = [make_test_feature(serde_json::json!({
-            "_layer": "internal",
-            "_extent": 4096,
-            "name": "visible"
-        }))];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        // Should only have "name", not _layer or _extent
-        assert_eq!(layer.property_names.len(), 1);
-        assert_eq!(layer.property_names[0], "name");
-    }
-
-    #[test]
-    fn test_build_tile_layer_no_properties() {
-        let features = [make_test_feature(serde_json::json!({}))];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        assert!(layer.property_names.is_empty());
-    }
-
-    #[test]
-    fn test_build_tile_layer_multiple_keys() {
-        let features = [make_test_feature(
-            serde_json::json!({"a": 1, "b": "two", "c": true}),
-        )];
-        let refs: Vec<&mlt_core::geojson::Feature> = features.iter().collect();
-        let layer = build_tile_layer("test", &refs);
-        assert_eq!(layer.property_names.len(), 3);
-        // BTreeSet ordering: a, b, c
-        assert_eq!(layer.property_names, vec!["a", "b", "c"]);
     }
 
     // -------------------------------------------------------------------------
@@ -1717,289 +955,6 @@ mod tests {
         let last_idx = mlt_bytes.len() - 1;
         mlt_bytes[last_idx] = mlt_bytes[last_idx].wrapping_add(0x7f);
         let _ = mlt_to_mvt(&mlt_bytes);
-    }
-
-    // -------------------------------------------------------------------------
-    // Property helpers for test fixtures
-    // -------------------------------------------------------------------------
-
-    /// Create a test Feature with given properties and a dummy point geometry.
-    fn make_test_feature(properties: serde_json::Value) -> mlt_core::geojson::Feature {
-        use std::collections::BTreeMap;
-        let props: BTreeMap<String, serde_json::Value> = match properties {
-            serde_json::Value::Object(map) => map.into_iter().collect(),
-            _ => BTreeMap::new(),
-        };
-        mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-            id: None,
-            properties: props,
-            ty: String::new(),
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // encode_geometry_to_mvt — direct unit tests for every geometry variant
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_encode_geometry_point_variant() {
-        let geom = geo_types::Geometry::Point(geo_types::Point::new(25, 17));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Point);
-        assert_eq!(
-            cmds,
-            vec![command_integer(1, 1), zigzag_encode(25), zigzag_encode(17)]
-        );
-    }
-
-    #[test]
-    fn test_encode_geometry_multipoint_single() {
-        let geom = geo_types::Geometry::MultiPoint(geo_types::MultiPoint::new(vec![
-            geo_types::Point::new(10, 20),
-        ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Point);
-        // MoveTo(count=1) + dx + dy
-        assert_eq!(cmds.len(), 3);
-        assert_eq!(cmds[0], command_integer(1, 1));
-        assert_eq!(cmds[1], zigzag_encode(10));
-        assert_eq!(cmds[2], zigzag_encode(20));
-    }
-
-    #[test]
-    fn test_encode_geometry_multipoint_multiple_uses_delta_encoding() {
-        let geom = geo_types::Geometry::MultiPoint(geo_types::MultiPoint::new(vec![
-            geo_types::Point::new(10, 20),
-            geo_types::Point::new(30, 50),
-            geo_types::Point::new(35, 45),
-        ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Point);
-        // MoveTo(3) + 3 * (dx, dy) = 7 entries
-        assert_eq!(cmds.len(), 7);
-        assert_eq!(cmds[0], command_integer(1, 3));
-        // First point absolute from (0,0): (10, 20)
-        assert_eq!(cmds[1], zigzag_encode(10));
-        assert_eq!(cmds[2], zigzag_encode(20));
-        // Second point delta: (30-10, 50-20) = (20, 30)
-        assert_eq!(cmds[3], zigzag_encode(20));
-        assert_eq!(cmds[4], zigzag_encode(30));
-        // Third point delta: (35-30, 45-50) = (5, -5)
-        assert_eq!(cmds[5], zigzag_encode(5));
-        assert_eq!(cmds[6], zigzag_encode(-5));
-    }
-
-    #[test]
-    fn test_encode_geometry_linestring_variant() {
-        let geom = geo_types::Geometry::LineString(geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 0 },
-        ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Linestring);
-        // Open linestring (no ClosePath at the end)
-        assert_ne!(*cmds.last().unwrap(), command_integer(7, 1));
-        assert_eq!(cmds[0], command_integer(1, 1));
-    }
-
-    #[test]
-    fn test_encode_geometry_multilinestring_single_line() {
-        let geom = geo_types::Geometry::MultiLineString(geo_types::MultiLineString::new(vec![
-            geo_types::LineString::new(vec![
-                geo_types::Coord { x: 0, y: 0 },
-                geo_types::Coord { x: 10, y: 10 },
-            ]),
-        ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Linestring);
-        assert_eq!(cmds.len(), 6); // single line: MoveTo+dx+dy + LineTo(1)+dx+dy
-        assert_eq!(cmds[0], command_integer(1, 1));
-        assert_eq!(cmds[3], command_integer(2, 1));
-    }
-
-    #[test]
-    fn test_encode_geometry_multilinestring_multiple_lines() {
-        let geom = geo_types::Geometry::MultiLineString(geo_types::MultiLineString::new(vec![
-            geo_types::LineString::new(vec![
-                geo_types::Coord { x: 0, y: 0 },
-                geo_types::Coord { x: 10, y: 10 },
-            ]),
-            geo_types::LineString::new(vec![
-                geo_types::Coord { x: 50, y: 50 },
-                geo_types::Coord { x: 60, y: 60 },
-                geo_types::Coord { x: 70, y: 70 },
-            ]),
-        ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Linestring);
-        // Two MoveTo commands present (one per line)
-        let move_to_count = cmds.iter().filter(|&&c| c == command_integer(1, 1)).count();
-        assert_eq!(move_to_count, 2);
-    }
-
-    #[test]
-    fn test_encode_geometry_polygon_no_holes() {
-        let exterior = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 0 },
-            geo_types::Coord { x: 100, y: 100 },
-            geo_types::Coord { x: 0, y: 0 }, // closing point
-        ]);
-        let geom = geo_types::Geometry::Polygon(geo_types::Polygon::new(exterior, vec![]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Polygon);
-        // Exterior ring ends in a ClosePath; total exactly one ClosePath
-        assert_eq!(*cmds.last().unwrap(), command_integer(7, 1));
-        let close_count = cmds.iter().filter(|&&c| c == command_integer(7, 1)).count();
-        assert_eq!(close_count, 1);
-    }
-
-    #[test]
-    fn test_encode_geometry_polygon_with_single_hole() {
-        let exterior = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 0 },
-            geo_types::Coord { x: 100, y: 100 },
-            geo_types::Coord { x: 0, y: 100 },
-            geo_types::Coord { x: 0, y: 0 },
-        ]);
-        let hole = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 25, y: 25 },
-            geo_types::Coord { x: 75, y: 25 },
-            geo_types::Coord { x: 75, y: 75 },
-            geo_types::Coord { x: 25, y: 25 },
-        ]);
-        let geom = geo_types::Geometry::Polygon(geo_types::Polygon::new(exterior, vec![hole]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Polygon);
-        // Two ClosePath commands: one per ring (exterior + 1 hole)
-        let close_count = cmds.iter().filter(|&&c| c == command_integer(7, 1)).count();
-        assert_eq!(close_count, 2);
-    }
-
-    #[test]
-    fn test_encode_geometry_polygon_with_multiple_holes() {
-        let exterior = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 200, y: 0 },
-            geo_types::Coord { x: 200, y: 200 },
-            geo_types::Coord { x: 0, y: 0 },
-        ]);
-        let hole_a = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 20, y: 20 },
-            geo_types::Coord { x: 60, y: 20 },
-            geo_types::Coord { x: 60, y: 60 },
-            geo_types::Coord { x: 20, y: 20 },
-        ]);
-        let hole_b = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 120, y: 120 },
-            geo_types::Coord { x: 180, y: 120 },
-            geo_types::Coord { x: 180, y: 180 },
-            geo_types::Coord { x: 120, y: 120 },
-        ]);
-        let geom =
-            geo_types::Geometry::Polygon(geo_types::Polygon::new(exterior, vec![hole_a, hole_b]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Polygon);
-        // 3 rings -> 3 ClosePath commands
-        let close_count = cmds.iter().filter(|&&c| c == command_integer(7, 1)).count();
-        assert_eq!(close_count, 3);
-    }
-
-    #[test]
-    fn test_encode_geometry_multipolygon_single() {
-        let exterior = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 50, y: 0 },
-            geo_types::Coord { x: 50, y: 50 },
-            geo_types::Coord { x: 0, y: 0 },
-        ]);
-        let poly = geo_types::Polygon::new(exterior, vec![]);
-        let geom = geo_types::Geometry::MultiPolygon(geo_types::MultiPolygon::new(vec![poly]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Polygon);
-        assert_eq!(*cmds.last().unwrap(), command_integer(7, 1));
-    }
-
-    #[test]
-    fn test_encode_geometry_multipolygon_with_holes() {
-        let poly_a = geo_types::Polygon::new(
-            geo_types::LineString::new(vec![
-                geo_types::Coord { x: 0, y: 0 },
-                geo_types::Coord { x: 50, y: 0 },
-                geo_types::Coord { x: 50, y: 50 },
-                geo_types::Coord { x: 0, y: 0 },
-            ]),
-            vec![geo_types::LineString::new(vec![
-                geo_types::Coord { x: 10, y: 10 },
-                geo_types::Coord { x: 30, y: 10 },
-                geo_types::Coord { x: 30, y: 30 },
-                geo_types::Coord { x: 10, y: 10 },
-            ])],
-        );
-        let poly_b = geo_types::Polygon::new(
-            geo_types::LineString::new(vec![
-                geo_types::Coord { x: 100, y: 100 },
-                geo_types::Coord { x: 200, y: 100 },
-                geo_types::Coord { x: 200, y: 200 },
-                geo_types::Coord { x: 100, y: 100 },
-            ]),
-            vec![],
-        );
-        let geom =
-            geo_types::Geometry::MultiPolygon(geo_types::MultiPolygon::new(vec![poly_a, poly_b]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Polygon);
-        // 2 polys: poly_a (1 exterior + 1 hole = 2) + poly_b (1 exterior) = 3 ClosePaths
-        let close_count = cmds.iter().filter(|&&c| c == command_integer(7, 1)).count();
-        assert_eq!(close_count, 3);
-    }
-
-    #[test]
-    fn test_encode_geometry_geometry_collection_unsupported() {
-        // GeometryCollection is not handled — should return Unknown + empty commands.
-        let geom =
-            geo_types::Geometry::GeometryCollection(geo_types::GeometryCollection::new_from(vec![
-                geo_types::Geometry::Point(geo_types::Point::new(1, 2)),
-            ]));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Unknown);
-        assert!(cmds.is_empty());
-    }
-
-    #[test]
-    fn test_encode_geometry_triangle_unsupported() {
-        let geom = geo_types::Geometry::Triangle(geo_types::Triangle::new(
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 10, y: 0 },
-            geo_types::Coord { x: 5, y: 10 },
-        ));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Unknown);
-        assert!(cmds.is_empty());
-    }
-
-    #[test]
-    fn test_encode_geometry_line_unsupported() {
-        let geom = geo_types::Geometry::Line(geo_types::Line::new(
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 10, y: 10 },
-        ));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Unknown);
-        assert!(cmds.is_empty());
-    }
-
-    #[test]
-    fn test_encode_geometry_rect_unsupported() {
-        let geom = geo_types::Geometry::Rect(geo_types::Rect::new(
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 100, y: 100 },
-        ));
-        let (gt, cmds) = encode_geometry_to_mvt(&geom);
-        assert_eq!(gt, MvtProto::GeomType::Unknown);
-        assert!(cmds.is_empty());
     }
 
     // -------------------------------------------------------------------------
@@ -2136,266 +1091,5 @@ mod tests {
         };
         let err = transcode_tile(&tile, TileFormat::Jpeg).unwrap_err();
         assert!(matches!(err, TileServerError::TranscodeUnsupported { .. }));
-    }
-
-    // -------------------------------------------------------------------------
-    // feature_collection_to_mvt — direct exercise (multi-layer, missing _layer)
-    // -------------------------------------------------------------------------
-
-    #[test]
-    fn test_feature_collection_to_mvt_empty_features() {
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert!(tile.layers.is_empty(), "no features => no layers");
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_missing_layer_property_defaults() {
-        // Feature without `_layer` should be grouped under "default".
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("name".to_string(), serde_json::json!("road"));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(1, 2)),
-            id: Some(99),
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers.len(), 1);
-        assert_eq!(tile.layers[0].name, "default");
-        assert_eq!(tile.layers[0].extent, Some(4096));
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_custom_extent_from_property() {
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("_layer".to_string(), serde_json::json!("roads"));
-        props.insert("_extent".to_string(), serde_json::json!(8192));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-            id: None,
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers.len(), 1);
-        assert_eq!(tile.layers[0].extent, Some(8192));
-        assert_eq!(tile.layers[0].name, "roads");
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_skips_internal_properties() {
-        // _layer and _extent must be stripped from emitted MVT tags.
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("_layer".to_string(), serde_json::json!("buildings"));
-        props.insert("_extent".to_string(), serde_json::json!(4096));
-        props.insert("height".to_string(), serde_json::json!(10));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(5, 5)),
-            id: Some(1),
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers.len(), 1);
-        let layer = &tile.layers[0];
-        assert_eq!(layer.keys, vec!["height".to_string()]);
-        assert_eq!(layer.features.len(), 1);
-        // Exactly one tag pair (key_idx=0, val_idx=0)
-        assert_eq!(layer.features[0].tags.len(), 2);
-        assert_eq!(layer.features[0].tags, vec![0, 0]);
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_interns_duplicate_keys_and_values() {
-        // Two features sharing key="kind" and value="park" should produce one key + one value.
-        let make_f = |val: &str| {
-            let mut p = std::collections::BTreeMap::new();
-            p.insert("_layer".to_string(), serde_json::json!("places"));
-            p.insert("kind".to_string(), serde_json::json!(val));
-            mlt_core::geojson::Feature {
-                geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-                id: None,
-                properties: p,
-                ty: String::new(),
-            }
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![make_f("park"), make_f("park"), make_f("forest")],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers.len(), 1);
-        let layer = &tile.layers[0];
-        // One unique key ("kind"), two unique values ("park", "forest")
-        assert_eq!(layer.keys.len(), 1);
-        assert_eq!(layer.values.len(), 2);
-        assert_eq!(layer.features.len(), 3);
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_multi_layer_grouping() {
-        let make_f = |layer: &str, x: i32, y: i32| {
-            let mut p = std::collections::BTreeMap::new();
-            p.insert("_layer".to_string(), serde_json::json!(layer));
-            mlt_core::geojson::Feature {
-                geometry: geo_types::Geometry::Point(geo_types::Point::new(x, y)),
-                id: None,
-                properties: p,
-                ty: String::new(),
-            }
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![
-                make_f("roads", 1, 1),
-                make_f("buildings", 2, 2),
-                make_f("roads", 3, 3),
-                make_f("buildings", 4, 4),
-                make_f("water", 5, 5),
-            ],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers.len(), 3, "expected 3 distinct layers");
-        let mut names: Vec<&str> = tile.layers.iter().map(|l| l.name.as_str()).collect();
-        names.sort_unstable();
-        assert_eq!(names, vec!["buildings", "roads", "water"]);
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_encodes_all_value_kinds() {
-        // Bool, Int, Float, String values must each produce a typed MvtProto::Value.
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("_layer".to_string(), serde_json::json!("mixed"));
-        props.insert("flag".to_string(), serde_json::json!(true));
-        props.insert("count".to_string(), serde_json::json!(42));
-        props.insert("ratio".to_string(), serde_json::json!(1.5));
-        props.insert("name".to_string(), serde_json::json!("hello"));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-            id: None,
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        let layer = &tile.layers[0];
-        assert_eq!(layer.keys.len(), 4);
-        assert_eq!(layer.values.len(), 4);
-        // Verify each value variant appears at least once across the value pool.
-        let any_bool = layer.values.iter().any(|v| v.bool_value == Some(true));
-        let any_int = layer.values.iter().any(|v| v.int_value == Some(42));
-        let any_float = layer.values.iter().any(|v| v.double_value == Some(1.5));
-        let any_str = layer
-            .values
-            .iter()
-            .any(|v| v.string_value.as_deref() == Some("hello"));
-        assert!(any_bool && any_int && any_float && any_str);
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_special_char_strings() {
-        // Strings with whitespace, unicode, and quotes must survive interning.
-        let make_f = |val: &str| {
-            let mut p = std::collections::BTreeMap::new();
-            p.insert("_layer".to_string(), serde_json::json!("strs"));
-            p.insert("label".to_string(), serde_json::json!(val));
-            mlt_core::geojson::Feature {
-                geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-                id: None,
-                properties: p,
-                ty: String::new(),
-            }
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![
-                make_f("hello \"world\""),
-                make_f("路 — straße"),
-                make_f("\n\t  "),
-            ],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        let layer = &tile.layers[0];
-        assert_eq!(layer.values.len(), 3);
-        let strings: Vec<&str> = layer
-            .values
-            .iter()
-            .filter_map(|v| v.string_value.as_deref())
-            .collect();
-        assert!(strings.contains(&"hello \"world\""));
-        assert!(strings.contains(&"路 — straße"));
-        assert!(strings.contains(&"\n\t  "));
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_polygon_geometry_roundtrip() {
-        // Exercise the Polygon branch of encode_geometry_to_mvt through the top-level path.
-        let exterior = geo_types::LineString::new(vec![
-            geo_types::Coord { x: 0, y: 0 },
-            geo_types::Coord { x: 50, y: 0 },
-            geo_types::Coord { x: 50, y: 50 },
-            geo_types::Coord { x: 0, y: 0 },
-        ]);
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("_layer".to_string(), serde_json::json!("polys"));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Polygon(geo_types::Polygon::new(exterior, vec![])),
-            id: Some(7),
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        let layer = &tile.layers[0];
-        assert_eq!(layer.features.len(), 1);
-        assert_eq!(
-            layer.features[0].r#type,
-            Some(MvtProto::GeomType::Polygon as i32)
-        );
-        // Geometry sequence should end in a ClosePath.
-        assert_eq!(
-            *layer.features[0].geometry.last().unwrap(),
-            command_integer(7, 1)
-        );
-    }
-
-    #[test]
-    fn test_feature_collection_to_mvt_preserves_feature_id() {
-        let mut props = std::collections::BTreeMap::new();
-        props.insert("_layer".to_string(), serde_json::json!("ids"));
-        let feature = mlt_core::geojson::Feature {
-            geometry: geo_types::Geometry::Point(geo_types::Point::new(0, 0)),
-            id: Some(0xdead_beef),
-            properties: props,
-            ty: String::new(),
-        };
-        let fc = mlt_core::geojson::FeatureCollection {
-            ty: String::new(),
-            features: vec![feature],
-        };
-        let tile = feature_collection_to_mvt(&fc).unwrap();
-        assert_eq!(tile.layers[0].features[0].id, Some(0xdead_beef));
     }
 }

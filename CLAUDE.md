@@ -1121,38 +1121,39 @@ The `mlt` feature flag enables on-the-fly transcoding between MLT and MVT tile f
 MLT is a next-generation vector tile format from the MapLibre project, designed as a more efficient alternative to MVT (Mapbox Vector Tiles). tileserver-rs supports:
 
 - **Phase 1** (Passthrough): Serve MLT tiles directly from PMTiles/MBTiles sources (always enabled)
-- **Phase 2** (MVT→MLT): Not yet available — `mlt-core` v0.1.x lacks an encoding API
-- **Phase 3** (MLT→MVT): Decode MLT tiles and re-encode as MVT protobuf for legacy clients
+- **Phase 2** (MVT→MLT): Decode MVT directly into `TileLayer`s via mlt-core's `mvt::mvt_to_tile_layers`, then encode each via `TileLayer::encode`
+- **Phase 3** (MLT→MVT): Decode MLT tiles and re-encode as MVT via mlt-core's `tile_layers_to_mvt` for legacy clients
 
 ### Architecture
 
 ```
 src/transcode.rs  (feature-gated: mlt)
-├── MvtProto module       ─ Prost-derived MVT protobuf types (Tile, Layer, Feature, Value)
+├── MvtProto module       ─ Prost-derived MVT protobuf types (Tile, Layer, Feature, Value);
+│                            retained as the standalone MVT codec used by benches/tests only
 ├── transcode_tile()      ─ Public API: dispatches format conversion
-├── mlt_to_mvt()          ─ Phase 3: MLT → MVT using mlt-core + prost encoding
-├── feature_collection_to_mvt() ─ Builds MVT Tile from mlt-core FeatureCollection
-├── encode_geometry_to_mvt()   ─ Encodes geo_types geometries to MVT command sequences
+├── mvt_to_mlt()          ─ Phase 2: MVT → MLT via mlt-core mvt_to_tile_layers + TileLayer::encode
+├── mlt_to_mvt()          ─ Phase 3: MLT → MVT via mlt-core's native tile_layers_to_mvt
 └── decompress_tile_data()    ─ Handles gzip decompression of compressed tiles
 ```
 
 ### How Transcoding Works
 
-When a client requests a tile in a different format than the source provides (e.g., requesting `.pbf` from an MLT source), the `get_tile` handler in `main.rs` detects the mismatch and calls `transcode_tile()`. The flow:
+When a client requests a tile in a different format than the source provides (e.g., requesting `.pbf` from an MLT source), the `get_tile` handler in `main.rs` detects the mismatch and calls `transcode_tile()`. The MLT→MVT flow:
 
 1. Detect source format vs requested format
 2. Decompress tile data if gzip-compressed
-3. Parse MLT tile using `mlt-core::parse_layers()` + `layer.decode_all()`
-4. Convert to intermediate `FeatureCollection` via `FeatureCollection::from_layers()`
-5. Build MVT protobuf using key/value interning, geometry encoding, and `prost` serialization
+3. Parse MLT tile using `mlt_core::Parser::parse_layers()`
+4. Decode each `Layer::Tag01` directly into a row-oriented `TileLayer` via `Layer01::into_tile()`
+5. Encode the layers as MVT via `mlt_core::mvt::tile_layers_to_mvt()` (backed by the `fast-mvt` crate)
 6. Return transcoded tile bytes with correct `Content-Type`
 
 ### Key Implementation Details
 
-- Features are grouped by `_layer` property (injected by `from_layers()`)
-- Geometry encoding uses standard MVT command sequences (MoveTo, LineTo, ClosePath)
-- Coordinates are zigzag-encoded per the MVT spec
-- Key/value interning deduplicates property strings per layer
+- `Layer01::into_tile()` carries the MLT layer name and extent through directly, so the
+  `_layer`/`_extent` injected-property convention used by the older GeoJSON bridge is not needed
+- `Layer::Unknown` variants carry tags this mlt-core version cannot model as MVT and are skipped
+- Geometry command encoding, zigzag coordinates, and key/value interning are handled inside
+  `fast-mvt` rather than hand-rolled in this crate
 - Fallback: if transcoding fails, the original tile is served with a warning log
 ---
 

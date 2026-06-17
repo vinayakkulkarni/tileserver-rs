@@ -616,3 +616,91 @@ mod tests {
         assert!(q.key.is_none());
     }
 }
+
+#[cfg(all(test, feature = "raster"))]
+mod band_math_tests {
+    use super::apply_band_math_if_requested;
+    use crate::raster::{RasterImage, encode};
+    use crate::sources::{self, TileCompression, TileData, TileFormat};
+    use ndarray::array;
+    use std::collections::HashMap;
+
+    fn tile(data: Vec<u8>, format: TileFormat) -> TileData {
+        TileData {
+            data: data.into(),
+            format,
+            compression: TileCompression::None,
+        }
+    }
+
+    fn valid_png() -> Vec<u8> {
+        let pixels = array![[[10.0_f32, 20.0], [30.0, 40.0]]];
+        let raster = RasterImage::from_opaque(pixels, None);
+        encode::to_png(&raster).expect("encode tiny png")
+    }
+
+    #[test]
+    fn band_math_no_expression_returns_unchanged() {
+        let original = valid_png();
+        let input = tile(original.clone(), TileFormat::Png);
+        let query: HashMap<String, String> = HashMap::new();
+
+        let out = apply_band_math_if_requested(input, &query);
+
+        assert_eq!(out.data.as_ref(), original.as_slice());
+        assert_eq!(out.format, TileFormat::Png);
+    }
+
+    #[test]
+    fn band_math_non_raster_format_returns_unchanged() {
+        let original = b"\x1a\x00protobuf-ish".to_vec();
+        let input = tile(original.clone(), TileFormat::Pbf);
+        let mut query = HashMap::new();
+        query.insert("expression".to_string(), "b1".to_string());
+
+        let out = apply_band_math_if_requested(input, &query);
+
+        assert_eq!(out.data.as_ref(), original.as_slice());
+        assert_eq!(out.format, TileFormat::Pbf);
+    }
+
+    #[test]
+    fn band_math_decode_error_fails_open() {
+        let garbage = vec![0xFF, 0x00, 0x13, 0x37, 0x42];
+        let input = tile(garbage.clone(), TileFormat::Png);
+        let mut query = HashMap::new();
+        query.insert("expression".to_string(), "b1".to_string());
+
+        let out = apply_band_math_if_requested(input, &query);
+
+        assert_eq!(out.data.as_ref(), garbage.as_slice());
+        assert_eq!(out.format, TileFormat::Png);
+    }
+
+    #[test]
+    fn band_math_parse_error_fails_open() {
+        let original = valid_png();
+        let input = tile(original.clone(), TileFormat::Png);
+        let mut query = HashMap::new();
+        query.insert("expression".to_string(), "b1 +* )(".to_string());
+
+        let out = apply_band_math_if_requested(input, &query);
+
+        assert_eq!(out.data.as_ref(), original.as_slice());
+        assert_eq!(out.format, TileFormat::Png);
+    }
+
+    #[test]
+    fn band_math_valid_expression_reencodes() {
+        let original = valid_png();
+        let input = tile(original.clone(), TileFormat::Webp);
+        let mut query = HashMap::new();
+        query.insert("expression".to_string(), "b1 * 2".to_string());
+
+        let out = apply_band_math_if_requested(input, &query);
+
+        assert_eq!(out.format, sources::TileFormat::Png);
+        assert!(!out.data.is_empty());
+        assert_ne!(out.data.as_ref(), original.as_slice());
+    }
+}

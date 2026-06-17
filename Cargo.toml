@@ -56,7 +56,7 @@ pmtiles          = { version = "0.23.0", default-features = false, features = ["
 object_store     = { version = "0.13", default-features = false, features = ["aws", "azure", "gcp"] }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.9"
-brotli           = "8.0.3"
+brotli           = "8.0.4"
 zstd             = "0.13.3"
 prost            = "0.14.4"
 geo-types        = "0.7.19"
@@ -87,7 +87,7 @@ sha2             = "0.11.0"
 # `ConstantTimeEq` for bearer/PKCE comparisons without a sneaky version
 # drift between our direct use and rsa's transitive pin).
 subtle           = "2.6"
-uuid             = { version = "1.23.2", features = ["v4"] }
+uuid             = { version = "1.23.3", features = ["v4"] }
 
 # Binary formats / data
 bytes            = "1.11.1"
@@ -141,8 +141,8 @@ stac             = { version = "0.17.0", default-features = false }
 
 # PostgreSQL (optional)
 deadpool-postgres = "0.14.1"
-tokio-postgres   = { version = "0.7.17", features = ["with-serde_json-1"] }
-postgres-types   = { version = "0.2.13", features = ["derive"] }
+tokio-postgres   = { version = "0.7.18", features = ["with-serde_json-1"] }
+postgres-types   = { version = "0.2.14", features = ["derive"] }
 semver           = "1.0.28"
 moka             = { version = "0.12.15", features = ["future"] }
 
@@ -152,10 +152,10 @@ geojson          = "1.0.0"
 cql2             = "0.5.6"
 
 # GeoParquet (optional)
-parquet          = { version = "58", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
-arrow-array      = "58"
-arrow-schema     = "58"
-arrow-cast       = "58"
+parquet          = { version = "59", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
+arrow-array      = "59"
+arrow-schema     = "59"
+arrow-cast       = "59"
 # geo 0.33 unblocked May 8 2026 by cql2 0.5.6 (which finally shipped a
 # .crate with geo = "0.33.0" — earlier 0.5.4 / 0.5.5 release tags carried
 # stale snapshots that still pinned geo ^0.31; see developmentseed/cql2-rs#199).
@@ -181,7 +181,7 @@ tar              = "0.4"
 tower            = { version = "0.5.3", features = ["util"] }
 axum-test        = "20.1.0"
 tempfile         = "3.27.0"
-insta            = { version = "1.47.2", features = ["json"] }
+insta            = { version = "1.48.0", features = ["json"] }
 criterion        = { version = "0.8.2", features = ["html_reports"] }
 
 [workspace.lints.clippy]
