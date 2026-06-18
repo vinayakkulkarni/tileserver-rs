@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.6...mbgl-sys-v0.1.7) (2026-06-18)
+
+
+### Bug Fixes
+
+* **mbgl-sys:** bump vendored maplibre-native to ios-v6.27.0 ([#1160](https://github.com/vinayakkulkarni/tileserver-rs/issues/1160)) ([1b5d4e7](https://github.com/vinayakkulkarni/tileserver-rs/commit/1b5d4e733473460d0548b1d6968cbc09e4d43eea))
+
 ## [0.1.6](https://github.com/vinayakkulkarni/tileserver-rs/compare/mbgl-sys-v0.1.5...mbgl-sys-v0.1.6) (2026-04-21)
 
 
