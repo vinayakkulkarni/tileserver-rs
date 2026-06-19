@@ -45,4 +45,8 @@ jobs:
       - name: Publish mbgl-sys
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        run: cargo publish --locked -p mbgl-sys
+        # No --locked: the workspace Cargo.lock is not part of the published
+        # package, and on a clean runner cargo must refresh the index/lockfile
+        # during verify. --locked forbids that refresh and fails with
+        # "cannot update the lock file ... because --locked was passed".
+        run: cargo publish -p mbgl-sys
