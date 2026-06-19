@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.33.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.0...v2.33.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **deps:** bump @lucide/vue from 1.20.0 to 1.21.0 ([#1172](https://github.com/vinayakkulkarni/tileserver-rs/issues/1172)) ([7ced15f](https://github.com/vinayakkulkarni/tileserver-rs/commit/7ced15f50a3e4d8ebf7478ad61a1718eaf499f22))
+* **deps:** bump @tanstack/ai from 0.31.0 to 0.32.0 ([#1171](https://github.com/vinayakkulkarni/tileserver-rs/issues/1171)) ([63f7893](https://github.com/vinayakkulkarni/tileserver-rs/commit/63f7893d490f251560acc2f03a5f4b87c3b7275f))
+* **deps:** bump @tanstack/ai-vue from 0.13.5 to 0.13.8 ([#1154](https://github.com/vinayakkulkarni/tileserver-rs/issues/1154)) ([a44ef74](https://github.com/vinayakkulkarni/tileserver-rs/commit/a44ef745a9bb39a79b2ac50dbb6a0db929961338))
+* **deps:** bump @tanstack/ai-vue from 0.13.8 to 0.13.9 ([#1170](https://github.com/vinayakkulkarni/tileserver-rs/issues/1170)) ([5d692ce](https://github.com/vinayakkulkarni/tileserver-rs/commit/5d692cefb4ce5bdeefd978bacd79878b0dfdcaef))
+* **deps:** bump @tanstack/query-db-collection from 1.0.40 to 1.0.41 ([#1167](https://github.com/vinayakkulkarni/tileserver-rs/issues/1167)) ([ffbc578](https://github.com/vinayakkulkarni/tileserver-rs/commit/ffbc578ce39e4baf85e0275778a5be003b798f03))
+* **deps:** bump @tanstack/vue-db from 0.0.119 to 0.0.120 ([#1165](https://github.com/vinayakkulkarni/tileserver-rs/issues/1165)) ([7d2f327](https://github.com/vinayakkulkarni/tileserver-rs/commit/7d2f327745a8b12d80acd88bdff1ed88c765f588))
+* **deps:** bump bytes from 1.11.1 to 1.12.0 ([#1166](https://github.com/vinayakkulkarni/tileserver-rs/issues/1166)) ([bf6a31f](https://github.com/vinayakkulkarni/tileserver-rs/commit/bf6a31f18f77a6ab2d122ceb24e8ff23e7e6a76f))
+* **deps:** bump stac from 0.17.0 to 0.17.1 ([#1156](https://github.com/vinayakkulkarni/tileserver-rs/issues/1156)) ([d523587](https://github.com/vinayakkulkarni/tileserver-rs/commit/d52358786c2a47e697a812d81d946e280602e64d))
+* **deps:** bump wrangler from 4.101.0 to 4.102.0 ([#1168](https://github.com/vinayakkulkarni/tileserver-rs/issues/1168)) ([d7916b7](https://github.com/vinayakkulkarni/tileserver-rs/commit/d7916b7346dec20c8ac3af2a8468eb369e9741ca))
+* **styles:** render MLT-backed styles via transcoded MVT for native renderer ([#1158](https://github.com/vinayakkulkarni/tileserver-rs/issues/1158)) ([d7cf776](https://github.com/vinayakkulkarni/tileserver-rs/commit/d7cf776e90cb6815f355edcbe734ea6c5b7bac8e))
+
+
+### Miscellaneous
+
+* **main:** release mbgl-sys 0.1.7 ([9b2679f](https://github.com/vinayakkulkarni/tileserver-rs/commit/9b2679f39de155478c58bb754e1c4ad55328b149))
+* **main:** release mbgl-sys 0.1.7 ([#1161](https://github.com/vinayakkulkarni/tileserver-rs/issues/1161)) ([19008c7](https://github.com/vinayakkulkarni/tileserver-rs/commit/19008c7bca042f8f5b8a2be075f3eab30bbe3585))
+
 ## [2.33.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.32.0...v2.33.0) (2026-06-17)
 
 
