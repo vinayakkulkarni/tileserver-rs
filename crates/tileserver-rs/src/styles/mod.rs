@@ -406,12 +406,21 @@ fn rewrite_source(
 
     let metadata = tile_source.metadata();
 
-    // Build the tile URL template
+    // MapLibre Native has an MLT render path (maplibre-native PR #3246), but it
+    // only engages when the source carries `encoding: "mlt"`, and that hint is
+    // unreliable upstream (maplibre-native issue #4341). Our rewriter inlines
+    // `tiles` without an encoding field, so the renderer would default to the
+    // MVT decoder and fail on MLT bytes. Point its tile URL at the .pbf endpoint
+    // instead, which transparently transcodes MLT -> MVT on the fly.
+    let native_extension = if metadata.format == crate::sources::TileFormat::Mlt {
+        "pbf"
+    } else {
+        metadata.format.extension()
+    };
+
     let tile_url = format!(
         "{}/data/{}/{{z}}/{{x}}/{{y}}.{}",
-        base_url,
-        data_source_id,
-        metadata.format.extension()
+        base_url, data_source_id, native_extension
     );
 
     tracing::debug!(
@@ -421,13 +430,8 @@ fn rewrite_source(
         tile_url
     );
 
-    // Remove the URL and add tiles array
     source_obj.remove("url");
     source_obj.insert("tiles".to_string(), serde_json::json!([tile_url]));
-
-    if metadata.format == crate::sources::TileFormat::Mlt {
-        source_obj.insert("encoding".to_string(), serde_json::json!("mlt"));
-    }
 
     // Add additional metadata if not already present
     if !source_obj.contains_key("minzoom") {
@@ -648,5 +652,96 @@ mod tests {
             info.url,
             Some("http://localhost:8080/styles/my-style/style.json".to_string())
         );
+    }
+
+    use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
+    use async_trait::async_trait;
+    use bytes::Bytes;
+    use std::sync::Arc;
+
+    struct FmtSource(TileMetadata);
+
+    #[async_trait]
+    impl TileSource for FmtSource {
+        async fn get_tile(&self, _z: u8, _x: u32, _y: u32) -> Result<Option<TileData>> {
+            Ok(Some(TileData {
+                data: Bytes::from_static(b"x"),
+                format: self.0.format,
+                compression: TileCompression::None,
+            }))
+        }
+        fn metadata(&self) -> &TileMetadata {
+            &self.0
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    fn manager_with_source(id: &str, format: TileFormat) -> SourceManager {
+        let meta = TileMetadata {
+            id: id.to_string(),
+            name: id.to_string(),
+            description: None,
+            attribution: None,
+            format,
+            minzoom: 0,
+            maxzoom: 14,
+            bounds: None,
+            center: None,
+            vector_layers: None,
+        };
+        let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::new();
+        map.insert(
+            id.to_string(),
+            Arc::new(FmtSource(meta)) as Arc<dyn TileSource>,
+        );
+        SourceManager::from_sources(map)
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_mlt_source_uses_pbf_extension() {
+        // MapLibre Native cannot decode MLT tiles, so an MLT source must be
+        // rewritten to the .pbf (transcoded MVT) endpoint and must NOT carry
+        // an `encoding: mlt` hint — the renderer receives standard MVT.
+        let mgr = manager_with_source("india-mlt", TileFormat::Mlt);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "india-mlt": { "type": "vector", "url": "/data/india-mlt" }
+            }
+        });
+
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        let src = &result["sources"]["india-mlt"];
+
+        let tiles = src["tiles"].as_array().unwrap();
+        assert_eq!(
+            tiles[0],
+            "http://localhost:8080/data/india-mlt/{z}/{x}/{y}.pbf"
+        );
+        assert!(
+            src.get("encoding").is_none(),
+            "native MLT rewrite must not emit an encoding hint, got: {:?}",
+            src.get("encoding")
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_pbf_source_unchanged() {
+        let mgr = manager_with_source("osm", TileFormat::Pbf);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "osm": { "type": "vector", "url": "/data/osm" }
+            }
+        });
+
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        let src = &result["sources"]["osm"];
+
+        let tiles = src["tiles"].as_array().unwrap();
+        assert_eq!(tiles[0], "http://localhost:8080/data/osm/{z}/{x}/{y}.pbf");
+        assert!(src.get("encoding").is_none());
     }
 }
