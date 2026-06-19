@@ -3491,7 +3491,7 @@ dependencies = [
 
 [[package]]
 name = "mbgl-sys"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "cc",
  "cmake",
@@ -3583,9 +3583,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d8cb46ec2c8b5bbca77249949d3c648f2b20cc59e621d21974c5608cccc8af6"
+checksum = "5235ab2650a1831191ddb1d89ccca0b8a12c74c55bea8c597a32c21aca5e0a79"
 dependencies = [
  "bitvec",
  "bytemuck",
@@ -6331,7 +6331,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.2",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.52.0",
