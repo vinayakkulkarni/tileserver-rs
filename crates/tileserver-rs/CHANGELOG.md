@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.33.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.1...v2.33.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* **deps:** bump duckdb from 1.10503.1 to 1.10504.0 ([#1155](https://github.com/vinayakkulkarni/tileserver-rs/issues/1155)) ([2333a53](https://github.com/vinayakkulkarni/tileserver-rs/commit/2333a53c8e86c1f953de977faa82a8d0b8094922))
+* **routing:** preserve trailing slash on SPA viewer routes ([#1173](https://github.com/vinayakkulkarni/tileserver-rs/issues/1173)) ([7d69014](https://github.com/vinayakkulkarni/tileserver-rs/commit/7d690141ae22c5bbae21d597a9d145d12d4d8b70))
+
 ## [2.33.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.0...v2.33.1) (2026-06-19)
 
 
