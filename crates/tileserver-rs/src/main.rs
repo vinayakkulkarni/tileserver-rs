@@ -16,11 +16,10 @@ use axum::{
 #[cfg(feature = "frontend")]
 use rust_embed::Embed;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tileserver_rs::trailing_slash::SelectiveTrailingSlashLayer;
 use tokio::net::TcpListener;
 use tower::Layer;
-use tower_http::{
-    compression::CompressionLayer, cors::CorsLayer, normalize_path::NormalizePathLayer,
-};
+use tower_http::{compression::CompressionLayer, cors::CorsLayer};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 
@@ -257,11 +256,14 @@ async fn main() -> anyhow::Result<()> {
 
     // Normalize trailing slashes before routing so `/_openapi/` matches the
     // `/_openapi` route (and likewise for /health, /ping, etc.) instead of
-    // 404ing. NormalizePathLayer must wrap the Router from the OUTSIDE: routing
-    // happens before inner `.layer()` middleware, so applying it via
-    // `Router::layer()` would run too late. The resulting `NormalizePath<Router>`
-    // is served via `ServiceExt::into_make_service`.
-    let app = NormalizePathLayer::trim_trailing_slash().layer(router);
+    // 404ing — EXCEPT the SPA viewer routes `/styles/{id}/` and `/data/{id}/`,
+    // whose trailing slash is load-bearing (it selects the embedded UI over the
+    // greedy `/styles/{style_json}` / `/data/{source}` API routes). A blanket
+    // trim collapsed every viewer link onto the API and 404'd it. The layer must
+    // wrap the Router from the OUTSIDE: routing happens before inner `.layer()`
+    // middleware, so applying it via `Router::layer()` would run too late. The
+    // resulting service is served via `ServiceExt::into_make_service`.
+    let app = SelectiveTrailingSlashLayer.layer(router);
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);

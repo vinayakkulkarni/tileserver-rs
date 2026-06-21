@@ -689,13 +689,15 @@ async fn tile_zstd_request_does_not_5xx() {
 // ============================================================
 
 /// Drive a single GET `path` through the production normalization wiring
-/// (`NormalizePathLayer::trim_trailing_slash` wrapping `api_router`) and return
-/// the response status. `axum_test::TestServer` cannot host a `NormalizePath`
-/// service (no `IntoTransportLayer` impl), so we exercise the layer directly via
+/// (`SelectiveTrailingSlashLayer` wrapping `api_router`) and return the response
+/// status + body text. A sentinel `SPA` fallback stands in for the embedded web
+/// UI so we can assert whether a request reached the SPA fallback (preserved
+/// trailing slash) or an API route (trimmed). `axum_test::TestServer` cannot host
+/// the wrapping service, so we exercise the layer directly via
 /// `tower::ServiceExt::oneshot` — the same path the production `axum::serve` uses.
-async fn normalized_status(path: &str) -> axum::http::StatusCode {
+async fn normalized(path: &str) -> (axum::http::StatusCode, String) {
+    use tileserver_rs::trailing_slash::SelectiveTrailingSlashLayer;
     use tower::{Layer, ServiceExt};
-    use tower_http::normalize_path::NormalizePathLayer;
 
     let shared = SharedState::new(Arc::new(ReloadController::new(
         common::minimal_app_state(),
@@ -704,35 +706,65 @@ async fn normalized_status(path: &str) -> axum::http::StatusCode {
         None,
         common::minimal_runtime(),
     )));
-    let app = NormalizePathLayer::trim_trailing_slash().layer(api_router(shared));
+    let router = api_router(shared).fallback(|| async { "SPA" });
+    let app = SelectiveTrailingSlashLayer.layer(router);
     let req = axum::http::Request::builder()
         .uri(path)
         .body(axum::body::Body::empty())
         .unwrap();
     let resp = app.oneshot(req).await.unwrap();
-    resp.status()
+    let status = resp.status();
+    let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    (status, String::from_utf8(bytes.to_vec()).unwrap())
 }
 
 #[tokio::test]
 async fn trailing_slash_on_health_resolves() {
-    assert_eq!(
-        normalized_status("/health/").await,
-        axum::http::StatusCode::OK
-    );
+    let (status, _) = normalized("/health/").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
 }
 
 #[tokio::test]
 async fn trailing_slash_on_data_json_resolves() {
-    assert_eq!(
-        normalized_status("/data.json/").await,
-        axum::http::StatusCode::OK
-    );
+    let (status, body) = normalized("/data.json/").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+    assert_ne!(body, "SPA");
 }
 
 #[tokio::test]
 async fn no_trailing_slash_still_resolves() {
-    assert_eq!(
-        normalized_status("/health").await,
-        axum::http::StatusCode::OK
-    );
+    let (status, _) = normalized("/health").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+}
+
+#[tokio::test]
+async fn style_viewer_trailing_slash_reaches_spa_not_tilejson() {
+    // Regression: a blanket trim collapsed `/styles/{id}/` onto the greedy
+    // `/styles/{style_json}` API route, 404ing every "Open in viewer" link.
+    let (status, body) = normalized("/styles/india-dark-mlt/").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+    assert_eq!(body, "SPA");
+}
+
+#[tokio::test]
+async fn data_inspector_trailing_slash_reaches_spa_not_tilejson() {
+    let (status, body) = normalized("/data/protomaps/").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+    assert_eq!(body, "SPA");
+}
+
+#[tokio::test]
+async fn style_viewer_preserves_raster_query() {
+    let (status, body) = normalized("/styles/india-dark-mlt/?raster").await;
+    assert_eq!(status, axum::http::StatusCode::OK);
+    assert_eq!(body, "SPA");
+}
+
+#[tokio::test]
+async fn style_json_trailing_slash_still_trims_to_api() {
+    let (status, body) = normalized("/styles/whatever/style.json/").await;
+    assert_ne!(body, "SPA");
+    assert_eq!(status, axum::http::StatusCode::NOT_FOUND);
 }
