@@ -26,8 +26,8 @@ catalogs:
       specifier: ^2.0.1
       version: 2.0.1
     '@maplibre/mlt':
-      specifier: ^1.1.11
-      version: 1.1.11
+      specifier: ^1.1.12
+      version: 1.1.12
     '@mlc-ai/web-llm':
       specifier: ^0.2.84
       version: 0.2.84
@@ -248,7 +248,7 @@ importers:
         version: 1.21.0(vue@3.5.38(typescript@6.0.3))
       '@maplibre/mlt':
         specifier: catalog:client
-        version: 1.1.11
+        version: 1.1.12
       '@mlc-ai/web-llm':
         specifier: catalog:client
         version: 0.2.84
@@ -1706,6 +1706,9 @@ packages:
 
   '@maplibre/mlt@1.1.11':
     resolution: {integrity: sha512-dKvjKdITw9d0y3ndGkSqLUEpWCizMtdq8NB06cHohH/JZ2sJoM7dClR9wzJLUWykjbw9RXDFmhjjNBnNW27mzw==}
+
+  '@maplibre/mlt@1.1.12':
+    resolution: {integrity: sha512-ZeK5w2TTeHOajcLaEQs1KZXw2V9wIKo1PmThlxlsHoXsQsYlBqLJzPOd6tJHRtGTChUY3DPPmjXRArYVvAbmZw==}
 
   '@maplibre/vt-pbf@4.3.2':
     resolution: {integrity: sha512-j6p0AdjvAR19Z3XaCysle7A4ZSo08tYOzxD0Y9NQylwPAkwJJeYub5b2eVucdeDh7erhv69DahoLOevDRERRUw==}
@@ -8708,6 +8711,10 @@ snapshots:
       tinyqueue: 3.0.0
 
   '@maplibre/mlt@1.1.11':
+    dependencies:
+      '@mapbox/point-geometry': 1.1.0
+
+  '@maplibre/mlt@1.1.12':
     dependencies:
       '@mapbox/point-geometry': 1.1.0
 
