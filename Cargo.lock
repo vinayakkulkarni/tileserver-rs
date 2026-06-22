@@ -1678,6 +1678,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e5663fd2b4e3742545500462e4b4929ffc5148f13acbb775a9fca2ea6b6df4d"
 
 [[package]]
+name = "dup-indexer"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a253a963acd43cb7ace3e7afe09bb4787b007e412b8158aa1f870a275f5a2e3"
+dependencies = [
+ "foldhash 0.2.0",
+]
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1920,12 +1929,12 @@ dependencies = [
 
 [[package]]
 name = "fast-mvt"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3317314793f5938545f211999cebb74d659f640b48555946247baeb9e407328"
+checksum = "42da86ae212cff4e913e2131812069cb9172a1de185804357b6f50afc9a174f9"
 dependencies = [
  "buffa",
- "dup-indexer",
+ "dup-indexer 0.5.0",
  "geo-types",
  "serde",
  "serde_json",
@@ -2371,7 +2380,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db5eda63aa99ac06160fd53328ed75c34f14e3196d3f56a3649e247ed796e54b"
 dependencies = [
  "base64",
- "dup-indexer",
+ "dup-indexer 0.4.4",
  "geo-types",
  "geojson 0.24.2",
  "log",
@@ -3583,9 +3592,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d8cb46ec2c8b5bbca77249949d3c648f2b20cc59e621d21974c5608cccc8af6"
+checksum = "33bc4081ca01c3564ebb2ab150702bc2570edd5ccf6f30b18b8ac594ab9ac5fb"
 dependencies = [
  "bitvec",
  "bytemuck",
@@ -6400,7 +6409,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.33.1"
+version = "2.33.2"
 dependencies = [
  "anyhow",
  "arc-swap",
