@@ -49,21 +49,21 @@ catalogs:
   default:
     '@commitlint/cli': ^21.0.2
     '@commitlint/config-conventional': ^21.0.2
-    '@iconify-json/simple-icons': ^1.2.86
+    '@iconify-json/simple-icons': ^1.2.87
     '@nuxt/eslint': ^1.16.0
     '@nuxt/eslint-config': ^1.16.0
     '@nuxt/fonts': ^0.14.0
     '@nuxt/icon': ^2.2.3
     '@nuxtjs/color-mode': ^4.0.1
     '@tailwindcss/vite': ^4.3.1
-    '@types/node': ^25.9.3
+    '@types/node': ^25.9.4
     '@vueuse/core': ^14.3.0
     '@vueuse/nuxt': ^14.3.0
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
     eslint: ^10.5.0
     eslint-plugin-better-tailwindcss: ^4.6.0
-    eslint-plugin-oxlint: ^1.70.0
+    eslint-plugin-oxlint: ^1.71.0
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.0.8
@@ -71,8 +71,8 @@ catalogs:
     maplibre-gl: ^5.24.0
     motion-v: ^2.3.0
     nuxt: ^4.4.8
-    oxfmt: ^0.55.0
-    oxlint: ^1.70.0
+    oxfmt: ^0.56.0
+    oxlint: ^1.71.0
     radix-vue: ^1.9.17
     reka-ui: ^2.10.0
     shadcn-nuxt: ^2.7.4
