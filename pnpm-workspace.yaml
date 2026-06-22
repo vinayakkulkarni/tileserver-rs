@@ -100,7 +100,7 @@ catalogs:
     '@types/shpjs': ^3.4.7
     destr: ^2.0.5
     maplibre-gl-inspect: ^0.0.8
-    papaparse: ^5.5.3
+    papaparse: ^5.5.4
     pmtiles: ^4.4.1
     shpjs: ^6.2.0
     zod: ^4.4.3
