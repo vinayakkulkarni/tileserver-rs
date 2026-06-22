@@ -400,6 +400,7 @@ impl McpHandler {
             &style.style_json,
             &self.state.render_base_url,
             &crate::styles::UrlQueryParams::default(),
+            &self.state.sources,
         ) {
             value if value.is_object() || value.is_array() => match serde_json::to_string(&value) {
                 Ok(s) => s,

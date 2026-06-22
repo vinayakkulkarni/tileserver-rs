@@ -69,8 +69,12 @@ pub(crate) async fn get_style_json(
     let url_params = UrlQueryParams::with_key(query.key);
 
     // Rewrite relative URLs to absolute URLs for external clients
-    let rewritten_style =
-        styles::rewrite_style_for_api(&style.style_json, &state.base_url, &url_params);
+    let rewritten_style = styles::rewrite_style_for_api(
+        &style.style_json,
+        &state.base_url,
+        &url_params,
+        &state.sources,
+    );
 
     Ok(Json(rewritten_style))
 }

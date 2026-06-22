@@ -11,7 +11,7 @@
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
-use tileserver_rs::{UrlQueryParams, rewrite_style_for_api};
+use tileserver_rs::{SourceManager, UrlQueryParams, rewrite_style_for_api};
 
 const PROTOMAPS_LIGHT_STYLE: &str = include_str!("../../../data/styles/protomaps-light/style.json");
 
@@ -38,6 +38,7 @@ fn bench_rewrite(c: &mut Criterion) {
     let base_url = "http://localhost:8080";
     let no_key = UrlQueryParams::default();
     let with_key = UrlQueryParams::with_key(Some("api_key_123".into()));
+    let sources = SourceManager::new();
 
     let tiny = parsed(TINY_STYLE);
     group.bench_function("tiny_no_key", |b| {
@@ -46,6 +47,7 @@ fn bench_rewrite(c: &mut Criterion) {
                 black_box(&tiny),
                 black_box(base_url),
                 black_box(&no_key),
+                black_box(&sources),
             ))
         });
     });
@@ -56,6 +58,7 @@ fn bench_rewrite(c: &mut Criterion) {
                 black_box(&tiny),
                 black_box(base_url),
                 black_box(&with_key),
+                black_box(&sources),
             ))
         });
     });
@@ -67,6 +70,7 @@ fn bench_rewrite(c: &mut Criterion) {
                 black_box(&protomaps),
                 black_box(base_url),
                 black_box(&no_key),
+                black_box(&sources),
             ))
         });
     });
@@ -77,6 +81,7 @@ fn bench_rewrite(c: &mut Criterion) {
                 black_box(&protomaps),
                 black_box(base_url),
                 black_box(&with_key),
+                black_box(&sources),
             ))
         });
     });

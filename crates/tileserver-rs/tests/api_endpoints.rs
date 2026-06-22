@@ -1371,6 +1371,7 @@ mod key_param_tests {
 
     #[test]
     fn test_rewrite_style_for_api_with_key() {
+        use tileserver_rs::SourceManager;
         use tileserver_rs::styles::{UrlQueryParams, rewrite_style_for_api};
 
         let style = serde_json::json!({
@@ -1387,7 +1388,12 @@ mod key_param_tests {
 
         // With key
         let params = UrlQueryParams::with_key(Some("my_secret_key".to_string()));
-        let result = rewrite_style_for_api(&style, "http://tiles.example.com", &params);
+        let result = rewrite_style_for_api(
+            &style,
+            "http://tiles.example.com",
+            &params,
+            &SourceManager::new(),
+        );
 
         // All URLs should have key appended
         assert_eq!(
@@ -1406,6 +1412,7 @@ mod key_param_tests {
 
     #[test]
     fn test_rewrite_style_for_api_preserves_external_urls() {
+        use tileserver_rs::SourceManager;
         use tileserver_rs::styles::{UrlQueryParams, rewrite_style_for_api};
 
         let style = serde_json::json!({
@@ -1421,7 +1428,8 @@ mod key_param_tests {
 
         // With key - external URLs should NOT have key appended
         let params = UrlQueryParams::with_key(Some("my_key".to_string()));
-        let result = rewrite_style_for_api(&style, "http://localhost", &params);
+        let result =
+            rewrite_style_for_api(&style, "http://localhost", &params, &SourceManager::new());
 
         // External URLs should remain unchanged
         assert_eq!(
