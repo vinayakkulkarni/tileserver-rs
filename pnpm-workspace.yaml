@@ -87,7 +87,7 @@ catalogs:
   client:
     '@comark/nuxt': ^0.4.0
     '@geoql/v-maplibre': ^2.0.1
-    '@maplibre/mlt': ^1.1.11
+    '@maplibre/mlt': ^1.1.12
     '@mlc-ai/web-llm': ^0.2.84
     '@tanstack/ai': ^0.32.0
     '@tanstack/ai-vue': ^0.13.9
