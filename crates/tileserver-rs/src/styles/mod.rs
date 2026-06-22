@@ -209,6 +209,24 @@ impl UrlQueryParams {
     }
 }
 
+/// Extract a tileserver data source id from a style source `url`.
+///
+/// Accepts the relative (`/data/protomaps-mlt`, `/data/protomaps.json`) and
+/// absolute (`http://host/data/protomaps`) forms, ignoring any trailing query
+/// string. Returns `None` for URLs that do not reference our `/data/` endpoint.
+fn data_source_id_from_url(url: &str) -> Option<&str> {
+    let without_query = url.split('?').next().unwrap_or(url);
+    let after_data = if let Some(rest) = without_query.strip_prefix("/data/") {
+        rest
+    } else if without_query.contains("/data/") {
+        without_query.rsplit("/data/").next()?
+    } else {
+        return None;
+    };
+    let id = after_data.strip_suffix(".json").unwrap_or(after_data);
+    (!id.is_empty()).then_some(id)
+}
+
 /// Rewrite a style JSON to use absolute URLs for the public API.
 ///
 /// This function replaces relative URLs (like `/data/protomaps.json`)
@@ -227,6 +245,7 @@ pub fn rewrite_style_for_api(
     style_json: &serde_json::Value,
     base_url: &str,
     query_params: &UrlQueryParams,
+    sources: &SourceManager,
 ) -> serde_json::Value {
     let mut style = style_json.clone();
     let query_string = query_params.to_query_string();
@@ -246,6 +265,25 @@ pub fn rewrite_style_for_api(
     {
         for (_source_id, source_config) in sources_obj.iter_mut() {
             if let Some(source_obj) = source_config.as_object_mut() {
+                // Resolve whether the referenced source serves MLT before we
+                // rewrite its url. maplibre-gl-js cannot render our MLT tiles:
+                // its bundled `@maplibre/mlt` decoder rejects the geometry
+                // encodings mlt-core emits ("the specified geometry type is
+                // currently not supported"), confirmed against every
+                // `EncoderConfig` variant. So MLT sources are pointed at the
+                // `.pbf` transcode endpoint below instead of the `.mlt` tiles
+                // their TileJSON advertises.
+                let mlt_source_id = source_obj
+                    .get("url")
+                    .and_then(|v| v.as_str())
+                    .and_then(data_source_id_from_url)
+                    .filter(|id| {
+                        sources
+                            .get(id)
+                            .is_some_and(|s| s.metadata().format == crate::sources::TileFormat::Mlt)
+                    })
+                    .map(str::to_string);
+
                 // Rewrite "url" field if relative
                 if let Some(url) = source_obj.get_mut("url")
                     && let Some(url_str) = url.as_str()
@@ -264,24 +302,34 @@ pub fn rewrite_style_for_api(
                     }
                 }
 
-                // Inject encoding hint for MLT sources.
-                // If the source URL or tile URLs reference .mlt endpoints,
-                // set encoding: "mlt" so clients know the tile encoding.
-                if !source_obj.contains_key("encoding") {
-                    let is_mlt = source_obj
-                        .get("url")
-                        .and_then(|v| v.as_str())
-                        .is_some_and(|u| u.contains(".mlt"))
-                        || source_obj
-                            .get("tiles")
-                            .and_then(|v| v.as_array())
-                            .is_some_and(|tiles| {
-                                tiles
-                                    .iter()
-                                    .any(|t| t.as_str().is_some_and(|s| s.ends_with(".mlt")))
-                            });
-                    if is_mlt {
-                        source_obj.insert("encoding".to_string(), serde_json::json!("mlt"));
+                // Point MLT sources at the `.pbf` transcode endpoint so the
+                // viewer receives standard MVT it can render. The data handler
+                // converts MLT->MVT on the fly; the raw `.mlt` endpoint stays
+                // available to direct API clients. Mirrors the native-render
+                // rewrite in `rewrite_source`.
+                if let Some(id) = mlt_source_id {
+                    let tile_url = format!(
+                        "{}/data/{}/{{z}}/{{x}}/{{y}}.pbf{}",
+                        base_url, id, query_string
+                    );
+                    source_obj.remove("url");
+                    source_obj.insert("tiles".to_string(), serde_json::json!([tile_url]));
+
+                    if let Some(source) = sources.get(&id) {
+                        let metadata = source.metadata();
+                        if !source_obj.contains_key("minzoom") {
+                            source_obj
+                                .insert("minzoom".to_string(), serde_json::json!(metadata.minzoom));
+                        }
+                        if !source_obj.contains_key("maxzoom") {
+                            source_obj
+                                .insert("maxzoom".to_string(), serde_json::json!(metadata.maxzoom));
+                        }
+                        if !source_obj.contains_key("bounds")
+                            && let Some(bounds) = &metadata.bounds
+                        {
+                            source_obj.insert("bounds".to_string(), serde_json::json!(bounds));
+                        }
                     }
                 }
             }
@@ -502,7 +550,12 @@ mod tests {
         });
 
         let params = UrlQueryParams::default();
-        let result = rewrite_style_for_api(&style, "http://tiles.example.com", &params);
+        let result = rewrite_style_for_api(
+            &style,
+            "http://tiles.example.com",
+            &params,
+            &SourceManager::new(),
+        );
 
         assert_eq!(
             result["sources"]["openmaptiles"]["url"],
@@ -533,7 +586,12 @@ mod tests {
         });
 
         let params = UrlQueryParams::with_key(Some("my_secret_key".to_string()));
-        let result = rewrite_style_for_api(&style, "http://tiles.example.com", &params);
+        let result = rewrite_style_for_api(
+            &style,
+            "http://tiles.example.com",
+            &params,
+            &SourceManager::new(),
+        );
 
         assert_eq!(
             result["sources"]["openmaptiles"]["url"],
@@ -563,7 +621,12 @@ mod tests {
         });
 
         let params = UrlQueryParams::with_key(Some("key123".to_string()));
-        let result = rewrite_style_for_api(&style, "http://tiles.example.com", &params);
+        let result = rewrite_style_for_api(
+            &style,
+            "http://tiles.example.com",
+            &params,
+            &SourceManager::new(),
+        );
 
         // External URLs should NOT be modified
         assert_eq!(
@@ -592,7 +655,12 @@ mod tests {
         });
 
         let params = UrlQueryParams::with_key(Some("abc".to_string()));
-        let result = rewrite_style_for_api(&style, "http://localhost:8080", &params);
+        let result = rewrite_style_for_api(
+            &style,
+            "http://localhost:8080",
+            &params,
+            &SourceManager::new(),
+        );
 
         let tiles = result["sources"]["osm"]["tiles"].as_array().unwrap();
         assert_eq!(
@@ -622,7 +690,8 @@ mod tests {
         });
 
         let params = UrlQueryParams::with_key(Some("test".to_string()));
-        let result = rewrite_style_for_api(&style, "http://localhost", &params);
+        let result =
+            rewrite_style_for_api(&style, "http://localhost", &params, &SourceManager::new());
 
         // Local URL should be rewritten
         assert_eq!(
@@ -742,6 +811,98 @@ mod tests {
 
         let tiles = src["tiles"].as_array().unwrap();
         assert_eq!(tiles[0], "http://localhost:8080/data/osm/{z}/{x}/{y}.pbf");
+        assert!(src.get("encoding").is_none());
+    }
+
+    #[test]
+    fn test_data_source_id_from_url_forms() {
+        assert_eq!(
+            data_source_id_from_url("/data/protomaps-mlt"),
+            Some("protomaps-mlt")
+        );
+        assert_eq!(
+            data_source_id_from_url("/data/protomaps.json"),
+            Some("protomaps")
+        );
+        assert_eq!(
+            data_source_id_from_url("http://host:8080/data/india-mlt?key=abc"),
+            Some("india-mlt")
+        );
+        assert_eq!(
+            data_source_id_from_url("https://external.com/tiles.json"),
+            None
+        );
+        assert_eq!(data_source_id_from_url("/data/"), None);
+    }
+
+    #[test]
+    fn test_rewrite_style_for_api_mlt_source_uses_pbf_tiles() {
+        // The demo source URL is `/data/protomaps-mlt` (a TileJSON `url` ref
+        // whose `-mlt` is a hyphen suffix, not a `.mlt` extension). maplibre-gl
+        // cannot render our MLT, so the source must be rewritten to the `.pbf`
+        // transcode endpoint with no `url` and no `encoding: mlt` hint.
+        let mgr = manager_with_source("protomaps-mlt", TileFormat::Mlt);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "protomaps": { "type": "vector", "url": "/data/protomaps-mlt" }
+            }
+        });
+
+        let params = UrlQueryParams::default();
+        let result = rewrite_style_for_api(&style, "http://localhost:8080", &params, &mgr);
+        let src = &result["sources"]["protomaps"];
+
+        assert!(src.get("url").is_none(), "url must be replaced by tiles");
+        assert!(
+            src.get("encoding").is_none(),
+            "no encoding hint: the viewer receives transcoded MVT, not MLT"
+        );
+        let tiles = src["tiles"].as_array().unwrap();
+        assert_eq!(
+            tiles[0],
+            "http://localhost:8080/data/protomaps-mlt/{z}/{x}/{y}.pbf"
+        );
+        assert_eq!(src["minzoom"], 0);
+        assert_eq!(src["maxzoom"], 14);
+    }
+
+    #[test]
+    fn test_rewrite_style_for_api_mlt_pbf_tiles_forward_key() {
+        let mgr = manager_with_source("protomaps-mlt", TileFormat::Mlt);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "protomaps": { "type": "vector", "url": "/data/protomaps-mlt" }
+            }
+        });
+
+        let params = UrlQueryParams::with_key(Some("abc123".to_string()));
+        let result = rewrite_style_for_api(&style, "http://localhost:8080", &params, &mgr);
+        let tiles = result["sources"]["protomaps"]["tiles"].as_array().unwrap();
+
+        assert_eq!(
+            tiles[0],
+            "http://localhost:8080/data/protomaps-mlt/{z}/{x}/{y}.pbf?key=abc123"
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_api_pbf_source_keeps_url() {
+        let mgr = manager_with_source("protomaps", TileFormat::Pbf);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "protomaps": { "type": "vector", "url": "/data/protomaps" }
+            }
+        });
+
+        let params = UrlQueryParams::default();
+        let result = rewrite_style_for_api(&style, "http://localhost:8080", &params, &mgr);
+        let src = &result["sources"]["protomaps"];
+
+        assert_eq!(src["url"], "http://localhost:8080/data/protomaps");
+        assert!(src.get("tiles").is_none());
         assert!(src.get("encoding").is_none());
     }
 }
