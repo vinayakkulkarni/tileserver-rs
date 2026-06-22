@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.33.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.2...v2.33.3) (2026-06-22)
+
+
+### Bug Fixes
+
+* **deps:** bump @maplibre/mlt from 1.1.11 to 1.1.12 ([#1175](https://github.com/vinayakkulkarni/tileserver-rs/issues/1175)) ([0a5fec9](https://github.com/vinayakkulkarni/tileserver-rs/commit/0a5fec9cbd7cbad3f71d4be9258ab6a15e6edd19))
+* **deps:** bump cc from 1.2.64 to 1.2.65 ([#1181](https://github.com/vinayakkulkarni/tileserver-rs/issues/1181)) ([0dad140](https://github.com/vinayakkulkarni/tileserver-rs/commit/0dad14098674d7d0fa3a777dd64b647b803e90da))
+* **deps:** bump lint-staged from 17.0.7 to 17.0.8 ([#1176](https://github.com/vinayakkulkarni/tileserver-rs/issues/1176)) ([c754027](https://github.com/vinayakkulkarni/tileserver-rs/commit/c754027c8027425aeb4dd17d7ae6c59849c9f43e))
+* **deps:** bump mlt-core from 0.11.0 to 0.12.1 ([#1178](https://github.com/vinayakkulkarni/tileserver-rs/issues/1178)) ([3c4df0f](https://github.com/vinayakkulkarni/tileserver-rs/commit/3c4df0f3692802d181dc30d5133a5f8bea96a077))
+* **deps:** bump papaparse from 5.5.3 to 5.5.4 ([#1180](https://github.com/vinayakkulkarni/tileserver-rs/issues/1180)) ([cfef192](https://github.com/vinayakkulkarni/tileserver-rs/commit/cfef192fe3b3a3e2699f2b81099397cc11bdb517))
+* **deps:** bump reka-ui from 2.9.10 to 2.10.0 ([#1183](https://github.com/vinayakkulkarni/tileserver-rs/issues/1183)) ([5c78920](https://github.com/vinayakkulkarni/tileserver-rs/commit/5c78920419ad7a2b3adf5df9c5c90e6f871e864c))
+* **deps:** bump wrangler from 4.102.0 to 4.103.0 ([#1182](https://github.com/vinayakkulkarni/tileserver-rs/issues/1182)) ([261e5c2](https://github.com/vinayakkulkarni/tileserver-rs/commit/261e5c259808b5314d10c2d19cb0bc979eddcd4b))
+* **mlt:** make transcoded MLT render in the browser viewer ([1a4aec4](https://github.com/vinayakkulkarni/tileserver-rs/commit/1a4aec4693f75a05f84b8d490ac44372460c0a6d))
+* **mlt:** render viewer MLT styles via pbf transcode ([e402aac](https://github.com/vinayakkulkarni/tileserver-rs/commit/e402aacfbd176e68d0cd0944682896b848baad47))
+* **mlt:** serve MLT natively + render viewer MLT styles via pbf transcode ([#1184](https://github.com/vinayakkulkarni/tileserver-rs/issues/1184)) ([3d1ea97](https://github.com/vinayakkulkarni/tileserver-rs/commit/3d1ea9752e936831934e7917a2c79d81b0e3d29a))
+
+
+### Miscellaneous
+
+* pnpm dependencies updated ✨ ([4d4067b](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d4067be216086560b85a68cf6ae0f34bdf95bac))
+
 ## [2.33.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.1...v2.33.2) (2026-06-21)
 
 
