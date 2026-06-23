@@ -108,7 +108,7 @@ duckdb           = { workspace = true, optional = true }
 # the two transports we expose: stdio (`transport-io`) for local clients
 # like Claude Desktop and Streamable HTTP for remote clients (Cursor, MCP
 # Inspector, claude.ai via mcp-remote bridges).
-rmcp             = { version = "1.7", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
+rmcp             = { version = "1.8", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
 schemars         = { version = "1", optional = true }
 base64           = { version = "0.22", optional = true }
 
