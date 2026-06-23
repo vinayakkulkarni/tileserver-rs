@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.3...v2.33.4) (2026-06-23)
+
+
+### Bug Fixes
+
+* **deps:** bump object_store from 0.13.2 to 0.14.0 ([#1185](https://github.com/vinayakkulkarni/tileserver-rs/issues/1185)) ([574af74](https://github.com/vinayakkulkarni/tileserver-rs/commit/574af744555928a1b3fe60af6aff996f0af70e5c))
+
 ## [2.33.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.2...v2.33.3) (2026-06-22)
 
 
