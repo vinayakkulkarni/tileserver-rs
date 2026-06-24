@@ -1,9 +1,11 @@
 //! Cloud object storage PMTiles source (S3/Azure Blob/GCS) via `object_store` crate.
 
 use async_trait::async_trait;
+use object_store::path::Path as ObjectStorePath;
+use object_store::{GetOptions, GetRange, ObjectStore};
 use pmtiles::{
-    AsyncPmTilesReader, Compression as PmCompression, HashMapCache, ObjectStoreBackend, TileCoord,
-    TileType,
+    AsyncBackend, AsyncPmTilesReader, BackendResponse, Compression as PmCompression, HashMapCache,
+    PmtError, PmtResult, TileCoord, TileType,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -12,6 +14,55 @@ use tokio::sync::RwLock;
 use crate::config::SourceConfig;
 use crate::error::{Result, TileServerError};
 use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
+
+/// A pmtiles [`AsyncBackend`] backed by an `object_store` store.
+///
+/// We implement this ourselves instead of enabling pmtiles' `object-store` feature
+/// because that feature pins `object_store` to 0.13.x. Pulling our own current
+/// `object_store` (0.14+) alongside it puts two semver-incompatible `object_store`
+/// versions in the tree — a diamond conflict that fails the `--all-features` build
+/// (the store we build cannot be handed to pmtiles' 0.13-typed backend). Owning this
+/// ~20-line range reader lets the whole crate depend on a single, current
+/// `object_store`; revisit if pmtiles itself adopts 0.14+.
+struct ObjectStoreBackend {
+    store: Box<dyn ObjectStore>,
+    path: ObjectStorePath,
+}
+
+impl ObjectStoreBackend {
+    fn new(store: Box<dyn ObjectStore>, path: ObjectStorePath) -> Self {
+        Self { store, path }
+    }
+}
+
+impl AsyncBackend for ObjectStoreBackend {
+    async fn read(&self, offset: usize, length: usize) -> PmtResult<BackendResponse> {
+        let opts = GetOptions {
+            range: Some(GetRange::Bounded(offset as u64..(offset + length) as u64)),
+            ..Default::default()
+        };
+        let mut result = self
+            .store
+            .get_opts(&self.path, opts)
+            .await
+            .map_err(|e| PmtError::Reading(e.into()))?;
+        // Mirror pmtiles' own backend: surface ETag (else Last-Modified) as the data
+        // version string so the reader can detect underlying-source changes identically.
+        let data_version = result
+            .meta
+            .e_tag
+            .take()
+            .or_else(|| Some(result.meta.last_modified.to_rfc3339()));
+        let bytes = result
+            .bytes()
+            .await
+            .map_err(|e| PmtError::Reading(e.into()))?;
+        Ok(match data_version {
+            Some(version) => BackendResponse::new_with_version(bytes, version),
+            None => BackendResponse::new(bytes),
+        })
+    }
+}
 
 type CloudReader = AsyncPmTilesReader<ObjectStoreBackend, HashMapCache>;
 

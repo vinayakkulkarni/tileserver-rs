@@ -50,7 +50,7 @@ tracing          = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Tile formats
-pmtiles          = { version = "0.23.0", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson", "object-store"] }
+pmtiles          = { version = "0.23.0", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
 
 # Cloud object storage (optional)
 object_store     = { version = "0.14", default-features = false, features = ["aws", "azure", "gcp"] }
@@ -90,7 +90,7 @@ subtle           = "2.6"
 uuid             = { version = "1.23.3", features = ["v4"] }
 
 # Binary formats / data
-bytes            = "1.11.1"
+bytes            = "1.12.0"
 image            = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
 ndarray          = { version = "0.17.2", features = ["rayon"] }
 exmex            = "0.21.0"
@@ -137,7 +137,7 @@ prometheus       = "0.14.0"
 
 # Raster / GDAL (optional)
 gdal             = { version = "0.19.0", features = ["bindgen"] }
-stac             = { version = "0.17.0", default-features = false }
+stac             = { version = "0.17.1", default-features = false }
 
 # PostgreSQL (optional)
 deadpool-postgres = "0.14.1"
@@ -165,7 +165,7 @@ arrow-cast       = "59"
 geo              = "0.33"
 
 # DuckDB (optional)
-duckdb           = { version = "1.10503.1", features = ["bundled"] }
+duckdb           = { version = "1.10504.0", features = ["bundled"] }
 
 # FFI
 libc             = "0.2"
