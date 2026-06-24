@@ -353,3 +353,17 @@
   min-height: 0;
   overflow: hidden;
 }
+
+/* Mobile/tablet hero disclosure — same grid-rows idiom as the section (Rule #20.A) */
+.hero-detail-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--d-slow) var(--ease);
+}
+.hero-compact.open .hero-detail-wrap {
+  grid-template-rows: 1fr;
+}
+.hero-detail-inner {
+  min-height: 0;
+  overflow: hidden;
+}

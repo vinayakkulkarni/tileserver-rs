@@ -604,6 +604,18 @@ Two-column grid (single column `<md`, `1fr auto` `>=md`). Left column: kicker pi
 
 > **HONEST-DATA RULE**: NEVER show metrics `/ping` does not return — no fake `p50`, no fake `p99`, no fake region label, no fake QPS. The PingResponse fields are the entire surface. If a metric is unavailable, show `—` or omit the cell.
 
+**Responsive hero — TWO distinct treatments, split at `lg` (1024px):**
+
+The full two-column band above is the **`lg+` treatment ONLY**. On phones/tablets it eats ~30% of viewport height as permanently-pinned chrome (the app shell is `h-dvh overflow-hidden`, so the hero never scrolls away) — that is a HARD UX defect, not acceptable.
+
+- **`lg+` (≥1024px)** — the full admin-style band (`lg:grid lg:grid-cols-[3fr_2fr]`): Catalog/uptime column + 4-cell stat grid. Always fully visible.
+- **`<lg` (mobile + tablet)** — a **condense + tap-to-expand disclosure** (`.hero-compact`):
+  - **Always-visible summary line** (one mono row, zero taps): `● Live · <sources> sources · <styles> styles · v<version>`. These are the glanceable essentials.
+  - **Tap-to-expand detail** behind a chevron: capability flags (`Renderer / Compression / OGC` ✓/✗) + a 3-cell metric grid (`Cache / Uptime / Codec`). Defaults **collapsed** for maximum reclaim.
+  - The disclosure MUST reuse the section idiom: `grid-template-rows: 0fr→1fr` transition (`.hero-detail-wrap` / `.hero-detail-inner`) + chevron `rotate(180deg)` on `.hero-compact.open`, with motion tokens `--d-slow`/`--d-base`/`--ease`. Toggle button: `min-h-11` (44px), `aria-expanded` + `aria-controls="hero-detail"`.
+  - Disclosure open-state lives in `useHomeHero()` (`heroExpanded` ref + `toggleHero`), NEVER as local component state, and drives ONLY the `<lg` block — the `lg+` band ignores it.
+  - The HONEST-DATA RULE applies identically: the summary line + disclosure may only show real `/ping` fields.
+
 #### B. Sticky toolbar (search + filter chips)
 
 Single sticky row directly under the hero. Two children:
