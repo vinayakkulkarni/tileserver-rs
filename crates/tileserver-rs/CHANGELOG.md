@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.33.5](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.4...v2.33.5) (2026-06-24)
+
+
+### Bug Fixes
+
+* **client:** condense mobile/tablet hero into tap-to-expand disclosure ([26b0bf0](https://github.com/vinayakkulkarni/tileserver-rs/commit/26b0bf0911f8cb442aa245218a141de942001572))
+* **client:** condense mobile/tablet hero into tap-to-expand disclosure ([737a611](https://github.com/vinayakkulkarni/tileserver-rs/commit/737a611cfa671bb4d75f3ce353797599e970da89))
+* **client:** condense mobile/tablet toolbar chips behind a Filters toggle ([7234538](https://github.com/vinayakkulkarni/tileserver-rs/commit/7234538ba73b9630d68a54478b08fe34a20a7f3e))
+
 ## [2.33.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.3...v2.33.4) (2026-06-24)
 
 
