@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.33.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.3...v2.33.4) (2026-06-24)
+
+
+### Bug Fixes
+
+* **deps:** build against object_store 0.14 and upgrade all dependencies ([#1187](https://github.com/vinayakkulkarni/tileserver-rs/issues/1187)) ([063536a](https://github.com/vinayakkulkarni/tileserver-rs/commit/063536a04670aa2a773aeef25a3c9c3bd2a7b35c))
+* **deps:** bump object_store from 0.13.2 to 0.14.0 ([#1185](https://github.com/vinayakkulkarni/tileserver-rs/issues/1185)) ([574af74](https://github.com/vinayakkulkarni/tileserver-rs/commit/574af744555928a1b3fe60af6aff996f0af70e5c))
+* **deps:** bump rmcp from 1.7.0 to 1.8.0 ([#1189](https://github.com/vinayakkulkarni/tileserver-rs/issues/1189)) ([fe20002](https://github.com/vinayakkulkarni/tileserver-rs/commit/fe20002a5670c286db035c3c6ec54befbd53fd58))
+
 ## [2.33.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.2...v2.33.3) (2026-06-22)
 
 
