@@ -28,6 +28,9 @@
     dataOpen,
     baseUrl,
     pingQuery,
+    activeFilterCount,
+    filtersOpen,
+    toggleFilters,
   } = useHomePage();
 
   const handleSearch = (value: string) => {
@@ -56,9 +59,12 @@
       :source-chips="sourceChips"
       :active-style-filter="activeStyleFilter"
       :active-source-filter="activeSourceFilter"
+      :active-filter-count="activeFilterCount"
+      :filters-open="filtersOpen"
       @update:search-query="handleSearch"
       @select-style-filter="handleStyleFilter"
       @select-source-filter="handleSourceFilter"
+      @toggle-filters="toggleFilters"
     />
 
     <main id="main" class="w-full flex-1 overflow-y-auto" role="main">

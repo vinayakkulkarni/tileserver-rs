@@ -123,6 +123,22 @@ export function useHomeFilters() {
     activeSourceFilter.value = filter;
   }
 
+  // Number of filters narrowed off the default 'all' — badges the <lg
+  // "Filters" toggle so a collapsed chip row still signals an active filter.
+  const activeFilterCount = computed(() => {
+    let n = 0;
+    if (activeStyleFilter.value !== 'all') n += 1;
+    if (activeSourceFilter.value !== 'all') n += 1;
+    return n;
+  });
+
+  // Drives ONLY the <lg chip disclosure (lg+ shows chips inline); collapsed
+  // by default so only the 44px search stays pinned on small viewports.
+  const filtersOpen = ref(false);
+  function toggleFilters() {
+    filtersOpen.value = !filtersOpen.value;
+  }
+
   return {
     activeStyleFilter,
     activeSourceFilter,
@@ -132,5 +148,8 @@ export function useHomeFilters() {
     filteredDataSources,
     setStyleFilter,
     setSourceFilter,
+    activeFilterCount,
+    filtersOpen,
+    toggleFilters,
   };
 }

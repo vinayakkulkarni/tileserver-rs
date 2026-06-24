@@ -56,6 +56,13 @@ export function useHomeHero() {
 
   const ogcEnabled = computed(() => pingQuery.data.value?.ogc_enabled ?? false);
 
+  // Drives ONLY the <lg compact disclosure (lg+ admin band ignores it and
+  // always shows everything); defaults closed so pinned chrome stays small.
+  const heroExpanded = ref(false);
+  function toggleHero() {
+    heroExpanded.value = !heroExpanded.value;
+  }
+
   const renderEnabled = computed(
     () => pingQuery.data.value?.render_enabled ?? false,
   );
@@ -82,5 +89,7 @@ export function useHomeHero() {
     ogcEnabled,
     renderEnabled,
     corsLabel,
+    heroExpanded,
+    toggleHero,
   };
 }
