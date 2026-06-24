@@ -30,6 +30,9 @@ export function useHomePage() {
     filteredDataSources: typeFilteredDataSources,
     setStyleFilter,
     setSourceFilter,
+    activeFilterCount,
+    filtersOpen,
+    toggleFilters,
   } = useHomeFilters();
 
   const searchQuery = ref('');
@@ -129,6 +132,9 @@ export function useHomePage() {
     sourceChips,
     setStyleFilter,
     setSourceFilter,
+    activeFilterCount,
+    filtersOpen,
+    toggleFilters,
     filteredStyles,
     filteredDataSources,
 

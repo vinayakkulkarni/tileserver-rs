@@ -367,3 +367,23 @@
   min-height: 0;
   overflow: hidden;
 }
+
+/* Mobile/tablet toolbar filter-chip disclosure — collapsed by default <lg so
+   only the 44px search stays pinned; always open at lg+ (Rule #20.B) */
+.toolbar-filters-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--d-slow) var(--ease);
+}
+.toolbar.open .toolbar-filters-wrap {
+  grid-template-rows: 1fr;
+}
+.toolbar-filters-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (width >= 64rem) {
+  .toolbar-filters-wrap {
+    grid-template-rows: 1fr;
+  }
+}

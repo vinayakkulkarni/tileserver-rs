@@ -625,6 +625,16 @@ Single sticky row directly under the hero. Two children:
 
 Chips MUST be derived from the actual loaded source/style counts — not hardcoded. Generate from grouping over `Style.type` (raster / vector) and `Data.type` (pmtiles / mlt / stac / postgis / etc.).
 
+**Responsive toolbar — chips collapse behind a "Filters" toggle on `<lg`:**
+
+Like the hero (Rule #20.A), the chip strip is pinned chrome that crowds small viewports. Split at `lg` (1024px):
+
+- **`lg+` (≥1024px)** — chips shown inline below the search, always visible (`.toolbar-filters-wrap` forced `grid-template-rows: 1fr` via `@media (width >= 64rem)`).
+- **`<lg`** — only the 44px search stays pinned. A `.filters-toggle` button (`SlidersHorizontal` + "Filters" + chevron, `lg:hidden`, `h-11`) sits beside the search and toggles the chip strip via the same `grid-template-rows: 0fr→1fr` disclosure idiom (`.toolbar-filters-wrap` / `.toolbar-filters-inner`, driven by `.toolbar.open`). Defaults collapsed.
+  - The toggle MUST badge the count of filters narrowed off `'all'` (`activeFilterCount`) so a collapsed strip still signals an active filter, and tint `border-primary text-primary` when `activeFilterCount > 0 || filtersOpen`.
+  - State (`filtersOpen` + `toggleFilters` + `activeFilterCount`) lives in `useHomeFilters()`, threaded through `useHomePage()`, NEVER as local component state; it drives ONLY the `<lg` disclosure.
+  - `aria-expanded` + `aria-controls="toolbar-filters"` on the toggle.
+
 #### C. Card hover — NO layout shift (HARD)
 
 **FORBIDDEN on any card / row / tile hover state:**
