@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.6](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.5...v2.33.6) (2026-06-25)
+
+
+### Bug Fixes
+
+* **deps:** bump uuid from 1.23.3 to 1.23.4 ([#1194](https://github.com/vinayakkulkarni/tileserver-rs/issues/1194)) ([4b1a51c](https://github.com/vinayakkulkarni/tileserver-rs/commit/4b1a51c1f862196f31cc04337c1ad9b9a6726da8))
+
 ## [2.33.5](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.4...v2.33.5) (2026-06-24)
 
 
