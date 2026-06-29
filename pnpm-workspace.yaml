@@ -61,7 +61,7 @@ catalogs:
     '@vueuse/nuxt': ^14.3.0
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
-    eslint: ^10.5.0
+    eslint: ^10.6.0
     eslint-plugin-better-tailwindcss: ^4.6.0
     eslint-plugin-oxlint: ^1.71.0
     husky: ^9.1.7
