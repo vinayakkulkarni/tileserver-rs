@@ -159,8 +159,8 @@ catalogs:
       specifier: ^1.9.17
       version: 1.9.17
     reka-ui:
-      specifier: ^2.10.0
-      version: 2.10.0
+      specifier: ^2.10.1
+      version: 2.10.1
     shadcn-nuxt:
       specifier: ^2.7.4
       version: 2.7.4
@@ -314,7 +314,7 @@ importers:
         version: 1.9.17(vue@3.5.38(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.10.0(vue@3.5.38(typescript@6.0.3))
+        version: 2.10.1(vue@3.5.38(typescript@6.0.3))
       shpjs:
         specifier: catalog:client
         version: 6.2.0
@@ -372,7 +372,7 @@ importers:
         version: 1.71.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
+        version: 2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.1
@@ -432,7 +432,7 @@ importers:
         version: 1.9.17(vue@3.5.38(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.10.0(vue@3.5.38(typescript@6.0.3))
+        version: 2.10.1(vue@3.5.38(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.6.0
@@ -532,7 +532,7 @@ importers:
         version: 1.9.17(vue@3.5.38(typescript@6.0.3))
       reka-ui:
         specifier: catalog:default
-        version: 2.10.0(vue@3.5.38(typescript@6.0.3))
+        version: 2.10.1(vue@3.5.38(typescript@6.0.3))
       tailwind-merge:
         specifier: catalog:default
         version: 3.6.0
@@ -5086,6 +5086,7 @@ packages:
   git-raw-commits@5.0.1:
     resolution: {integrity: sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==}
     engines: {node: '>=18'}
+    deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-up@8.1.1:
@@ -6717,8 +6718,8 @@ packages:
   reinterval@1.1.0:
     resolution: {integrity: sha512-QIRet3SYrGp0HUHO88jVskiG6seqUGC5iAG7AwI/BV4ypGcuqk9Du6YQBUOUqm9c8pw1eyLoIaONifRua1lsEQ==}
 
-  reka-ui@2.10.0:
-    resolution: {integrity: sha512-HIUVfSBM/AyGkcUI7aiOxxMc4N+0UD2ZEun8dcrT0H4fveotEoeDdvzyZu97eeEvEa1H9oGHoOpApkfxlgnC7g==}
+  reka-ui@2.10.1:
+    resolution: {integrity: sha512-drcOQ4rQtDYAcGCsyQBqQg8QQ+H3B+zDaMJU0h8KPEPMa7g9BHu3zcOi4OB39XJSWizceFoNO0Z9tctSGLOXqg==}
     peerDependencies:
       vue: '>= 3.4.0'
 
@@ -8763,13 +8764,6 @@ snapshots:
       '@tybys/wasm-util': 0.10.2
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)':
-    dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.11.1
-      '@tybys/wasm-util': 0.10.2
-    optional: true
-
   '@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
@@ -9544,14 +9538,6 @@ snapshots:
     optional: true
 
   '@oxc-parser/binding-openharmony-arm64@0.133.0':
-    optional: true
-
-  '@oxc-parser/binding-wasm32-wasi@0.102.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
     optional: true
 
   '@oxc-parser/binding-wasm32-wasi@0.102.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
@@ -13638,29 +13624,6 @@ snapshots:
       '@oxc-minify/binding-win32-ia32-msvc': 0.133.0
       '@oxc-minify/binding-win32-x64-msvc': 0.133.0
 
-  oxc-parser@0.102.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1):
-    dependencies:
-      '@oxc-project/types': 0.102.0
-    optionalDependencies:
-      '@oxc-parser/binding-android-arm64': 0.102.0
-      '@oxc-parser/binding-darwin-arm64': 0.102.0
-      '@oxc-parser/binding-darwin-x64': 0.102.0
-      '@oxc-parser/binding-freebsd-x64': 0.102.0
-      '@oxc-parser/binding-linux-arm-gnueabihf': 0.102.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.102.0
-      '@oxc-parser/binding-linux-arm64-musl': 0.102.0
-      '@oxc-parser/binding-linux-riscv64-gnu': 0.102.0
-      '@oxc-parser/binding-linux-s390x-gnu': 0.102.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.102.0
-      '@oxc-parser/binding-linux-x64-musl': 0.102.0
-      '@oxc-parser/binding-openharmony-arm64': 0.102.0
-      '@oxc-parser/binding-wasm32-wasi': 0.102.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)
-      '@oxc-parser/binding-win32-arm64-msvc': 0.102.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.102.0
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
   oxc-parser@0.102.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1):
     dependencies:
       '@oxc-project/types': 0.102.0
@@ -14320,7 +14283,7 @@ snapshots:
 
   reinterval@1.1.0: {}
 
-  reka-ui@2.10.0(vue@3.5.38(typescript@6.0.3)):
+  reka-ui@2.10.1(vue@3.5.38(typescript@6.0.3)):
     dependencies:
       '@floating-ui/dom': 1.7.6
       '@floating-ui/vue': 1.1.11(vue@3.5.38(typescript@6.0.3))
@@ -14574,15 +14537,6 @@ snapshots:
       inherits: 2.0.4
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
-
-  shadcn-nuxt@2.7.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)(magicast@0.5.3):
-    dependencies:
-      '@nuxt/kit': 3.21.8(magicast@0.5.3)
-      oxc-parser: 0.102.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.1)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-      - magicast
 
   shadcn-nuxt@2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3):
     dependencies:
