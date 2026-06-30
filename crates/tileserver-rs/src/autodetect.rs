@@ -462,6 +462,28 @@ mod tests {
     }
 
     #[test]
+    fn test_source_type_suffix_all_variants() {
+        assert_eq!(source_type_suffix(&SourceType::PMTiles), "pmtiles");
+        assert_eq!(source_type_suffix(&SourceType::MBTiles), "mbtiles");
+        assert_eq!(source_type_suffix(&SourceType::Dir), "dir");
+        assert_eq!(source_type_suffix(&SourceType::Tar), "tar");
+        #[cfg(feature = "postgres")]
+        assert_eq!(source_type_suffix(&SourceType::Postgres), "postgres");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_suffix(&SourceType::Cog), "cog");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_suffix(&SourceType::Vrt), "vrt");
+        #[cfg(feature = "geoparquet")]
+        assert_eq!(source_type_suffix(&SourceType::GeoParquet), "geoparquet");
+        #[cfg(feature = "duckdb")]
+        assert_eq!(source_type_suffix(&SourceType::DuckDB), "duckdb");
+        #[cfg(feature = "stac")]
+        assert_eq!(source_type_suffix(&SourceType::Stac), "stac");
+        #[cfg(feature = "dem")]
+        assert_eq!(source_type_suffix(&SourceType::Dem), "dem");
+    }
+
+    #[test]
     fn test_detect_source_type_extensions() {
         assert_eq!(
             detect_source_type(Path::new("foo.pmtiles")),

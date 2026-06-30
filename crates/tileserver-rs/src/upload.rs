@@ -351,6 +351,28 @@ mod tests {
         assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
     }
 
+    #[test]
+    fn test_source_type_label_all_variants() {
+        assert_eq!(source_type_label(&SourceType::MBTiles), "mbtiles");
+        assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
+        assert_eq!(source_type_label(&SourceType::Dir), "dir");
+        assert_eq!(source_type_label(&SourceType::Tar), "tar");
+        #[cfg(feature = "postgres")]
+        assert_eq!(source_type_label(&SourceType::Postgres), "postgres");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_label(&SourceType::Cog), "cog");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_label(&SourceType::Vrt), "vrt");
+        #[cfg(feature = "geoparquet")]
+        assert_eq!(source_type_label(&SourceType::GeoParquet), "geoparquet");
+        #[cfg(feature = "duckdb")]
+        assert_eq!(source_type_label(&SourceType::DuckDB), "duckdb");
+        #[cfg(feature = "stac")]
+        assert_eq!(source_type_label(&SourceType::Stac), "stac");
+        #[cfg(feature = "dem")]
+        assert_eq!(source_type_label(&SourceType::Dem), "dem");
+    }
+
     #[cfg(feature = "raster")]
     #[test]
     fn test_detect_source_type_tiff() {
