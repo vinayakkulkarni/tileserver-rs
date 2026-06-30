@@ -571,6 +571,30 @@ pub struct SourceConfig {
     /// archives.
     #[serde(default)]
     pub tms: bool,
+    #[cfg(feature = "dem")]
+    #[serde(default)]
+    pub input_source: Option<String>,
+    #[cfg(feature = "dem")]
+    #[serde(default)]
+    pub dem_encoding: DemEncoding,
+    /// Per-band scalar applied before encoding as `encoded = (value * scale + offset) * precision`.
+    /// Use for unit conversion (e.g. source stores feet, consumers want metres).
+    #[cfg(feature = "dem")]
+    #[serde(default)]
+    pub dem_scale: Option<f64>,
+    #[cfg(feature = "dem")]
+    #[serde(default)]
+    pub dem_offset: Option<f64>,
+    #[cfg(feature = "dem")]
+    #[serde(default = "default_dem_band")]
+    pub dem_band: usize,
+    /// RGB triplet written for nodata pixels. MapLibre GL JS IGNORES the
+    /// tile's alpha channel — the sentinel RGB must encode "no data" in
+    /// both encodings. Default Mapbox: `(1, 134, 160)`. Default Terrarium:
+    /// `(0, 0, 0)`. See `sources/dem.rs::nodata_rgb`.
+    #[cfg(feature = "dem")]
+    #[serde(default)]
+    pub dem_nodata_color: Option<[u8; 4]>,
 }
 
 /// Pixel-selection strategy for STAC mosaic compositing.
@@ -648,6 +672,28 @@ pub enum SourceType {
     DuckDB,
     #[cfg(feature = "stac")]
     Stac,
+    /// Digital Elevation Model source. Reads float elevation from a GDAL
+    /// raster (COG / GeoTIFF, optionally referencing another already-loaded
+    /// `[[sources]]` entry) and re-encodes pixels as Terrarium or Mapbox-RGB
+    /// (`terrain-rgb`) PNG tiles MapLibre GL JS consumes as a `raster-dem`
+    /// source. See `[[sources]]` `input_source`, `dem_encoding`, `dem_scale`,
+    /// `dem_offset`, `dem_band`, `dem_nodata_color` for configuration.
+    #[cfg(feature = "dem")]
+    Dem,
+}
+
+/// Output RGB encoding for a DEM source. Both are MapLibre-GL-compatible
+/// `raster-dem` formats:
+/// - `Terrarium` (default) — `decoded = R*256 + G + B/256 - 32768`,
+///   precision 1/256 m (~0.004 m).
+/// - `MapboxRgb` — `decoded = -10000 + (R*65536 + G*256 + B) * 0.1`,
+///   precision 0.1 m.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DemEncoding {
+    #[default]
+    Terrarium,
+    MapboxRgb,
 }
 
 fn default_stac_asset_role() -> String {
@@ -656,6 +702,11 @@ fn default_stac_asset_role() -> String {
 
 fn default_stac_max_items() -> usize {
     100
+}
+
+#[cfg(feature = "dem")]
+fn default_dem_band() -> usize {
+    1
 }
 
 /// GDAL-compatible resampling algorithm for rescaling a source raster
