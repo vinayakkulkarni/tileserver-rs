@@ -125,7 +125,7 @@ rsa              = { version = "0.9", optional = true, features = ["pem"] }
 subtle           = { workspace = true, optional = true }
 
 [features]
-default = ["postgres", "raster", "mlt", "cloud", "stac"]
+default = ["postgres", "raster", "mlt", "cloud", "stac", "dem"]
 frontend = ["rust-embed"]
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "dep:ogcapi-types", "dep:geojson", "dep:cql2"]
 postgres-integration = ["postgres"]
@@ -135,6 +135,7 @@ mlt = ["mlt-core", "dep:prost", "geo-types"]
 geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast", "dep:geo", "dep:prost"]
 duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
+dem = ["raster"]
 # MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
 # and avoid pulling rmcp into every `cargo build` invocation. The `subtle`
 # crate is enabled here so the OAuth bearer + PKCE comparisons in
@@ -199,6 +200,11 @@ required-features = ["stac"]
 name = "cog"
 harness = false
 required-features = ["stac"]
+
+[[bench]]
+name = "dem"
+harness = false
+required-features = ["dem"]
 
 [[bench]]
 name = "postgres"
