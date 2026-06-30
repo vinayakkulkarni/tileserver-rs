@@ -1,0 +1,45 @@
+fonts = "../../data/fonts"
+
+[server]
+host = "127.0.0.1"
+port = 0
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+[raster]
+default_resampling = "bilinear"
+tile_size = 256
+
+# A standalone DEM source (Terrarium) reading the shipped Float32 DEM directly.
+[[sources]]
+id = "dem-terrarium"
+type = "dem"
+path = "../../data/raster/test-dem.cog.tif"
+name = "Test DEM (Terrarium)"
+attribution = "Test Data"
+dem_encoding = "terrarium"
+
+# A standalone DEM source (Mapbox-RGB) over the same DEM.
+[[sources]]
+id = "dem-mapbox"
+type = "dem"
+path = "../../data/raster/test-dem.cog.tif"
+name = "Test DEM (Mapbox-RGB)"
+dem_encoding = "mapbox_rgb"
+
+# A raster COG that a DEM source can reference via input_source.
+[[sources]]
+id = "elevation-cog"
+type = "cog"
+path = "../../data/raster/test-dem.cog.tif"
+name = "Elevation COG"
+
+# A DEM source composing the COG above by id (no second GDAL open).
+[[sources]]
+id = "dem-from-input"
+type = "dem"
+input_source = "elevation-cog"
+dem_encoding = "terrarium"
+name = "DEM from input_source"

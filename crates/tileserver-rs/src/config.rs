@@ -503,7 +503,10 @@ pub struct SourceConfig {
     /// Type of source: "pmtiles" or "mbtiles"
     #[serde(rename = "type")]
     pub source_type: SourceType,
-    /// Path to the file (local path, HTTP URL, or S3 URL)
+    /// Path to the file (local path, HTTP URL, or S3 URL). Defaults to
+    /// empty: a DEM source that sets `input_source` reads through the
+    /// referenced source and needs no path of its own.
+    #[serde(default)]
     pub path: String,
     /// Optional display name
     pub name: Option<String>,

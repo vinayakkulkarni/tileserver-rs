@@ -7,6 +7,8 @@ use std::str::FromStr;
 pub mod cog;
 #[cfg(feature = "raster")]
 pub mod dataset_cache;
+#[cfg(feature = "dem")]
+pub mod dem;
 pub mod dir;
 #[cfg(feature = "duckdb")]
 pub mod duckdb;
