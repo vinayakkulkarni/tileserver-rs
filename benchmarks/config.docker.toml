@@ -102,6 +102,14 @@ name = "Benchmark RGB COG"
 attribution = "© tileserver-rs benchmarks"
 
 [[sources]]
+id = "terrain-terrarium"
+type = "dem"
+path = "/data/raster/test-dem.cog.tif"
+name = "Benchmark DEM (Terrarium)"
+attribution = "© tileserver-rs benchmarks"
+dem_encoding = "terrarium"
+
+[[sources]]
 id = "sentinel2-static"
 type = "stac"
 path = "https://earth-search.aws.element84.com/v1"
