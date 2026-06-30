@@ -56,6 +56,8 @@ fn source_type_suffix(source_type: &SourceType) -> &'static str {
         SourceType::DuckDB => "duckdb",
         #[cfg(feature = "stac")]
         SourceType::Stac => "stac",
+        #[cfg(feature = "dem")]
+        SourceType::Dem => "dem",
     }
 }
 
@@ -137,6 +139,18 @@ fn auto_source_config(id: String, source_type: SourceType, path: &Path) -> Sourc
         pixel_selection: crate::config::PixelSelectionMethod::First,
         tile_path_template: None,
         tms: false,
+        #[cfg(feature = "dem")]
+        input_source: None,
+        #[cfg(feature = "dem")]
+        dem_encoding: crate::config::DemEncoding::Terrarium,
+        #[cfg(feature = "dem")]
+        dem_scale: None,
+        #[cfg(feature = "dem")]
+        dem_offset: None,
+        #[cfg(feature = "dem")]
+        dem_band: 1,
+        #[cfg(feature = "dem")]
+        dem_nodata_color: None,
     }
 }
 

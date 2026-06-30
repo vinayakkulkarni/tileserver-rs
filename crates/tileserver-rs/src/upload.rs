@@ -77,6 +77,8 @@ fn source_type_label(st: &SourceType) -> &'static str {
         SourceType::DuckDB => "duckdb",
         #[cfg(feature = "stac")]
         SourceType::Stac => "stac",
+        #[cfg(feature = "dem")]
+        SourceType::Dem => "dem",
     }
 }
 
@@ -177,6 +179,18 @@ pub async fn upload_file(
         pixel_selection: crate::config::PixelSelectionMethod::First,
         tile_path_template: None,
         tms: false,
+        #[cfg(feature = "dem")]
+        input_source: None,
+        #[cfg(feature = "dem")]
+        dem_encoding: crate::config::DemEncoding::Terrarium,
+        #[cfg(feature = "dem")]
+        dem_scale: None,
+        #[cfg(feature = "dem")]
+        dem_offset: None,
+        #[cfg(feature = "dem")]
+        dem_band: 1,
+        #[cfg(feature = "dem")]
+        dem_nodata_color: None,
     };
 
     let mut temp_manager = SourceManager::new();

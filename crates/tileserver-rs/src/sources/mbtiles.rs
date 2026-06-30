@@ -321,6 +321,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Pbf);
@@ -358,6 +370,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Png);
@@ -394,6 +418,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Jpeg);
@@ -430,6 +466,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Mlt);
@@ -468,6 +516,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.minzoom, 5);
@@ -508,6 +568,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let b = meta.bounds.unwrap();
@@ -555,6 +627,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -594,6 +678,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -633,6 +729,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "DB Name");
@@ -672,6 +780,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.attribution.as_deref(), Some("Config Attribution"));
@@ -706,6 +826,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "empty");
@@ -769,6 +901,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         }
     }
 

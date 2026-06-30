@@ -367,6 +367,12 @@ impl SourceManager {
             SourceType::DuckDB => Arc::new(DuckDbSource::from_config(config).await?),
             #[cfg(feature = "stac")]
             SourceType::Stac => Arc::new(StacSource::new(config).await?),
+            #[cfg(feature = "dem")]
+            SourceType::Dem => {
+                return Err(TileServerError::ConfigError(
+                    "DEM sources are not yet wired in this build".to_string(),
+                ));
+            }
         };
 
         self.sources.insert(config.id.clone(), source);
@@ -1039,6 +1045,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         }
     }
 

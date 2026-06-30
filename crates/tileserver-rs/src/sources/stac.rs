@@ -128,6 +128,18 @@ impl StacSource {
                 pixel_selection: config.pixel_selection,
                 tile_path_template: None,
                 tms: false,
+                #[cfg(feature = "dem")]
+                input_source: config.input_source.clone(),
+                #[cfg(feature = "dem")]
+                dem_encoding: config.dem_encoding,
+                #[cfg(feature = "dem")]
+                dem_scale: config.dem_scale,
+                #[cfg(feature = "dem")]
+                dem_offset: config.dem_offset,
+                #[cfg(feature = "dem")]
+                dem_band: config.dem_band,
+                #[cfg(feature = "dem")]
+                dem_nodata_color: config.dem_nodata_color,
             };
 
             match CogSource::from_file(&cog_config).await {
@@ -598,6 +610,18 @@ async fn render_single_asset(
         pixel_selection: template.pixel_selection,
         tile_path_template: None,
         tms: false,
+        #[cfg(feature = "dem")]
+        input_source: None,
+        #[cfg(feature = "dem")]
+        dem_encoding: template.dem_encoding,
+        #[cfg(feature = "dem")]
+        dem_scale: template.dem_scale,
+        #[cfg(feature = "dem")]
+        dem_offset: template.dem_offset,
+        #[cfg(feature = "dem")]
+        dem_band: template.dem_band,
+        #[cfg(feature = "dem")]
+        dem_nodata_color: template.dem_nodata_color,
     };
 
     match CogSource::from_file(&cfg).await {
