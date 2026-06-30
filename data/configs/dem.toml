@@ -1,0 +1,60 @@
+# DEM (Digital Elevation Model) tile encoding example.
+#
+# A DEM source reads float elevation from a GDAL raster (COG / GeoTIFF) and
+# re-encodes each pixel as a Terrarium or Mapbox-RGB ("terrain-rgb") PNG tile
+# that MapLibre GL JS consumes as a `raster-dem` source for 3D terrain,
+# hillshading, and contour generation.
+#
+# Run: cargo run --features dem -- --config data/configs/dem.toml
+
+[server]
+host = "0.0.0.0"
+port = 8080
+cors_origins = ["*"]
+
+[telemetry]
+enabled = false
+
+# Encode a DEM directly from a COG/GeoTIFF as Terrarium (default).
+# Decoded elevation = R*256 + G + B/256 - 32768 (precision 1/256 m).
+[[sources]]
+id = "terrain-terrarium"
+type = "dem"
+path = "/data/dem/copernicus-glo-30.tif"
+name = "Copernicus GLO-30 (Terrarium)"
+attribution = "© ESA Copernicus DEM"
+dem_encoding = "terrarium"
+
+# Same DEM, Mapbox-RGB encoding (legacy terrain-rgb, precision 0.1 m).
+# Decoded elevation = -10000 + (R*65536 + G*256 + B) * 0.1.
+[[sources]]
+id = "terrain-mapbox"
+type = "dem"
+path = "/data/dem/copernicus-glo-30.tif"
+name = "Copernicus GLO-30 (Mapbox-RGB)"
+dem_encoding = "mapbox_rgb"
+
+# Compose an existing raster COG by id: the DEM source shares the COG's
+# cached GDAL dataset (no second file open) and re-encodes it as terrain.
+[[sources]]
+id = "elevation-cog"
+type = "cog"
+path = "/data/dem/copernicus-glo-30.tif"
+name = "Raw elevation COG"
+
+[[sources]]
+id = "terrain-from-cog"
+type = "dem"
+input_source = "elevation-cog"
+name = "Terrain from COG (Terrarium)"
+dem_encoding = "terrarium"
+
+# A source storing elevation in feet: convert to metres before encoding.
+[[sources]]
+id = "terrain-feet"
+type = "dem"
+path = "/data/dem/elevation-feet.tif"
+name = "Imperial DEM (feet → metres)"
+dem_encoding = "mapbox_rgb"
+dem_scale = 0.3048
+dem_band = 1
