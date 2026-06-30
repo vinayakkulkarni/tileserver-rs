@@ -25,6 +25,7 @@ import {
   FileCode2,
   Plug,
   FileArchive,
+  Mountain,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -80,6 +81,13 @@ export function useMarketingPage() {
       title: 'Cloud Optimized GeoTIFF',
       description:
         'Serve raster tiles from COG files with on-the-fly reprojection and colormap support.',
+      category: 'Data formats',
+    },
+    {
+      icon: Mountain,
+      title: 'DEM terrain-RGB encoding',
+      description:
+        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL DEM — ~4–10× faster than titiler, ready for MapLibre 3D terrain.',
       category: 'Data formats',
     },
     {
@@ -398,6 +406,13 @@ export function useMarketingPage() {
       label: '% faster MVT→MLT transcode',
       detail: 'mlt-core 0.11 native reader on z4–z13 tiles',
       prefix: '~',
+    },
+    {
+      icon: Mountain,
+      value: 10,
+      label: '× faster DEM terrain-RGB vs titiler',
+      detail: 'Live Terrarium encode: 130 vs 28 avg req/s',
+      prefix: 'up to ',
     },
   ];
 
