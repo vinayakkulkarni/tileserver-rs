@@ -194,6 +194,51 @@ mod accuracy_proof {
 
 mod input_source_composition {
     use super::*;
+    use tileserver_rs::config::SourceConfig;
+
+    fn dem_config(id: &str, input_source: Option<&str>, path: &str) -> SourceConfig {
+        let toml = format!(
+            "id = \"{id}\"\ntype = \"dem\"\npath = \"{path}\"\n{}",
+            input_source
+                .map(|s| format!("input_source = \"{s}\"\n"))
+                .unwrap_or_default()
+        );
+        toml::from_str(&toml).expect("valid dem source config")
+    }
+
+    #[tokio::test]
+    async fn unknown_input_source_is_an_error() {
+        let mut manager = SourceManager::new();
+        let cfg = dem_config("bad-dem", Some("does-not-exist"), "");
+        let err = manager.load_source(&cfg).await.expect_err("should error");
+        assert!(
+            err.to_string().contains("unknown input_source"),
+            "error names the missing source: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn non_raster_input_source_is_an_error() {
+        // Point a DEM at a pmtiles source — not a cog/vrt, so it can't share
+        // a GDAL dataset and must be rejected with a clear message.
+        let config =
+            Config::load(Some(PathBuf::from("tests/config.test.toml"))).expect("load base config");
+        let mut manager = SourceManager::from_configs(&config.sources)
+            .await
+            .expect("load base sources");
+        let first_id = config
+            .sources
+            .first()
+            .expect("at least one source")
+            .id
+            .clone();
+        let cfg = dem_config("dem-on-pmtiles", Some(&first_id), "");
+        let err = manager.load_source(&cfg).await.expect_err("should error");
+        assert!(
+            err.to_string().contains("must be a cog/vrt"),
+            "error explains the type mismatch: {err}"
+        );
+    }
 
     #[tokio::test]
     async fn dem_reads_through_input_source() {

@@ -84,6 +84,10 @@ const SERVERS = {
       source: 'cog-rgb',
       tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/cog-rgb/${z}/${x}/${y}.png`,
     },
+    dem: {
+      source: 'terrain-terrarium',
+      tileUrl: (z, x, y) => `http://127.0.0.1:8901/data/terrain-terrarium/${z}/${x}/${y}.png`,
+    },
     ogc: {
       source: 'ogc-features',
       endpointUrl: (path) => `http://127.0.0.1:8901${path}`,
@@ -125,6 +129,13 @@ const SERVERS = {
       source: 'benchmark-rgb',
       tileUrl: (z, x, y) => `http://127.0.0.1:8903/cog/tiles/WebMercatorQuad/${z}/${x}/${y}.png?url=file:///data/raster/benchmark-rgb.cog.tif`,
     },
+    // titiler's live DEM terrain-RGB algorithm (merged Apr 2025). This is the
+    // only apples-to-apples competitor for on-the-fly DEM encoding.
+    dem: {
+      source: 'test-dem',
+      tileUrl: (z, x, y) =>
+        `http://127.0.0.1:8903/cog/tiles/WebMercatorQuad/${z}/${x}/${y}.png?url=file:///data/raster/test-dem.cog.tif&algorithm=terrarium`,
+    },
     stac: {
       source: 'benchmark-rgb',
       tileUrl: (z, x, y) =>
@@ -142,6 +153,7 @@ const PROTOCOL_SUPPORT = {
   postgres: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✓', titiler: '✗' },
   postgres_function: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✓', titiler: '✗' },
   cog: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '✓' },
+  dem: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '✓' },
   raster: { 'tileserver-gl': '✓', 'tileserver-rs': '✓', martin: '✗', titiler: '✗' },
   ogc: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '✗' },
   stac: { 'tileserver-gl': '✗', 'tileserver-rs': '✓', martin: '✗', titiler: '◐' },
@@ -200,6 +212,14 @@ const TEST_TILES = {
     { z: 2, x: 2, y: 1, desc: 'World z2' },
     { z: 3, x: 4, y: 3, desc: 'World z3' },
   ],
+  // Tiles overlapping the SF-Bay test DEM fixture (lon −122.5..−122.3,
+  // lat 37.7..37.9) — real terrain, not empty ocean, across zoom levels.
+  dem: [
+    { z: 9, x: 81, y: 197, desc: 'SF Bay z9' },
+    { z: 10, x: 163, y: 395, desc: 'SF Bay z10' },
+    { z: 11, x: 327, y: 791, desc: 'SF Bay z11' },
+    { z: 12, x: 655, y: 1582, desc: 'SF Bay z12' },
+  ],
   raster: [
     { z: 10, x: 544, y: 373, desc: 'Florence z10' },
     { z: 11, x: 1088, y: 746, desc: 'Florence z11' },
@@ -245,6 +265,10 @@ const GRID_TILES = {
     { z: 2, x: 2, y: 1, desc: 'World z2' },
     { z: 3, x: 4, y: 3, desc: 'World z3' },
     { z: 4, x: 8, y: 6, desc: 'World z4' },
+  ],
+  dem: [
+    { z: 10, x: 163, y: 395, desc: 'SF Bay z10' },
+    { z: 11, x: 327, y: 791, desc: 'SF Bay z11' },
   ],
   raster: [
     { z: 13, x: 4352, y: 2986, desc: 'Florence z13' },
@@ -1057,7 +1081,7 @@ ${generateProtocolMatrix()}### Summary
 
   md += `\n### Detailed Results\n\n`;
 
-  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']) {
+  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'dem', 'raster', 'ogc', 'stac', 'compression']) {
     const filtered = results.filter((r) => r.format === format);
     if (filtered.length === 0) continue;
 
@@ -1123,7 +1147,7 @@ simultaneously to fill the viewport. This benchmark measures **time to fill one 
 
   md += `\n### Detailed Results\n\n`;
 
-  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']) {
+  for (const format of ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'dem', 'raster', 'ogc', 'stac', 'compression']) {
     const filtered = results.filter((r) => r.format === format);
     if (filtered.length === 0) continue;
 
@@ -1168,7 +1192,7 @@ async function main() {
   program
     .option('-s, --server <server>', 'Server to test: tileserver-rs, martin, tileserver-gl, titiler, or all', 'all')
     .option('-f, --format <format>', 'Alias for --type (legacy)', undefined)
-    .option('-t, --type <type>', 'Benchmark type: pmtiles, mbtiles, postgres, postgres_function, cog, raster, ogc, stac, compression, or all', 'all')
+    .option('-t, --type <type>', 'Benchmark type: pmtiles, mbtiles, postgres, postgres_function, cog, dem, raster, ogc, stac, compression, or all', 'all')
     .option('-d, --duration <seconds>', 'Test duration in seconds (single mode)', '10')
     .option('-c, --connections <num>', 'Number of connections (single mode)', '100')
     .option('-m, --mode <mode>', 'Benchmark mode: single (throughput) or grid (viewport simulation)', 'single')
@@ -1204,7 +1228,7 @@ async function main() {
   const typeArg = opts.type ?? opts.format ?? 'all';
   const formatsToTest =
     typeArg === 'all'
-      ? ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'raster', 'ogc', 'stac', 'compression']
+      ? ['pmtiles', 'mbtiles', 'postgres', 'postgres_function', 'cog', 'dem', 'raster', 'ogc', 'stac', 'compression']
       : [typeArg];
 
   // Check server availability
