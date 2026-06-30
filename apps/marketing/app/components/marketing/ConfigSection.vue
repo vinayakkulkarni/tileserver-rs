@@ -1,6 +1,7 @@
 <script setup lang="ts">
   const configFeatures = [
-      'Multiple tile sources (PMTiles, MBTiles, dir, tar, PostGIS, COG)',
+      'Multiple tile sources (PMTiles, MBTiles, dir, tar, PostGIS, COG, DEM)',
+    'On-the-fly DEM terrain-RGB encoding (Terrarium & Mapbox-RGB)',
     'TOML or YAML config, with env-var substitution',
     'In-memory tile caching with TTL',
     'Glob & regex CORS allow-lists, custom response headers',
