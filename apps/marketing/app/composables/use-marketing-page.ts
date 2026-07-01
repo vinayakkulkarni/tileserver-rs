@@ -26,6 +26,7 @@ import {
   Plug,
   FileArchive,
   Mountain,
+  MountainSnow,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -85,10 +86,17 @@ export function useMarketingPage() {
     },
     {
       icon: Mountain,
-      title: 'DEM terrain-RGB encoding',
+      title: 'DEM Terrain Encoding',
       description:
-        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL DEM — ~4–10× faster than titiler, ready for MapLibre 3D terrain.',
-      category: 'Data formats',
+        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source — ~4–10× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
+      category: 'Rendering',
+    },
+    {
+      icon: MountainSnow,
+      title: '3D Terrain & Hillshade',
+      description:
+        'Drape vector basemaps over elevation for hillshade relief and MapLibre 3D terrain meshes — no external DEM tile provider required.',
+      category: 'Rendering',
     },
     {
       icon: HardDrive,

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="6" fill="#111119"/>
+  <!-- 2x2 tile grid representing map tiles -->
+  <rect x="4" y="4" width="11" height="11" rx="1.5" fill="#6366f1"/>
+  <rect x="17" y="4" width="11" height="11" rx="1.5" fill="#6366f1" opacity="0.6"/>
+  <rect x="4" y="17" width="11" height="11" rx="1.5" fill="#6366f1" opacity="0.6"/>
+  <rect x="17" y="17" width="11" height="11" rx="1.5" fill="#6366f1" opacity="0.35"/>
+</svg>
