@@ -13,8 +13,7 @@ use std::sync::Arc;
 
 use rmcp::ErrorData as McpError;
 use rmcp::model::{
-    ListResourceTemplatesResult, RawResourceTemplate, ReadResourceResult, ResourceContents,
-    ResourceTemplate,
+    ListResourceTemplatesResult, ReadResourceResult, ResourceContents, ResourceTemplate,
 };
 
 use crate::reload::AppState;
@@ -36,27 +35,21 @@ const DATA_URI_TEMPLATE: &str = "tileserver://data/{id}.json";
 #[must_use]
 pub fn list_resource_templates() -> ListResourceTemplatesResult {
     let templates: Vec<ResourceTemplate> = vec![
-        ResourceTemplate::new(
-            RawResourceTemplate::new(STYLE_URI_TEMPLATE, "style")
-                .with_title("MapLibre style JSON")
-                .with_description(
-                    "Returns the raw style.json for a registered map style. \
-                     Substitute {id} with the style id from tileserver_list_styles.",
-                )
-                .with_mime_type("application/json"),
-            None,
-        ),
-        ResourceTemplate::new(
-            RawResourceTemplate::new(DATA_URI_TEMPLATE, "tilejson")
-                .with_title("TileJSON 3.0 metadata")
-                .with_description(
-                    "Returns TileJSON 3.0 metadata (bounds, zoom range, tile URL template) \
-                     for a registered tile source. Substitute {id} with the source id \
-                     from tileserver_list_sources.",
-                )
-                .with_mime_type("application/json"),
-            None,
-        ),
+        ResourceTemplate::new(STYLE_URI_TEMPLATE, "style")
+            .with_title("MapLibre style JSON")
+            .with_description(
+                "Returns the raw style.json for a registered map style. \
+                 Substitute {id} with the style id from tileserver_list_styles.",
+            )
+            .with_mime_type("application/json"),
+        ResourceTemplate::new(DATA_URI_TEMPLATE, "tilejson")
+            .with_title("TileJSON 3.0 metadata")
+            .with_description(
+                "Returns TileJSON 3.0 metadata (bounds, zoom range, tile URL template) \
+                 for a registered tile source. Substitute {id} with the source id \
+                 from tileserver_list_sources.",
+            )
+            .with_mime_type("application/json"),
     ];
 
     ListResourceTemplatesResult::with_all_items(templates)
