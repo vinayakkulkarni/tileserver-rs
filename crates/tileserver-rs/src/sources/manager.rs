@@ -144,19 +144,36 @@ impl SourceManager {
         }
     }
 
-    /// Load sources from configuration
+    /// Load sources from configuration.
+    ///
+    /// DEM sources are loaded in a second pass because a DEM source may
+    /// reference another `[[sources]]` entry via `input_source`; deferring
+    /// them guarantees the referenced source already exists in the map
+    /// regardless of declaration order in the config file.
     pub async fn from_configs(configs: &[SourceConfig]) -> Result<Self> {
         let mut manager = Self::new();
 
-        for config in configs {
+        let is_dem = |_config: &SourceConfig| -> bool {
+            #[cfg(feature = "dem")]
+            {
+                _config.source_type == SourceType::Dem
+            }
+            #[cfg(not(feature = "dem"))]
+            {
+                false
+            }
+        };
+
+        for config in configs.iter().filter(|c| !is_dem(c)) {
             match manager.load_source(config).await {
-                Ok(_) => {
-                    tracing::info!("Loaded source: {} ({})", config.id, config.path);
-                }
-                Err(e) => {
-                    tracing::error!("Failed to load source {}: {}", config.id, e);
-                    // Continue loading other sources
-                }
+                Ok(_) => tracing::info!("Loaded source: {} ({})", config.id, config.path),
+                Err(e) => tracing::error!("Failed to load source {}: {}", config.id, e),
+            }
+        }
+        for config in configs.iter().filter(|c| is_dem(c)) {
+            match manager.load_source(config).await {
+                Ok(_) => tracing::info!("Loaded source: {} ({})", config.id, config.path),
+                Err(e) => tracing::error!("Failed to load source {}: {}", config.id, e),
             }
         }
 
@@ -367,6 +384,10 @@ impl SourceManager {
             SourceType::DuckDB => Arc::new(DuckDbSource::from_config(config).await?),
             #[cfg(feature = "stac")]
             SourceType::Stac => Arc::new(StacSource::new(config).await?),
+            #[cfg(feature = "dem")]
+            SourceType::Dem => {
+                Arc::new(crate::sources::dem::DemSource::from_config(config, &self.sources).await?)
+            }
         };
 
         self.sources.insert(config.id.clone(), source);
@@ -469,6 +490,14 @@ impl SourceManager {
             cog.get_tile_with_resampling(z, x, y, tile_size, resample)
                 .await
         } else {
+            #[cfg(feature = "dem")]
+            if let Some(dem) = source
+                .as_ref()
+                .as_any()
+                .downcast_ref::<crate::sources::dem::DemSource>()
+            {
+                return dem.get_tile_sized(z, x, y, tile_size).await;
+            }
             #[cfg(feature = "postgres")]
             if let Some(outdb) = source
                 .as_ref()
@@ -1039,6 +1068,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         }
     }
 

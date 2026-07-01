@@ -102,6 +102,14 @@ impl CogSource {
         self.default_resampling
     }
 
+    /// Share this source's cached GDAL dataset handle so a wrapping source
+    /// (e.g. a DEM source whose `input_source` points here) can read the
+    /// same float bands without re-opening the file.
+    #[must_use]
+    pub fn dataset_handle(&self) -> Arc<Mutex<Dataset>> {
+        Arc::clone(&self.dataset)
+    }
+
     pub async fn get_tile_with_resampling(
         &self,
         z: u8,
@@ -289,6 +297,10 @@ fn tile_to_web_mercator_bbox(z: u8, x: u32, y: u32) -> (f64, f64, f64, f64) {
     let miny = maxy - tile_size;
 
     (minx, miny, maxx, maxy)
+}
+
+pub(crate) fn wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
+    get_wgs84_bounds(dataset)
 }
 
 fn get_wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {

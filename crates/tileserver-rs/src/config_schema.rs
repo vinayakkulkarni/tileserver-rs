@@ -92,6 +92,7 @@ const SOURCE_TYPES: &[&str] = &[
     "geoparquet",
     "duckdb",
     "stac",
+    "dem",
 ];
 
 const PIXEL_SELECTION: &[&str] = &[
@@ -106,6 +107,8 @@ const PIXEL_SELECTION: &[&str] = &[
 ];
 
 const SERVE_AS: &[&str] = &["pbf", "mvt", "mlt", "png", "jpeg", "webp"];
+
+const DEM_ENCODINGS: &[&str] = &["terrarium", "mapbox_rgb"];
 
 const METRICS_CARDINALITY: &[&str] = &["strict", "standard", "verbose"];
 
@@ -609,6 +612,54 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 field_type: "bool",
                 default: Some("false"),
                 description: "Use TMS (south-up) addressing for dir/tar sources. Default false = XYZ.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "input_source",
+                field_type: "string",
+                default: None,
+                description: "Reference another [[sources]] entry by id whose underlying raster tiles will be re-encoded as DEM. When set, `path` is ignored on this source. Requires the target source to load first.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "dem_encoding",
+                field_type: "enum",
+                default: Some("\"terrarium\""),
+                description: "DEM RGB encoding for the tile PNG. `terrarium` (default) yields 1/256 m precision, `mapbox_rgb` yields 0.1 m precision and is the legacy `terrain-rgb` Mapbox tile format.",
+                optional: true,
+                enum_values: Some(DEM_ENCODINGS),
+            },
+            ConfigFieldSchema {
+                key: "dem_scale",
+                field_type: "f64",
+                default: None,
+                description: "Multiplicative scale applied to source elevation before encoding. Useful for unit conversion (e.g. feet -> metres: 0.3048).",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "dem_offset",
+                field_type: "f64",
+                default: None,
+                description: "Additive offset applied to source elevation before encoding (after scale).",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "dem_band",
+                field_type: "u32",
+                default: Some("1"),
+                description: "GDAL raster band to encode (1-indexed). Default 1.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "dem_nodata_color",
+                field_type: "u8[4]",
+                default: None,
+                description: "RGBA sentinel for nodata pixels as [r, g, b, a]. MapLibre GL JS IGNORES alpha so the RGB must encode \"no data\". Default for mapbox_rgb: [1, 134, 160]. Default for terrarium: [0, 0, 0].",
                 optional: true,
                 enum_values: None,
             },

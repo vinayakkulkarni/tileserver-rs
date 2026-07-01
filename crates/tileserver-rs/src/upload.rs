@@ -77,6 +77,8 @@ fn source_type_label(st: &SourceType) -> &'static str {
         SourceType::DuckDB => "duckdb",
         #[cfg(feature = "stac")]
         SourceType::Stac => "stac",
+        #[cfg(feature = "dem")]
+        SourceType::Dem => "dem",
     }
 }
 
@@ -177,6 +179,18 @@ pub async fn upload_file(
         pixel_selection: crate::config::PixelSelectionMethod::First,
         tile_path_template: None,
         tms: false,
+        #[cfg(feature = "dem")]
+        input_source: None,
+        #[cfg(feature = "dem")]
+        dem_encoding: crate::config::DemEncoding::Terrarium,
+        #[cfg(feature = "dem")]
+        dem_scale: None,
+        #[cfg(feature = "dem")]
+        dem_offset: None,
+        #[cfg(feature = "dem")]
+        dem_band: 1,
+        #[cfg(feature = "dem")]
+        dem_nodata_color: None,
     };
 
     let mut temp_manager = SourceManager::new();
@@ -335,6 +349,28 @@ mod tests {
     #[test]
     fn test_source_type_label_pmtiles() {
         assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
+    }
+
+    #[test]
+    fn test_source_type_label_all_variants() {
+        assert_eq!(source_type_label(&SourceType::MBTiles), "mbtiles");
+        assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
+        assert_eq!(source_type_label(&SourceType::Dir), "dir");
+        assert_eq!(source_type_label(&SourceType::Tar), "tar");
+        #[cfg(feature = "postgres")]
+        assert_eq!(source_type_label(&SourceType::Postgres), "postgres");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_label(&SourceType::Cog), "cog");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_label(&SourceType::Vrt), "vrt");
+        #[cfg(feature = "geoparquet")]
+        assert_eq!(source_type_label(&SourceType::GeoParquet), "geoparquet");
+        #[cfg(feature = "duckdb")]
+        assert_eq!(source_type_label(&SourceType::DuckDB), "duckdb");
+        #[cfg(feature = "stac")]
+        assert_eq!(source_type_label(&SourceType::Stac), "stac");
+        #[cfg(feature = "dem")]
+        assert_eq!(source_type_label(&SourceType::Dem), "dem");
     }
 
     #[cfg(feature = "raster")]

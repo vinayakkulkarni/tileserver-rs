@@ -635,6 +635,18 @@ mod error_handling {
             pixel_selection: tileserver_rs::config::PixelSelectionMethod::First,
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: tileserver_rs::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         };
 
         let result = CogSource::from_file(&config).await;

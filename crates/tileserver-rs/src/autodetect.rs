@@ -56,6 +56,8 @@ fn source_type_suffix(source_type: &SourceType) -> &'static str {
         SourceType::DuckDB => "duckdb",
         #[cfg(feature = "stac")]
         SourceType::Stac => "stac",
+        #[cfg(feature = "dem")]
+        SourceType::Dem => "dem",
     }
 }
 
@@ -137,6 +139,18 @@ fn auto_source_config(id: String, source_type: SourceType, path: &Path) -> Sourc
         pixel_selection: crate::config::PixelSelectionMethod::First,
         tile_path_template: None,
         tms: false,
+        #[cfg(feature = "dem")]
+        input_source: None,
+        #[cfg(feature = "dem")]
+        dem_encoding: crate::config::DemEncoding::Terrarium,
+        #[cfg(feature = "dem")]
+        dem_scale: None,
+        #[cfg(feature = "dem")]
+        dem_offset: None,
+        #[cfg(feature = "dem")]
+        dem_band: 1,
+        #[cfg(feature = "dem")]
+        dem_nodata_color: None,
     }
 }
 
@@ -445,6 +459,28 @@ mod tests {
     fn test_source_type_suffix_known_types() {
         assert_eq!(source_type_suffix(&SourceType::PMTiles), "pmtiles");
         assert_eq!(source_type_suffix(&SourceType::MBTiles), "mbtiles");
+    }
+
+    #[test]
+    fn test_source_type_suffix_all_variants() {
+        assert_eq!(source_type_suffix(&SourceType::PMTiles), "pmtiles");
+        assert_eq!(source_type_suffix(&SourceType::MBTiles), "mbtiles");
+        assert_eq!(source_type_suffix(&SourceType::Dir), "dir");
+        assert_eq!(source_type_suffix(&SourceType::Tar), "tar");
+        #[cfg(feature = "postgres")]
+        assert_eq!(source_type_suffix(&SourceType::Postgres), "postgres");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_suffix(&SourceType::Cog), "cog");
+        #[cfg(feature = "raster")]
+        assert_eq!(source_type_suffix(&SourceType::Vrt), "vrt");
+        #[cfg(feature = "geoparquet")]
+        assert_eq!(source_type_suffix(&SourceType::GeoParquet), "geoparquet");
+        #[cfg(feature = "duckdb")]
+        assert_eq!(source_type_suffix(&SourceType::DuckDB), "duckdb");
+        #[cfg(feature = "stac")]
+        assert_eq!(source_type_suffix(&SourceType::Stac), "stac");
+        #[cfg(feature = "dem")]
+        assert_eq!(source_type_suffix(&SourceType::Dem), "dem");
     }
 
     #[test]

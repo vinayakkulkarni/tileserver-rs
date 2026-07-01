@@ -40,6 +40,35 @@ Martin re-encodes brotli per request with no cache and collapses to 107 req/s
 because tileserver-rs defaults to `br_quality = 5` for first-paint latency;
 raise it when precomputing. zstd and gzip are at parity across both servers.
 
+## DEM terrain-RGB encoding (#1008)
+
+`node run-benchmarks.js --type dem` — live on-the-fly DEM → Terrarium PNG
+encoding from the SF-Bay `test-dem.cog.tif` fixture (EPSG:4326, elevations
+−41..1041 m), 10s / 100 connections, 0 errors on both servers. titiler
+(`algorithm=terrarium`, the only apples-to-apples live competitor; its
+terrain-RGB feature merged Apr 2025) vs tileserver-rs.
+
+| Server        | Zoom | Req/s | Avg ms  | P99 ms  |
+| ------------- | ---- | ----- | ------- | ------- |
+| tileserver-rs | z9   | 203   | 487     | 642     |
+| tileserver-rs | z10  | 148   | 664     | 969     |
+| tileserver-rs | z11  | 86    | 1152    | 1694    |
+| tileserver-rs | z12  | 83    | 1274    | 2642    |
+| titiler       | z9   | 50    | 1803    | 3778    |
+| titiler       | z10  | 35    | 2472    | 5347    |
+| titiler       | z11  | 21    | 3993    | 7096    |
+| titiler       | z12  | 8     | 5045    | 10061   |
+
+Headline: tileserver-rs serves live DEM terrain-RGB **~4–10× faster** than
+titiler (130 vs 28 avg req/s, 894 vs 3328 ms avg latency) with **byte-accurate
+encoding** — a round-trip decode of an encoded tile reproduces the source
+elevation within the encoding interval (≤0.1 m Mapbox-RGB, ≤1/256 m Terrarium).
+The gap widens at high zoom (10.4× at z12) where titiler's per-request Python /
+rasterio cost dominates. Honest caveat: titiler reads from a `file://` COG here
+(no network), the most favourable setup for it; numbers are single-run on an
+Apple-Silicon Docker host, so treat the ratio (not the absolute req/s) as the
+portable result.
+
 ## MVT→MLT transcode: native mlt-core 0.11 reader
 
 `cargo bench --features mlt --bench mlt -- mvt_to_mlt_transcode` — real

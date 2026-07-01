@@ -11,10 +11,10 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    # 7 feature combos run sequentially as instrumented llvm-cov builds; the
-    # GDAL-heavy raster + stac combos land last. After the free-disk-space fix
-    # unblocked the duckdb combo, total wall-clock crept past the old 45-min cap
-    # (job was ~95% done, cancelled mid-stac). 60 min gives headroom; if it
+    # 8 feature combos run sequentially as instrumented llvm-cov builds; the
+    # GDAL-heavy raster + stac + dem combos land last. After the free-disk-space
+    # fix unblocked the duckdb combo, total wall-clock crept past the old 45-min
+    # cap (job was ~95% done, cancelled mid-stac). 60 min gives headroom; if it
     # recurs, split GDAL vs non-GDAL combos into two parallel jobs.
     timeout-minutes: 60
 
@@ -148,6 +148,15 @@ jobs:
             --lib \
             --no-default-features \
             --features "stac"
+
+      - name: Coverage — dem
+        run: |
+          cargo llvm-cov \
+            --no-report \
+            --lib \
+            --test dem_sources \
+            --no-default-features \
+            --features "dem"
 
       - name: Generate merged coverage report
         run: |

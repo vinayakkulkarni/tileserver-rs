@@ -349,6 +349,18 @@ mod tests {
             pixel_selection: crate::config::PixelSelectionMethod::default(),
             tile_path_template: None,
             tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
         }
     }
 
