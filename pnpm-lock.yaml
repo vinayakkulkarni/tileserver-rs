@@ -41,8 +41,8 @@ catalogs:
       specifier: ^1.0.45
       version: 1.0.45
     '@tanstack/vue-db':
-      specifier: ^0.0.123
-      version: 0.0.123
+      specifier: ^0.0.124
+      version: 0.0.124
     '@tanstack/vue-query':
       specifier: ^5.101.2
       version: 5.101.2
@@ -269,7 +269,7 @@ importers:
         version: 1.0.45(@tanstack/query-core@5.101.2)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
-        version: 0.0.123(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))
+        version: 0.0.124(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))
       '@tanstack/vue-query':
         specifier: catalog:client
         version: 5.101.2(vue@3.5.39(typescript@6.0.3))
@@ -3410,11 +3410,6 @@ packages:
     peerDependencies:
       typescript: '>=4.7'
 
-  '@tanstack/db@0.6.12':
-    resolution: {integrity: sha512-+v9DpgU9EbrRPAGgspw93k1vx7TOAqp8Vet+b20pIg0oID6l1gIc155E6imFikwjnLm0jx3RJFOvZcq/7jYxXQ==}
-    peerDependencies:
-      typescript: '>=4.7'
-
   '@tanstack/db@0.6.13':
     resolution: {integrity: sha512-EWR/eE2TO0CIh/nC5P4Ct6UCzDDyX94fnEXxqMMi0/5pbZDa/MCKB1PYad9jqZRSK4AEu2uoF6Y8aOUaZJd24A==}
     peerDependencies:
@@ -3445,8 +3440,8 @@ packages:
   '@tanstack/virtual-core@3.17.1':
     resolution: {integrity: sha512-VZyW2Uiml5tmBZwPGrSD3Sz73OxzljQMCmzYHsUTPEuTsERf5xwa+uWb01xEzkz3ZSYTjj8NEb/mKHvgKxyZdA==}
 
-  '@tanstack/vue-db@0.0.123':
-    resolution: {integrity: sha512-6AKmrU0NYp/DrsUc+HEZJ+Q6AxZ103kYQL6K+6iXxkLio8RXYFfjpKVYQfVcFOP5AWEYqAyI/lc9/SvBU/tDAg==}
+  '@tanstack/vue-db@0.0.124':
+    resolution: {integrity: sha512-Rrg9rpZOZ0jXUqHzsM9st33NsKvUU9OHm/krOYHs7j/97Nh7oyaWA8/rrHT20AIrxu5bAxxteBdLhpAb2PnTug==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -8811,6 +8806,13 @@ snapshots:
       '@tybys/wasm-util': 0.10.2
     optional: true
 
+  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
+    dependencies:
+      '@emnapi/core': 1.10.0
+      '@emnapi/runtime': 1.10.0
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
@@ -9736,7 +9738,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@oxc-parser/binding-win32-arm64-msvc@0.102.0':
@@ -10431,13 +10433,6 @@ snapshots:
       sorted-btree: 1.8.1
       typescript: 6.0.3
 
-  '@tanstack/db@0.6.12(typescript@6.0.3)':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@tanstack/db-ivm': 0.1.18(typescript@6.0.3)
-      '@tanstack/pacer-lite': 0.2.2
-      typescript: 6.0.3
-
   '@tanstack/db@0.6.13(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -10464,9 +10459,9 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.1': {}
 
-  '@tanstack/vue-db@0.0.123(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))':
+  '@tanstack/vue-db@0.0.124(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))':
     dependencies:
-      '@tanstack/db': 0.6.12(typescript@6.0.3)
+      '@tanstack/db': 0.6.13(typescript@6.0.3)
       vue: 3.5.39(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
@@ -10859,7 +10854,7 @@ snapshots:
       '@vue/shared': 3.5.39
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.15
+      postcss: 8.5.16
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.38':
