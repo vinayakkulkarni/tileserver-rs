@@ -25,7 +25,7 @@
 //! error is still logged server-side via `tracing::warn!` so operators can
 //! debug.
 
-use rmcp::model::{CallToolResult, Content};
+use rmcp::model::{CallToolResult, ContentBlock};
 
 use crate::error::TileServerError;
 
@@ -61,7 +61,7 @@ pub fn tile_error_to_call_result(err: TileServerError) -> CallToolResult {
         }
         _ => err.to_string(),
     };
-    CallToolResult::error(vec![Content::text(body)])
+    CallToolResult::error(vec![ContentBlock::text(body)])
 }
 
 /// Build a tool-execution error from a free-form message.
@@ -71,7 +71,7 @@ pub fn tile_error_to_call_result(err: TileServerError) -> CallToolResult {
 /// exceeds limit").
 #[must_use]
 pub fn tool_error<S: Into<String>>(message: S) -> CallToolResult {
-    CallToolResult::error(vec![Content::text(message.into())])
+    CallToolResult::error(vec![ContentBlock::text(message.into())])
 }
 
 #[cfg(test)]

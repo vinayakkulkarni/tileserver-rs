@@ -18,7 +18,7 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use rmcp::ErrorData as McpError;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
-    CallToolResult, Content, GetPromptRequestParams, GetPromptResult, ListPromptsResult,
+    CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResult, ListPromptsResult,
     ListResourceTemplatesResult, PaginatedRequestParams, ProtocolVersion,
     ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
 };
@@ -236,7 +236,7 @@ impl McpHandler {
                 tilejsons.push(tj);
             }
         }
-        match Content::json(&tilejsons) {
+        match ContentBlock::json(&tilejsons) {
             Ok(content) => Ok(CallToolResult::success(vec![content])),
             Err(err) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -260,7 +260,7 @@ impl McpHandler {
                 crate::error::TileServerError::SourceNotFound(source_id),
             ));
         };
-        match Content::json(&tj) {
+        match ContentBlock::json(&tj) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -279,7 +279,7 @@ impl McpHandler {
         _params: Parameters<EmptyArgs>,
     ) -> Result<CallToolResult, McpError> {
         let infos = self.state.styles.all_infos(&self.state.base_url);
-        match Content::json(&infos) {
+        match ContentBlock::json(&infos) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -303,7 +303,7 @@ impl McpHandler {
                 crate::error::TileServerError::StyleNotFound(style_id),
             ));
         };
-        match Content::json(&style.style_json) {
+        match ContentBlock::json(&style.style_json) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -327,7 +327,7 @@ impl McpHandler {
                 crate::error::TileServerError::SourceNotFound(source_id),
             ));
         };
-        match Content::json(source.metadata()) {
+        match ContentBlock::json(source.metadata()) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -354,7 +354,7 @@ impl McpHandler {
             cache_enabled: self.state.sources.cache().is_some(),
             base_url: self.state.base_url.clone(),
         };
-        match Content::json(&payload) {
+        match ContentBlock::json(&payload) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -452,7 +452,7 @@ impl McpHandler {
         }
 
         let encoded = BASE64_STANDARD.encode(&bytes);
-        Ok(CallToolResult::success(vec![Content::image(
+        Ok(CallToolResult::success(vec![ContentBlock::image(
             encoded,
             "image/webp",
         )]))
@@ -491,7 +491,7 @@ impl McpHandler {
             "mime_type": mime,
             "data_base64": encoded,
         });
-        match Content::json(&summary) {
+        match ContentBlock::json(&summary) {
             Ok(c) => Ok(CallToolResult::success(vec![c])),
             Err(e) => Ok(tile_error_to_call_result(
                 crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -684,7 +684,7 @@ async fn point_query_postgres(
         "features": features,
         "numberReturned": features.len(),
     });
-    match Content::json(&fc) {
+    match ContentBlock::json(&fc) {
         Ok(c) => Ok(CallToolResult::success(vec![c])),
         Err(e) => Ok(tile_error_to_call_result(
             crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -752,7 +752,7 @@ async fn cql2_query_postgres(
         "numberMatched": matched,
         "numberReturned": features.len(),
     });
-    match Content::json(&fc) {
+    match ContentBlock::json(&fc) {
         Ok(c) => Ok(CallToolResult::success(vec![c])),
         Err(e) => Ok(tile_error_to_call_result(
             crate::error::TileServerError::Internal(anyhow::anyhow!(
@@ -827,7 +827,7 @@ fn stac_search(
         })).collect::<Vec<_>>(),
         "numberReturned": filtered.len(),
     });
-    match Content::json(&fc) {
+    match ContentBlock::json(&fc) {
         Ok(c) => Ok(CallToolResult::success(vec![c])),
         Err(e) => Ok(tile_error_to_call_result(
             crate::error::TileServerError::Internal(anyhow::anyhow!(

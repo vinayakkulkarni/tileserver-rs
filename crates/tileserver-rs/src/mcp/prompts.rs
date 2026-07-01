@@ -12,7 +12,7 @@
 use rmcp::ErrorData as McpError;
 use rmcp::model::{
     GetPromptRequestParams, GetPromptResult, ListPromptsResult, Prompt, PromptArgument,
-    PromptMessage, PromptMessageRole,
+    PromptMessage, Role,
 };
 use serde_json::Value;
 
@@ -187,7 +187,7 @@ fn coerce_to_string(v: &Value) -> Option<String> {
 }
 
 fn text_prompt(description: &str, text: String) -> GetPromptResult {
-    GetPromptResult::new(vec![PromptMessage::new_text(PromptMessageRole::User, text)])
+    GetPromptResult::new(vec![PromptMessage::new_text(Role::User, text)])
         .with_description(description.to_string())
 }
 
@@ -214,7 +214,8 @@ mod tests {
             .expect("get_prompt succeeded");
         assert_eq!(r.messages.len(), 1);
         match &r.messages[0].content {
-            rmcp::model::PromptMessageContent::Text { text } => {
+            rmcp::model::ContentBlock::Text(text_content) => {
+                let text = &text_content.text;
                 assert!(text.contains("demo"), "style_id not substituted: {text}");
             }
             other => panic!("expected text content, got {other:?}"),
@@ -229,7 +230,8 @@ mod tests {
         ))
         .expect("get_prompt succeeded");
         match &r.messages[0].content {
-            rmcp::model::PromptMessageContent::Text { text } => {
+            rmcp::model::ContentBlock::Text(text_content) => {
+                let text = &text_content.text;
                 assert!(text.contains("Mumbai"));
                 assert!(text.contains("12"), "default zoom not in `{text}`");
             }
@@ -245,7 +247,8 @@ mod tests {
         ))
         .expect("get_prompt succeeded");
         match &r.messages[0].content {
-            rmcp::model::PromptMessageContent::Text { text } => {
+            rmcp::model::ContentBlock::Text(text_content) => {
+                let text = &text_content.text;
                 assert!(text.contains("5"));
             }
             other => panic!("expected text content, got {other:?}"),
