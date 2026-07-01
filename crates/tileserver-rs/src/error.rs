@@ -91,6 +91,22 @@ pub enum TileServerError {
     #[error("stac error: {0}")]
     StacError(String),
 
+    #[cfg(feature = "sftp")]
+    #[error("SFTP authentication error: {0}")]
+    SftpAuthError(String),
+
+    #[cfg(feature = "sftp")]
+    #[error("SFTP connection error: {0}")]
+    SftpConnectionError(String),
+
+    #[cfg(feature = "sftp")]
+    #[error("SFTP host key mismatch for {host}: expected {expected}, got {got}")]
+    SftpHostKeyMismatch {
+        host: String,
+        expected: String,
+        got: String,
+    },
+
     #[error("upload error: {0}")]
     UploadError(String),
 
@@ -173,6 +189,18 @@ impl IntoResponse for TileServerError {
             TileServerError::StacError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
             TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::UploadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, self.to_string()),
+            #[cfg(feature = "sftp")]
+            TileServerError::SftpAuthError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "sftp")]
+            TileServerError::SftpConnectionError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
+            #[cfg(feature = "sftp")]
+            TileServerError::SftpHostKeyMismatch { .. } => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
             TileServerError::Internal(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".to_string(),
