@@ -353,6 +353,15 @@ impl SourceManager {
                     return Ok(());
                 }
 
+                #[cfg(feature = "sftp")]
+                if crate::sources::pmtiles::sftp::is_sftp_url(&config.path) {
+                    let source = Arc::new(
+                        crate::sources::pmtiles::sftp::SftpPmTilesSource::from_url(config).await?,
+                    );
+                    self.sources.insert(config.id.clone(), source);
+                    return Ok(());
+                }
+
                 if config.path.starts_with("http://") || config.path.starts_with("https://") {
                     let client = reqwest::Client::builder()
                         .user_agent("tileserver-rs/0.1.0")
@@ -1098,6 +1107,36 @@ mod tests {
         ];
         let mgr = SourceManager::from_configs(&configs).await.unwrap();
         assert!(mgr.is_empty());
+    }
+
+    #[cfg(feature = "sftp")]
+    #[tokio::test]
+    async fn load_source_dispatches_sftp_url_to_sftp_branch() {
+        let mut cfg = missing_mbtiles_config("sftp-dispatch");
+        cfg.source_type = SourceType::PMTiles;
+        cfg.path = "sftp://tester@nonexistent.invalid:2222/tiles.pmtiles".to_string();
+        // Force a deterministic identity so resolution does not depend on the
+        // test host's ~/.ssh contents; connection then fails at the network.
+        let mut options = HashMap::new();
+        options.insert(
+            "ssh_strict_host_key_checking".to_string(),
+            "false".to_string(),
+        );
+        cfg.options = Some(options);
+
+        let mut mgr = SourceManager::new();
+        let err = mgr
+            .load_source(&cfg)
+            .await
+            .expect_err("sftp:// URL to an unreachable host must fail");
+        assert!(
+            matches!(
+                err,
+                crate::error::TileServerError::SftpAuthError(_)
+                    | crate::error::TileServerError::SftpConnectionError(_)
+            ),
+            "sftp:// URL must route to the SFTP branch, got: {err:?}"
+        );
     }
 
     #[cfg(feature = "postgres")]
