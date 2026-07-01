@@ -32,8 +32,8 @@ catalogs:
       specifier: ^0.2.84
       version: 0.2.84
     '@tanstack/ai':
-      specifier: ^0.38.0
-      version: 0.38.0
+      specifier: ^0.39.0
+      version: 0.39.0
     '@tanstack/ai-vue':
       specifier: ^0.14.0
       version: 0.14.0
@@ -260,10 +260,10 @@ importers:
         version: 4.0.1(magicast@0.5.3)
       '@tanstack/ai':
         specifier: catalog:client
-        version: 0.38.0
+        version: 0.39.0
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 0.14.0(@tanstack/ai@0.38.0)(vue@3.5.39(typescript@6.0.3))
+        version: 0.14.0(@tanstack/ai@0.39.0)(vue@3.5.39(typescript@6.0.3))
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.0.45(@tanstack/query-core@5.101.2)(typescript@6.0.3)
@@ -3389,6 +3389,15 @@ packages:
 
   '@tanstack/ai@0.38.0':
     resolution: {integrity: sha512-fAX8pmaLXRx8jB8v4CyYqCxCAagvHzvmU7l4J89XkKlzuun69F/pumcKFUOGxZyQswiz1+pzfmNwscv7K8AJmA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.9.0'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@tanstack/ai@0.39.0':
+    resolution: {integrity: sha512-UxqvTMwhGeUCafX/4nzFJfi1iT8uNJ4rqtB482Fc3knbmuKBO+C8d0CRxHqnPjZqc9r+lCmrv/AwqpeKfZMkaQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': '>=1.9.0'
@@ -10392,15 +10401,23 @@ snapshots:
 
   '@tanstack/ai-utils@0.3.1': {}
 
-  '@tanstack/ai-vue@0.14.0(@tanstack/ai@0.38.0)(vue@3.5.39(typescript@6.0.3))':
+  '@tanstack/ai-vue@0.14.0(@tanstack/ai@0.39.0)(vue@3.5.39(typescript@6.0.3))':
     dependencies:
-      '@tanstack/ai': 0.38.0
+      '@tanstack/ai': 0.39.0
       '@tanstack/ai-client': 0.19.0
       vue: 3.5.39(typescript@6.0.3)
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
   '@tanstack/ai@0.38.0':
+    dependencies:
+      '@ag-ui/core': 0.0.52
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/ai-event-client': 0.6.8
+      '@tanstack/ai-utils': 0.3.1
+      partial-json: 0.1.7
+
+  '@tanstack/ai@0.39.0':
     dependencies:
       '@ag-ui/core': 0.0.52
       '@standard-schema/spec': 1.1.0
