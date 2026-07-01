@@ -48,7 +48,7 @@ allowBuilds:
 catalogs:
   default:
     '@commitlint/cli': ^21.1.0
-    '@commitlint/config-conventional': ^21.1.0
+    '@commitlint/config-conventional': ^21.2.0
     '@iconify-json/simple-icons': ^1.2.87
     '@nuxt/eslint': ^1.16.0
     '@nuxt/eslint-config': ^1.16.0
