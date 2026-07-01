@@ -13,6 +13,7 @@ pub(crate) mod ogc;
 pub(crate) mod ogc_crs;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc_filter;
+mod og;
 mod render;
 mod spatial;
 mod styles;
@@ -123,6 +124,7 @@ fn render_router() -> Router<SharedState> {
             "/styles/{style}/static/{static_type}/{size_fmt}",
             get(render::get_static_image),
         )
+        .route("/og/{style}", get(og::get_og))
 }
 
 async fn health_check() -> (StatusCode, &'static str) {
