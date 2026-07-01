@@ -135,7 +135,7 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         '@plausible-analytics/tracker',
-        'lucide-vue-next',
+        '@lucide/vue',
         'ogl',
         'clsx',
         'tailwind-merge',
