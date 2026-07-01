@@ -108,6 +108,19 @@ async fn main() -> anyhow::Result<()> {
         config.server.public_url = Some(public_url);
     }
 
+    #[cfg(feature = "sftp")]
+    {
+        use tileserver_rs::sources::pmtiles::sftp;
+        sftp::set_cli_ssh_identity(cli.ssh_identity.clone());
+        sftp::set_cli_insecure_skip_host_key_verify(cli.ssh_insecure_skip_host_key_verify);
+        if cli.ssh_insecure_skip_host_key_verify {
+            tracing::warn!(
+                flag = "--ssh-insecure-skip-host-key-verify",
+                "SSH host key verification disabled — DO NOT USE IN PRODUCTION. Server accepts ANY host key."
+            );
+        }
+    }
+
     let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
     config::Config::ensure_cache_dir_writable(&cache_dir)?;
     tracing::info!("Cache directory: {}", cache_dir.display());
