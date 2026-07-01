@@ -10,6 +10,7 @@ pub mod compression;
 pub mod config;
 pub mod config_schema;
 pub mod cors_origin;
+pub mod embed;
 pub mod error;
 #[cfg(feature = "mcp")]
 pub mod mcp;
