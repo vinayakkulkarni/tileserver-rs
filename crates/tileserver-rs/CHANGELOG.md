@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.34.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.34.0...v2.34.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **client:** condense desktop hero band to reclaim viewport ([#1232](https://github.com/vinayakkulkarni/tileserver-rs/issues/1232)) ([0d3c8b1](https://github.com/vinayakkulkarni/tileserver-rs/commit/0d3c8b1d806769806e7eef9aa6b4c1d6f8b194bd))
+
 ## [2.34.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.33.5...v2.34.0) (2026-07-01)
 
 
