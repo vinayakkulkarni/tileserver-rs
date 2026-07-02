@@ -41,7 +41,9 @@ async fn embed_known_style_returns_html_with_200() {
 #[tokio::test]
 async fn embed_with_center_query_param_renders_center() {
     let server = populated_server();
-    let res = server.get("/embed/protomaps-light?center=37.8,-122.4&zoom=10").await;
+    let res = server
+        .get("/embed/protomaps-light?center=37.8,-122.4&zoom=10")
+        .await;
     res.assert_status_ok();
     let body = res.text();
     assert!(body.contains("37.8"));
@@ -62,7 +64,9 @@ async fn embed_with_bounds_overrides_center() {
 #[tokio::test]
 async fn embed_with_invalid_center_returns_400() {
     let server = populated_server();
-    let res = server.get("/embed/protomaps-light?center=not,a,number").await;
+    let res = server
+        .get("/embed/protomaps-light?center=not,a,number")
+        .await;
     res.assert_status(StatusCode::BAD_REQUEST);
 }
 

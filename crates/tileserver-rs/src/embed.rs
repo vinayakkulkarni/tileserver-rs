@@ -209,10 +209,10 @@ fn parse_markers(raw: &str) -> Result<Vec<EmbedMarker>, TileServerError> {
 fn parse_controls(raw: &str) -> Vec<Control> {
     let mut out = Vec::new();
     for token in raw.split(',') {
-        if let Some(c) = Control::from_token(token.trim().to_ascii_lowercase().as_str()) {
-            if !out.contains(&c) {
-                out.push(c);
-            }
+        if let Some(c) = Control::from_token(token.trim().to_ascii_lowercase().as_str())
+            && !out.contains(&c)
+        {
+            out.push(c);
         }
     }
     out
@@ -251,20 +251,14 @@ pub(crate) fn parse_embed_query(
     if let Some(v) = raw.get("controls") {
         params.controls = parse_controls(v);
     }
-    if let Some(v) = raw.get("zoom") {
-        if let Some(z) = parse_finite(v) {
-            params.zoom = z.clamp(0.0, 22.0);
-        }
+    if let Some(z) = raw.get("zoom").and_then(|v| parse_finite(v)) {
+        params.zoom = z.clamp(0.0, 22.0);
     }
-    if let Some(v) = raw.get("bearing") {
-        if let Some(b) = parse_finite(v) {
-            params.bearing = b.clamp(-360.0, 360.0);
-        }
+    if let Some(b) = raw.get("bearing").and_then(|v| parse_finite(v)) {
+        params.bearing = b.clamp(-360.0, 360.0);
     }
-    if let Some(v) = raw.get("pitch") {
-        if let Some(p) = parse_finite(v) {
-            params.pitch = p.clamp(0.0, 85.0);
-        }
+    if let Some(p) = raw.get("pitch").and_then(|v| parse_finite(v)) {
+        params.pitch = p.clamp(0.0, 85.0);
     }
     if let Some(v) = raw.get("hash") {
         params.hash = parse_loose_bool(v, false);
@@ -759,7 +753,7 @@ mod tests {
         let html = build(&params, "bright");
         assert!(html.contains(r#"data-theme="""#));
         // Directly exercise the escape used for the theme attribute:
-        assert_eq!(html_escape("dark\"><img onerror=1>").contains('<'), false);
+        assert!(!html_escape("dark\"><img onerror=1>").contains('<'));
     }
 
     #[test]

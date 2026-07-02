@@ -40,7 +40,9 @@ async fn og_with_bounds_no_renderer_returns_500() {
 #[tokio::test]
 async fn og_oversized_width_no_renderer_returns_error_status() {
     let server = populated_server();
-    let res = server.get("/og/protomaps-light?center=0,0&width=99999").await;
+    let res = server
+        .get("/og/protomaps-light?center=0,0&width=99999")
+        .await;
     let status = res.status_code().as_u16();
     assert!(
         (400..600).contains(&status),
@@ -68,7 +70,9 @@ async fn og_route_registered_when_render_enabled() {
 #[tokio::test]
 async fn og_query_param_format_passes_validation() {
     let server = populated_server();
-    let res = server.get("/og/protomaps-light?center=0,0&format=jpeg").await;
+    let res = server
+        .get("/og/protomaps-light?center=0,0&format=jpeg")
+        .await;
     res.assert_status(StatusCode::INTERNAL_SERVER_ERROR);
 }
 
@@ -96,6 +100,8 @@ async fn og_invalid_bounds_returns_400() {
 #[tokio::test]
 async fn og_invalid_format_returns_400() {
     let server = populated_server();
-    let res = server.get("/og/protomaps-light?center=0,0&format=bmp").await;
+    let res = server
+        .get("/og/protomaps-light?center=0,0&format=bmp")
+        .await;
     res.assert_status(StatusCode::BAD_REQUEST);
 }

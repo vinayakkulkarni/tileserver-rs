@@ -7,13 +7,13 @@ mod data;
 mod embed;
 mod files;
 mod fonts;
+mod og;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc_crs;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc_filter;
-mod og;
 mod render;
 mod spatial;
 mod styles;
