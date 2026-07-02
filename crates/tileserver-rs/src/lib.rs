@@ -23,6 +23,7 @@ pub mod response_headers;
 pub mod routes;
 pub mod sources;
 pub mod startup;
+pub mod stylegen;
 pub mod styles;
 pub mod trailing_slash;
 #[cfg(feature = "mlt")]
