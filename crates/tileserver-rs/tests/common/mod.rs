@@ -190,6 +190,53 @@ impl MockSource {
         src.meta.bounds = None;
         src
     }
+
+    /// MLT (vector) source — used by style auto-gen viewer-compat tests.
+    pub fn mlt(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        src.meta.format = TileFormat::Mlt;
+        if let Some(ref mut t) = src.tile {
+            t.format = TileFormat::Mlt;
+        }
+        src
+    }
+
+    /// Override the source's `vector_layers` metadata.
+    #[must_use]
+    pub fn with_vector_layers(mut self, vl: serde_json::Value) -> Self {
+        self.meta.vector_layers = Some(vl);
+        self
+    }
+
+    /// Override zoom range.
+    #[must_use]
+    pub fn with_zoom(mut self, minzoom: u8, maxzoom: u8) -> Self {
+        self.meta.minzoom = minzoom;
+        self.meta.maxzoom = maxzoom;
+        self
+    }
+
+    /// Serve exact `bytes` (uncompressed PBF) for every tile request.
+    #[must_use]
+    pub fn with_tile_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.tile = Some(TileData {
+            data: Bytes::from(bytes),
+            format: TileFormat::Pbf,
+            compression: TileCompression::None,
+        });
+        self
+    }
+
+    /// Serve exact `bytes` marked as gzip-compressed for every tile request.
+    #[must_use]
+    pub fn with_gzip_tile_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.tile = Some(TileData {
+            data: Bytes::from(bytes),
+            format: TileFormat::Pbf,
+            compression: TileCompression::Gzip,
+        });
+        self
+    }
 }
 
 #[async_trait]

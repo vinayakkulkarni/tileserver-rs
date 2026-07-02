@@ -60,10 +60,10 @@ pub(crate) async fn get_style_json(
     Query(query): Query<StyleQueryParams>,
 ) -> Result<Json<serde_json::Value>, TileServerError> {
     let state = shared.load();
-    let style = state
-        .styles
-        .get(&style_id)
-        .ok_or_else(|| TileServerError::StyleNotFound(style_id))?;
+
+    let Some(style) = state.styles.get(&style_id) else {
+        return auto_generate_style(&state, &style_id, query.key.as_deref());
+    };
 
     // Build query params to forward to rewritten URLs
     let url_params = UrlQueryParams::with_key(query.key);
@@ -77,6 +77,26 @@ pub(crate) async fn get_style_json(
     );
 
     Ok(Json(rewritten_style))
+}
+
+/// Fall back to an auto-generated MapLibre style when no `[[styles]]` entry
+/// matches but a vector source with the same id exists (#710). Raster and
+/// unknown-format sources still yield `StyleNotFound`.
+fn auto_generate_style(
+    state: &crate::reload::AppState,
+    style_id: &str,
+    key: Option<&str>,
+) -> Result<Json<serde_json::Value>, TileServerError> {
+    match state.sources.get(style_id) {
+        Some(source) if source.metadata().format.is_vector() => {
+            Ok(Json(crate::stylegen::generate_style_for_vector_source(
+                source.metadata(),
+                &state.base_url,
+                key,
+            )))
+        }
+        _ => Err(TileServerError::StyleNotFound(style_id.to_string())),
+    }
 }
 
 /// Get TileJSON for raster tiles of a style
