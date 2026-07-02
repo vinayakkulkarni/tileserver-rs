@@ -169,6 +169,33 @@ pub fn encode_mvt_pbf(tile: &Tile) -> Bytes {
     Bytes::from(tile.encode_to_vec())
 }
 
+/// Build a minimal single-layer MVT PBF (one point feature per requested
+/// count) for use by integration tests that cannot depend on `geozero`
+/// directly. Hidden from docs — not part of the stable API.
+#[doc(hidden)]
+#[must_use]
+pub fn encode_test_tile(layer_name: &str, feature_count: usize) -> Vec<u8> {
+    let features = (0..feature_count)
+        .map(|i| tile::Feature {
+            id: Some(i as u64 + 1),
+            tags: Vec::new(),
+            r#type: Some(tile::GeomType::Point as i32),
+            geometry: vec![9, 0, 0],
+        })
+        .collect();
+    let tile = Tile {
+        layers: vec![tile::Layer {
+            version: 2,
+            name: layer_name.to_string(),
+            features,
+            keys: Vec::new(),
+            values: Vec::new(),
+            extent: Some(4096),
+        }],
+    };
+    tile.encode_to_vec()
+}
+
 /// Compose a composite TileJSON from member sources: union of `vector_layers`
 /// (deduped by id, first wins, empty ids dropped), `minzoom = max(members)`,
 /// `maxzoom = min(members)`, tiles URL under the composite id.

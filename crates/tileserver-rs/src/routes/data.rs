@@ -78,6 +78,10 @@ pub(crate) async fn get_source_tilejson(
     // Strip .json extension if present
     let source_id = source.strip_suffix(".json").unwrap_or(&source);
 
+    if crate::composite::is_composite_id(source_id) {
+        return composite_tilejson_response(&state, source_id, query.key.as_deref());
+    }
+
     let source_ref = state
         .sources
         .get(source_id)
@@ -87,6 +91,29 @@ pub(crate) async fn get_source_tilejson(
         .metadata()
         .to_tilejson_with_key(&state.base_url, query.key.as_deref());
     Ok(Json(tilejson))
+}
+
+/// Build a composite TileJSON for a `+`-joined id, validating every member.
+fn composite_tilejson_response(
+    state: &crate::reload::AppState,
+    composite_id: &str,
+    key: Option<&str>,
+) -> Result<Json<TileJson>, TileServerError> {
+    let ids = crate::composite::parse_composite_id(composite_id)
+        .ok_or(TileServerError::InvalidTileRequest)?;
+    crate::composite::validate_composite_source_ids(&ids, |id| state.sources.exists(id))?;
+
+    let metas: Vec<&sources::TileMetadata> = ids
+        .iter()
+        .filter_map(|id| state.sources.get(id).map(|s| s.metadata()))
+        .collect();
+
+    Ok(Json(crate::composite::composite_tilejson(
+        composite_id,
+        &metas,
+        &state.base_url,
+        key,
+    )))
 }
 
 pub(crate) async fn get_tile(
@@ -100,6 +127,10 @@ pub(crate) async fn get_tile(
     let (y, format) = params
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
+
+    if crate::composite::is_composite_id(&params.source) {
+        return get_composite_tile(&state, &params.source, params.z, params.x, y).await;
+    }
 
     if format == "geojson" {
         return get_tile_as_geojson(&state, &params.source, params.z, params.x, y).await;
@@ -379,6 +410,70 @@ async fn negotiate_tile_encoding(
         cache.insert(key, recoded.clone()).await;
     }
     Ok(recoded)
+}
+
+/// Serve a merged MVT tile for a `+`-joined composite id (#601).
+///
+/// Members are validated up front, fetched concurrently, decompressed
+/// (gzip only), transcoded MLT->MVT when needed, then merged into one PBF.
+/// A member that returns no tile is skipped; if every member misses the
+/// response is a valid empty MVT with `200 OK`. Raster members are rejected
+/// with `400` — composites are vector-only.
+async fn get_composite_tile(
+    state: &crate::reload::AppState,
+    composite_id: &str,
+    z: u8,
+    x: u32,
+    y: u32,
+) -> Result<Response, TileServerError> {
+    use crate::composite;
+
+    let ids =
+        composite::parse_composite_id(composite_id).ok_or(TileServerError::InvalidTileRequest)?;
+    composite::validate_composite_source_ids(&ids, |id| state.sources.exists(id))?;
+
+    let fetches = ids.iter().map(|id| state.sources.get_tile(id, z, x, y));
+    let results = futures::future::join_all(fetches).await;
+
+    let mut all_layers = Vec::new();
+    for tile in results {
+        let Some(tile) = tile? else {
+            continue;
+        };
+        if !tile.format.is_vector() {
+            return Err(TileServerError::InvalidTileRequest);
+        }
+        let mvt = to_mvt_bytes(tile)?;
+        let raw = match &mvt.1 {
+            sources::TileCompression::Gzip => composite::decompress_gzip(&mvt.0)?,
+            _ => mvt.0,
+        };
+        all_layers.extend(composite::decode_mvt_layers(&raw)?);
+    }
+
+    let merged = composite::merge_mvt_layers(all_layers);
+    let bytes = composite::encode_mvt_pbf(&merged);
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        HeaderValue::from_static(sources::TileFormat::Pbf.content_type()),
+    );
+    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
+    Ok((headers, bytes).into_response())
+}
+
+/// Reduce a composite member tile to raw MVT bytes + its compression marker,
+/// transcoding MLT sources to MVT first when the `mlt` feature is present.
+fn to_mvt_bytes(
+    tile: sources::TileData,
+) -> Result<(Vec<u8>, sources::TileCompression), TileServerError> {
+    #[cfg(feature = "mlt")]
+    if tile.format == sources::TileFormat::Mlt {
+        let transcoded = crate::transcode::transcode_tile(&tile, sources::TileFormat::Pbf)?;
+        return Ok((transcoded.data.to_vec(), transcoded.compression));
+    }
+    Ok((tile.data.to_vec(), tile.compression))
 }
 
 /// Get a tile as GeoJSON (helper function)
