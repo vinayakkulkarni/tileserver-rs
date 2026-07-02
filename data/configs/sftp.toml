@@ -1,0 +1,29 @@
+# SFTP-backed PMTiles source example.
+#
+# Bring up the test SFTP server first:
+#   (cd crates/tileserver-rs/tests/sftp && docker compose up -d)
+# then run:
+#   TILESERVER_SSH_IDENTITY=crates/tileserver-rs/tests/sftp/fixtures/id_ed25519_client \
+#     cargo run --features sftp -- --config data/configs/sftp.toml
+
+[server]
+host = "127.0.0.1"
+port = 8081
+
+[sftp]
+known_hosts_path = "./crates/tileserver-rs/tests/sftp/fixtures/known_hosts.good"
+# strict_host_key = true      # default: fail closed on unknown hosts
+
+[[sources]]
+id = "remote-pmtiles"
+type = "pmtiles"
+path = "sftp://test@127.0.0.1:2222/data/tiles.pmtiles"
+name = "Remote PMTiles via SFTP"
+attribution = "© Protomaps sample data"
+
+[sources.options]
+ssh_identity = "./crates/tileserver-rs/tests/sftp/fixtures/id_ed25519_client"
+# ssh_user = "test"                # per-source SSH user override
+# ssh_port = 2222                  # per-source port override
+# ssh_known_hosts_path = "..."     # per-source known_hosts override
+# ssh_strict_host_key_checking = true
