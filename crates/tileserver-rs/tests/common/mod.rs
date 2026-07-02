@@ -258,6 +258,15 @@ impl TileSource for MockSource {
 ///
 /// Each entry becomes a routable source under its `id`.
 pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
+    server_with_sources_and_config(sources, Config::default())
+}
+
+/// Like [`server_with_sources`] but with a caller-supplied [`Config`] so
+/// composite / named-source tests can register `[[composites]]` entries.
+pub fn server_with_sources_and_config(
+    sources: Vec<Arc<dyn TileSource>>,
+    config: Config,
+) -> TestServer {
     let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::new();
     for s in sources {
         map.insert(s.metadata().id.clone(), s);
@@ -268,7 +277,7 @@ pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
     let controller = Arc::new(ReloadController::new(
         state,
         meta,
-        Config::default(),
+        config,
         None,
         minimal_runtime(),
     ));

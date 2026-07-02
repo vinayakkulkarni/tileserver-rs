@@ -78,8 +78,8 @@ pub(crate) async fn get_source_tilejson(
     // Strip .json extension if present
     let source_id = source.strip_suffix(".json").unwrap_or(&source);
 
-    if crate::composite::is_composite_id(source_id) {
-        return composite_tilejson_response(&state, source_id, query.key.as_deref());
+    if let Some(members) = resolve_composite_members(&shared, source_id) {
+        return composite_tilejson_response(&state, source_id, &members, query.key.as_deref());
     }
 
     let source_ref = state
@@ -93,17 +93,31 @@ pub(crate) async fn get_source_tilejson(
     Ok(Json(tilejson))
 }
 
-/// Build a composite TileJSON for a `+`-joined id, validating every member.
+/// Resolve a source id into composite member ids, or `None` for a plain source.
+///
+/// A configured `[[composites]]` entry wins first; otherwise a `+`-joined id is
+/// parsed ad-hoc. Plain single-source ids return `None` so the existing flow
+/// runs untouched.
+fn resolve_composite_members(shared: &SharedState, id: &str) -> Option<Vec<String>> {
+    if let Some(cfg) = shared.config().composites.iter().find(|c| c.id == id) {
+        return Some(cfg.sources.clone());
+    }
+    if crate::composite::is_composite_id(id) {
+        return crate::composite::parse_composite_id(id);
+    }
+    None
+}
+
+/// Build a composite TileJSON from already-resolved member ids.
 fn composite_tilejson_response(
     state: &crate::reload::AppState,
     composite_id: &str,
+    members: &[String],
     key: Option<&str>,
 ) -> Result<Json<TileJson>, TileServerError> {
-    let ids = crate::composite::parse_composite_id(composite_id)
-        .ok_or(TileServerError::InvalidTileRequest)?;
-    crate::composite::validate_composite_source_ids(&ids, |id| state.sources.exists(id))?;
+    crate::composite::validate_composite_source_ids(members, |id| state.sources.exists(id))?;
 
-    let metas: Vec<&sources::TileMetadata> = ids
+    let metas: Vec<&sources::TileMetadata> = members
         .iter()
         .filter_map(|id| state.sources.get(id).map(|s| s.metadata()))
         .collect();
@@ -128,8 +142,8 @@ pub(crate) async fn get_tile(
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
 
-    if crate::composite::is_composite_id(&params.source) {
-        return get_composite_tile(&state, &params.source, params.z, params.x, y).await;
+    if let Some(members) = resolve_composite_members(&shared, &params.source) {
+        return get_composite_tile(&state, &members, params.z, params.x, y).await;
     }
 
     if format == "geojson" {
@@ -412,7 +426,7 @@ async fn negotiate_tile_encoding(
     Ok(recoded)
 }
 
-/// Serve a merged MVT tile for a `+`-joined composite id (#601).
+/// Serve a merged MVT tile from resolved composite member ids (#601).
 ///
 /// Members are validated up front, fetched concurrently, decompressed
 /// (gzip only), transcoded MLT->MVT when needed, then merged into one PBF.
@@ -421,18 +435,16 @@ async fn negotiate_tile_encoding(
 /// with `400` — composites are vector-only.
 async fn get_composite_tile(
     state: &crate::reload::AppState,
-    composite_id: &str,
+    members: &[String],
     z: u8,
     x: u32,
     y: u32,
 ) -> Result<Response, TileServerError> {
     use crate::composite;
 
-    let ids =
-        composite::parse_composite_id(composite_id).ok_or(TileServerError::InvalidTileRequest)?;
-    composite::validate_composite_source_ids(&ids, |id| state.sources.exists(id))?;
+    composite::validate_composite_source_ids(members, |id| state.sources.exists(id))?;
 
-    let fetches = ids.iter().map(|id| state.sources.get_tile(id, z, x, y));
+    let fetches = members.iter().map(|id| state.sources.get_tile(id, z, x, y));
     let results = futures::future::join_all(fetches).await;
 
     let mut all_layers = Vec::new();

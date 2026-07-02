@@ -7,10 +7,21 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{MockSource, server_with_sources};
+use common::{MockSource, server_with_sources, server_with_sources_and_config};
 use serde_json::Value;
 use tileserver_rs::TileSource;
 use tileserver_rs::composite::{decode_mvt_layers, encode_test_tile};
+use tileserver_rs::config::{CompositeConfig, Config};
+
+fn config_with_composite(id: &str, sources: &[&str]) -> Config {
+    Config {
+        composites: vec![CompositeConfig::new(
+            id,
+            sources.iter().map(|s| s.to_string()).collect(),
+        )],
+        ..Default::default()
+    }
+}
 
 fn source_with_layer(id: &str, layer: &str, features: usize) -> Arc<dyn TileSource> {
     Arc::new(
@@ -234,4 +245,66 @@ async fn composite_tile_invalid_y_returns_400() {
         .get("/data/a+b/0/0/notadot")
         .await
         .assert_status_bad_request();
+}
+
+// ---------------------------------------------------------------------------
+// Named composites via [[composites]]
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn composite_tilejson_named_returns_200() {
+    let server = server_with_sources_and_config(
+        vec![
+            source_with_layer("a", "roads", 1),
+            source_with_layer("b", "water", 1),
+        ],
+        config_with_composite("world", &["a", "b"]),
+    );
+    let res = server.get("/data/world.json").await;
+    res.assert_status_ok();
+    let body: Value = res.json();
+    assert_eq!(body["id"], "world");
+    assert!(body["tiles"][0].as_str().unwrap().contains("/data/world/"));
+}
+
+#[tokio::test]
+async fn composite_tilejson_named_merges_member_vector_layers() {
+    let server = server_with_sources_and_config(
+        vec![
+            source_with_layer("a", "roads", 1),
+            source_with_layer("b", "water", 1),
+        ],
+        config_with_composite("world", &["a", "b"]),
+    );
+    let body: Value = server.get("/data/world.json").await.json();
+    assert_eq!(body["vector_layers"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn composite_tilejson_named_unknown_member_returns_404() {
+    let server = server_with_sources_and_config(
+        vec![source_with_layer("a", "roads", 1)],
+        config_with_composite("world", &["a", "ghost"]),
+    );
+    server
+        .get("/data/world.json")
+        .await
+        .assert_status_not_found();
+}
+
+#[tokio::test]
+async fn composite_tile_named_returns_200_merged() {
+    let server = server_with_sources_and_config(
+        vec![
+            source_with_layer("a", "roads", 2),
+            source_with_layer("b", "water", 3),
+        ],
+        config_with_composite("world", &["a", "b"]),
+    );
+    let res = server.get("/data/world/0/0/0.pbf").await;
+    res.assert_status_ok();
+    let layers = decode_mvt_layers(&res.into_bytes()).unwrap();
+    let names: Vec<&str> = layers.iter().map(|l| l.name.as_str()).collect();
+    assert!(names.contains(&"roads"));
+    assert!(names.contains(&"water"));
 }
