@@ -501,6 +501,19 @@ fn resolved_known_hosts_path(loc: &SftpLocation, home_dir: Option<&Path>) -> Opt
     home_dir.map(|h| h.join(".ssh").join("known_hosts"))
 }
 
+/// Read and parse a `known_hosts` file, yielding an empty set when the path
+/// is absent or unreadable (an unreadable file is treated as "no known
+/// hosts", matching OpenSSH's tolerance of a missing file).
+fn load_known_hosts_entries(path: Option<PathBuf>) -> Vec<KnownHostsEntry> {
+    let Some(path) = path else {
+        return Vec::new();
+    };
+    let Ok(contents) = std::fs::read_to_string(&path) else {
+        return Vec::new();
+    };
+    parse_known_hosts(&contents)
+}
+
 // ─── russh Handler (host key verification hook) ──────────────────────────
 
 struct SftpHandler {
@@ -559,6 +572,26 @@ fn fingerprint(key_bytes: &[u8]) -> String {
     }
 }
 
+/// Drain the host-key verification error captured by the russh handler, if
+/// one was recorded during the connect handshake.
+fn take_verification_error(slot: &Arc<Mutex<Option<TileServerError>>>) -> Option<TileServerError> {
+    slot.try_lock().ok().and_then(|mut g| g.take())
+}
+
+/// Open the SFTP subsystem on an authenticated SSH session and hand back the
+/// live [`SftpSession`].
+async fn open_sftp_session(handle: &mut Handle<SftpHandler>) -> Result<SftpSession> {
+    let channel = handle.channel_open_session().await.map_err(|e| {
+        TileServerError::SftpConnectionError(format!("failed to open SFTP channel: {e}"))
+    })?;
+    channel.request_subsystem(true, "sftp").await.map_err(|e| {
+        TileServerError::SftpConnectionError(format!("failed to start sftp subsystem: {e}"))
+    })?;
+    SftpSession::new(channel.into_stream()).await.map_err(|e| {
+        TileServerError::SftpConnectionError(format!("failed to init SFTP session: {e}"))
+    })
+}
+
 // ─── SftpBackend (AsyncBackend impl) + reconnect backoff ─────────────────
 
 const INITIAL_BACKOFF: Duration = Duration::from_millis(100);
@@ -615,13 +648,10 @@ impl SftpBackend {
     async fn establish(&self) -> Result<SftpConnection> {
         self.connect_attempts.fetch_add(1, Ordering::SeqCst);
 
-        let entries = match resolved_known_hosts_path(&self.loc, self.home_dir.as_deref()) {
-            Some(path) => match std::fs::read_to_string(&path) {
-                Ok(contents) => parse_known_hosts(&contents),
-                Err(_) => Vec::new(),
-            },
-            None => Vec::new(),
-        };
+        let entries = load_known_hosts_entries(resolved_known_hosts_path(
+            &self.loc,
+            self.home_dir.as_deref(),
+        ));
 
         let verification_error = Arc::new(Mutex::new(None));
         let handler = SftpHandler {
@@ -633,35 +663,10 @@ impl SftpBackend {
             verification_error: Arc::clone(&verification_error),
         };
 
-        let config = Arc::new(client::Config::default());
-        let mut handle = client::connect(config, (self.loc.host.as_str(), self.loc.port), handler)
-            .await
-            .map_err(|e| {
-                if let Some(err) = verification_error
-                    .try_lock()
-                    .ok()
-                    .and_then(|mut g| g.take())
-                {
-                    err
-                } else {
-                    TileServerError::SftpConnectionError(format!(
-                        "failed to connect to {}:{}: {e}",
-                        self.loc.host, self.loc.port
-                    ))
-                }
-            })?;
-
-        self.authenticate(&mut handle).await?;
-
-        let channel = handle.channel_open_session().await.map_err(|e| {
-            TileServerError::SftpConnectionError(format!("failed to open SFTP channel: {e}"))
-        })?;
-        channel.request_subsystem(true, "sftp").await.map_err(|e| {
-            TileServerError::SftpConnectionError(format!("failed to start sftp subsystem: {e}"))
-        })?;
-        let sftp = SftpSession::new(channel.into_stream()).await.map_err(|e| {
-            TileServerError::SftpConnectionError(format!("failed to init SFTP session: {e}"))
-        })?;
+        let mut handle = self
+            .connect_and_authenticate(handler, &verification_error)
+            .await?;
+        let sftp = open_sftp_session(&mut handle).await?;
 
         info!(
             host = %self.loc.host,
@@ -673,6 +678,26 @@ impl SftpBackend {
             _handle: handle,
             sftp,
         })
+    }
+
+    async fn connect_and_authenticate(
+        &self,
+        handler: SftpHandler,
+        verification_error: &Arc<Mutex<Option<TileServerError>>>,
+    ) -> Result<Handle<SftpHandler>> {
+        let config = Arc::new(client::Config::default());
+        let mut handle = client::connect(config, (self.loc.host.as_str(), self.loc.port), handler)
+            .await
+            .map_err(|e| {
+                take_verification_error(verification_error).unwrap_or_else(|| {
+                    TileServerError::SftpConnectionError(format!(
+                        "failed to connect to {}:{}: {e}",
+                        self.loc.host, self.loc.port
+                    ))
+                })
+            })?;
+        self.authenticate(&mut handle).await?;
+        Ok(handle)
     }
 
     async fn authenticate(&self, handle: &mut Handle<SftpHandler>) -> Result<()> {
@@ -841,6 +866,126 @@ pub struct SftpPmTilesSource {
     native_format: TileFormat,
 }
 
+/// Scalar view of the PMTiles header fields consumed when assembling
+/// [`TileMetadata`]. Extracted so metadata assembly is unit-testable without
+/// constructing a private pmtiles `Header`.
+struct PmHeaderMeta {
+    minzoom: u8,
+    maxzoom: u8,
+    bounds: [f64; 4],
+    center: [f64; 3],
+}
+
+/// Map a pmtiles [`TileType`] to the server's [`TileFormat`].
+fn tile_type_to_format(tile_type: TileType) -> TileFormat {
+    match tile_type {
+        TileType::Mvt => TileFormat::Pbf,
+        TileType::Png => TileFormat::Png,
+        TileType::Jpeg => TileFormat::Jpeg,
+        TileType::Webp => TileFormat::Webp,
+        TileType::Avif => TileFormat::Avif,
+        TileType::Mlt => TileFormat::Mlt,
+        TileType::Unknown => TileFormat::Unknown,
+    }
+}
+
+/// Resolve the format advertised in metadata: the per-source `serve_as`
+/// override when present, otherwise the natively-detected format.
+fn resolve_metadata_format(serve_as: Option<TileFormat>, native: TileFormat) -> TileFormat {
+    serve_as.unwrap_or(native)
+}
+
+/// Pull the `vector_layers` array out of a PMTiles metadata JSON string,
+/// tolerating malformed JSON and a missing key by returning `None`.
+fn extract_vector_layers(metadata_str: &str) -> Option<serde_json::Value> {
+    serde_json::from_str::<serde_json::Value>(metadata_str)
+        .ok()
+        .and_then(|json| json.get("vector_layers").cloned())
+}
+
+fn build_tile_metadata(
+    config: &SourceConfig,
+    header: &PmHeaderMeta,
+    metadata_format: TileFormat,
+    vector_layers: Option<serde_json::Value>,
+) -> TileMetadata {
+    TileMetadata {
+        id: config.id.clone(),
+        name: config.name.clone().unwrap_or_else(|| config.id.clone()),
+        description: config.description.clone(),
+        attribution: config.attribution.clone(),
+        format: metadata_format,
+        minzoom: header.minzoom,
+        maxzoom: header.maxzoom,
+        bounds: Some(header.bounds),
+        center: Some(header.center),
+        vector_layers,
+    }
+}
+
+/// Probe the lowest-zoom tile to decide whether an `Unknown`-typed archive is
+/// actually MLT. Any read failure resolves to `false`.
+async fn probe_is_mlt(reader: &SftpReader, min_zoom: u8) -> bool {
+    let Ok(coord) = TileCoord::new(min_zoom, 0, 0) else {
+        return false;
+    };
+    let Ok(Some(sample)) = reader.get_tile(coord).await else {
+        return false;
+    };
+    crate::sources::detect_mlt_format(&sample)
+}
+
+/// Resolve the native tile format, upgrading an `Unknown` header type to MLT
+/// when a tile probe detects the MLT signature.
+async fn resolve_format(reader: &SftpReader, min_zoom: u8, initial: TileFormat) -> TileFormat {
+    if initial != TileFormat::Unknown {
+        return initial;
+    }
+    if probe_is_mlt(reader, min_zoom).await {
+        TileFormat::Mlt
+    } else {
+        TileFormat::Unknown
+    }
+}
+
+/// Fetch and parse the source's `vector_layers` metadata, folding any read or
+/// parse failure to `None`.
+async fn fetch_vector_layers(reader: &SftpReader) -> Option<serde_json::Value> {
+    let Ok(metadata_str) = reader.get_metadata().await else {
+        return None;
+    };
+    extract_vector_layers(&metadata_str)
+}
+
+/// Parse the URL, resolve the SSH identity, and open the live SFTP session,
+/// surfacing auth / host-key failures eagerly at source-load time.
+async fn build_backend(config: &SourceConfig) -> Result<SftpBackend> {
+    let options = config.options.clone().unwrap_or_default();
+    let loc = SftpLocation::parse(&config.path, &options)?;
+
+    let home_dir = std::env::var("HOME").ok().map(PathBuf::from);
+    let auth_opts = SftpAuthOptions {
+        source_identity: loc.identity.clone(),
+        cli_identity: cli_ssh_identity(),
+        home_dir: home_dir.clone(),
+        ssh_auth_sock: std::env::var("SSH_AUTH_SOCK").ok(),
+    };
+    let identity = resolve_identity(&auth_opts)?;
+
+    SftpBackend::connect(loc, identity, home_dir).await
+}
+
+async fn open_reader(backend: SftpBackend, url_str: &str) -> Result<SftpReader> {
+    let cache = HashMapCache::default();
+    AsyncPmTilesReader::try_from_cached_source(backend, cache)
+        .await
+        .map_err(|e| {
+            TileServerError::MetadataError(format!(
+                "failed to read PMTiles header from '{url_str}': {e}"
+            ))
+        })
+}
+
 impl SftpPmTilesSource {
     /// Open a PMTiles archive over SFTP, resolving auth + host-key policy
     /// eagerly so failures surface at source-load time.
@@ -848,96 +993,39 @@ impl SftpPmTilesSource {
         let url_str = &config.path;
         info!("Opening SFTP PMTiles source: {url_str}");
 
-        let options = config.options.clone().unwrap_or_default();
-        let loc = SftpLocation::parse(url_str, &options)?;
-
-        let home_dir = std::env::var("HOME").ok().map(PathBuf::from);
-        let auth_opts = SftpAuthOptions {
-            source_identity: loc.identity.clone(),
-            cli_identity: cli_ssh_identity(),
-            home_dir: home_dir.clone(),
-            ssh_auth_sock: std::env::var("SSH_AUTH_SOCK").ok(),
-        };
-        let identity = resolve_identity(&auth_opts)?;
-
-        let backend = SftpBackend::connect(loc, identity, home_dir).await?;
-
-        let cache = HashMapCache::default();
-        let reader: SftpReader = AsyncPmTilesReader::try_from_cached_source(backend, cache)
-            .await
-            .map_err(|e| {
-                TileServerError::MetadataError(format!(
-                    "failed to read PMTiles header from '{url_str}': {e}"
-                ))
-            })?;
+        let backend = build_backend(config).await?;
+        let reader = open_reader(backend, url_str).await?;
 
         let header = reader.get_header();
-
-        let mut format = match header.tile_type {
-            TileType::Mvt => TileFormat::Pbf,
-            TileType::Png => TileFormat::Png,
-            TileType::Jpeg => TileFormat::Jpeg,
-            TileType::Webp => TileFormat::Webp,
-            TileType::Avif => TileFormat::Avif,
-            TileType::Mlt => TileFormat::Mlt,
-            TileType::Unknown => TileFormat::Unknown,
-        };
-
-        if format == TileFormat::Unknown
-            && let Ok(coord) = TileCoord::new(header.min_zoom, 0, 0)
-            && let Ok(Some(sample)) = reader.get_tile(coord).await
-            && crate::sources::detect_mlt_format(&sample)
-        {
-            format = TileFormat::Mlt;
-            info!(
-                "Auto-detected MLT format for source '{}' via tile probe",
-                config.id
-            );
-        }
-
-        let native_format = format;
-        let metadata_format = config.serve_as.unwrap_or(format);
-        if config.serve_as.is_some() {
-            info!(
-                "Source '{}': native format {:?}, serving as {:?} (serve_as override)",
-                config.id, native_format, metadata_format
-            );
-        }
-
-        let tile_compression = convert_compression(header.tile_compression);
-
-        let vector_layers = match reader.get_metadata().await {
-            Ok(metadata_str) => serde_json::from_str::<serde_json::Value>(&metadata_str)
-                .ok()
-                .and_then(|json| json.get("vector_layers").cloned()),
-            Err(_) => None,
-        };
-
-        let metadata = TileMetadata {
-            id: config.id.clone(),
-            name: config.name.clone().unwrap_or_else(|| config.id.clone()),
-            description: config.description.clone(),
-            attribution: config.attribution.clone(),
-            format: metadata_format,
+        let header_meta = PmHeaderMeta {
             minzoom: header.min_zoom,
             maxzoom: header.max_zoom,
-            bounds: Some([
+            bounds: [
                 header.min_longitude,
                 header.min_latitude,
                 header.max_longitude,
                 header.max_latitude,
-            ]),
-            center: Some([
+            ],
+            center: [
                 header.center_longitude,
                 header.center_latitude,
                 header.center_zoom as f64,
-            ]),
-            vector_layers,
+            ],
         };
+        let tile_compression = convert_compression(header.tile_compression);
+        let initial_format = tile_type_to_format(header.tile_type);
+        let min_zoom = header.min_zoom;
+
+        let native_format = resolve_format(&reader, min_zoom, initial_format).await;
+        let metadata_format = resolve_metadata_format(config.serve_as, native_format);
+        log_format_resolution(config, native_format, metadata_format);
+
+        let vector_layers = fetch_vector_layers(&reader).await;
+        let metadata = build_tile_metadata(config, &header_meta, metadata_format, vector_layers);
 
         info!(
             "Loaded SFTP PMTiles source '{}': zoom {}-{}, format {:?}",
-            config.id, header.min_zoom, header.max_zoom, metadata_format
+            config.id, header_meta.minzoom, header_meta.maxzoom, metadata_format
         );
 
         Ok(Self {
@@ -946,6 +1034,21 @@ impl SftpPmTilesSource {
             tile_compression,
             native_format,
         })
+    }
+}
+
+/// Emit the `serve_as` override log line when the source advertises a
+/// different format than it stores natively.
+fn log_format_resolution(
+    config: &SourceConfig,
+    native_format: TileFormat,
+    metadata_format: TileFormat,
+) {
+    if config.serve_as.is_some() {
+        info!(
+            "Source '{}': native format {:?}, serving as {:?} (serve_as override)",
+            config.id, native_format, metadata_format
+        );
     }
 }
 
@@ -959,37 +1062,73 @@ fn convert_compression(compression: PmCompression) -> TileCompression {
     }
 }
 
+/// Validate a tile request against the source's zoom range. Returns
+/// `Ok(Some(coord))` for an in-range request, `Ok(None)` when the zoom is
+/// outside `[minzoom, maxzoom]`, and `Err(InvalidCoordinates)` when `x`/`y`
+/// exceed the `2^z` grid or `TileCoord` rejects the triple.
+fn validate_tile_coord(
+    z: u8,
+    x: u32,
+    y: u32,
+    minzoom: u8,
+    maxzoom: u8,
+) -> Result<Option<TileCoord>> {
+    let max_tile = 1u32 << z;
+    if x >= max_tile || y >= max_tile {
+        return Err(TileServerError::InvalidCoordinates { z, x, y });
+    }
+    if z < minzoom || z > maxzoom {
+        return Ok(None);
+    }
+    match TileCoord::new(z, x, y) {
+        Ok(coord) => Ok(Some(coord)),
+        Err(_) => Err(TileServerError::InvalidCoordinates { z, x, y }),
+    }
+}
+
+/// Map a pmtiles read result into an optional [`TileData`]. A read error is
+/// logged and folded to `None` so a transient tile failure is not fatal.
+fn map_tile_read(
+    result: PmtResult<Option<Bytes>>,
+    format: TileFormat,
+    compression: TileCompression,
+    z: u8,
+    x: u32,
+    y: u32,
+) -> Option<TileData> {
+    match result {
+        Ok(Some(data)) => Some(TileData {
+            data,
+            format,
+            compression,
+        }),
+        Ok(None) => None,
+        Err(e) => {
+            warn!("Error reading SFTP tile z={z} x={x} y={y}: {e}");
+            None
+        }
+    }
+}
+
 #[async_trait]
 impl TileSource for SftpPmTilesSource {
     async fn get_tile(&self, z: u8, x: u32, y: u32) -> Result<Option<TileData>> {
-        let max_tile = 1u32 << z;
-        if x >= max_tile || y >= max_tile {
-            return Err(TileServerError::InvalidCoordinates { z, x, y });
-        }
-
-        if z < self.metadata.minzoom || z > self.metadata.maxzoom {
+        let Some(coord) =
+            validate_tile_coord(z, x, y, self.metadata.minzoom, self.metadata.maxzoom)?
+        else {
             return Ok(None);
-        }
-
-        let coord = match TileCoord::new(z, x, y) {
-            Ok(c) => c,
-            Err(_) => return Err(TileServerError::InvalidCoordinates { z, x, y }),
         };
 
         let reader = self.reader.read().await;
-
-        match reader.get_tile(coord).await {
-            Ok(Some(tile_data)) => Ok(Some(TileData {
-                data: tile_data,
-                format: self.native_format,
-                compression: self.tile_compression,
-            })),
-            Ok(None) => Ok(None),
-            Err(e) => {
-                warn!("Error reading SFTP tile z={z} x={x} y={y}: {e}");
-                Ok(None)
-            }
-        }
+        let result = reader.get_tile(coord).await;
+        Ok(map_tile_read(
+            result,
+            self.native_format,
+            self.tile_compression,
+            z,
+            x,
+            y,
+        ))
     }
 
     fn metadata(&self) -> &TileMetadata {
@@ -1508,5 +1647,261 @@ mod tests {
         let digest = sha1(b"abc");
         let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
         assert_eq!(hex, "a9993e364706816aba3e25717850c26c9cd0d89d");
+    }
+
+    // ── U30–U36: tile_type_to_format (all 7 TileType variants) ────────
+
+    #[test]
+    fn test_tile_type_to_format_mvt() {
+        assert_eq!(tile_type_to_format(TileType::Mvt), TileFormat::Pbf);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_png() {
+        assert_eq!(tile_type_to_format(TileType::Png), TileFormat::Png);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_jpeg() {
+        assert_eq!(tile_type_to_format(TileType::Jpeg), TileFormat::Jpeg);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_webp() {
+        assert_eq!(tile_type_to_format(TileType::Webp), TileFormat::Webp);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_avif() {
+        assert_eq!(tile_type_to_format(TileType::Avif), TileFormat::Avif);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_mlt() {
+        assert_eq!(tile_type_to_format(TileType::Mlt), TileFormat::Mlt);
+    }
+
+    #[test]
+    fn test_tile_type_to_format_unknown() {
+        assert_eq!(tile_type_to_format(TileType::Unknown), TileFormat::Unknown);
+    }
+
+    // ── U37–U38: resolve_metadata_format ──────────────────────────────
+
+    #[test]
+    fn test_resolve_metadata_format_uses_serve_as_override() {
+        assert_eq!(
+            resolve_metadata_format(Some(TileFormat::Png), TileFormat::Pbf),
+            TileFormat::Png
+        );
+    }
+
+    #[test]
+    fn test_resolve_metadata_format_defaults_to_native() {
+        assert_eq!(
+            resolve_metadata_format(None, TileFormat::Mlt),
+            TileFormat::Mlt
+        );
+    }
+
+    // ── U39–U42: extract_vector_layers ────────────────────────────────
+
+    #[test]
+    fn test_extract_vector_layers_present() {
+        let json = r#"{"vector_layers":[{"id":"roads"}]}"#;
+        let layers = extract_vector_layers(json).expect("vector_layers must be extracted");
+        assert!(layers.is_array());
+        assert_eq!(layers[0]["id"], "roads");
+    }
+
+    #[test]
+    fn test_extract_vector_layers_absent_key() {
+        let json = r#"{"name":"basemap"}"#;
+        assert_eq!(extract_vector_layers(json), None);
+    }
+
+    #[test]
+    fn test_extract_vector_layers_invalid_json() {
+        assert_eq!(extract_vector_layers("not json {"), None);
+    }
+
+    #[test]
+    fn test_extract_vector_layers_empty_object() {
+        assert_eq!(extract_vector_layers("{}"), None);
+    }
+
+    // ── U43–U45: build_tile_metadata ──────────────────────────────────
+
+    #[test]
+    fn test_build_tile_metadata_uses_config_name() {
+        let mut cfg = make_config("sftp://u@h/f.pmtiles");
+        cfg.name = Some("Named Source".to_string());
+        let hdr = PmHeaderMeta {
+            minzoom: 2,
+            maxzoom: 14,
+            bounds: [-1.0, -2.0, 3.0, 4.0],
+            center: [0.5, 0.6, 7.0],
+        };
+        let meta = build_tile_metadata(&cfg, &hdr, TileFormat::Pbf, None);
+        assert_eq!(meta.name, "Named Source");
+        assert_eq!(meta.id, "test-sftp");
+        assert_eq!(meta.minzoom, 2);
+        assert_eq!(meta.maxzoom, 14);
+        assert_eq!(meta.format, TileFormat::Pbf);
+        assert_eq!(meta.bounds, Some([-1.0, -2.0, 3.0, 4.0]));
+        assert_eq!(meta.center, Some([0.5, 0.6, 7.0]));
+    }
+
+    #[test]
+    fn test_build_tile_metadata_falls_back_to_id_for_name() {
+        let cfg = make_config("sftp://u@h/f.pmtiles");
+        let hdr = PmHeaderMeta {
+            minzoom: 0,
+            maxzoom: 22,
+            bounds: [0.0, 0.0, 0.0, 0.0],
+            center: [0.0, 0.0, 0.0],
+        };
+        let meta = build_tile_metadata(&cfg, &hdr, TileFormat::Webp, None);
+        assert_eq!(meta.name, "test-sftp");
+    }
+
+    #[test]
+    fn test_build_tile_metadata_carries_vector_layers() {
+        let cfg = make_config("sftp://u@h/f.pmtiles");
+        let hdr = PmHeaderMeta {
+            minzoom: 0,
+            maxzoom: 10,
+            bounds: [0.0, 0.0, 0.0, 0.0],
+            center: [0.0, 0.0, 0.0],
+        };
+        let layers = serde_json::json!([{"id": "water"}]);
+        let meta = build_tile_metadata(&cfg, &hdr, TileFormat::Pbf, Some(layers.clone()));
+        assert_eq!(meta.vector_layers, Some(layers));
+    }
+
+    // ── U46–U51: validate_tile_coord (every branch) ───────────────────
+
+    #[test]
+    fn test_validate_tile_coord_valid() {
+        let coord = validate_tile_coord(2, 1, 1, 0, 14)
+            .expect("valid coords must not error")
+            .expect("in-range coords must yield a coordinate");
+        assert_eq!(coord, TileCoord::new(2, 1, 1).unwrap());
+    }
+
+    #[test]
+    fn test_validate_tile_coord_x_out_of_bounds() {
+        let err = validate_tile_coord(2, 4, 0, 0, 14).unwrap_err();
+        assert!(matches!(
+            err,
+            TileServerError::InvalidCoordinates { z: 2, x: 4, y: 0 }
+        ));
+    }
+
+    #[test]
+    fn test_validate_tile_coord_y_out_of_bounds() {
+        let err = validate_tile_coord(2, 0, 4, 0, 14).unwrap_err();
+        assert!(matches!(
+            err,
+            TileServerError::InvalidCoordinates { z: 2, x: 0, y: 4 }
+        ));
+    }
+
+    #[test]
+    fn test_validate_tile_coord_below_minzoom() {
+        assert_eq!(validate_tile_coord(1, 0, 0, 5, 14).unwrap(), None);
+    }
+
+    #[test]
+    fn test_validate_tile_coord_above_maxzoom() {
+        assert_eq!(validate_tile_coord(15, 0, 0, 0, 14).unwrap(), None);
+    }
+
+    #[test]
+    fn test_validate_tile_coord_boundaries_inclusive() {
+        assert!(validate_tile_coord(5, 0, 0, 5, 14).unwrap().is_some());
+        assert!(validate_tile_coord(14, 0, 0, 5, 14).unwrap().is_some());
+    }
+
+    // ── U52–U54: map_tile_read (Some / None / Err arms) ───────────────
+
+    #[test]
+    fn test_map_tile_read_some_wraps_tile_data() {
+        let bytes = Bytes::from_static(b"tile-bytes");
+        let out = map_tile_read(
+            Ok(Some(bytes.clone())),
+            TileFormat::Pbf,
+            TileCompression::Gzip,
+            3,
+            1,
+            2,
+        );
+        let tile = out.expect("Some(bytes) must yield TileData");
+        assert_eq!(tile.data, bytes);
+        assert_eq!(tile.format, TileFormat::Pbf);
+        assert_eq!(tile.compression, TileCompression::Gzip);
+    }
+
+    #[test]
+    fn test_map_tile_read_none_is_none() {
+        let out = map_tile_read(Ok(None), TileFormat::Pbf, TileCompression::None, 0, 0, 0);
+        assert!(out.is_none());
+    }
+
+    #[test]
+    fn test_map_tile_read_err_is_none() {
+        let out = map_tile_read(
+            Err(PmtError::InvalidMagicNumber),
+            TileFormat::Pbf,
+            TileCompression::None,
+            0,
+            0,
+            0,
+        );
+        assert!(out.is_none());
+    }
+
+    // ── U55–U57: load_known_hosts_entries ─────────────────────────────
+
+    #[test]
+    fn test_load_known_hosts_entries_none_path() {
+        assert!(load_known_hosts_entries(None).is_empty());
+    }
+
+    #[test]
+    fn test_load_known_hosts_entries_unreadable_path() {
+        let entries = load_known_hosts_entries(Some(PathBuf::from("/nonexistent/known_hosts")));
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn test_load_known_hosts_entries_valid_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("known_hosts");
+        std::fs::write(&path, format!("example.com ssh-ed25519 {ED25519_KEY}")).unwrap();
+        let entries = load_known_hosts_entries(Some(path));
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].hostnames, vec!["example.com".to_string()]);
+    }
+
+    // ── U58–U59: take_verification_error ──────────────────────────────
+
+    #[tokio::test]
+    async fn test_take_verification_error_present() {
+        let slot: Arc<Mutex<Option<TileServerError>>> = Arc::new(Mutex::new(Some(
+            TileServerError::SftpConnectionError("boom".to_string()),
+        )));
+        let taken = take_verification_error(&slot);
+        assert!(matches!(
+            taken,
+            Some(TileServerError::SftpConnectionError(_))
+        ));
+        assert!(slot.lock().await.is_none());
+    }
+
+    #[test]
+    fn test_take_verification_error_absent() {
+        let slot: Arc<Mutex<Option<TileServerError>>> = Arc::new(Mutex::new(None));
+        assert!(take_verification_error(&slot).is_none());
     }
 }
