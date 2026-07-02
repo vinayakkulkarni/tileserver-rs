@@ -2706,18 +2706,18 @@ dependencies = [
 
 [[package]]
 name = "hotpath"
-version = "0.18.0"
+version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc2c28b1fa962e433f800ed1ea0bf53dc028d3745cf2acec6cfd28b65ac96afa"
+checksum = "467479f30ae7262ad93eff1f6653a58ecfca4b44dd9ff82ef4b469ba1ad00017"
 dependencies = [
  "hotpath-macros",
 ]
 
 [[package]]
 name = "hotpath-macros"
-version = "0.18.0"
+version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a585238d8daf746e27df0f24d1bbdcd2410e9febff63f9a0173f90d7e71c50f6"
+checksum = "7edb8da2a00454786fbb75ab24c4f72380afeb9b5136776caa7737df9895bfa7"
 
 [[package]]
 name = "http"
@@ -3633,9 +3633,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ff11bbaaa437e74976b93e37f44079d9346ba072f17847d6d3bf6b831813f6"
+checksum = "9e5de6c1c30eb44715eb4bcbc5f99ee0431c40296a1634b6c9887b7afac376ab"
 dependencies = [
  "bitvec",
  "bytemuck",
@@ -6386,7 +6386,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.2",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
@@ -6455,7 +6455,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.33.5"
+version = "2.34.1"
 dependencies = [
  "anyhow",
  "arc-swap",
