@@ -145,6 +145,7 @@ impl SftpLocation {
 
 static CLI_SSH_IDENTITY: OnceLock<Option<PathBuf>> = OnceLock::new();
 static CLI_INSECURE_SKIP_HOST_KEY_VERIFY: AtomicBool = AtomicBool::new(false);
+static GLOBAL_KNOWN_HOSTS: OnceLock<Option<PathBuf>> = OnceLock::new();
 
 /// Store the global `--ssh-identity` value resolved from CLI/env for SFTP
 /// sources to consult. Idempotent — a second call (e.g. on hot reload) is
@@ -156,6 +157,16 @@ pub fn set_cli_ssh_identity(path: Option<PathBuf>) {
 /// Enable/disable the test-only host-key bypass from the CLI flag.
 pub fn set_cli_insecure_skip_host_key_verify(value: bool) {
     CLI_INSECURE_SKIP_HOST_KEY_VERIFY.store(value, Ordering::SeqCst);
+}
+
+/// Store the global `[sftp].known_hosts_path` default from the config file.
+/// Per-source `options.ssh_known_hosts_path` still overrides it.
+pub fn set_global_known_hosts_path(path: Option<PathBuf>) {
+    let _ = GLOBAL_KNOWN_HOSTS.set(path);
+}
+
+fn global_known_hosts_path() -> Option<PathBuf> {
+    GLOBAL_KNOWN_HOSTS.get().cloned().flatten()
 }
 
 fn cli_ssh_identity() -> Option<PathBuf> {
@@ -483,6 +494,9 @@ fn check_host_key(
 fn resolved_known_hosts_path(loc: &SftpLocation, home_dir: Option<&Path>) -> Option<PathBuf> {
     if let Some(p) = &loc.known_hosts {
         return Some(p.clone());
+    }
+    if let Some(p) = global_known_hosts_path() {
+        return Some(p);
     }
     home_dir.map(|h| h.join(".ssh").join("known_hosts"))
 }
@@ -1322,6 +1336,31 @@ mod tests {
         assert_eq!(
             check_host_key(&entries, "example.com", 22, b"KEY", false),
             HostKeyCheckOutcome::Match
+        );
+    }
+
+    #[test]
+    fn test_resolved_known_hosts_prefers_per_source_over_home() {
+        let loc = SftpLocation::parse(
+            "sftp://u@h/f",
+            &opts(&[("ssh_known_hosts_path", "/etc/per_source_known_hosts")]),
+        )
+        .unwrap();
+        let resolved = resolved_known_hosts_path(&loc, Some(Path::new("/home/tester")));
+        assert_eq!(
+            resolved,
+            Some(PathBuf::from("/etc/per_source_known_hosts")),
+            "per-source ssh_known_hosts_path must win over the home fallback"
+        );
+    }
+
+    #[test]
+    fn test_resolved_known_hosts_falls_back_to_home() {
+        let loc = SftpLocation::parse("sftp://u@h/f", &HashMap::new()).unwrap();
+        let resolved = resolved_known_hosts_path(&loc, Some(Path::new("/home/tester")));
+        assert_eq!(
+            resolved,
+            Some(PathBuf::from("/home/tester/.ssh/known_hosts"))
         );
     }
 

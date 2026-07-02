@@ -113,6 +113,12 @@ async fn main() -> anyhow::Result<()> {
         use tileserver_rs::sources::pmtiles::sftp;
         sftp::set_cli_ssh_identity(cli.ssh_identity.clone());
         sftp::set_cli_insecure_skip_host_key_verify(cli.ssh_insecure_skip_host_key_verify);
+        sftp::set_global_known_hosts_path(
+            config
+                .sftp
+                .as_ref()
+                .and_then(|s| s.known_hosts_path.clone()),
+        );
         if cli.ssh_insecure_skip_host_key_verify {
             tracing::warn!(
                 flag = "--ssh-insecure-skip-host-key-verify",
