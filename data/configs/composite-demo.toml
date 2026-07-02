@@ -1,0 +1,28 @@
+# Composite + style-autogen demo config (issues #601 + #710).
+#
+# Two real vector sources with no configured [[styles]] entry, so:
+#   GET /styles/protomaps/style.json   -> auto-generated MapLibre style (#710)
+#   GET /data/protomaps+zurich.json    -> merged composite TileJSON (#601)
+#   GET /data/protomaps+zurich/{z}/{x}/{y}.pbf -> merged vector tile (#601)
+#   GET /data/world-base.json          -> named composite (#601)
+
+[server]
+host = "127.0.0.1"
+port = 8088
+cors_origins = ["*"]
+
+[[sources]]
+id = "protomaps"
+type = "pmtiles"
+path = "./data/tiles/protomaps-sample.pmtiles"
+name = "Protomaps Firenze Sample"
+
+[[sources]]
+id = "zurich"
+type = "mbtiles"
+path = "./data/tiles/zurich_switzerland.mbtiles"
+name = "Zurich Switzerland"
+
+[[composites]]
+id = "world-base"
+sources = ["protomaps", "zurich"]
