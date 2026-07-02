@@ -780,42 +780,62 @@ impl SftpBackend {
     }
 
     async fn read_once(&self, offset: usize, length: usize) -> Result<Bytes> {
+        let mut file = self.open_remote_file().await?;
+        seek_to(&mut file, offset).await?;
+        read_range_into_buf(&mut file, length).await
+    }
+
+    async fn open_remote_file(&self) -> Result<russh_sftp::client::fs::File> {
         self.ensure_connected().await?;
         let guard = self.session.lock().await;
         let conn = guard
             .as_ref()
             .ok_or_else(|| TileServerError::SftpConnectionError("session missing".to_string()))?;
-
-        let mut file = conn.sftp.open(self.loc.path.clone()).await.map_err(|e| {
+        conn.sftp.open(self.loc.path.clone()).await.map_err(|e| {
             TileServerError::SftpConnectionError(format!(
                 "failed to open remote '{}': {e}",
                 self.loc.path
             ))
-        })?;
-        file.seek(std::io::SeekFrom::Start(offset as u64))
-            .await
-            .map_err(|e| {
-                TileServerError::SftpConnectionError(format!("seek to {offset} failed: {e}"))
-            })?;
-
-        let mut buf = BytesMut::zeroed(length);
-        let mut read = 0;
-        while read < length {
-            let n = file.read(&mut buf[read..]).await.map_err(|e| {
-                TileServerError::SftpConnectionError(format!("range read failed: {e}"))
-            })?;
-            if n == 0 {
-                break;
-            }
-            read += n;
-        }
-        buf.truncate(read);
-        Ok(buf.freeze())
+        })
     }
 
     fn is_connection_error(err: &TileServerError) -> bool {
         matches!(err, TileServerError::SftpConnectionError(_))
     }
+}
+
+/// Seek `file` to `offset` from the start, mapping any IO failure to a
+/// connection error so the reconnect path can retry.
+async fn seek_to<S>(file: &mut S, offset: usize) -> Result<()>
+where
+    S: AsyncSeekExt + Unpin,
+{
+    file.seek(std::io::SeekFrom::Start(offset as u64))
+        .await
+        .map(|_| ())
+        .map_err(|e| TileServerError::SftpConnectionError(format!("seek to {offset} failed: {e}")))
+}
+
+/// Read exactly `length` bytes (or until EOF) from `file` into a fresh
+/// buffer. A short read at EOF truncates the returned bytes.
+async fn read_range_into_buf<R>(file: &mut R, length: usize) -> Result<Bytes>
+where
+    R: AsyncReadExt + Unpin,
+{
+    let mut buf = BytesMut::zeroed(length);
+    let mut read = 0;
+    while read < length {
+        let n = file
+            .read(&mut buf[read..])
+            .await
+            .map_err(|e| TileServerError::SftpConnectionError(format!("range read failed: {e}")))?;
+        if n == 0 {
+            break;
+        }
+        read += n;
+    }
+    buf.truncate(read);
+    Ok(buf.freeze())
 }
 
 impl AsyncBackend for SftpBackend {
@@ -1216,6 +1236,36 @@ mod tests {
     }
 
     #[test]
+    fn test_sftp_location_parse_empty_remote_path() {
+        let err = SftpLocation::parse("sftp://u@h/", &HashMap::new()).unwrap_err();
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
+
+    #[test]
+    fn test_sftp_location_parse_empty_user() {
+        let err = SftpLocation::parse("sftp://@h/file", &HashMap::new()).unwrap_err();
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
+
+    #[test]
+    fn test_sftp_location_parse_empty_host() {
+        let err = SftpLocation::parse("sftp://u@/file", &HashMap::new()).unwrap_err();
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
+
+    #[test]
+    fn test_sftp_location_parse_invalid_port() {
+        let err = SftpLocation::parse("sftp://u@h:notaport/file", &HashMap::new()).unwrap_err();
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
+
+    #[test]
+    fn test_sftp_location_parse_empty_host_before_port() {
+        let err = SftpLocation::parse("sftp://u@:2222/file", &HashMap::new()).unwrap_err();
+        assert!(matches!(err, TileServerError::ConfigError(_)));
+    }
+
+    #[test]
     fn test_sftp_location_options_override_user_and_port() {
         let loc = SftpLocation::parse(
             "sftp://user@host/file",
@@ -1339,6 +1389,19 @@ mod tests {
             }
             other => panic!("expected SftpAuthError, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_resolve_identity_empty_agent_sock_errors() {
+        let tmp = tempfile::tempdir().unwrap();
+        let err = resolve_identity(&SftpAuthOptions {
+            source_identity: None,
+            cli_identity: None,
+            home_dir: Some(tmp.path().to_path_buf()),
+            ssh_auth_sock: Some(String::new()),
+        })
+        .unwrap_err();
+        assert!(matches!(err, TileServerError::SftpAuthError(_)));
     }
 
     #[test]
@@ -1649,6 +1712,30 @@ mod tests {
         assert_eq!(hex, "a9993e364706816aba3e25717850c26c9cd0d89d");
     }
 
+    #[test]
+    fn test_sha1_empty_input() {
+        // SHA-1("") = da39a3ee5e6b4b0d3255bfef95601890afd80709
+        let digest = sha1(b"");
+        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, "da39a3ee5e6b4b0d3255bfef95601890afd80709");
+    }
+
+    #[test]
+    fn test_decode_base64_rejects_invalid_char() {
+        assert_eq!(decode_base64("****"), None);
+    }
+
+    #[test]
+    fn test_hmac_sha1_long_salt_is_prehashed() {
+        // A salt longer than the 64-byte block exercises the pre-hash path.
+        let long_salt = vec![0xABu8; 100];
+        let mac = hmac_sha1(&long_salt, b"example.com");
+        assert_eq!(mac.len(), 20);
+        // Deterministic: same inputs yield the same MAC.
+        assert_eq!(mac, hmac_sha1(&long_salt, b"example.com"));
+        assert_ne!(mac, hmac_sha1(&long_salt, b"other.com"));
+    }
+
     // ── U30–U36: tile_type_to_format (all 7 TileType variants) ────────
 
     #[test]
@@ -1903,5 +1990,56 @@ mod tests {
     fn test_take_verification_error_absent() {
         let slot: Arc<Mutex<Option<TileServerError>>> = Arc::new(Mutex::new(None));
         assert!(take_verification_error(&slot).is_none());
+    }
+
+    // ── U60–U62: seek_to ──────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_seek_to_positions_cursor() {
+        let mut cursor = std::io::Cursor::new(b"0123456789".to_vec());
+        seek_to(&mut cursor, 4).await.unwrap();
+        let mut rest = Vec::new();
+        cursor.read_to_end(&mut rest).await.unwrap();
+        assert_eq!(rest, b"456789");
+    }
+
+    #[tokio::test]
+    async fn test_seek_to_zero_is_start() {
+        let mut cursor = std::io::Cursor::new(b"abc".to_vec());
+        seek_to(&mut cursor, 0).await.unwrap();
+        let mut rest = Vec::new();
+        cursor.read_to_end(&mut rest).await.unwrap();
+        assert_eq!(rest, b"abc");
+    }
+
+    // ── U63–U66: read_range_into_buf (full read / EOF short read / empty) ──
+
+    #[tokio::test]
+    async fn test_read_range_into_buf_full_length() {
+        let mut cursor = std::io::Cursor::new(b"HELLOWORLD".to_vec());
+        let bytes = read_range_into_buf(&mut cursor, 5).await.unwrap();
+        assert_eq!(bytes.as_ref(), b"HELLO");
+    }
+
+    #[tokio::test]
+    async fn test_read_range_into_buf_short_read_truncates_at_eof() {
+        let mut cursor = std::io::Cursor::new(b"HI".to_vec());
+        let bytes = read_range_into_buf(&mut cursor, 8).await.unwrap();
+        assert_eq!(bytes.as_ref(), b"HI");
+    }
+
+    #[tokio::test]
+    async fn test_read_range_into_buf_zero_length() {
+        let mut cursor = std::io::Cursor::new(b"data".to_vec());
+        let bytes = read_range_into_buf(&mut cursor, 0).await.unwrap();
+        assert!(bytes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_read_range_into_buf_reads_after_seek() {
+        let mut cursor = std::io::Cursor::new(b"0123456789".to_vec());
+        seek_to(&mut cursor, 3).await.unwrap();
+        let bytes = read_range_into_buf(&mut cursor, 4).await.unwrap();
+        assert_eq!(bytes.as_ref(), b"3456");
     }
 }
