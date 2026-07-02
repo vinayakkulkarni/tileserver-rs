@@ -241,6 +241,26 @@ fn require_readable(path: &Path) -> Result<()> {
     })
 }
 
+/// Convert a public-key auth outcome into a `Result`: `Ok(())` when the
+/// server accepted the identity, otherwise a rejection error naming the
+/// user and identity file.
+fn ensure_key_auth_accepted(accepted: bool, user: &str, identity: &Path) -> Result<()> {
+    if accepted {
+        Ok(())
+    } else {
+        Err(TileServerError::SftpAuthError(format!(
+            "authentication rejected for user '{}' with identity '{}'",
+            user,
+            identity.display()
+        )))
+    }
+}
+
+/// Error returned when no SSH-agent identity was accepted for `user`.
+fn no_agent_identity_error(user: &str) -> TileServerError {
+    TileServerError::SftpAuthError(format!("no SSH agent identity accepted for user '{user}'"))
+}
+
 // ─── known_hosts parsing + host key verification ─────────────────────────
 
 /// One parsed `known_hosts` entry. `hostnames` may contain literal names,
@@ -702,36 +722,35 @@ impl SftpBackend {
 
     async fn authenticate(&self, handle: &mut Handle<SftpHandler>) -> Result<()> {
         match &self.identity {
-            ResolvedIdentity::KeyFile(path) => {
-                let key = load_secret_key(path, None).map_err(|e| {
-                    TileServerError::SftpAuthError(format!(
-                        "failed to load SSH identity '{}': {e}",
-                        path.display()
-                    ))
-                })?;
-                let auth = handle
-                    .authenticate_publickey(
-                        &self.loc.user,
-                        PrivateKeyWithHashAlg::new(Arc::new(key), best_hash(&self.loc)),
-                    )
-                    .await
-                    .map_err(|e| {
-                        TileServerError::SftpAuthError(format!(
-                            "public-key auth failed for identity '{}': {e}",
-                            path.display()
-                        ))
-                    })?;
-                if !auth.success() {
-                    return Err(TileServerError::SftpAuthError(format!(
-                        "authentication rejected for user '{}' with identity '{}'",
-                        self.loc.user,
-                        path.display()
-                    )));
-                }
-                Ok(())
-            }
+            ResolvedIdentity::KeyFile(path) => self.authenticate_key_file(handle, path).await,
             ResolvedIdentity::Agent(sock) => self.authenticate_agent(handle, sock).await,
         }
+    }
+
+    async fn authenticate_key_file(
+        &self,
+        handle: &mut Handle<SftpHandler>,
+        path: &Path,
+    ) -> Result<()> {
+        let key = load_secret_key(path, None).map_err(|e| {
+            TileServerError::SftpAuthError(format!(
+                "failed to load SSH identity '{}': {e}",
+                path.display()
+            ))
+        })?;
+        let auth = handle
+            .authenticate_publickey(
+                &self.loc.user,
+                PrivateKeyWithHashAlg::new(Arc::new(key), best_hash(&self.loc)),
+            )
+            .await
+            .map_err(|e| {
+                TileServerError::SftpAuthError(format!(
+                    "public-key auth failed for identity '{}': {e}",
+                    path.display()
+                ))
+            })?;
+        ensure_key_auth_accepted(auth.success(), &self.loc.user, path)
     }
 
     async fn authenticate_agent(&self, handle: &mut Handle<SftpHandler>, sock: &str) -> Result<()> {
@@ -744,24 +763,40 @@ impl SftpBackend {
         let identities = agent.request_identities().await.map_err(|e| {
             TileServerError::SftpAuthError(format!("SSH agent listed no identities: {e}"))
         })?;
+        self.authenticate_with_agent_identities(handle, identities, &mut agent)
+            .await
+    }
+
+    async fn authenticate_with_agent_identities(
+        &self,
+        handle: &mut Handle<SftpHandler>,
+        identities: Vec<russh::keys::agent::AgentIdentity>,
+        agent: &mut russh::keys::agent::client::AgentClient<tokio::net::UnixStream>,
+    ) -> Result<()> {
         for identity in identities {
-            let russh::keys::agent::AgentIdentity::PublicKey { key, .. } = identity else {
-                continue;
-            };
-            let auth = handle
-                .authenticate_publickey_with(&self.loc.user, key, None, &mut agent)
-                .await
-                .map_err(|e| {
-                    TileServerError::SftpAuthError(format!("SSH agent auth attempt failed: {e}"))
-                })?;
-            if auth.success() {
+            if self.try_agent_identity(handle, identity, agent).await? {
                 return Ok(());
             }
         }
-        Err(TileServerError::SftpAuthError(format!(
-            "no SSH agent identity accepted for user '{}'",
-            self.loc.user
-        )))
+        Err(no_agent_identity_error(&self.loc.user))
+    }
+
+    async fn try_agent_identity(
+        &self,
+        handle: &mut Handle<SftpHandler>,
+        identity: russh::keys::agent::AgentIdentity,
+        agent: &mut russh::keys::agent::client::AgentClient<tokio::net::UnixStream>,
+    ) -> Result<bool> {
+        let russh::keys::agent::AgentIdentity::PublicKey { key, .. } = identity else {
+            return Ok(false);
+        };
+        let auth = handle
+            .authenticate_publickey_with(&self.loc.user, key, None, agent)
+            .await
+            .map_err(|e| {
+                TileServerError::SftpAuthError(format!("SSH agent auth attempt failed: {e}"))
+            })?;
+        Ok(auth.success())
     }
 
     async fn invalidate_session(&self) {
@@ -1386,6 +1421,35 @@ mod tests {
             TileServerError::SftpAuthError(msg) => {
                 assert!(msg.contains("id_ed25519"));
                 assert!(msg.contains("SSH_AUTH_SOCK"));
+            }
+            other => panic!("expected SftpAuthError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_ensure_key_auth_accepted_ok_when_accepted() {
+        assert!(ensure_key_auth_accepted(true, "alice", Path::new("/k/id_ed25519")).is_ok());
+    }
+
+    #[test]
+    fn test_ensure_key_auth_accepted_err_when_rejected() {
+        let err = ensure_key_auth_accepted(false, "alice", Path::new("/k/id_ed25519")).unwrap_err();
+        match err {
+            TileServerError::SftpAuthError(msg) => {
+                assert!(msg.contains("alice"));
+                assert!(msg.contains("/k/id_ed25519"));
+                assert!(msg.contains("rejected"));
+            }
+            other => panic!("expected SftpAuthError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_no_agent_identity_error_names_user() {
+        match no_agent_identity_error("bob") {
+            TileServerError::SftpAuthError(msg) => {
+                assert!(msg.contains("bob"));
+                assert!(msg.contains("no SSH agent identity"));
             }
             other => panic!("expected SftpAuthError, got {other:?}"),
         }
