@@ -91,6 +91,22 @@ pub enum TileServerError {
     #[error("stac error: {0}")]
     StacError(String),
 
+    #[cfg(feature = "sftp")]
+    #[error("SFTP authentication error: {0}")]
+    SftpAuthError(String),
+
+    #[cfg(feature = "sftp")]
+    #[error("SFTP connection error: {0}")]
+    SftpConnectionError(String),
+
+    #[cfg(feature = "sftp")]
+    #[error("SFTP host key mismatch for {host}: expected {expected}, got {got}")]
+    SftpHostKeyMismatch {
+        host: String,
+        expected: String,
+        got: String,
+    },
+
     #[error("upload error: {0}")]
     UploadError(String),
 
@@ -99,6 +115,22 @@ pub enum TileServerError {
 
     #[error("internal error: {0}")]
     Internal(#[from] anyhow::Error),
+}
+
+/// Status/message parts for the feature-gated SFTP error variants. Hoisted
+/// out of the main `into_response` match so those variants collapse to a
+/// single delegating arm instead of three. All three map to a 500 with the
+/// error's `Display`.
+#[cfg(feature = "sftp")]
+fn sftp_error_response_parts(err: &TileServerError) -> Option<(StatusCode, String)> {
+    match err {
+        TileServerError::SftpAuthError(_)
+        | TileServerError::SftpConnectionError(_)
+        | TileServerError::SftpHostKeyMismatch { .. } => {
+            Some((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+        }
+        _ => None,
+    }
 }
 
 impl IntoResponse for TileServerError {
@@ -177,6 +209,12 @@ impl IntoResponse for TileServerError {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal server error".to_string(),
             ),
+            #[cfg(feature = "sftp")]
+            TileServerError::SftpAuthError(_)
+            | TileServerError::SftpConnectionError(_)
+            | TileServerError::SftpHostKeyMismatch { .. } => {
+                sftp_error_response_parts(&self).expect("sftp variant maps to response parts")
+            }
         };
 
         (status, message).into_response()
@@ -471,6 +509,95 @@ mod tests {
     fn test_stac_error_display_and_status() {
         let err = TileServerError::StacError("api 500".to_string());
         assert_eq!(err.to_string(), "stac error: api 500");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[cfg(feature = "sftp")]
+    fn host_key_mismatch() -> TileServerError {
+        TileServerError::SftpHostKeyMismatch {
+            host: "example.com".to_string(),
+            expected: "sha256:aaa".to_string(),
+            got: "sha256:bbb".to_string(),
+        }
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_error_response_parts_auth() {
+        let parts = sftp_error_response_parts(&TileServerError::SftpAuthError("nope".to_string()));
+        assert_eq!(
+            parts,
+            Some((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "SFTP authentication error: nope".to_string()
+            ))
+        );
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_error_response_parts_connection() {
+        let parts =
+            sftp_error_response_parts(&TileServerError::SftpConnectionError("down".to_string()));
+        assert_eq!(
+            parts,
+            Some((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "SFTP connection error: down".to_string()
+            ))
+        );
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_error_response_parts_host_key_mismatch() {
+        let parts = sftp_error_response_parts(&host_key_mismatch());
+        assert_eq!(
+            parts,
+            Some((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "SFTP host key mismatch for example.com: expected sha256:aaa, got sha256:bbb"
+                    .to_string()
+            ))
+        );
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_error_response_parts_non_sftp_variant_is_none() {
+        assert_eq!(
+            sftp_error_response_parts(&TileServerError::ConfigError("x".to_string())),
+            None
+        );
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_auth_error_into_response() {
+        let err = TileServerError::SftpAuthError("bad key".to_string());
+        assert_eq!(err.to_string(), "SFTP authentication error: bad key");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_connection_error_into_response() {
+        let err = TileServerError::SftpConnectionError("timeout".to_string());
+        assert_eq!(err.to_string(), "SFTP connection error: timeout");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_host_key_mismatch_into_response() {
+        let err = host_key_mismatch();
+        assert_eq!(
+            err.to_string(),
+            "SFTP host key mismatch for example.com: expected sha256:aaa, got sha256:bbb"
+        );
         let response = err.into_response();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
