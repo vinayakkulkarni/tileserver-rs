@@ -158,6 +158,14 @@ jobs:
             --no-default-features \
             --features "dem"
 
+      - name: Coverage — sftp
+        run: |
+          cargo llvm-cov \
+            --no-report \
+            --lib \
+            --no-default-features \
+            --features "sftp"
+
       - name: Generate merged coverage report
         run: |
           cargo llvm-cov report \

@@ -12,7 +12,7 @@ packages:
 # ignores that location and the install completes in <1 s doing nothing
 # instead of 10-15 s doing real re-resolution.
 overrides:
-  vite: ^8.1.2
+  vite: ^8.1.3
 
 # pnpm 11's supply-chain policy defaults to a 24-hour minimumReleaseAge,
 # which blocks legitimate routine dep bumps when CI runs within a day of
@@ -53,10 +53,10 @@ catalogs:
     '@nuxt/eslint': ^1.16.0
     '@nuxt/eslint-config': ^1.16.0
     '@nuxt/fonts': ^0.14.0
-    '@nuxt/icon': ^2.2.5
+    '@nuxt/icon': ^2.3.1
     '@nuxtjs/color-mode': ^4.0.1
     '@tailwindcss/vite': ^4.3.2
-    '@types/node': ^26.0.1
+    '@types/node': ^26.1.0
     '@vueuse/core': ^14.3.0
     '@vueuse/nuxt': ^14.3.0
     class-variance-authority: ^0.7.1
@@ -67,7 +67,7 @@ catalogs:
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.0.8
-    '@lucide/vue': ^1.22.0
+    '@lucide/vue': ^1.23.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.3.0
     nuxt: ^4.4.8
@@ -81,18 +81,18 @@ catalogs:
     tailwindcss-animate: ^1.0.7
     tw-animate-css: ^1.4.0
     typescript: ^6.0.3
-    vite: ^8.1.2
+    vite: ^8.1.3
     vue: ^3.5.39
-    vue-tsc: ^3.3.5
+    vue-tsc: ^3.3.6
   client:
-    '@comark/nuxt': ^0.4.0
+    '@comark/nuxt': ^0.5.0
     '@geoql/v-maplibre': ^2.0.1
     '@maplibre/mlt': ^1.1.12
     '@mlc-ai/web-llm': ^0.2.84
     '@tanstack/ai': ^0.39.0
-    '@tanstack/ai-vue': ^0.14.0
-    '@tanstack/query-db-collection': ^1.0.45
-    '@tanstack/vue-db': ^0.0.124
+    '@tanstack/ai-vue': ^0.14.1
+    '@tanstack/query-db-collection': ^1.0.46
+    '@tanstack/vue-db': ^0.0.125
     '@tanstack/vue-query': ^5.101.2
     '@tmcw/togeojson': ^7.1.2
     '@types/geojson': ^7946.0.16
@@ -107,9 +107,9 @@ catalogs:
   marketing:
     '@nuxtjs/plausible': ^3.0.2
     ogl: ^1.0.11
-    wrangler: ^4.105.0
+    wrangler: ^4.107.0
   docs:
-    '@nuxt/content': ^3.14.0
+    '@nuxt/content': ^3.15.0
     better-sqlite3: ^12.11.1
   benchmarks:
     autocannon: ^8.0.0

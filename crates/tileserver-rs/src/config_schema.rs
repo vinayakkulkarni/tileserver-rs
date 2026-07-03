@@ -1122,6 +1122,30 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
             },
         ],
     },
+    ConfigSectionSchema {
+        header: "[sftp]",
+        blurb: "Global defaults for SFTP PMTiles sources. Per-source overrides live in [[sources]].options.",
+        feature_gate: Some("sftp"),
+        is_array: false,
+        fields: &[
+            ConfigFieldSchema {
+                key: "known_hosts_path",
+                field_type: "path",
+                default: Some("~/.ssh/known_hosts"),
+                description: "Default known_hosts file. Overridden per-source by options.ssh_known_hosts_path.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "strict_host_key",
+                field_type: "bool",
+                default: Some("true"),
+                description: "When false, accept first-seen host keys (TOFU). Default fails closed.",
+                optional: true,
+                enum_values: None,
+            },
+        ],
+    },
 ];
 
 /// Look up the schema for a top-level section by exact header match.
