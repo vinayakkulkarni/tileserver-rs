@@ -91,6 +91,10 @@ cql2             = { workspace = true, optional = true }
 object_store     = { workspace = true, optional = true }
 url              = { workspace = true, optional = true }
 
+# SFTP PMTiles source (optional)
+russh            = { workspace = true, optional = true }
+russh-sftp       = { workspace = true, optional = true }
+
 # GeoParquet support (optional)
 parquet          = { workspace = true, optional = true }
 arrow-array      = { workspace = true, optional = true }
@@ -131,6 +135,7 @@ postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "
 postgres-integration = ["postgres"]
 raster = ["gdal", "dep:ndarray", "dep:exmex"]
 cloud = ["object_store", "url"]
+sftp = ["dep:russh", "dep:russh-sftp"]
 mlt = ["mlt-core", "dep:prost", "geo-types"]
 geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast", "dep:geo", "dep:prost"]
 duckdb = ["dep:duckdb", "dep:prost"]
@@ -172,6 +177,7 @@ base64           = { version = "0.22" }
 sha2             = { workspace = true }
 serde_urlencoded = "0.7"
 jsonwebtoken     = { version = "10", default-features = false, features = ["rust_crypto", "use_pem"] }
+serial_test      = "3"
 
 [[bench]]
 name = "mlt"

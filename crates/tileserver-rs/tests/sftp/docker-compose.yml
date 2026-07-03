@@ -1,0 +1,24 @@
+services:
+  sftp:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: tileserver-sftp-test
+    ports:
+      - "127.0.0.1:2222:2222"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - USER_NAME=test
+      - PUBLIC_KEY_FILE=/keys/id_ed25519_client.pub
+    volumes:
+      - ./fixtures/ssh_host_ed25519_key:/config/ssh_host_keys/ssh_host_ed25519_key:ro
+      - ./fixtures/ssh_host_ed25519_key.pub:/config/ssh_host_keys/ssh_host_ed25519_key.pub:ro
+      - ./fixtures/ssh_host_rsa_key:/config/ssh_host_keys/ssh_host_rsa_key:ro
+      - ./fixtures/ssh_host_rsa_key.pub:/config/ssh_host_keys/ssh_host_rsa_key.pub:ro
+      - ./fixtures/authorized_keys/id_ed25519_client.pub:/keys/id_ed25519_client.pub:ro
+      - ../../../../data/tiles/protomaps-sample.pmtiles:/data/tiles.pmtiles:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2222 || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

@@ -48,6 +48,33 @@ pub struct Config {
     #[serde(default)]
     #[cfg(feature = "mcp")]
     pub mcp: McpConfig,
+    /// Global defaults for SFTP PMTiles sources.
+    ///
+    /// Only present when the binary is compiled with `--features sftp`.
+    /// Per-source overrides live in `[[sources]].options`.
+    #[serde(default)]
+    #[cfg(feature = "sftp")]
+    pub sftp: Option<SftpConfig>,
+}
+
+/// Global defaults for SFTP PMTiles sources.
+#[cfg(feature = "sftp")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+#[non_exhaustive]
+pub struct SftpConfig {
+    /// Default known_hosts file. Defaults to `~/.ssh/known_hosts` when
+    /// unset. Per-source `options.ssh_known_hosts_path` overrides this.
+    pub known_hosts_path: Option<PathBuf>,
+    /// When `false`, accept first-seen host keys (TOFU). Defaults to
+    /// `true` (fail-closed on unknown hosts).
+    #[serde(default = "default_true")]
+    pub strict_host_key: bool,
+}
+
+#[cfg(feature = "sftp")]
+const fn default_true() -> bool {
+    true
 }
 
 /// MCP server configuration block.
@@ -1402,6 +1429,33 @@ minimal_recompression = true
         let config = Config::default();
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8080);
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_config_parses_and_defaults_strict() {
+        let toml = r#"
+            [sftp]
+            known_hosts_path = "/etc/ssh/known_hosts"
+        "#;
+        let config: Config = toml::from_str(toml).unwrap();
+        let sftp = config.sftp.expect("sftp section present");
+        assert_eq!(
+            sftp.known_hosts_path,
+            Some(PathBuf::from("/etc/ssh/known_hosts"))
+        );
+        assert!(sftp.strict_host_key, "strict_host_key defaults to true");
+    }
+
+    #[cfg(feature = "sftp")]
+    #[test]
+    fn test_sftp_config_strict_can_be_disabled() {
+        let toml = r#"
+            [sftp]
+            strict_host_key = false
+        "#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert!(!config.sftp.unwrap().strict_host_key);
     }
 
     #[test]

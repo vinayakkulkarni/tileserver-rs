@@ -4,3 +4,5 @@
 pub mod cloud;
 pub mod http;
 pub mod local;
+#[cfg(feature = "sftp")]
+pub mod sftp;

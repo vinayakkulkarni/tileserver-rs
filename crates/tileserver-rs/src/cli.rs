@@ -54,6 +54,19 @@ pub struct Cli {
     /// Enable verbose logging
     #[arg(short, long)]
     pub verbose: bool,
+
+    /// Path to a default SSH identity (private key) for SFTP sources.
+    ///
+    /// Precedence (highest first): per-source `options.ssh_identity` →
+    /// `TILESERVER_SSH_IDENTITY` → this flag → `~/.ssh/id_ed25519` →
+    /// `~/.ssh/id_rsa` → `$SSH_AUTH_SOCK` agent.
+    #[arg(long, value_name = "PATH", env = "TILESERVER_SSH_IDENTITY")]
+    pub ssh_identity: Option<PathBuf>,
+
+    /// TEST-ONLY: disable SSH host key verification for SFTP sources.
+    /// Emits a loud warning at startup — never use in production.
+    #[arg(long, hide = true)]
+    pub ssh_insecure_skip_host_key_verify: bool,
 }
 
 /// Top-level subcommands.
@@ -212,5 +225,24 @@ mod tests {
     fn test_cli_invalid_port_rejected() {
         let result = Cli::try_parse_from(["tileserver-rs", "--port", "not-a-number"]);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn parses_ssh_identity_flag() {
+        let cli = parse(&["tileserver-rs", "--ssh-identity", "/etc/key"]);
+        assert_eq!(cli.ssh_identity, Some(PathBuf::from("/etc/key")));
+    }
+
+    #[test]
+    fn parses_ssh_insecure_skip_host_key_verify_flag() {
+        let cli = parse(&["tileserver-rs", "--ssh-insecure-skip-host-key-verify"]);
+        assert!(cli.ssh_insecure_skip_host_key_verify);
+    }
+
+    #[test]
+    fn ssh_identity_defaults_to_none() {
+        let cli = parse(&["tileserver-rs"]);
+        assert!(cli.ssh_identity.is_none());
+        assert!(!cli.ssh_insecure_skip_host_key_verify);
     }
 }
