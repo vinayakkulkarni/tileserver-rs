@@ -17,6 +17,9 @@ pub struct Config {
     pub sources: Vec<SourceConfig>,
     #[serde(default)]
     pub styles: Vec<StyleConfig>,
+    /// Named multi-source composites exposed at `/data/{id}` (issue #601).
+    #[serde(default)]
+    pub composites: Vec<CompositeConfig>,
     /// Path to fonts directory containing PBF glyph files
     #[serde(default)]
     pub fonts: Option<PathBuf>,
@@ -1161,6 +1164,28 @@ pub struct StyleConfig {
     pub path: PathBuf,
     /// Optional display name
     pub name: Option<String>,
+}
+
+/// A named multi-source composite (issue #601). Exposes the member sources
+/// under a single id at `/data/{id}` (TileJSON) and `/data/{id}/{z}/{x}/{y}`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct CompositeConfig {
+    /// Unique composite identifier (becomes the `/data/{id}` route).
+    pub id: String,
+    /// Member source ids merged into this composite.
+    pub sources: Vec<String>,
+}
+
+impl CompositeConfig {
+    /// Construct a composite from an id and its member source ids.
+    #[must_use]
+    pub fn new(id: impl Into<String>, sources: Vec<String>) -> Self {
+        Self {
+            id: id.into(),
+            sources,
+        }
+    }
 }
 
 /// Configuration with source metadata and content hash.
@@ -2730,6 +2755,65 @@ entries = [
         fn test_source_type_unknown_string_errors() {
             let result: Result<SourceType, _> = serde_json::from_str("\"banana\"");
             assert!(result.is_err());
+        }
+    }
+
+    mod composite_tests {
+        use crate::config::{CompositeConfig, Config};
+
+        #[test]
+        fn composite_config_roundtrip_with_minimum_fields() {
+            let toml = r#"
+                [[composites]]
+                id = "world"
+                sources = ["a", "b"]
+            "#;
+            let cfg: Config = toml::from_str(toml).expect("parse composites");
+            assert_eq!(cfg.composites.len(), 1);
+            assert_eq!(cfg.composites[0].id, "world");
+            assert_eq!(cfg.composites[0].sources, vec!["a", "b"]);
+        }
+
+        #[test]
+        fn composite_config_defaults_when_missing() {
+            let cfg: Config = toml::from_str("").expect("parse empty");
+            assert!(cfg.composites.is_empty());
+        }
+
+        #[test]
+        fn composite_config_with_multiple_sources() {
+            let toml = r#"
+                [[composites]]
+                id = "trio"
+                sources = ["a", "b", "c"]
+            "#;
+            let cfg: Config = toml::from_str(toml).expect("parse");
+            assert_eq!(cfg.composites[0].sources.len(), 3);
+        }
+
+        #[test]
+        fn composite_config_requires_id() {
+            let toml = r#"
+                [[composites]]
+                sources = ["a"]
+            "#;
+            assert!(toml::from_str::<Config>(toml).is_err());
+        }
+
+        #[test]
+        fn composite_config_requires_sources() {
+            let toml = r#"
+                [[composites]]
+                id = "x"
+            "#;
+            assert!(toml::from_str::<Config>(toml).is_err());
+        }
+
+        #[test]
+        fn composite_config_default_impl_is_empty() {
+            let c = CompositeConfig::default();
+            assert!(c.id.is_empty());
+            assert!(c.sources.is_empty());
         }
     }
 }

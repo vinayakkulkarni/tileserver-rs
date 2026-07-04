@@ -706,6 +706,31 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
         ],
     },
     ConfigSectionSchema {
+        header: "[[composites]]",
+        blurb: "Named multi-source composite. Merges member sources into one \
+                vector tile endpoint. Repeat for each composite.",
+        feature_gate: None,
+        is_array: true,
+        fields: &[
+            ConfigFieldSchema {
+                key: "id",
+                field_type: "string",
+                default: None,
+                description: "Composite identifier (becomes /data/<id> route). Required.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "sources",
+                field_type: "array",
+                default: None,
+                description: "Member source ids merged into this composite. Required.",
+                optional: false,
+                enum_values: None,
+            },
+        ],
+    },
+    ConfigSectionSchema {
         header: "[postgres]",
         blurb: "PostgreSQL connection pool + per-source registries.",
         feature_gate: Some("postgres"),

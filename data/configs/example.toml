@@ -400,3 +400,20 @@ ttl_seconds = 3600
 # id = "osm-bright"
 # path = "/data/styles/osm-bright/style.json"
 # name = "OSM Bright"
+
+# ============================================================================
+# Named multi-source composites (issue #601)
+# ----------------------------------------------------------------------------
+# A composite merges the vector tiles of several sources into one endpoint.
+# Requests to /data/<id>/{z}/{x}/{y}.pbf fetch each member concurrently and
+# merge their layers (colliding layer names append features). /data/<id>.json
+# returns a merged TileJSON: vector_layers are unioned (deduped by id) and the
+# zoom range is intersected (minzoom = max of members, maxzoom = min).
+#
+# Ad-hoc composites need no config at all: just join ids with '+', e.g.
+#   /data/openmaptiles+terrain/{z}/{x}/{y}.pbf
+#
+# Named composites give a reusable alias:
+# [[composites]]
+# id = "world-base"
+# sources = ["openmaptiles", "terrain"]

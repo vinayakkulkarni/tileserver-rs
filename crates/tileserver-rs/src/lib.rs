@@ -6,6 +6,7 @@ pub mod admin;
 pub mod autodetect;
 pub mod cache;
 pub mod cache_control;
+pub mod composite;
 pub mod compression;
 pub mod config;
 pub mod config_schema;
@@ -24,6 +25,7 @@ pub mod response_headers;
 pub mod routes;
 pub mod sources;
 pub mod startup;
+pub mod stylegen;
 pub mod styles;
 pub mod trailing_slash;
 #[cfg(feature = "mlt")]

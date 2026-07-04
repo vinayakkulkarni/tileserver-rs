@@ -190,6 +190,53 @@ impl MockSource {
         src.meta.bounds = None;
         src
     }
+
+    /// MLT (vector) source — used by style auto-gen viewer-compat tests.
+    pub fn mlt(id: &str) -> Self {
+        let mut src = Self::pbf(id);
+        src.meta.format = TileFormat::Mlt;
+        if let Some(ref mut t) = src.tile {
+            t.format = TileFormat::Mlt;
+        }
+        src
+    }
+
+    /// Override the source's `vector_layers` metadata.
+    #[must_use]
+    pub fn with_vector_layers(mut self, vl: serde_json::Value) -> Self {
+        self.meta.vector_layers = Some(vl);
+        self
+    }
+
+    /// Override zoom range.
+    #[must_use]
+    pub fn with_zoom(mut self, minzoom: u8, maxzoom: u8) -> Self {
+        self.meta.minzoom = minzoom;
+        self.meta.maxzoom = maxzoom;
+        self
+    }
+
+    /// Serve exact `bytes` (uncompressed PBF) for every tile request.
+    #[must_use]
+    pub fn with_tile_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.tile = Some(TileData {
+            data: Bytes::from(bytes),
+            format: TileFormat::Pbf,
+            compression: TileCompression::None,
+        });
+        self
+    }
+
+    /// Serve exact `bytes` marked as gzip-compressed for every tile request.
+    #[must_use]
+    pub fn with_gzip_tile_bytes(mut self, bytes: Vec<u8>) -> Self {
+        self.tile = Some(TileData {
+            data: Bytes::from(bytes),
+            format: TileFormat::Pbf,
+            compression: TileCompression::Gzip,
+        });
+        self
+    }
 }
 
 #[async_trait]
@@ -211,6 +258,15 @@ impl TileSource for MockSource {
 ///
 /// Each entry becomes a routable source under its `id`.
 pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
+    server_with_sources_and_config(sources, Config::default())
+}
+
+/// Like [`server_with_sources`] but with a caller-supplied [`Config`] so
+/// composite / named-source tests can register `[[composites]]` entries.
+pub fn server_with_sources_and_config(
+    sources: Vec<Arc<dyn TileSource>>,
+    config: Config,
+) -> TestServer {
     let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::new();
     for s in sources {
         map.insert(s.metadata().id.clone(), s);
@@ -221,7 +277,7 @@ pub fn server_with_sources(sources: Vec<Arc<dyn TileSource>>) -> TestServer {
     let controller = Arc::new(ReloadController::new(
         state,
         meta,
-        Config::default(),
+        config,
         None,
         minimal_runtime(),
     ));
