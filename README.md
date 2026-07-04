@@ -23,7 +23,11 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 - **PostgreSQL Out-DB Rasters** - Serve VRT/COG tiles via PostGIS functions with dynamic filtering
 - **OGC API Features** - PostGIS tables as OGC-spec collections: read, filter with CQL2, transform CRS, write (CRUD), and introspect schemas
 - **STAC Catalog Sources** - Serve COGs directly from any STAC API (static, dynamic per-tile bbox, multi-asset mosaic)
+- **SFTP Sources** - Serve PMTiles straight over SSH (`sftp://` URLs) with key-based auth (feature-gated)
 - **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler Static API)
+- **Embeddable Maps & OG Images** - `/embed/{style}` iframe pages with postMessage API + `/og/{style}` social cards
+- **Composite Tiles** - Merge multiple vector sources into one endpoint (`/data/a+b+c/...` or named `[[composites]]`)
+- **Style Auto-Generation** - Instant MapLibre style for any vector source at `/styles/{source}/style.json`
 - **Zero-Config Auto-Detect** - Point at a directory or file and start serving instantly
 - **Hot Reload** - Reload configuration via `SIGHUP` signal or admin API without downtime
 - **High Performance** - ~100ms per tile (warm cache), ~800ms cold cache
@@ -356,13 +360,17 @@ See [data/configs/example.toml](./data/configs/example.toml) for a complete exam
 | `GET /data/{source}.json` | TileJSON for a source |
 | `GET /data/{source}/{z}/{x}/{y}.{format}` | Get a vector tile (`.pbf`, `.mvt`, `.mlt`) |
 | `GET /data/{source}/{z}/{x}/{y}.geojson` | Get tile as GeoJSON (for debugging) |
+| `GET /data/{a+b+c}/{z}/{x}/{y}.pbf` | Composite tile — merge multiple vector sources on the fly |
+| `GET /data/{a+b+c}.json` | Merged TileJSON for a composite (also works for named `[[composites]]` ids) |
 
 ### Style Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
 | `GET /styles.json` | List all styles |
-| `GET /styles/{style}/style.json` | Get MapLibre GL style JSON |
+| `GET /styles/{style}/style.json` | Get MapLibre GL style JSON (auto-generated for vector sources without a configured style) |
+| `GET /embed/{style}` | Embeddable iframe map page (center/zoom/markers/theme params + postMessage API) |
+| `GET /og/{style}` | OpenGraph social-card image (default 1200×630 PNG; requires native renderer) |
 | `GET /styles/{style}/sprite[@2x].{png,json}` | Get sprite image/metadata |
 | `GET /styles/{style}/wmts.xml` | WMTS capabilities (for QGIS/ArcGIS) |
 
