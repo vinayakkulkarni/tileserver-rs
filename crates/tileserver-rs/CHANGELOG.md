@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.35.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.34.1...v2.35.0) (2026-07-04)
+
+
+### Features
+
+* auto-generated styles for vector sources + composite tile endpoint ([#1244](https://github.com/vinayakkulkarni/tileserver-rs/issues/1244)) ([8235b40](https://github.com/vinayakkulkarni/tileserver-rs/commit/8235b40cd6f011c6b91a471523cfdd3485f745d4))
+* **embed:** embeddable iframe maps and opengraph image endpoints ([#1242](https://github.com/vinayakkulkarni/tileserver-rs/issues/1242)) ([b38188a](https://github.com/vinayakkulkarni/tileserver-rs/commit/b38188add278a8608e1219c38b6f22f92ab83561))
+* **sources:** sftp pmtiles source backend via russh-sftp ([#1243](https://github.com/vinayakkulkarni/tileserver-rs/issues/1243)) ([c218f5e](https://github.com/vinayakkulkarni/tileserver-rs/commit/c218f5edc11d9c73e41b03a031b8cf20882d0bb6))
+
+
+### Bug Fixes
+
+* **deps:** bump @comark/nuxt from 0.4.0 to 0.5.0 ([#1251](https://github.com/vinayakkulkarni/tileserver-rs/issues/1251)) ([c8c0805](https://github.com/vinayakkulkarni/tileserver-rs/commit/c8c08051c0928b7c8b3462c242adef98423e1928))
+* **deps:** bump @lucide/vue from 1.22.0 to 1.23.0 ([#1239](https://github.com/vinayakkulkarni/tileserver-rs/issues/1239)) ([5177a9e](https://github.com/vinayakkulkarni/tileserver-rs/commit/5177a9e56e358cc0a4efaafe12ad749846a211ed))
+* **deps:** bump @nuxt/content from 3.14.0 to 3.15.0 ([#1245](https://github.com/vinayakkulkarni/tileserver-rs/issues/1245)) ([1142fab](https://github.com/vinayakkulkarni/tileserver-rs/commit/1142faba297485e3d887ad490761fa3753ff195c))
+* **deps:** bump @nuxt/icon from 2.2.5 to 2.3.1 ([#1252](https://github.com/vinayakkulkarni/tileserver-rs/issues/1252)) ([09bf381](https://github.com/vinayakkulkarni/tileserver-rs/commit/09bf381d9948844ce51b767f0597a817b8f4f1af))
+* **deps:** bump @tanstack/ai-vue from 0.14.0 to 0.14.1 ([#1241](https://github.com/vinayakkulkarni/tileserver-rs/issues/1241)) ([4d9da97](https://github.com/vinayakkulkarni/tileserver-rs/commit/4d9da97c908ebe772d9aa7e14c303d5970b0b37e))
+* **deps:** bump @tanstack/query-db-collection from 1.0.45 to 1.0.46 ([#1249](https://github.com/vinayakkulkarni/tileserver-rs/issues/1249)) ([90124dc](https://github.com/vinayakkulkarni/tileserver-rs/commit/90124dccd64b87eb9b2b156fb7e2963414ff3307))
+* **deps:** bump @tanstack/vue-db from 0.0.124 to 0.0.125 ([#1248](https://github.com/vinayakkulkarni/tileserver-rs/issues/1248)) ([c5df58e](https://github.com/vinayakkulkarni/tileserver-rs/commit/c5df58efa4411045038de2193e8bfaeb7d146c18))
+* **deps:** bump @types/node from 26.0.1 to 26.1.0 ([#1235](https://github.com/vinayakkulkarni/tileserver-rs/issues/1235)) ([8e13a93](https://github.com/vinayakkulkarni/tileserver-rs/commit/8e13a937438333d32a6e349a02108d41532ea634))
+* **deps:** bump mlt-core from 0.12.2 to 0.12.3 ([#1237](https://github.com/vinayakkulkarni/tileserver-rs/issues/1237)) ([feb87c3](https://github.com/vinayakkulkarni/tileserver-rs/commit/feb87c3ce4f8c591272225fd69dc80789b60b812))
+* **deps:** bump rmcp from 2.0.0 to 2.1.0 ([#1246](https://github.com/vinayakkulkarni/tileserver-rs/issues/1246)) ([1c5bf1e](https://github.com/vinayakkulkarni/tileserver-rs/commit/1c5bf1e9b91800d2125532cba57ffb2c98799eec))
+* **deps:** bump vite from 8.1.2 to 8.1.3 ([#1247](https://github.com/vinayakkulkarni/tileserver-rs/issues/1247)) ([1d893dd](https://github.com/vinayakkulkarni/tileserver-rs/commit/1d893dd0a90349d9caab026745c47c4fd6d37a9d))
+* **deps:** bump vue-tsc from 3.3.5 to 3.3.6 ([#1236](https://github.com/vinayakkulkarni/tileserver-rs/issues/1236)) ([d03640c](https://github.com/vinayakkulkarni/tileserver-rs/commit/d03640ca3a22ff65af8bfa3d3006dad7998037cb))
+* **deps:** bump wrangler from 4.105.0 to 4.106.0 ([#1240](https://github.com/vinayakkulkarni/tileserver-rs/issues/1240)) ([3fa3411](https://github.com/vinayakkulkarni/tileserver-rs/commit/3fa3411b8791bf3ac94a1b29fc836248a377eec1))
+* **deps:** bump wrangler from 4.106.0 to 4.107.0 ([#1250](https://github.com/vinayakkulkarni/tileserver-rs/issues/1250)) ([b860e72](https://github.com/vinayakkulkarni/tileserver-rs/commit/b860e72f46cc371e9091bdd65ad515463d47dd44))
+
+
+### Documentation
+
+* complete coverage for sftp, embed/og, composite + style-autogen features ([40825eb](https://github.com/vinayakkulkarni/tileserver-rs/commit/40825ebfa8167450c3487c55e03f52659f98ceb5))
+
 ## [2.34.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.34.0...v2.34.1) (2026-07-01)
 
 
