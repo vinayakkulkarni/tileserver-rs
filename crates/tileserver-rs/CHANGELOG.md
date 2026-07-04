@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.35.0...v2.36.0) (2026-07-04)
+
+
+### Features
+
+* **mcp:** wire [mcp.oauth].store_path to the SQLite persistence store ([#1255](https://github.com/vinayakkulkarni/tileserver-rs/issues/1255)) ([e15eece](https://github.com/vinayakkulkarni/tileserver-rs/commit/e15eecec16132b63ffe822162236ec2292f1e763))
+
 ## [2.35.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.34.1...v2.35.0) (2026-07-04)
 
 
