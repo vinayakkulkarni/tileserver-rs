@@ -25,6 +25,12 @@ import {
   FileCode2,
   Plug,
   FileArchive,
+  FolderSync,
+  Combine,
+  WandSparkles,
+  Frame,
+  Share2,
+  Package,
   Mountain,
   MountainSnow,
 } from '@lucide/vue';
@@ -148,11 +154,46 @@ export function useMarketingPage() {
       category: 'Developer experience',
     },
     {
+      icon: Combine,
+      title: 'Composite Tiles',
+      description:
+        'Merge layers from multiple vector sources into one tile — ad-hoc via URL or named [[composites]] in config. One request, N sources.',
+      category: 'Developer experience',
+    },
+    {
+      icon: WandSparkles,
+      title: 'Style Auto-Generation',
+      description:
+        'Every vector source is instantly viewable — styles are generated on the fly with deterministic colors when none is authored.',
+      category: 'Developer experience',
+    },
+    {
       icon: Cloud,
       title: 'One-Click Deploy',
       description:
         'Deploy to Railway, Render, DigitalOcean, or Fly.io in minutes. Sample data auto-downloads on first start.',
       category: 'Deployment',
+    },
+    {
+      icon: Package,
+      title: 'Docker, Homebrew & Binaries',
+      description:
+        'Multi-arch Docker images on ghcr.io, a Homebrew tap, and prebuilt Linux/macOS binaries with every release.',
+      category: 'Deployment',
+    },
+    {
+      icon: Frame,
+      title: 'Embeddable Maps',
+      description:
+        'Drop any style into an <iframe> with the /embed endpoint — a self-contained MapLibre page, no client code needed.',
+      category: 'Developer experience',
+    },
+    {
+      icon: Share2,
+      title: 'OpenGraph Images',
+      description:
+        'Server-rendered social preview images per style via /og — share links that unfurl into real map snapshots.',
+      category: 'Developer experience',
     },
     {
       icon: BotMessageSquare,
@@ -173,6 +214,13 @@ export function useMarketingPage() {
       title: 'DuckDB Backend',
       description:
         'Generate tiles from SQL queries against embedded DuckDB. Query GeoParquet, CSV, or any format DuckDB reads — PostGIS power, zero ops.',
+      category: 'Data formats',
+    },
+    {
+      icon: FolderSync,
+      title: 'SFTP Sources',
+      description:
+        'Serve PMTiles straight from any SSH/SFTP host — range reads over the wire, no file sync, no object storage required.',
       category: 'Data formats',
     },
     {
@@ -207,7 +255,14 @@ export function useMarketingPage() {
       icon: Plug,
       title: 'MCP Server',
       description:
-        'First Rust tile server with built-in Model Context Protocol. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
+        'First Rust tile server with built-in Model Context Protocol on rmcp 2.0. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
+      category: 'Intelligence',
+    },
+    {
+      icon: MessageSquare,
+      title: 'Agentic Map Tools',
+      description:
+        'The built-in AI drives the map itself — fly_to, fit_bounds, layer styling, spatial queries, and 10+ more tools callable in natural language.',
       category: 'Intelligence',
     },
   ];
