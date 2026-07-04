@@ -1120,6 +1120,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "store_path",
+                field_type: "path",
+                default: None,
+                description: "SQLite file persisting OAuth clients/tokens across restarts. Requires the mcp-persistence feature.",
+                optional: true,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {

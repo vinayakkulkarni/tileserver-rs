@@ -127,8 +127,10 @@ pub struct McpConfig {
 /// claude.ai Custom Connectors. Tokens are JWTs signed with RS256 using a
 /// key loaded from disk at startup.
 ///
-/// **Token store is in-memory only** — restarting the server invalidates
-/// all issued access and refresh tokens. Clients must re-authorize.
+/// **Token store is in-memory by default** — restarting the server
+/// invalidates all issued access and refresh tokens and clients must
+/// re-authorize. Set `store_path` (with the `mcp-persistence` feature)
+/// to persist the store in SQLite across restarts.
 #[cfg(feature = "mcp")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -148,6 +150,11 @@ pub struct McpOAuthConfig {
     /// (24 h) at startup.
     #[serde(default = "default_token_ttl_secs")]
     pub token_ttl_secs: u64,
+    /// Path to a SQLite file backing the OAuth store (clients, auth codes,
+    /// refresh tokens survive restarts). Requires the `mcp-persistence`
+    /// Cargo feature — startup fails fast if set without it. When unset,
+    /// the store is in-memory and resets on every restart.
+    pub store_path: Option<std::path::PathBuf>,
 }
 
 #[cfg(feature = "mcp")]
@@ -163,6 +170,7 @@ impl Default for McpOAuthConfig {
             issuer_url: None,
             signing_key_path: None,
             token_ttl_secs: default_token_ttl_secs(),
+            store_path: None,
         }
     }
 }
