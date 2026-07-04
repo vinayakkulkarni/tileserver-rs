@@ -471,6 +471,35 @@ impl StaticImageParams {
     }
 }
 
+/// Build validated [`RenderOptions`] for a static-image render.
+///
+/// Shared by [`get_static_image`] and the `/og` handler so both go through the
+/// same dimension/scale validation in [`RenderOptions::for_static`]. Maps the
+/// string validation error into a [`TileServerError::RenderError`].
+#[allow(clippy::too_many_arguments)]
+pub(super) fn build_static_options(
+    style_id: String,
+    style_json: String,
+    static_type: StaticType,
+    width: u32,
+    height: u32,
+    scale: u8,
+    format: ImageFormat,
+    query: StaticQueryParams,
+) -> Result<RenderOptions, TileServerError> {
+    RenderOptions::for_static(
+        style_id,
+        style_json,
+        static_type,
+        width,
+        height,
+        scale,
+        format,
+        query,
+    )
+    .map_err(TileServerError::RenderError)
+}
+
 /// Get a static image
 /// Route: GET /styles/{style}/static/{static_type}/{width}x{height}[@{scale}x].{format}
 pub(crate) async fn get_static_image(
@@ -506,8 +535,8 @@ pub(crate) async fn get_static_image(
     let rewritten_style =
         styles::rewrite_style_for_native(&style.style_json, &state.render_base_url, &state.sources);
 
-    // Create render options
-    let options = RenderOptions::for_static(
+    // Create render options (shared validation with /og)
+    let options = build_static_options(
         params.style.clone(),
         rewritten_style.to_string(),
         static_type,
@@ -516,8 +545,7 @@ pub(crate) async fn get_static_image(
         scale,
         format,
         query,
-    )
-    .map_err(TileServerError::RenderError)?;
+    )?;
 
     // Render static image
     let image_data = renderer.render_static(options).await?;
