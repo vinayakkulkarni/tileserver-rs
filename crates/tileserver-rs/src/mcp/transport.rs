@@ -105,6 +105,26 @@ impl McpAuthMode {
                 .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].signing_key_path` is required"))?;
             let state =
                 OAuthState::from_file(issuer.to_string(), key_path, cfg.oauth.token_ttl_secs)?;
+            let state = match cfg.oauth.store_path.as_deref() {
+                #[cfg(feature = "mcp-persistence")]
+                Some(store_path) => {
+                    let store = super::auth_store_sqlite::SqliteStore::open(store_path)
+                        .map_err(|e| anyhow::anyhow!("open `[mcp.oauth].store_path`: {e}"))?;
+                    tracing::info!(path = %store_path.display(), "MCP OAuth store: SQLite");
+                    OAuthState {
+                        store: std::sync::Arc::new(store),
+                        ..state
+                    }
+                }
+                #[cfg(not(feature = "mcp-persistence"))]
+                Some(store_path) => anyhow::bail!(
+                    "`[mcp.oauth].store_path` is set ({}) but this binary was built \
+                     without the `mcp-persistence` feature; rebuild with \
+                     `--features mcp,mcp-persistence` or unset store_path",
+                    store_path.display()
+                ),
+                None => state,
+            };
             tracing::info!(issuer = %issuer, "MCP OAuth authorization server enabled");
             Ok(Self::OAuth(Box::new(state)))
         } else if let Some(token) = cfg.auth_token.clone() {
@@ -595,6 +615,7 @@ mod tests {
                 issuer_url: Some("http://localhost:8080".to_string()),
                 signing_key_path: Some(key.path().to_path_buf()),
                 token_ttl_secs: 3600,
+                store_path: None,
             },
             ..McpConfig::default()
         };
@@ -604,6 +625,98 @@ mod tests {
         assert!(
             matches!(mode, McpAuthMode::OAuth(_)),
             "expected McpAuthMode::OAuth, got {mode:?}"
+        );
+    }
+
+    /// `store_path` + `mcp-persistence` selects the disk-backed SQLite
+    /// store instead of the in-memory default. Asserted via the store's
+    /// `Debug` representation because `OAuthState.store` is a trait object.
+    #[cfg(feature = "mcp-persistence")]
+    #[test]
+    fn from_config_oauth_uses_sqlite_store_when_store_path_set() {
+        let key = write_test_pem_to_tempfile();
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store_path = dir.path().join("oauth-store.sqlite");
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: Some("http://localhost:8080".to_string()),
+                signing_key_path: Some(key.path().to_path_buf()),
+                store_path: Some(store_path.clone()),
+                ..crate::config::McpOAuthConfig::default()
+            },
+            ..McpConfig::default()
+        };
+
+        let mode = McpAuthMode::from_config(&cfg).expect("oauth config with store_path builds");
+
+        let McpAuthMode::OAuth(state) = mode else {
+            panic!("expected McpAuthMode::OAuth");
+        };
+        let store_debug = format!("{:?}", state.store);
+        assert!(
+            store_debug.contains("SqliteStore"),
+            "store must be SqliteStore when store_path is set, got: {store_debug}"
+        );
+        assert!(
+            store_path.exists(),
+            "SQLite file must be created at the configured store_path"
+        );
+    }
+
+    /// Without `store_path` the store stays in-memory (the default) even
+    /// when the `mcp-persistence` feature is compiled in.
+    #[test]
+    fn from_config_oauth_uses_memory_store_without_store_path() {
+        let key = write_test_pem_to_tempfile();
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: Some("http://localhost:8080".to_string()),
+                signing_key_path: Some(key.path().to_path_buf()),
+                ..crate::config::McpOAuthConfig::default()
+            },
+            ..McpConfig::default()
+        };
+
+        let mode = McpAuthMode::from_config(&cfg).expect("oauth config builds");
+
+        let McpAuthMode::OAuth(state) = mode else {
+            panic!("expected McpAuthMode::OAuth");
+        };
+        let store_debug = format!("{:?}", state.store);
+        assert!(
+            store_debug.contains("InMemoryStore"),
+            "store must default to InMemoryStore without store_path, got: {store_debug}"
+        );
+    }
+
+    /// `store_path` set but the binary was built WITHOUT `mcp-persistence`:
+    /// fail fast at startup instead of silently running in-memory — an
+    /// operator who configured persistence must not lose OAuth state to a
+    /// silently ignored key.
+    #[cfg(not(feature = "mcp-persistence"))]
+    #[test]
+    fn from_config_errors_when_store_path_set_without_persistence_feature() {
+        let key = write_test_pem_to_tempfile();
+        let cfg = McpConfig {
+            oauth: crate::config::McpOAuthConfig {
+                enabled: true,
+                issuer_url: Some("http://localhost:8080".to_string()),
+                signing_key_path: Some(key.path().to_path_buf()),
+                store_path: Some(std::path::PathBuf::from("/tmp/oauth.sqlite")),
+                ..crate::config::McpOAuthConfig::default()
+            },
+            ..McpConfig::default()
+        };
+
+        let err = McpAuthMode::from_config(&cfg)
+            .expect_err("store_path without mcp-persistence must fail fast");
+
+        let msg = format!("{err}");
+        assert!(
+            msg.contains("mcp-persistence"),
+            "error must tell the operator to rebuild with mcp-persistence, got: {msg}"
         );
     }
 

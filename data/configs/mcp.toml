@@ -50,6 +50,7 @@ cors_origins = ["*"]
 # issuer_url = "https://tiles.example.com"
 # signing_key_path = "/etc/tileserver-rs/mcp-jwt-key.pem"
 # token_ttl_secs = 3600  # max 86 400 (24 h); larger values are clamped down
+# store_path = "/var/lib/tileserver-rs/oauth-store.sqlite"  # persist OAuth state (requires mcp-persistence feature)
 
 # At least one source is needed for the MCP tools to return useful results.
 # Swap the path for a real PMTiles or MBTiles file on disk.
