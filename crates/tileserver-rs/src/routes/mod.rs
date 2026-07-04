@@ -4,8 +4,10 @@
 //! domain-specific sub-modules for each endpoint group.
 
 mod data;
+mod embed;
 mod files;
 mod fonts;
+mod og;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc;
 #[cfg(feature = "postgres")]
@@ -75,6 +77,8 @@ pub fn api_router(state: SharedState) -> Router {
         .route("/data.json", get(data::get_all_sources))
         .route("/data/{source}", get(data::get_source_tilejson))
         .route("/data/{source}/{z}/{x}/{y_fmt}", get(data::get_tile))
+        // Embeddable iframe map (HTML only, not gated by disable_render)
+        .route("/embed/{style}", get(embed::get_embed))
         // Static files endpoint
         .route("/files/{*filepath}", get(files::get_static_file))
         // Upload endpoints (streaming, large body limit)
@@ -120,6 +124,7 @@ fn render_router() -> Router<SharedState> {
             "/styles/{style}/static/{static_type}/{size_fmt}",
             get(render::get_static_image),
         )
+        .route("/og/{style}", get(og::get_og))
 }
 
 async fn health_check() -> (StatusCode, &'static str) {
