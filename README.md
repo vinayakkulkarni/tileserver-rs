@@ -24,6 +24,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 - **OGC API Features** - PostGIS tables as OGC-spec collections: read, filter with CQL2, transform CRS, write (CRUD), and introspect schemas
 - **STAC Catalog Sources** - Serve COGs directly from any STAC API (static, dynamic per-tile bbox, multi-asset mosaic)
 - **SFTP Sources** - Serve PMTiles straight over SSH (`sftp://` URLs) with key-based auth (feature-gated)
+- **One-Shot Conversions** - Turn GeoJSON / CSV files into PMTiles via `tileserver-rs convert input.geojson --output out.pmtiles` (feature-gated). For planet-scale builds (OSM PBF, Overture), see [geolith](https://github.com/geolith/geolith)
 - **Static Map Images** - Create embeddable map screenshots (like Mapbox/Maptiler Static API)
 - **Embeddable Maps & OG Images** - `/embed/{style}` iframe pages with postMessage API + `/og/{style}` social cards
 - **Composite Tiles** - Merge multiple vector sources into one endpoint (`/data/a+b+c/...` or named `[[composites]]`)

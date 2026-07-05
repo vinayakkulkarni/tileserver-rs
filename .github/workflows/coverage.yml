@@ -186,6 +186,15 @@ jobs:
             --no-default-features \
             --features "sftp"
 
+      - name: Coverage — convert
+        run: |
+          cargo llvm-cov \
+            --no-report \
+            --lib \
+            --test convert \
+            --no-default-features \
+            --features "convert"
+
       - name: Generate merged coverage report
         run: |
           cargo llvm-cov report \
