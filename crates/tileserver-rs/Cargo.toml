@@ -148,7 +148,7 @@ dem = ["raster"]
 # and geozero's `with-csv` (which adds the `csv` crate) additively; the base
 # geozero dep already ships `with-geojson` + `with-mvt`, so GeoJSON input and
 # MVT encoding need no extra features here.
-convert = ["dep:indicatif", "dep:csv", "geozero/with-csv"]
+convert = ["dep:indicatif", "dep:csv", "geozero/with-csv", "pmtiles/write"]
 # MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
 # and avoid pulling rmcp into every `cargo build` invocation. The `subtle`
 # crate is enabled here so the OAuth bearer + PKCE comparisons in
