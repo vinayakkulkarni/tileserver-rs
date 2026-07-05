@@ -5,8 +5,8 @@
 //! `pmtiles` writer emits a single Hilbert-ordered archive. Gated behind the
 //! opt-in `convert` cargo feature so default builds stay slim.
 //!
-//! For planet-scale tile generation (OSM PBF, Overture Maps), see
-//! <https://github.com/geolith/geolith>.
+//! For planet-scale tile generation (OSM PBF, Overture Maps), use a dedicated
+//! builder such as <https://github.com/felt/tippecanoe>.
 
 pub mod args;
 pub mod input;

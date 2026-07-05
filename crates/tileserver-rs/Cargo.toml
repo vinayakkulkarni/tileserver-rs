@@ -242,3 +242,8 @@ required-features = ["geoparquet"]
 [[bench]]
 name = "metrics_overhead"
 harness = false
+
+[[bench]]
+name = "convert"
+harness = false
+required-features = ["convert"]
