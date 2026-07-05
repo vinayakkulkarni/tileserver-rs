@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.5, 37.7],
+            [-122.5, 37.9],
+            [-122.4, 37.9],
+            [-122.4, 37.8],
+            [-122.3, 37.8],
+            [-122.3, 37.7],
+            [-122.5, 37.7]
+          ]
+        ]
+      },
+      "properties": { "name": "SF Bay Area", "id": 10 }
+    }
+  ]
+}
