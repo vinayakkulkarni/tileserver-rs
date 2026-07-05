@@ -142,6 +142,12 @@ geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-c
 duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
 dem = ["raster"]
+# Built-in GeoJSON/CSV → PMTiles conversion CLI (`tileserver-rs convert`).
+# Opt-in to keep default builds slim. Pulls indicatif for the progress bar
+# and geozero's `with-csv` (which adds the `csv` crate) additively; the base
+# geozero dep already ships `with-geojson` + `with-mvt`, so GeoJSON input and
+# MVT encoding need no extra features here.
+convert = ["dep:indicatif", "geozero/with-csv"]
 # MCP server (stdio + Streamable HTTP). Opt-in to keep default builds slim
 # and avoid pulling rmcp into every `cargo build` invocation. The `subtle`
 # crate is enabled here so the OAuth bearer + PKCE comparisons in
