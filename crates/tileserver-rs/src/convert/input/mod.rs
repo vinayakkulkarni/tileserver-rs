@@ -3,6 +3,7 @@
 
 pub mod csv;
 pub mod geojson;
+pub(crate) mod geom;
 
 use crate::error::{Result, TileServerError};
 use std::collections::BTreeMap;

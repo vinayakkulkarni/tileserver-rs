@@ -7293,6 +7293,7 @@ dependencies = [
  "cql2",
  "criterion",
  "crossbeam-channel",
+ "csv",
  "deadpool-postgres",
  "dotenvy",
  "duckdb",
