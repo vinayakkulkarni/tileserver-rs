@@ -25,6 +25,7 @@ import {
   FileCode2,
   Plug,
   FileArchive,
+  FileInput,
   FolderSync,
   Combine,
   WandSparkles,
@@ -214,6 +215,13 @@ export function useMarketingPage() {
       title: 'DuckDB Backend',
       description:
         'Generate tiles from SQL queries against embedded DuckDB. Query GeoParquet, CSV, or any format DuckDB reads — PostGIS power, zero ops.',
+      category: 'Data formats',
+    },
+    {
+      icon: FileInput,
+      title: 'One-Shot Conversions',
+      description:
+        'Turn GeoJSON or CSV into PMTiles with a single command — tileserver-rs convert. Add --serve to preview the result instantly.',
       category: 'Data formats',
     },
     {
