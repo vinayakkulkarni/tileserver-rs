@@ -11,7 +11,7 @@ pub struct Cli {
     /// (default behavior). Subcommands are used for alternative entry
     /// points like `mcp-stdio` that take control of stdin/stdout.
     #[command(subcommand)]
-    #[cfg_attr(not(feature = "mcp"), allow(dead_code))]
+    #[cfg_attr(not(any(feature = "mcp", feature = "convert")), allow(dead_code))]
     pub command: Option<Commands>,
 
     /// Path to a tile file or directory to auto-detect sources/styles from
@@ -91,6 +91,11 @@ pub enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+
+    /// Convert a GeoJSON or CSV file into a PMTiles archive. Optionally
+    /// serve the result immediately with `--serve`.
+    #[cfg(feature = "convert")]
+    Convert(tileserver_rs::convert::ConvertArgs),
 }
 
 impl Cli {
