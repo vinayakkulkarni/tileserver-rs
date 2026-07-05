@@ -191,4 +191,32 @@ mod tests {
         props.insert("name".to_string(), PropValue::String("x".to_string()));
         assert_eq!(resolve_id(&props, None), None);
     }
+
+    #[test]
+    fn resolve_id_from_whole_float_value() {
+        let mut props = BTreeMap::new();
+        props.insert("id".to_string(), PropValue::Float(42.0));
+        assert_eq!(resolve_id(&props, None), Some(42));
+    }
+
+    #[test]
+    fn resolve_id_rejects_fractional_float() {
+        let mut props = BTreeMap::new();
+        props.insert("id".to_string(), PropValue::Float(42.5));
+        assert_eq!(resolve_id(&props, None), None);
+    }
+
+    #[test]
+    fn resolve_id_rejects_negative_int() {
+        let mut props = BTreeMap::new();
+        props.insert("id".to_string(), PropValue::Int(-1));
+        assert_eq!(resolve_id(&props, None), None);
+    }
+
+    #[test]
+    fn resolve_id_rejects_bool() {
+        let mut props = BTreeMap::new();
+        props.insert("id".to_string(), PropValue::Bool(true));
+        assert_eq!(resolve_id(&props, None), None);
+    }
 }

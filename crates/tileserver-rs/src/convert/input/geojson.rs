@@ -260,4 +260,105 @@ mod tests {
     fn malformed_geojson_errors() {
         assert!(read_geojson("{not json", None).is_err());
     }
+
+    #[test]
+    fn reads_linestring() {
+        let src = r#"{"type":"FeatureCollection","features":[
+            {"type":"Feature","geometry":{"type":"LineString","coordinates":[
+              [0,0],[1,1],[2,2]]},"properties":{}}
+        ]}"#;
+        let feats = read_geojson(src, None).unwrap();
+        match &feats[0].geometry {
+            Geometry::LineString(pts) => assert_eq!(pts.len(), 3),
+            other => panic!("expected linestring, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn reads_multipoint() {
+        let src = r#"{"type":"FeatureCollection","features":[
+            {"type":"Feature","geometry":{"type":"MultiPoint","coordinates":[
+              [0,0],[1,1]]},"properties":{}}
+        ]}"#;
+        let feats = read_geojson(src, None).unwrap();
+        match &feats[0].geometry {
+            Geometry::MultiPoint(pts) => assert_eq!(pts.len(), 2),
+            other => panic!("expected multipoint, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn reads_multilinestring() {
+        let src = r#"{"type":"FeatureCollection","features":[
+            {"type":"Feature","geometry":{"type":"MultiLineString","coordinates":[
+              [[0,0],[1,1]],[[2,2],[3,3]]]},"properties":{}}
+        ]}"#;
+        let feats = read_geojson(src, None).unwrap();
+        match &feats[0].geometry {
+            Geometry::MultiLineString(lines) => assert_eq!(lines.len(), 2),
+            other => panic!("expected multilinestring, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn column_to_prop_maps_numeric_variants() {
+        assert_eq!(
+            column_to_prop(&ColumnValue::Bool(true)),
+            Some(PropValue::Bool(true))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Byte(-2)),
+            Some(PropValue::Int(-2))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::UByte(3)),
+            Some(PropValue::Int(3))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Short(-4)),
+            Some(PropValue::Int(-4))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::UShort(5)),
+            Some(PropValue::Int(5))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Int(-6)),
+            Some(PropValue::Int(-6))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::UInt(7)),
+            Some(PropValue::Int(7))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Long(-8)),
+            Some(PropValue::Int(-8))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::ULong(9)),
+            Some(PropValue::Int(9))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Float(1.5)),
+            Some(PropValue::Float(1.5))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::Double(2.5)),
+            Some(PropValue::Float(2.5))
+        );
+        assert_eq!(
+            column_to_prop(&ColumnValue::String("s")),
+            Some(PropValue::String("s".to_string()))
+        );
+    }
+
+    #[test]
+    fn column_to_prop_drops_binary() {
+        assert_eq!(column_to_prop(&ColumnValue::Binary(&[1, 2, 3])), None);
+    }
+
+    #[test]
+    fn column_to_prop_rejects_overflowing_ulong() {
+        assert_eq!(column_to_prop(&ColumnValue::ULong(u64::MAX)), None);
+    }
 }
