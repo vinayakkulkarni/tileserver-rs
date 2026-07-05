@@ -1,6 +1,9 @@
 //! GeoJSON input streaming via a geozero [`FeatureProcessor`] sink.
 
-use super::{ConvertFeature, Geometry, PropValue, Ring, resolve_id};
+#[cfg(test)]
+use super::Geometry;
+use super::geom::GeomCollector;
+use super::{ConvertFeature, PropValue, resolve_id};
 use crate::error::{Result, TileServerError};
 use geozero::{
     ColumnValue, FeatureProcessor, GeomProcessor, GeozeroDatasource, PropertyProcessor,
@@ -9,35 +12,14 @@ use geozero::{
 use std::collections::BTreeMap;
 
 /// Collects geozero feature callbacks into owned [`ConvertFeature`]s. Geometry
-/// vertices arrive via [`GeomProcessor::xy`]; nested begin/end callbacks track
-/// which ring/part is currently being filled.
+/// callbacks are delegated to a shared [`GeomCollector`]; property callbacks and
+/// feature boundaries are handled here.
 #[derive(Default)]
 pub struct FeatureSink {
     features: Vec<ConvertFeature>,
     id_property: Option<String>,
     current_props: BTreeMap<String, PropValue>,
-    builder: GeometryBuilder,
-}
-
-/// Accumulates geometry vertices across geozero's nested part/ring callbacks.
-#[derive(Default)]
-struct GeometryBuilder {
-    points: Vec<(f64, f64)>,
-    rings: Vec<Ring>,
-    polygons: Vec<Vec<Ring>>,
-    kind: GeomKind,
-}
-
-/// Which multi-level container the builder is currently populating.
-#[derive(Default, Clone, Copy, PartialEq)]
-enum GeomKind {
-    #[default]
-    Point,
-    MultiPoint,
-    LineString,
-    MultiLineString,
-    Polygon,
-    MultiPolygon,
+    builder: GeomCollector,
 }
 
 impl FeatureSink {
@@ -58,102 +40,51 @@ impl FeatureSink {
     }
 }
 
-impl GeometryBuilder {
-    fn reset(&mut self) {
-        self.points.clear();
-        self.rings.clear();
-        self.polygons.clear();
-        self.kind = GeomKind::Point;
-    }
-
-    /// Finalize the in-progress geometry into a [`Geometry`], or `None` when no
-    /// vertices were collected (null/empty geometry).
-    fn finish(&mut self) -> Option<Geometry> {
-        let geom = match self.kind {
-            GeomKind::Point => self.points.first().copied().map(Geometry::Point),
-            GeomKind::MultiPoint => (!self.points.is_empty())
-                .then(|| Geometry::MultiPoint(std::mem::take(&mut self.points))),
-            GeomKind::LineString => (self.points.len() >= 2)
-                .then(|| Geometry::LineString(std::mem::take(&mut self.points))),
-            GeomKind::MultiLineString => (!self.rings.is_empty())
-                .then(|| Geometry::MultiLineString(std::mem::take(&mut self.rings))),
-            GeomKind::Polygon => {
-                (!self.rings.is_empty()).then(|| Geometry::Polygon(std::mem::take(&mut self.rings)))
-            }
-            GeomKind::MultiPolygon => (!self.polygons.is_empty())
-                .then(|| Geometry::MultiPolygon(std::mem::take(&mut self.polygons))),
-        };
-        self.reset();
-        geom
-    }
-}
-
 impl GeomProcessor for FeatureSink {
-    fn xy(&mut self, x: f64, y: f64, _idx: usize) -> geozero::error::Result<()> {
-        self.builder.points.push((x, y));
-        Ok(())
+    fn xy(&mut self, x: f64, y: f64, idx: usize) -> geozero::error::Result<()> {
+        self.builder.xy(x, y, idx)
     }
 
-    fn point_begin(&mut self, _idx: usize) -> geozero::error::Result<()> {
-        self.builder.kind = GeomKind::Point;
-        Ok(())
+    fn point_begin(&mut self, idx: usize) -> geozero::error::Result<()> {
+        self.builder.point_begin(idx)
     }
 
-    fn multipoint_begin(&mut self, _size: usize, _idx: usize) -> geozero::error::Result<()> {
-        self.builder.kind = GeomKind::MultiPoint;
-        Ok(())
+    fn multipoint_begin(&mut self, size: usize, idx: usize) -> geozero::error::Result<()> {
+        self.builder.multipoint_begin(size, idx)
     }
 
     fn linestring_begin(
         &mut self,
         tagged: bool,
-        _size: usize,
-        _idx: usize,
+        size: usize,
+        idx: usize,
     ) -> geozero::error::Result<()> {
-        if tagged {
-            self.builder.kind = GeomKind::LineString;
-        }
-        self.builder.points = Vec::new();
-        Ok(())
+        self.builder.linestring_begin(tagged, size, idx)
     }
 
-    fn linestring_end(&mut self, tagged: bool, _idx: usize) -> geozero::error::Result<()> {
-        if !tagged {
-            let ring = std::mem::take(&mut self.builder.points);
-            self.builder.rings.push(ring);
-        }
-        Ok(())
+    fn linestring_end(&mut self, tagged: bool, idx: usize) -> geozero::error::Result<()> {
+        self.builder.linestring_end(tagged, idx)
     }
 
-    fn multilinestring_begin(&mut self, _size: usize, _idx: usize) -> geozero::error::Result<()> {
-        self.builder.kind = GeomKind::MultiLineString;
-        Ok(())
+    fn multilinestring_begin(&mut self, size: usize, idx: usize) -> geozero::error::Result<()> {
+        self.builder.multilinestring_begin(size, idx)
     }
 
     fn polygon_begin(
         &mut self,
-        _tagged: bool,
-        _size: usize,
-        _idx: usize,
+        tagged: bool,
+        size: usize,
+        idx: usize,
     ) -> geozero::error::Result<()> {
-        if self.builder.kind != GeomKind::MultiPolygon {
-            self.builder.kind = GeomKind::Polygon;
-        }
-        self.builder.rings = Vec::new();
-        Ok(())
+        self.builder.polygon_begin(tagged, size, idx)
     }
 
-    fn polygon_end(&mut self, _tagged: bool, _idx: usize) -> geozero::error::Result<()> {
-        if self.builder.kind == GeomKind::MultiPolygon {
-            let rings = std::mem::take(&mut self.builder.rings);
-            self.builder.polygons.push(rings);
-        }
-        Ok(())
+    fn polygon_end(&mut self, tagged: bool, idx: usize) -> geozero::error::Result<()> {
+        self.builder.polygon_end(tagged, idx)
     }
 
-    fn multipolygon_begin(&mut self, _size: usize, _idx: usize) -> geozero::error::Result<()> {
-        self.builder.kind = GeomKind::MultiPolygon;
-        Ok(())
+    fn multipolygon_begin(&mut self, size: usize, idx: usize) -> geozero::error::Result<()> {
+        self.builder.multipolygon_begin(size, idx)
     }
 }
 
@@ -193,7 +124,7 @@ impl FeatureProcessor for FeatureSink {
 }
 
 /// Map a geozero [`ColumnValue`] to a [`PropValue`], dropping unsupported types.
-fn column_to_prop(value: &ColumnValue) -> Option<PropValue> {
+pub(crate) fn column_to_prop(value: &ColumnValue) -> Option<PropValue> {
     match value {
         ColumnValue::Bool(b) => Some(PropValue::Bool(*b)),
         ColumnValue::Byte(v) => Some(PropValue::Int(i64::from(*v))),
