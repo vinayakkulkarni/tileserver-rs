@@ -109,6 +109,10 @@ async-trait      = "0.1.92"
 
 # Utilities
 dotenvy          = "0.15.7"
+# Progress bars for the `convert` CLI pipeline (feature-gated). Single-
+# threaded bar over the Hilbert-ordered tile write loop with an ETA derived
+# from `Instant`. Only compiled when the `convert` feature is enabled.
+indicatif        = "0.18"
 mime_guess       = "2.0.5"
 shellexpand      = { version = "3.1.2", default-features = false, features = ["base-0"] }
 url              = "2"

@@ -54,6 +54,7 @@ urlencoding      = { workspace = true }
 uuid             = { workspace = true }
 tracing          = { workspace = true }
 tracing-subscriber = { workspace = true }
+indicatif        = { workspace = true, optional = true }
 
 # OpenAPI / Scalar API Reference (bundled, no external dependencies)
 utoipa           = { workspace = true }
