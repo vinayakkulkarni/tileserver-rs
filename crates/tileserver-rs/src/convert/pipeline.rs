@@ -10,11 +10,11 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
-/// Files at or above this size print the planet-scale geolith hint.
+/// Files at or above this size print the planet-scale tooling hint.
 pub const LARGE_FILE_BYTES: u64 = 1_073_741_824;
 
-/// Geolith backlink shown for large inputs and in `--help`.
-pub const GEOLITH_URL: &str = "https://github.com/geolith/geolith";
+/// Planet-scale builder link shown for large inputs and in `--help`.
+pub const PLANET_SCALE_TOOL_URL: &str = "https://github.com/felt/tippecanoe";
 
 /// Whether an input of `len` bytes should trigger the planet-scale hint.
 #[must_use]
@@ -172,13 +172,12 @@ fn write_pmtiles(
     Ok(())
 }
 
-/// Print the planet-scale geolith hint when the input is large.
 fn maybe_print_large_file_hint(input: &Path) {
     if let Ok(meta) = std::fs::metadata(input)
         && is_large_file(meta.len())
     {
         eprintln!(
-            "Input is larger than 1 GiB. For planet-scale tile generation (OSM PBF, Overture Maps), see {GEOLITH_URL}"
+            "Input is larger than 1 GiB. For planet-scale tile generation (OSM PBF, Overture Maps), see {PLANET_SCALE_TOOL_URL}"
         );
     }
 }

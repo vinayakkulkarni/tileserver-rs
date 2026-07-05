@@ -4,7 +4,7 @@ use clap::Args;
 use std::path::PathBuf;
 
 /// Long help text for the `convert` subcommand. Documents the WGS84 input
-/// assumption and links to geolith for planet-scale workloads.
+/// assumption and points at dedicated tooling for planet-scale workloads.
 pub const LONG_ABOUT: &str = "\
 Convert a GeoJSON or CSV file to PMTiles (MVT/PBF) for use with any vector tile
 client.
@@ -18,8 +18,8 @@ Examples:
   tileserver-rs convert input.geojson --serve --port 8080
   tileserver-rs convert big.geojson --auto-max-zoom --simplification 10
 
-For planet-scale tile generation (OSM PBF, Overture Maps), see:
-  https://github.com/geolith/geolith";
+For planet-scale tile generation (OSM PBF, Overture Maps), use a dedicated
+builder such as tippecanoe: https://github.com/felt/tippecanoe";
 
 /// Arguments accepted by the `convert` subcommand.
 #[derive(Args, Debug, Clone)]
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn long_about_mentions_geolith() {
-        assert!(LONG_ABOUT.contains("https://github.com/geolith/geolith"));
+    fn long_about_mentions_planet_scale_tool() {
+        assert!(LONG_ABOUT.contains("https://github.com/felt/tippecanoe"));
     }
 }

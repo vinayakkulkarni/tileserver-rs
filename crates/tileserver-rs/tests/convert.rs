@@ -273,8 +273,8 @@ async fn convert_polygon_encodes_polygon_geom_type() {
 }
 
 #[test]
-fn convert_help_long_about_mentions_geolith() {
+fn convert_help_long_about_mentions_planet_scale_tool() {
     assert!(
-        tileserver_rs::convert::args::LONG_ABOUT.contains("https://github.com/geolith/geolith")
+        tileserver_rs::convert::args::LONG_ABOUT.contains("https://github.com/felt/tippecanoe")
     );
 }

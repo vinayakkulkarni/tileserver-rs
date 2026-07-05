@@ -251,3 +251,8 @@ harness = false
 name = "cel_filter"
 harness = false
 required-features = ["cel"]
+
+[[bench]]
+name = "convert"
+harness = false
+required-features = ["convert"]

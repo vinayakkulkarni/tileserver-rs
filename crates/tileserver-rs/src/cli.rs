@@ -96,7 +96,7 @@ pub enum Commands {
     /// serve the result immediately with `--serve`.
     #[cfg(feature = "convert")]
     #[command(long_about = tileserver_rs::convert::LONG_ABOUT)]
-    Convert(tileserver_rs::convert::ConvertArgs),
+    Convert(Box<tileserver_rs::convert::ConvertArgs>),
 }
 
 impl Cli {
