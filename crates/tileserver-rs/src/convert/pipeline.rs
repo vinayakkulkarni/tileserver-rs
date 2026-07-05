@@ -1,15 +1,15 @@
 //! Conversion pipeline orchestrator: read input, build tiles, write PMTiles.
 
 use crate::convert::args::ConvertArgs;
-use crate::error::Result;
+use crate::error::{Result, TileServerError};
 
 /// Execute the end-to-end conversion described by `args`.
 ///
 /// # Errors
 ///
-/// Returns an error on any pipeline failure.
+/// Returns [`TileServerError::ConvertError`] on any pipeline failure.
 pub fn run(_args: ConvertArgs) -> Result<()> {
-    Err(crate::error::TileServerError::Internal(anyhow::anyhow!(
-        "convert pipeline not yet implemented"
-    )))
+    Err(TileServerError::ConvertError(
+        "convert pipeline not yet implemented".to_string(),
+    ))
 }
