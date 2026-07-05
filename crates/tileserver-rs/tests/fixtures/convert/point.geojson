@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.51, 47.36] },
+      "properties": { "name": "Alpha", "population": 1000, "id": 1 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.53, 47.37] },
+      "properties": { "name": "Beta", "population": 2000, "id": 2 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.55, 47.38] },
+      "properties": { "name": "Gamma", "population": 3000 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.56, 47.385] },
+      "properties": { "name": "Delta", "population": 4000, "id": 4 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [8.57, 47.39] },
+      "properties": { "name": "Zürich Übersee", "population": 5000, "id": 5 }
+    }
+  ]
+}
