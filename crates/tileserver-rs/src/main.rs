@@ -69,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "convert")]
     if let Some(Commands::Convert(args)) = cli.command.as_ref() {
-        return tileserver_rs::convert::run(args.clone()).map_err(anyhow::Error::from);
+        return tileserver_rs::convert::run_and_maybe_serve(args.clone()).await;
     }
 
     let ui_enabled = cli.ui_enabled();
