@@ -16,7 +16,7 @@ pub mod serve;
 pub mod simplify;
 pub mod tile_builder;
 
-pub use args::ConvertArgs;
+pub use args::{ConvertArgs, LONG_ABOUT};
 
 use crate::error::{Result, TileServerError};
 use std::path::PathBuf;
