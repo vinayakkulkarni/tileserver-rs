@@ -295,4 +295,12 @@ mod tests {
         let csv = "name,value\na,1\n";
         assert!(read_csv(csv, None, None, None, None).is_err());
     }
+
+    #[test]
+    fn empty_wkt_cell_skips_row() {
+        let csv = "wkt,name\n\"\",blank\n\"POINT(1 2)\",kept\n";
+        let feats = read_csv(csv, None, None, Some("wkt"), None).unwrap();
+        assert_eq!(feats.len(), 1);
+        assert_eq!(feats[0].geometry, Geometry::Point((1.0, 2.0)));
+    }
 }

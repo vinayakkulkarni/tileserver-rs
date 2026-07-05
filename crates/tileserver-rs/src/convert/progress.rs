@@ -109,4 +109,22 @@ mod tests {
         let p = Progress::hidden();
         p.finish();
     }
+
+    #[test]
+    fn new_builds_visible_bar_and_ticks() {
+        let mut p = Progress::new();
+        p.tick_features(2);
+        p.tick_tiles(3);
+        assert_eq!(p.features(), 2);
+        assert_eq!(p.tiles(), 3);
+        p.finish();
+    }
+
+    #[test]
+    fn default_equals_new() {
+        let p = Progress::default();
+        assert_eq!(p.features(), 0);
+        assert_eq!(p.tiles(), 0);
+        p.finish();
+    }
 }

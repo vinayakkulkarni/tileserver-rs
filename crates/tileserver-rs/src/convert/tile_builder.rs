@@ -575,4 +575,84 @@ mod tests {
     fn extent_is_4096() {
         assert_eq!(EXTENT, 4096);
     }
+
+    fn feature(geometry: Geometry) -> ConvertFeature {
+        ConvertFeature {
+            geometry,
+            properties: BTreeMap::new(),
+            id: None,
+        }
+    }
+
+    fn encode_single(geometry: Geometry) -> Tile {
+        let mut builder = TileBuilder::new(TileOptions {
+            min_zoom: 0,
+            max_zoom: 0,
+            ..opts()
+        });
+        builder.add_feature(feature(geometry));
+        let tiles = builder.finish().unwrap();
+        Tile::decode(tiles[0].1.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn multipoint_encodes_as_point_geom_type() {
+        let decoded = encode_single(Geometry::MultiPoint(vec![(8.5, 47.3), (8.6, 47.4)]));
+        assert_eq!(
+            decoded.layers[0].features[0].r#type(),
+            tile::GeomType::Point
+        );
+    }
+
+    #[test]
+    fn linestring_encodes_as_linestring_geom_type() {
+        let decoded = encode_single(Geometry::LineString(vec![
+            (8.5, 47.3),
+            (8.6, 47.4),
+            (8.7, 47.5),
+        ]));
+        assert_eq!(
+            decoded.layers[0].features[0].r#type(),
+            tile::GeomType::Linestring
+        );
+    }
+
+    #[test]
+    fn multilinestring_encodes_as_linestring_geom_type() {
+        let decoded = encode_single(Geometry::MultiLineString(vec![
+            vec![(8.5, 47.3), (8.6, 47.4)],
+            vec![(9.0, 48.0), (9.1, 48.1)],
+        ]));
+        assert_eq!(
+            decoded.layers[0].features[0].r#type(),
+            tile::GeomType::Linestring
+        );
+    }
+
+    #[test]
+    fn multipolygon_encodes_as_polygon_geom_type() {
+        let square_a = vec![(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)];
+        let square_b = vec![(2.0, 2.0), (2.0, 3.0), (3.0, 3.0), (3.0, 2.0), (2.0, 2.0)];
+        let decoded = encode_single(Geometry::MultiPolygon(vec![vec![square_a], vec![square_b]]));
+        assert_eq!(
+            decoded.layers[0].features[0].r#type(),
+            tile::GeomType::Polygon
+        );
+    }
+
+    #[test]
+    fn polygon_with_hole_round_trips() {
+        let exterior = vec![(0.0, 0.0), (0.0, 4.0), (4.0, 4.0), (4.0, 0.0), (0.0, 0.0)];
+        let hole = vec![(1.0, 1.0), (1.0, 2.0), (2.0, 2.0), (2.0, 1.0), (1.0, 1.0)];
+        let decoded = encode_single(Geometry::Polygon(vec![exterior, hole]));
+        assert_eq!(
+            decoded.layers[0].features[0].r#type(),
+            tile::GeomType::Polygon
+        );
+    }
+
+    #[test]
+    fn hilbert_id_rejects_out_of_range_coord() {
+        assert_eq!(hilbert_id(0, 5, 0), None);
+    }
 }

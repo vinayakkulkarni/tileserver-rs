@@ -367,4 +367,30 @@ mod tests {
         let args = args_for(input.to_str().unwrap(), output.to_str().unwrap());
         assert!(convert_to_pmtiles(&args, &output).is_err());
     }
+
+    #[test]
+    fn run_requires_output() {
+        let mut args = args_for("in.geojson", "unused.pmtiles");
+        args.output = None;
+        let err = run(args).unwrap_err();
+        assert!(matches!(err, TileServerError::ConvertError(_)));
+    }
+
+    #[test]
+    fn run_writes_archive_with_explicit_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("pts.geojson");
+        let output = dir.path().join("out.pmtiles");
+        std::fs::write(
+            &input,
+            r#"{"type":"FeatureCollection","features":[
+                {"type":"Feature","geometry":{"type":"Point","coordinates":[8.5,47.3]},
+                 "properties":{}}
+            ]}"#,
+        )
+        .unwrap();
+        let args = args_for(input.to_str().unwrap(), output.to_str().unwrap());
+        run(args).unwrap();
+        assert!(output.exists());
+    }
 }
