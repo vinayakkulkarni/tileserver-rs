@@ -70,6 +70,13 @@ jobs:
         run: cargo llvm-cov clean --workspace
 
       - name: Coverage — postgres + mlt (lib + integration tests)
+        # IMPORTANT: list EVERY non-feature-gated integration test file here plus
+        # any that gate on `postgres` (e.g. route_ogc.rs is #![cfg(feature =
+        # "postgres")]). cargo-llvm-cov only instruments tests it is told about,
+        # so omitting a tests/route_*.rs file silently drops its contribution and
+        # codecov under-reports the matching source module by 30+ points. When you
+        # add a new tests/route_*.rs (or any non-gated integration test), add it
+        # to this list.
         run: |
           cargo llvm-cov \
             --no-report \
@@ -77,10 +84,17 @@ jobs:
             --test metrics_endpoint \
             --test api_endpoints \
             --test common_smoke \
+            --test integration \
             --test route_core \
             --test route_data \
             --test route_styles \
             --test route_render \
+            --test route_og \
+            --test route_embed \
+            --test route_composite \
+            --test route_style_autogen \
+            --test route_spatial \
+            --test route_ogc \
             --test route_admin_upload \
             --test route_admin_config_schema \
             --no-default-features \
