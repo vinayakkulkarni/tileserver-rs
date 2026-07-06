@@ -1109,6 +1109,20 @@ mod tests {
         assert!(mgr.is_empty());
     }
 
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    async fn load_source_rejects_postgres_source_type() {
+        let mut cfg = missing_mbtiles_config("pg-as-regular");
+        cfg.source_type = SourceType::Postgres;
+        let mut mgr = SourceManager::new();
+        let err = mgr
+            .load_source(&cfg)
+            .await
+            .expect_err("Postgres source_type must be rejected in load_source");
+        assert!(matches!(err, TileServerError::ConfigError(msg) if msg.contains("[postgres] section")));
+        assert!(mgr.is_empty());
+    }
+
     #[cfg(feature = "sftp")]
     #[tokio::test]
     async fn load_source_dispatches_sftp_url_to_sftp_branch() {
