@@ -97,4 +97,34 @@ mod tests {
         assert!(msg.contains("Config file not found"));
         assert!(msg.contains(missing.to_string_lossy().as_ref()));
     }
+
+    #[test]
+    fn test_positional_detect_path_auto_detects() {
+        let temp = TempDir::new().unwrap();
+        let root = temp.path();
+        std::fs::write(root.join("detected.pmtiles"), b"mock").unwrap();
+
+        let (config, report) =
+            load_runtime_config(None, Some(root.to_path_buf())).expect("detect must succeed");
+
+        assert!(
+            report.is_some(),
+            "positional detect path must produce an auto-detect report"
+        );
+        // The auto-detect walk registers the mock archive as a source.
+        assert_eq!(config.sources.len(), 1);
+    }
+
+    #[test]
+    fn test_missing_detect_path_fails() {
+        let temp = TempDir::new().unwrap();
+        let missing = temp.path().join("no-such-dir");
+
+        let result = load_runtime_config(None, Some(missing));
+
+        assert!(
+            result.is_err(),
+            "auto-detect on an unreadable target must error"
+        );
+    }
 }

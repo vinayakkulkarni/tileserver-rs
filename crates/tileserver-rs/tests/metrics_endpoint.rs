@@ -162,3 +162,28 @@ async fn cardinality_verbose_label_bank() {
     let bank = metrics::LabelBank::new(metrics::Cardinality::Verbose);
     assert_eq!(bank.cardinality(), metrics::Cardinality::Verbose);
 }
+
+#[tokio::test]
+async fn metrics_path_without_leading_slash_is_normalized() {
+    // A configured path lacking a leading slash must be prefixed with `/`
+    // before being registered as a route.
+    let registry = Registry::new();
+    let bind: SocketAddr = "127.0.0.1:0".parse().unwrap();
+    let handle = metrics::spawn_metrics_server(bind, "custom-metrics".to_string(), registry)
+        .await
+        .expect("metrics server bind failed");
+    tokio::time::sleep(Duration::from_millis(20)).await;
+
+    let resp = fetch(handle.addr, "/custom-metrics").await;
+    assert_eq!(
+        resp.status(),
+        200,
+        "un-slashed path must be reachable at /custom-metrics"
+    );
+    let ct = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or_default();
+    assert!(ct.starts_with("text/plain"), "content-type: {ct}");
+}

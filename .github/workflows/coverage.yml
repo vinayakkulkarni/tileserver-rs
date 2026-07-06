@@ -85,6 +85,7 @@ jobs:
             --test api_endpoints \
             --test common_smoke \
             --test http_sources \
+            --test pmtiles_local \
             --test integration \
             --test route_core \
             --test route_data \
