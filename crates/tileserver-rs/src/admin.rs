@@ -514,4 +514,87 @@ path = "{}"
         assert_eq!(json["invalidated_entries"], 42);
         assert_eq!(json["freed_bytes"], 1024);
     }
+
+    fn config_with_cache_enabled() -> String {
+        String::from(
+            r#"
+[server]
+host = "127.0.0.1"
+port = 0
+cors_origins = ["*"]
+
+[cache]
+enabled = true
+"#,
+        )
+    }
+
+    async fn admin_json(shared: SharedState, method: &str, uri: &str) -> (StatusCode, serde_json::Value) {
+        let admin = admin_router(shared);
+        let response = admin
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status();
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    #[tokio::test]
+    async fn admin_config_returns_toml_view() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        config_file
+            .write_all(config_with_style(None).as_bytes())
+            .unwrap();
+        let shared = build_shared_state(config_file.path()).await;
+
+        let (status, payload) = admin_json(shared, "GET", "/__admin/config").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["ok"], true);
+        assert!(
+            payload["toml"]
+                .as_str()
+                .is_some_and(|s| s.contains("[server]"))
+        );
+        assert!(payload["source_path"].as_str().is_some());
+        assert!(payload["config_hash"].as_str().is_some_and(|s| !s.is_empty()));
+    }
+
+    #[tokio::test]
+    async fn admin_cache_flush_without_cache_reports_zero() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        config_file
+            .write_all(config_with_style(None).as_bytes())
+            .unwrap();
+        let shared = build_shared_state(config_file.path()).await;
+
+        let (status, payload) = admin_json(shared, "POST", "/__admin/cache/flush").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["ok"], true);
+        assert_eq!(payload["invalidated_entries"], 0);
+        assert_eq!(payload["freed_bytes"], 0);
+    }
+
+    #[tokio::test]
+    async fn admin_cache_flush_with_cache_enabled_reports_ok() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        config_file
+            .write_all(config_with_cache_enabled().as_bytes())
+            .unwrap();
+        let shared = build_shared_state(config_file.path()).await;
+
+        let ping = ping_payload(shared.clone()).await;
+        assert_eq!(ping["cache_enabled"], true);
+
+        let (status, payload) = admin_json(shared, "POST", "/__admin/cache/flush").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(payload["ok"], true);
+        assert_eq!(payload["invalidated_entries"], 0);
+    }
 }
