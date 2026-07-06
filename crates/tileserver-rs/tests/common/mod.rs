@@ -100,6 +100,47 @@ pub fn test_server_with_config(config: Config) -> TestServer {
     TestServer::new(api_router(shared))
 }
 
+/// Resolve a path under the crate's `tests/fixtures/` directory.
+///
+/// Anchored to `CARGO_MANIFEST_DIR` so fixtures resolve regardless of the
+/// test process CWD.
+pub fn fixture_path(rel: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures")
+        .join(rel)
+}
+
+/// Build a [`TestServer`] whose [`AppState`] has `fonts_dir` set to the given
+/// directory (everything else empty). Drives the `/fonts.json` and
+/// `/fonts/{fontstack}/{range}` handlers.
+pub fn server_with_fonts_dir(fonts_dir: PathBuf) -> TestServer {
+    let mut state = minimal_app_state();
+    state.fonts_dir = Some(fonts_dir);
+    server_from_state(state)
+}
+
+/// Build a [`TestServer`] whose [`AppState`] has `files_dir` set to the given
+/// directory (everything else empty). Drives the `/files/{*filepath}` handler.
+pub fn server_with_files_dir(files_dir: PathBuf) -> TestServer {
+    let mut state = minimal_app_state();
+    state.files_dir = Some(files_dir);
+    server_from_state(state)
+}
+
+/// Wrap a caller-built [`AppState`] into a routable [`TestServer`].
+pub fn server_from_state(state: AppState) -> TestServer {
+    let meta = minimal_meta();
+    let controller = Arc::new(ReloadController::new(
+        state,
+        meta,
+        Config::default(),
+        None,
+        minimal_runtime(),
+    ));
+    let shared = SharedState::new(controller);
+    TestServer::new(api_router(shared))
+}
+
 // ============================================================
 // MockSource — in-memory tile source for integration tests
 // ============================================================

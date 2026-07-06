@@ -84,11 +84,14 @@ jobs:
             --test metrics_endpoint \
             --test api_endpoints \
             --test common_smoke \
+            --test http_sources \
             --test integration \
             --test route_core \
             --test route_data \
             --test route_styles \
             --test route_render \
+            --test route_fonts \
+            --test route_files \
             --test route_og \
             --test route_embed \
             --test route_composite \
