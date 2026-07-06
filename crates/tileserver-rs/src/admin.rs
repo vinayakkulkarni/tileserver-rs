@@ -529,7 +529,11 @@ enabled = true
         )
     }
 
-    async fn admin_json(shared: SharedState, method: &str, uri: &str) -> (StatusCode, serde_json::Value) {
+    async fn admin_json(
+        shared: SharedState,
+        method: &str,
+        uri: &str,
+    ) -> (StatusCode, serde_json::Value) {
         let admin = admin_router(shared);
         let response = admin
             .oneshot(
@@ -563,7 +567,11 @@ enabled = true
                 .is_some_and(|s| s.contains("[server]"))
         );
         assert!(payload["source_path"].as_str().is_some());
-        assert!(payload["config_hash"].as_str().is_some_and(|s| !s.is_empty()));
+        assert!(
+            payload["config_hash"]
+                .as_str()
+                .is_some_and(|s| !s.is_empty())
+        );
     }
 
     #[tokio::test]

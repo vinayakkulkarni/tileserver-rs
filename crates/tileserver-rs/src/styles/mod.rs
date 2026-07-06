@@ -1066,7 +1066,10 @@ mod tests {
             result["glyphs"],
             "http://localhost:8080/fonts/{fontstack}/{range}.pbf"
         );
-        assert_eq!(result["sprite"], "http://localhost:8080/styles/basic/sprite");
+        assert_eq!(
+            result["sprite"],
+            "http://localhost:8080/styles/basic/sprite"
+        );
     }
 
     #[test]

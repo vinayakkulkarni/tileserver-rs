@@ -1119,7 +1119,9 @@ mod tests {
             .load_source(&cfg)
             .await
             .expect_err("Postgres source_type must be rejected in load_source");
-        assert!(matches!(err, TileServerError::ConfigError(msg) if msg.contains("[postgres] section")));
+        assert!(
+            matches!(err, TileServerError::ConfigError(msg) if msg.contains("[postgres] section"))
+        );
         assert!(mgr.is_empty());
     }
 
