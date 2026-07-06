@@ -489,4 +489,43 @@ mod tests {
         assert!((tile_x_to_lon(0, 1) - (-180.0)).abs() < 1e-9);
         assert!((tile_x_to_lon(2, 1) - 180.0).abs() < 1e-9);
     }
+
+    #[tokio::test]
+    async fn serve_as_override_wins_over_probe() {
+        let dir = make_pyramid();
+        let mut cfg = base_config(&dir.path().to_string_lossy());
+        cfg.serve_as = Some(TileFormat::Webp);
+        let src = DirSource::from_file(&cfg).await.unwrap();
+        assert_eq!(src.metadata().format, TileFormat::Webp);
+    }
+
+    #[tokio::test]
+    async fn coverage_defaults_when_no_numeric_zoom_dirs() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("not-a-zoom")).unwrap();
+        std::fs::write(dir.path().join("readme.txt"), b"ignore me").unwrap();
+        write_tile(dir.path(), "5/1/1.pbf", b"seed");
+        std::fs::remove_dir_all(dir.path().join("5")).unwrap();
+
+        let cfg = base_config(&dir.path().to_string_lossy());
+        let src = DirSource::from_file(&cfg).await.unwrap();
+        let coverage = src.metadata_with_coverage().await;
+        assert_eq!(coverage.minzoom, 0);
+        assert_eq!(coverage.maxzoom, 22);
+        assert!(coverage.bounds.is_none());
+    }
+
+    #[tokio::test]
+    async fn coverage_skips_non_numeric_entries_at_zoom_root() {
+        let dir = tempfile::tempdir().unwrap();
+        write_tile(dir.path(), "6/2/3.pbf", b"real-tile");
+        std::fs::create_dir_all(dir.path().join("junk")).unwrap();
+        std::fs::write(dir.path().join("7"), b"a file named 7, not a dir").unwrap();
+
+        let cfg = base_config(&dir.path().to_string_lossy());
+        let src = DirSource::from_file(&cfg).await.unwrap();
+        let coverage = src.metadata_with_coverage().await;
+        assert_eq!(coverage.minzoom, 6);
+        assert_eq!(coverage.maxzoom, 6);
+    }
 }
