@@ -38,8 +38,8 @@ catalogs:
       specifier: ^0.14.3
       version: 0.14.3
     '@tanstack/query-db-collection':
-      specifier: ^1.0.46
-      version: 1.0.46
+      specifier: ^1.0.47
+      version: 1.0.47
     '@tanstack/vue-db':
       specifier: ^0.0.125
       version: 0.0.125
@@ -266,7 +266,7 @@ importers:
         version: 0.14.3(@tanstack/ai@0.40.0)(vue@3.5.39(typescript@6.0.3))
       '@tanstack/query-db-collection':
         specifier: catalog:client
-        version: 1.0.46(@tanstack/query-core@5.101.2)(typescript@6.0.3)
+        version: 1.0.47(@tanstack/query-core@5.101.2)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
         version: 0.0.125(typescript@6.0.3)(vue@3.5.39(typescript@6.0.3))
@@ -3430,8 +3430,8 @@ packages:
   '@tanstack/query-core@5.101.2':
     resolution: {integrity: sha512-hH5MLoJhF7KaIGd7q3xTXGXvslI+GYlM1Z/35aSHHWaCJWB7XvTSHYuV3eM7tw+aE0mT/xMro4M4Q9rCGHT0lw==}
 
-  '@tanstack/query-db-collection@1.0.46':
-    resolution: {integrity: sha512-5rRGESbfcKlNUNvGGvlQQWnCFP1yfunE0MUAyweJJUMTOupG0kFXOjQB64CX7Ij7L4VpFZpa3hVMMIgG/ntytg==}
+  '@tanstack/query-db-collection@1.0.47':
+    resolution: {integrity: sha512-qbII4EvC8IbWHARbshPU4QmnXETb7wB33uM/e3WyvC/3LYYYOpYABBGxrlnZegQtBv4h1hrRY3qtwkKfHiUSAQ==}
     peerDependencies:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
@@ -7764,6 +7764,7 @@ packages:
   wrangler@4.108.0:
     resolution: {integrity: sha512-mJnY6vf2Tminfo0Jy5OreBgUjIKW3iM1TQtOrZZRpFUyiQvAYUDVN0aRcDn8/aEfF0bmZgcixRdwwVHZMZaE7w==}
     engines: {node: '>=22.0.0'}
+    deprecated: This version was causing deployment failures in CI for some users. Downgrade to 4.107.1
     hasBin: true
     peerDependencies:
       '@cloudflare/workers-types': ^5.20260706.1
@@ -10502,7 +10503,7 @@ snapshots:
 
   '@tanstack/query-core@5.101.2': {}
 
-  '@tanstack/query-db-collection@1.0.46(@tanstack/query-core@5.101.2)(typescript@6.0.3)':
+  '@tanstack/query-db-collection@1.0.47(@tanstack/query-core@5.101.2)(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@tanstack/db': 0.6.14(typescript@6.0.3)
