@@ -83,7 +83,7 @@ catalogs:
     typescript: ^6.0.3
     vite: ^8.1.4
     vue: ^3.5.39
-    vue-tsc: ^3.3.6
+    vue-tsc: ^3.3.7
   client:
     '@comark/nuxt': ^0.5.0
     '@geoql/v-maplibre': ^2.0.1
