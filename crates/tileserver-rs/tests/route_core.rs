@@ -4,6 +4,9 @@
 
 mod common;
 
+use axum_test::TestServer;
+use tileserver_rs::routes::api_router;
+
 #[tokio::test]
 async fn health_returns_200() {
     let server = common::empty_test_server();
@@ -175,4 +178,43 @@ async fn data_tile_not_found_returns_404() {
     let server = common::empty_test_server();
     let response = server.get("/data/nonexistent-source/0/0/0.pbf").await;
     response.assert_status_not_found();
+}
+
+#[tokio::test]
+async fn index_json_populated_state_lists_data_and_style_entries() {
+    let server = TestServer::new(api_router(common::shared_state_populated()));
+    let response = server.get("/index.json").await;
+    response.assert_status_ok();
+    let body: serde_json::Value = response.json();
+    let entries = body.as_array().expect("array");
+
+    let has_data = entries
+        .iter()
+        .any(|e| e.get("tiles").is_some() && e.get("vector_layers").is_some());
+    let has_style_raster = entries.iter().any(|e| {
+        e.get("tiles")
+            .and_then(|t| t.as_array())
+            .and_then(|a| a.first())
+            .and_then(|u| u.as_str())
+            .is_some_and(|u| u.contains("/styles/protomaps-light/"))
+    });
+    assert!(has_data, "index must contain data source entries");
+    assert!(has_style_raster, "index must contain raster style entries");
+}
+
+#[tokio::test]
+async fn index_json_populated_with_key_forwards_key_in_style_url() {
+    let server = TestServer::new(api_router(common::shared_state_populated()));
+    let response = server.get("/index.json?key=abc123").await;
+    response.assert_status_ok();
+    let body: serde_json::Value = response.json();
+    let entries = body.as_array().expect("array");
+    let style_url_has_key = entries.iter().any(|e| {
+        e.get("tiles")
+            .and_then(|t| t.as_array())
+            .and_then(|a| a.first())
+            .and_then(|u| u.as_str())
+            .is_some_and(|u| u.contains("/styles/") && u.contains("key=abc123"))
+    });
+    assert!(style_url_has_key, "style raster url must forward the key");
 }

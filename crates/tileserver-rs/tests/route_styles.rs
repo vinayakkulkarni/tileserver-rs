@@ -19,6 +19,41 @@ use tileserver_rs::{
     styles::StyleManager,
 };
 
+/// Style in a temp dir alongside real `sprite.png` + `sprite.json`, so the
+/// sprite success path (file read + content-type selection) runs. The caller
+/// MUST keep the returned `TempDir` alive or the fixtures vanish mid-test.
+fn sprite_test_server() -> (TestServer, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("tempdir");
+    std::fs::write(
+        dir.path().join("style.json"),
+        r#"{"version":8,"name":"Sprited","sources":{},"layers":[]}"#,
+    )
+    .expect("write style.json");
+    std::fs::write(dir.path().join("sprite.png"), b"\x89PNG\r\n\x1a\nfake")
+        .expect("write sprite.png");
+    std::fs::write(dir.path().join("sprite.json"), br#"{"icon":{"x":0}}"#)
+        .expect("write sprite.json");
+
+    let style_config = StyleConfig {
+        id: "sprited".to_string(),
+        path: dir.path().join("style.json"),
+        name: Some("Sprited".to_string()),
+    };
+    let styles = StyleManager::from_configs(&[style_config]).expect("load styles");
+
+    let mut state = common::minimal_app_state();
+    state.styles = Arc::new(styles);
+    let controller = Arc::new(ReloadController::new(
+        state,
+        common::minimal_meta(),
+        Config::default(),
+        None,
+        common::minimal_runtime(),
+    ));
+    let shared = SharedState::new(controller);
+    (TestServer::new(api_router(shared)), dir)
+}
+
 /// Build a [`TestServer`] backed by a real style fixture (`protomaps-light`).
 ///
 /// The style is resolved relative to `CARGO_MANIFEST_DIR` so the test passes
@@ -422,4 +457,30 @@ async fn sprite_json_metadata_missing_returns_404() {
         404,
         "missing sprite.json must return 404"
     );
+}
+
+#[tokio::test]
+async fn sprite_png_success_serves_image_content_type() {
+    let (server, _dir) = sprite_test_server();
+    let response = server.get("/styles/sprited/sprite.png").await;
+    assert_eq!(response.status_code().as_u16(), 200);
+    assert_eq!(
+        response.header("content-type"),
+        "image/png",
+        "sprite.png must be served as image/png"
+    );
+    assert_eq!(response.as_bytes().as_ref(), b"\x89PNG\r\n\x1a\nfake");
+}
+
+#[tokio::test]
+async fn sprite_json_success_serves_json_content_type() {
+    let (server, _dir) = sprite_test_server();
+    let response = server.get("/styles/sprited/sprite.json").await;
+    assert_eq!(response.status_code().as_u16(), 200);
+    assert_eq!(
+        response.header("content-type"),
+        "application/json",
+        "sprite.json must be served as application/json"
+    );
+    assert_eq!(response.as_bytes().as_ref(), br#"{"icon":{"x":0}}"#);
 }

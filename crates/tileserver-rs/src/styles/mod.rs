@@ -905,4 +905,259 @@ mod tests {
         assert!(src.get("tiles").is_none());
         assert!(src.get("encoding").is_none());
     }
+
+    // ---- Style::from_file + StyleManager coverage -----------------------
+
+    /// Write a style.json into a temp dir and return its path plus the dir
+    /// guard (kept alive by the caller so the file survives the test).
+    fn temp_style(contents: &str) -> (tempfile::TempDir, PathBuf) {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("style.json");
+        std::fs::write(&path, contents).expect("write style");
+        (dir, path)
+    }
+
+    #[test]
+    fn test_style_from_file_missing_path_errors() {
+        let config = StyleConfig {
+            id: "ghost".to_string(),
+            path: PathBuf::from("/nonexistent/path/to/style.json"),
+            name: None,
+        };
+        let err = Style::from_file(&config).expect_err("missing file must error");
+        assert!(matches!(err, TileServerError::StyleNotFound(id) if id == "ghost"));
+    }
+
+    #[test]
+    fn test_style_from_file_invalid_json_errors() {
+        let (_dir, path) = temp_style("{ this is not valid json ]");
+        let config = StyleConfig {
+            id: "broken".to_string(),
+            path,
+            name: None,
+        };
+        let err = Style::from_file(&config).expect_err("invalid JSON must error");
+        assert!(matches!(err, TileServerError::MetadataError(_)));
+    }
+
+    #[test]
+    fn test_style_from_file_name_falls_back_to_json_name() {
+        let (_dir, path) = temp_style(r#"{"version": 8, "name": "From JSON"}"#);
+        let config = StyleConfig {
+            id: "styled".to_string(),
+            path,
+            name: None,
+        };
+        let style = Style::from_file(&config).expect("valid style");
+        assert_eq!(style.name, "From JSON");
+        assert_eq!(style.id, "styled");
+    }
+
+    #[test]
+    fn test_style_from_file_name_falls_back_to_id() {
+        let (_dir, path) = temp_style(r#"{"version": 8}"#);
+        let config = StyleConfig {
+            id: "only-id".to_string(),
+            path,
+            name: None,
+        };
+        let style = Style::from_file(&config).expect("valid style");
+        assert_eq!(style.name, "only-id");
+    }
+
+    #[test]
+    fn test_style_from_file_explicit_name_wins() {
+        let (_dir, path) = temp_style(r#"{"version": 8, "name": "JSON Name"}"#);
+        let config = StyleConfig {
+            id: "id".to_string(),
+            path,
+            name: Some("Explicit Name".to_string()),
+        };
+        let style = Style::from_file(&config).expect("valid style");
+        assert_eq!(style.name, "Explicit Name");
+    }
+
+    #[test]
+    fn test_style_manager_from_configs_skips_bad_and_keeps_good() {
+        let (_good_dir, good_path) = temp_style(r#"{"version": 8, "name": "Good"}"#);
+        let configs = vec![
+            StyleConfig {
+                id: "good".to_string(),
+                path: good_path,
+                name: None,
+            },
+            StyleConfig {
+                id: "bad".to_string(),
+                path: PathBuf::from("/no/such/style.json"),
+                name: None,
+            },
+        ];
+        let manager = StyleManager::from_configs(&configs).expect("from_configs");
+        assert_eq!(manager.len(), 1);
+        assert!(!manager.is_empty());
+        assert!(manager.get("good").is_some());
+        assert!(manager.get("bad").is_none());
+    }
+
+    #[test]
+    fn test_style_manager_empty_getters() {
+        let manager = StyleManager::default();
+        assert_eq!(manager.len(), 0);
+        assert!(manager.is_empty());
+        assert!(manager.get("missing").is_none());
+        assert!(manager.all().is_empty());
+        assert!(manager.all_infos("http://x").is_empty());
+    }
+
+    #[test]
+    fn test_style_manager_all_and_all_infos() {
+        let (_dir, path) = temp_style(r#"{"version": 8, "name": "One"}"#);
+        let configs = vec![StyleConfig {
+            id: "one".to_string(),
+            path,
+            name: None,
+        }];
+        let manager = StyleManager::from_configs(&configs).expect("from_configs");
+
+        let all = manager.all();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].id, "one");
+
+        let infos = manager.all_infos("http://tiles.example.com");
+        assert_eq!(infos.len(), 1);
+        assert_eq!(
+            infos[0].url.as_deref(),
+            Some("http://tiles.example.com/styles/one/style.json")
+        );
+
+        let keyed = manager.all_infos_with_key("http://tiles.example.com", Some("secret"));
+        assert_eq!(
+            keyed[0].url.as_deref(),
+            Some("http://tiles.example.com/styles/one/style.json?key=secret")
+        );
+    }
+
+    // ---- rewrite_style_for_native coverage ------------------------------
+
+    #[test]
+    fn test_rewrite_style_for_native_inlines_source_and_urls() {
+        let mgr = manager_with_source("protomaps", TileFormat::Pbf);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "protomaps": { "type": "vector", "url": "/data/protomaps.json" }
+            },
+            "glyphs": "/fonts/{fontstack}/{range}.pbf",
+            "sprite": "/styles/basic/sprite"
+        });
+
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        let src = &result["sources"]["protomaps"];
+
+        assert!(src.get("url").is_none());
+        assert_eq!(
+            src["tiles"][0],
+            "http://localhost:8080/data/protomaps/{z}/{x}/{y}.pbf"
+        );
+        assert_eq!(src["minzoom"], 0);
+        assert_eq!(src["maxzoom"], 14);
+
+        assert_eq!(
+            result["glyphs"],
+            "http://localhost:8080/fonts/{fontstack}/{range}.pbf"
+        );
+        assert_eq!(
+            result["sprite"],
+            "http://localhost:8080/styles/basic/sprite"
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_mlt_source_uses_pbf() {
+        let mgr = manager_with_source("india", TileFormat::Mlt);
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "india": { "type": "vector", "url": "/data/india" }
+            }
+        });
+
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        let src = &result["sources"]["india"];
+        assert_eq!(
+            src["tiles"][0],
+            "http://localhost:8080/data/india/{z}/{x}/{y}.pbf"
+        );
+        assert!(src.get("encoding").is_none());
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_absolute_urls_untouched() {
+        // Absolute glyphs/sprite (not starting with '/') are left untouched.
+        let mgr = SourceManager::new();
+        let style = json!({
+            "version": 8,
+            "sources": {},
+            "glyphs": "https://cdn.example.com/fonts/{fontstack}/{range}.pbf",
+            "sprite": "https://cdn.example.com/sprite"
+        });
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        assert_eq!(
+            result["glyphs"],
+            "https://cdn.example.com/fonts/{fontstack}/{range}.pbf"
+        );
+        assert_eq!(result["sprite"], "https://cdn.example.com/sprite");
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_unknown_source_kept() {
+        // A /data reference to a source we don't know about is left as-is
+        // (the warn branch in rewrite_source), retaining its url.
+        let mgr = SourceManager::new();
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "missing": { "type": "vector", "url": "/data/missing.json" }
+            }
+        });
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        let src = &result["sources"]["missing"];
+        assert_eq!(src["url"], "/data/missing.json");
+        assert!(src.get("tiles").is_none());
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_non_data_url_kept() {
+        // A source url that is not a /data reference triggers the early
+        // `return` in rewrite_source and is left untouched.
+        let mgr = SourceManager::new();
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "remote": { "type": "raster", "url": "https://tiles.example.com/x.json" }
+            }
+        });
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        assert_eq!(
+            result["sources"]["remote"]["url"],
+            "https://tiles.example.com/x.json"
+        );
+    }
+
+    #[test]
+    fn test_rewrite_style_for_native_source_without_url_kept() {
+        // A source object with no `url` key hits the `_ => return` arm.
+        let mgr = SourceManager::new();
+        let style = json!({
+            "version": 8,
+            "sources": {
+                "inline": { "type": "vector", "tiles": ["https://x/{z}/{x}/{y}.pbf"] }
+            }
+        });
+        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
+        assert_eq!(
+            result["sources"]["inline"]["tiles"][0],
+            "https://x/{z}/{x}/{y}.pbf"
+        );
+    }
 }
