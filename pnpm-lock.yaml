@@ -162,8 +162,8 @@ catalogs:
       specifier: ^2.10.1
       version: 2.10.1
     shadcn-nuxt:
-      specifier: ^2.7.4
-      version: 2.7.4
+      specifier: ^2.8.0
+      version: 2.8.0
     tailwind-merge:
       specifier: ^3.6.0
       version: 3.6.0
@@ -372,7 +372,7 @@ importers:
         version: 1.73.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
+        version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.2
@@ -475,7 +475,7 @@ importers:
         version: 1.73.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
+        version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.2
@@ -581,7 +581,7 @@ importers:
         version: 1.73.0
       shadcn-nuxt:
         specifier: catalog:default
-        version: 2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
+        version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
         version: 4.3.2
@@ -6909,8 +6909,8 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shadcn-nuxt@2.7.4:
-    resolution: {integrity: sha512-rAfC7KulGRtSqXLUaKtvXN+6CKp31IQDfAcooRR2U9HbTHyVUSDal6Yd0xGtNawtRJACYdeKwlKgZ1C5C/TAtA==}
+  shadcn-nuxt@2.8.0:
+    resolution: {integrity: sha512-0HKTjq8FeEbAKGGc6a7pd72kSLNiAhCK9JgjYlZ5mJ8DPlRNQ1LV8aarfP+BKLX6IYLevUvtZiCGS5TaPS7WLQ==}
 
   sharp@0.34.5:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
@@ -8832,13 +8832,6 @@ snapshots:
       '@tybys/wasm-util': 0.10.2
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
-    dependencies:
-      '@emnapi/core': 1.11.1
-      '@emnapi/runtime': 1.11.1
-      '@tybys/wasm-util': 0.10.2
-    optional: true
-
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@emnapi/core': 1.10.0
@@ -9764,7 +9757,7 @@ snapshots:
 
   '@oxc-parser/binding-wasm32-wasi@0.102.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -14972,7 +14965,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shadcn-nuxt@2.7.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3):
+  shadcn-nuxt@2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3):
     dependencies:
       '@nuxt/kit': 3.21.8(magicast@0.5.3)
       oxc-parser: 0.102.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
