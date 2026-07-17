@@ -35,8 +35,8 @@ catalogs:
       specifier: ^0.41.0
       version: 0.41.0
     '@tanstack/ai-vue':
-      specifier: ^0.14.3
-      version: 0.14.3
+      specifier: ^0.14.4
+      version: 0.14.4
     '@tanstack/query-db-collection':
       specifier: ^1.1.0
       version: 1.1.0
@@ -263,7 +263,7 @@ importers:
         version: 0.41.0
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 0.14.3(@tanstack/ai@0.41.0)(vue@3.5.40(typescript@6.0.3))
+        version: 0.14.4(@tanstack/ai@0.41.0)(vue@3.5.40(typescript@6.0.3))
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.1.0(@tanstack/query-core@5.101.2)(typescript@6.0.3)
@@ -3376,8 +3376,8 @@ packages:
     peerDependencies:
       vite: ^8.1.4
 
-  '@tanstack/ai-client@0.20.0':
-    resolution: {integrity: sha512-pxx940CaZ/eQGYiYpOWvVuQCBLqnJgS/PUn6+vKtyV6W4G8vZ+SqJf3UI/pDyqre7wv048G5cu6/EEj8dBn5JA==}
+  '@tanstack/ai-client@0.21.0':
+    resolution: {integrity: sha512-Q9QvXoxWU2QqMnB5x7i0rCLi7mKLtSHHlHtWOV407gdEUOAUPEnUJJ0POSeCQl8zhb6d/P5pn27JP0ppitKCmw==}
 
   '@tanstack/ai-event-client@0.6.8':
     resolution: {integrity: sha512-h7/HLz9u2LF9ba6uKFMnSZkFlkzQONJ5u3Hi+4qGxpsHyvcGRtW6v186jaFLoklndhEwyC49ytkC4eafi7Qq8w==}
@@ -3385,20 +3385,11 @@ packages:
   '@tanstack/ai-utils@0.3.1':
     resolution: {integrity: sha512-fgbjd5DohL3k5rTWr/KInauLVYMiHVm0cnmTsNrzL3cr4wWhEld5vmFSrjiwUWACAuONjZa+uBXuS+ZSO8fwDQ==}
 
-  '@tanstack/ai-vue@0.14.3':
-    resolution: {integrity: sha512-0qzWD0vqox3Ko4/bEm/OVlPTbVTAwNcwJjVjJhtaswEFetNRfOuokMU/GFM+j+51CSeof+fZWuaC3to1H96INQ==}
+  '@tanstack/ai-vue@0.14.4':
+    resolution: {integrity: sha512-yR6CL+Sii9JqDK1RRyoJUqdhpqRfwkC2V/76YlE3imZBXxPT0jq0pTom5CUfzZl7sZBYZi8aFuaKaxABP88bgQ==}
     peerDependencies:
-      '@tanstack/ai': ^0.40.0
+      '@tanstack/ai': ^0.41.0
       vue: '>=3.5.0'
-
-  '@tanstack/ai@0.40.0':
-    resolution: {integrity: sha512-7942RQkjHccHRL9lTuqAjcgt5z+281HJEvWSSEIX9ZDgntSj5Xt9cOK8SL5tXtGrjj2ZpGnzaFdog5lE4QD07A==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@opentelemetry/api': '>=1.9.0'
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
 
   '@tanstack/ai@0.41.0':
     resolution: {integrity: sha512-cq6ye9/rTfcwBDv9z2t1iCUIXL+lGdtM2HZm/KiLu3u6i+MH57W7i4tbB5uTUtcCnDmOlQ7EHD97esyNJpGtNw==}
@@ -10305,9 +10296,9 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
 
-  '@tanstack/ai-client@0.20.0':
+  '@tanstack/ai-client@0.21.0':
     dependencies:
-      '@tanstack/ai': 0.40.0
+      '@tanstack/ai': 0.41.0
       '@tanstack/ai-event-client': 0.6.8
       '@tanstack/ai-utils': 0.3.1
     transitivePeerDependencies:
@@ -10319,21 +10310,13 @@ snapshots:
 
   '@tanstack/ai-utils@0.3.1': {}
 
-  '@tanstack/ai-vue@0.14.3(@tanstack/ai@0.41.0)(vue@3.5.40(typescript@6.0.3))':
+  '@tanstack/ai-vue@0.14.4(@tanstack/ai@0.41.0)(vue@3.5.40(typescript@6.0.3))':
     dependencies:
       '@tanstack/ai': 0.41.0
-      '@tanstack/ai-client': 0.20.0
+      '@tanstack/ai-client': 0.21.0
       vue: 3.5.40(typescript@6.0.3)
     transitivePeerDependencies:
       - '@opentelemetry/api'
-
-  '@tanstack/ai@0.40.0':
-    dependencies:
-      '@ag-ui/core': 0.0.52
-      '@standard-schema/spec': 1.1.0
-      '@tanstack/ai-event-client': 0.6.8
-      '@tanstack/ai-utils': 0.3.1
-      partial-json: 0.1.7
 
   '@tanstack/ai@0.41.0':
     dependencies:
