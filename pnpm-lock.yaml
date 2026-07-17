@@ -168,8 +168,8 @@ catalogs:
       specifier: ^3.6.0
       version: 3.6.0
     tailwindcss:
-      specifier: ^4.3.2
-      version: 4.3.2
+      specifier: ^4.3.3
+      version: 4.3.3
     tailwindcss-animate:
       specifier: ^1.0.7
       version: 1.0.7
@@ -323,7 +323,7 @@ importers:
         version: 3.6.0
       tailwindcss-animate:
         specifier: catalog:default
-        version: 1.0.7(tailwindcss@4.3.2)
+        version: 1.0.7(tailwindcss@4.3.3)
       tw-animate-css:
         specifier: catalog:default
         version: 1.4.0
@@ -360,7 +360,7 @@ importers:
         version: 10.7.0(jiti@2.7.0)
       eslint-plugin-better-tailwindcss:
         specifier: catalog:default
-        version: 4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.2)(typescript@6.0.3)
+        version: 4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.3)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
         version: 1.73.0(oxlint@1.73.0)
@@ -375,7 +375,7 @@ importers:
         version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
-        version: 4.3.2
+        version: 4.3.3
       typescript:
         specifier: catalog:default
         version: 6.0.3
@@ -438,7 +438,7 @@ importers:
         version: 3.6.0
       tailwindcss-animate:
         specifier: catalog:default
-        version: 1.0.7(tailwindcss@4.3.2)
+        version: 1.0.7(tailwindcss@4.3.3)
       tw-animate-css:
         specifier: catalog:default
         version: 1.4.0
@@ -478,7 +478,7 @@ importers:
         version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
-        version: 4.3.2
+        version: 4.3.3
       typescript:
         specifier: catalog:default
         version: 6.0.3
@@ -538,7 +538,7 @@ importers:
         version: 3.6.0
       tailwindcss-animate:
         specifier: catalog:default
-        version: 1.0.7(tailwindcss@4.3.2)
+        version: 1.0.7(tailwindcss@4.3.3)
       tw-animate-css:
         specifier: catalog:default
         version: 1.4.0
@@ -569,7 +569,7 @@ importers:
         version: 10.7.0(jiti@2.7.0)
       eslint-plugin-better-tailwindcss:
         specifier: catalog:default
-        version: 4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.2)(typescript@6.0.3)
+        version: 4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.3)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
         version: 1.73.0(oxlint@1.73.0)
@@ -584,7 +584,7 @@ importers:
         version: 2.8.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(magicast@0.5.3)
       tailwindcss:
         specifier: catalog:default
-        version: 4.3.2
+        version: 4.3.3
       typescript:
         specifier: catalog:default
         version: 6.0.3
@@ -7152,6 +7152,9 @@ packages:
   tailwindcss@4.3.2:
     resolution: {integrity: sha512-WtctNNSH8A9jlMIqxzuYumOHU5uGZyRv0Q5svQl+oEPy5w84YpBxdb7MdqyiSPQge5jTJ6zFQLq0PFygdccSBA==}
 
+  tailwindcss@4.3.3:
+    resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
+
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
@@ -11893,7 +11896,7 @@ snapshots:
     dependencies:
       eslint: 10.7.0(jiti@2.7.0)
 
-  eslint-plugin-better-tailwindcss@4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.2)(typescript@6.0.3):
+  eslint-plugin-better-tailwindcss@4.6.1(eslint@10.7.0(jiti@2.7.0))(oxlint@1.73.0)(tailwindcss@4.3.3)(typescript@6.0.3):
     dependencies:
       '@eslint/css-tree': 4.0.4
       '@valibot/to-json-schema': 1.7.1(valibot@1.4.2(typescript@6.0.3))
@@ -11901,7 +11904,7 @@ snapshots:
       jiti: 2.7.0
       synckit: 0.11.13
       tailwind-csstree: 0.3.3
-      tailwindcss: 4.3.2
+      tailwindcss: 4.3.3
       tsconfig-paths-webpack-plugin: 4.2.0
       valibot: 1.4.2(typescript@6.0.3)
     optionalDependencies:
@@ -15237,11 +15240,13 @@ snapshots:
 
   tailwind-merge@3.6.0: {}
 
-  tailwindcss-animate@1.0.7(tailwindcss@4.3.2):
+  tailwindcss-animate@1.0.7(tailwindcss@4.3.3):
     dependencies:
-      tailwindcss: 4.3.2
+      tailwindcss: 4.3.3
 
   tailwindcss@4.3.2: {}
+
+  tailwindcss@4.3.3: {}
 
   tapable@2.3.3: {}
 
