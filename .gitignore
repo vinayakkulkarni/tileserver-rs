@@ -171,6 +171,8 @@ config.toml
 data/raster/benchmark-rgb.cog.tif
 *.aux.xml
 apps/docs/.data
+apps/docs/.wrangler
+apps/marketing/.wrangler
 .sisyphus
 data/overture
 docs/superpowers
