@@ -4,16 +4,6 @@ packages:
   - apps/marketing
   - benchmarks
 
-# Force the entire workspace onto Vite 8 even though @nuxt/vite-builder
-# (Nuxt 4.4.5) declares a "vite": "^7.3.2" peer dependency. Without this
-# override pnpm honors the peer dep and resolves Vite 7 alongside Vite 8,
-# leaving Nuxt on the older runtime. MUST live at workspace root, NOT in
-# package.json's pnpm.overrides — pnpm v9+ in workspace mode silently
-# ignores that location and the install completes in <1 s doing nothing
-# instead of 10-15 s doing real re-resolution.
-overrides:
-  vite: ^8.1.4
-
 # pnpm 11's supply-chain policy defaults to a 24-hour minimumReleaseAge,
 # which blocks legitimate routine dep bumps when CI runs within a day of
 # an upstream patch release (e.g. cloudflare/wrangler, cloudflare/miniflare).
@@ -70,7 +60,7 @@ catalogs:
     '@lucide/vue': ^1.24.0
     maplibre-gl: ^5.24.0
     motion-v: ^2.3.0
-    nuxt: ^4.4.8
+    nuxt: ^4.5.0
     oxfmt: ^0.59.0
     oxlint: ^1.73.0
     radix-vue: ^1.9.17
