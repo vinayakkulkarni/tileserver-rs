@@ -42,11 +42,26 @@ export default {
     // explicit reka-ui imports) are not counted as our slop.
     'apps/*/app/components/ui/**',
   ],
+  // NOTE on vue-doctor/design/no-arbitrary-tailwind-values (kept ON, `warn`):
+  // the residual warnings after tokenisation are all inherent false positives —
+  // Tailwind variant selectors (data-[state=*], data-[side=*], group-data-*),
+  // CSS-var references that ARE design tokens (duration-[var(--d-fast)],
+  // ease-[var(--ease)]), reka-ui runtime bindings (w-[--reka-*]), and computed
+  // values (calc(), inherit). No @theme token can express those more correctly.
+  // The rule stays on as a tripwire: any NEW fixed arbitrary value (px/rem/%)
+  // must be promoted to an @theme token, not merged as-is.
   rules: {
     // knip can't see CLI-invoked binaries: vue-tsc backs `nuxt typecheck` and
     // wrangler backs the deploy step (wrangler pages deploy dist) — both real,
     // neither imported.
     'dead-code/unused-dependency': 'off',
+    // False positive on pnpm catalog + CSS subpath imports. knip flags
+    // `@geoql/v-maplibre` as unlisted because apps/client/nuxt.config.ts imports
+    // the `@geoql/v-maplibre/style.css` subpath, which knip can't map back to the
+    // package — yet it IS listed in apps/client/package.json (catalog:client) and
+    // installed. Same blind spot affects any catalog:-referenced dep imported via
+    // a non-root subpath.
+    'dead-code/unlisted-dependency': 'off',
     // Nuxt's generated .nuxt/tsconfig.json already sets `strict: true`; the rule
     // reads the root tsconfig literally and misses the value inherited via
     // `extends`, so it is a false positive here.
