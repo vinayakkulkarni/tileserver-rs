@@ -22,7 +22,7 @@
 <template>
   <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
     <span
-      class="lbl font-mono text-[10.5px] tracking-[0.10em] uppercase text-muted-foreground font-medium"
+      class="lbl font-mono text-[10.5px] tracking-widest uppercase text-muted-foreground font-medium"
       >Services:</span
     >
     <a

@@ -34,6 +34,18 @@ export default createConfigForNuxt({
     },
     rules: {
       ...betterTailwindcss.configs['recommended-warn'].rules,
+      // recommended-warn omits enforce-canonical-classes (it lives in
+      // recommended-error); add it explicitly as an error so `--fix`
+      // canonicalizes classes. ignore `[var(...)]` to preserve design-token
+      // CSS-variable bindings (CLAUDE.md Rule #20.H motion tokens); logical:
+      // false because this is an LTR-only marketing site.
+      'better-tailwindcss/enforce-canonical-classes': [
+        'error',
+        {
+          ignore: ['\\[var\\('],
+          logical: false,
+        },
+      ],
       'better-tailwindcss/no-unknown-classes': [
         'warn',
         {
@@ -47,6 +59,12 @@ export default createConfigForNuxt({
         entryPoint: 'app/assets/css/tailwind.css',
         detectComponentClasses: true,
       },
+    },
+  })
+  .append({
+    files: ['app/components/ui/**/*.vue'],
+    rules: {
+      'better-tailwindcss/enforce-canonical-classes': 'off',
     },
   })
   .append(...oxlint.configs['flat/recommended']);

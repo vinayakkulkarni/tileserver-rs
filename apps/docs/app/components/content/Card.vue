@@ -18,7 +18,7 @@
     >
       {{ title }}
     </h4>
-    <div class="text-sm leading-relaxed text-muted-foreground">
+    <div class="text-sm/relaxed text-muted-foreground">
       <slot />
     </div>
     <span
@@ -37,7 +37,7 @@
     <h4 class="mb-1.5 font-display text-sm font-semibold tracking-tight">
       {{ title }}
     </h4>
-    <div class="text-sm leading-relaxed text-muted-foreground">
+    <div class="text-sm/relaxed text-muted-foreground">
       <slot />
     </div>
   </div>

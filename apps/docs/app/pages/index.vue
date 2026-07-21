@@ -284,7 +284,7 @@
             Tileserver
             <span class="text-primary">RS</span>
           </h1>
-          <p class="mb-10 max-w-2xl font-sans text-lg leading-relaxed text-muted-foreground">
+          <p class="mb-10 max-w-2xl font-sans text-lg/relaxed text-muted-foreground">
             High-performance vector tile server built in Rust. Serve PMTiles and
             MBTiles with native raster rendering, static map images, and TileJSON
             3.0 metadata.
@@ -353,7 +353,7 @@
             <h3 class="mb-2 font-display text-sm font-semibold tracking-tight">
               {{ feature.title }}
             </h3>
-            <p class="font-sans text-sm leading-relaxed text-muted-foreground">
+            <p class="font-sans text-sm/relaxed text-muted-foreground">
               {{ feature.description }}
             </p>
           </div>
@@ -388,7 +388,7 @@
             <h3 class="mb-2 font-display text-sm font-semibold tracking-tight group-hover:text-primary">
               {{ section.title }}
             </h3>
-            <p class="mb-4 font-sans text-sm leading-relaxed text-muted-foreground">
+            <p class="mb-4 font-sans text-sm/relaxed text-muted-foreground">
               {{ section.description }}
             </p>
             <span

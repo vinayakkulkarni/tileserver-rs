@@ -31,7 +31,7 @@
     <div class="hero-compact lg:hidden" :class="{ open: heroExpanded }">
       <button
         type="button"
-        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-[clamp(12px,4vw,24px)] py-2.5 text-left transition-colors duration-[var(--d-fast,120ms)] hover:bg-primary/[0.04]"
+        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-[clamp(12px,4vw,24px)] py-2.5 text-left transition-colors duration-[var(--d-fast,120ms)] hover:bg-primary/4"
         :aria-expanded="heroExpanded"
         aria-controls="hero-detail"
         @click="toggleHero"

@@ -44,6 +44,7 @@
     "@tailwindcss/vite": "catalog:default",
     "@types/node": "catalog:default",
     "eslint": "catalog:default",
+    "eslint-plugin-better-tailwindcss": "catalog:default",
     "eslint-plugin-oxlint": "catalog:default",
     "oxlint": "catalog:default",
     "shadcn-nuxt": "catalog:default",
