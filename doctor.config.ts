@@ -33,6 +33,7 @@ export default {
     // AI agent skill scripts (build.ts/validate.ts helpers). Tooling, never
     // imported by the apps, so knip flags them as unused files.
     '.claude/**',
+    '.agents/**',
     // Perf benchmark harness — not part of the shipped app surface.
     'benchmarks/**',
     // Vendored shadcn-vue primitives across all three Nuxt apps — generated/
