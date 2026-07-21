@@ -20,6 +20,21 @@ export default {
     // This config file itself: consumed by the nuxt-doctor CLI via c12, never
     // imported by app code, so knip's dead-code pass flags it as unused.
     'doctor.config.ts',
+    // The Rust workspace. nuxt-doctor is a Nuxt/Vue auditor; the only reason it
+    // walks here is that `crates/mbgl-sys/vendor/maplibre-native/` is a vendored
+    // C++ git submodule that ships bundled JS (jQuery, Doxygen doc assets,
+    // VulkanMemoryAllocator + PMTiles vendored apps). Auditing third-party
+    // vendored code produced 31 of 32 "errors" (v-html/eval in minified jQuery)
+    // and 77 unused-file warnings — all false positives. Doctor must only see
+    // the three Nuxt apps under apps/.
+    'crates/**',
+    // Any other vendored/bundled third-party trees, wherever they live.
+    '**/vendor/**',
+    // AI agent skill scripts (build.ts/validate.ts helpers). Tooling, never
+    // imported by the apps, so knip flags them as unused files.
+    '.claude/**',
+    // Perf benchmark harness — not part of the shipped app surface.
+    'benchmarks/**',
     // Vendored shadcn-vue primitives across all three Nuxt apps — generated/
     // owned by the shadcn-vue CLI (`pnpm dlx shadcn-vue add ...`), not
     // hand-authored app code. Excluded so `shadcn-vue add` upgrades stay clean
