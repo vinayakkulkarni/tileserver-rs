@@ -26,7 +26,7 @@
 <template>
   <div class="flex min-h-dvh flex-col">
     <header
-      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+      class="border-b border-border px-page-x py-5 sm:py-6"
     >
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
@@ -39,38 +39,38 @@
       </p>
     </header>
 
-    <section class="flex-1 px-[clamp(16px,4vw,40px)] py-6 sm:py-8">
+    <section class="flex-1 px-page-x py-6 sm:py-8">
       <div v-if="isLoading" class="overflow-x-auto border border-border">
-        <table class="w-full min-w-[640px] border-collapse">
+        <table class="w-full min-w-table-min border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Token
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Client
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Scope
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Granted
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Expires
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Actions
               </th>
@@ -82,17 +82,17 @@
               :key="row"
               class="border-b border-border align-middle last:border-b-0"
             >
-              <td class="px-4 py-[18px]"><Skeleton class="h-3 w-32" /></td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel"><Skeleton class="h-3 w-32" /></td>
+              <td class="px-4 py-panel">
                 <Skeleton class="h-4 w-36" />
                 <Skeleton class="mt-2 h-3 w-24" />
               </td>
-              <td class="px-4 py-[18px]"><Skeleton class="h-5 w-16" /></td>
-              <td class="px-4 py-[18px]"><Skeleton class="h-3 w-24" /></td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel"><Skeleton class="h-5 w-16" /></td>
+              <td class="px-4 py-panel"><Skeleton class="h-3 w-24" /></td>
+              <td class="px-4 py-panel text-right">
                 <Skeleton class="ml-auto h-3 w-16" />
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <Skeleton class="ml-auto h-3 w-16" />
               </td>
             </tr>
@@ -102,7 +102,7 @@
 
       <div v-else-if="error" class="border border-border px-6 py-8">
         <p
-          class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+          class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
         >
           {{ friendly.title }}
         </p>
@@ -126,7 +126,7 @@
           </div>
           <div>
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               No active devices
             </p>
@@ -151,36 +151,36 @@
       </div>
 
       <div v-else class="overflow-x-auto border border-border">
-        <table class="w-full min-w-[640px] border-collapse">
+        <table class="w-full min-w-table-min border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Token
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Client
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Scope
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Granted
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Expires
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Actions
               </th>
@@ -192,42 +192,42 @@
               :key="session.token_id"
               class="border-b border-border align-middle last:border-b-0 hover:bg-secondary/40"
             >
-              <td class="px-4 py-[18px]">
-                <code class="font-mono text-[11px] text-foreground">
+              <td class="px-4 py-panel">
+                <code class="font-mono text-11 text-foreground">
                   {{ session.token_id.slice(0, 12) }}…{{
                     session.token_id.slice(-4)
                   }}
                 </code>
               </td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <div class="text-sm font-semibold text-foreground">
                   {{ session.client_name ?? session.client_id }}
                 </div>
-                <div class="mt-1 font-mono text-[11px] text-muted-foreground">
+                <div class="mt-1 font-mono text-11 text-muted-foreground">
                   {{ session.client_id }}
                 </div>
               </td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <span
-                  class="border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
+                  class="border border-border bg-card px-2 py-0.5 font-mono text-11 text-foreground"
                 >
                   {{ session.scope }}
                 </span>
               </td>
               <td
-                class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground"
+                class="px-4 py-panel font-mono text-11 text-muted-foreground"
               >
                 {{ formatTimestamp(session.granted_at) }}
               </td>
               <td
-                class="px-4 py-[18px] text-right font-mono text-[11px] text-muted-foreground tabular-nums"
+                class="px-4 py-panel text-right font-mono text-11 text-muted-foreground tabular-nums"
               >
                 {{ formatRelativeExpiry(session.expires_at) }}
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <button
                   type="button"
-                  class="font-mono text-[11px] tracking-wider text-destructive uppercase transition-colors hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  class="font-mono text-11 tracking-wider text-destructive uppercase transition-colors hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="pendingTokenId !== null"
                   @click="openRevokeConfirm(session.token_id)"
                 >
@@ -247,7 +247,7 @@
       >
         <div class="w-full max-w-md border border-border bg-card p-6">
           <p
-            class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
           >
             Confirm revoke
           </p>
@@ -262,7 +262,7 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
-              class="border border-border px-4 py-2 font-mono text-[11px] tracking-wider text-muted-foreground uppercase transition-colors hover:bg-secondary hover:text-foreground"
+              class="border border-border px-4 py-2 font-mono text-11 tracking-wider text-muted-foreground uppercase transition-colors hover:bg-secondary hover:text-foreground"
               :disabled="pendingTokenId !== null"
               @click="closeRevokeConfirm"
             >
@@ -270,7 +270,7 @@
             </button>
             <button
               type="button"
-              class="border border-destructive bg-destructive px-4 py-2 font-mono text-[11px] tracking-wider text-destructive-foreground uppercase transition-colors hover:bg-destructive/80 disabled:cursor-not-allowed disabled:opacity-60"
+              class="border border-destructive bg-destructive px-4 py-2 font-mono text-11 tracking-wider text-destructive-foreground uppercase transition-colors hover:bg-destructive/80 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="pendingTokenId !== null"
               @click="confirmRevoke"
             >

@@ -22,7 +22,7 @@
       <slot />
     </div>
     <span
-      class="mt-3 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
+      class="mt-3 inline-flex items-center gap-1 font-mono text-10 uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
     >
       Read more
       <ArrowRight

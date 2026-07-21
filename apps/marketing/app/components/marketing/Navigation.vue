@@ -9,8 +9,8 @@
   <header class="fixed top-0 z-50 w-full bg-background">
     <div
       class="
-        grid h-[72px] grid-cols-[72px_1fr_48px] border-b border-border
-        lg:h-[80px] lg:grid-cols-[80px_1fr_auto_80px]
+        grid h-frame-inner grid-cols-frame-sm border-b border-border
+        lg:h-frame-outer lg:grid-cols-frame
       "
     >
       <!-- Logo cell -->
@@ -25,7 +25,7 @@
         <NuxtLink to="/" class="flex items-center gap-2.5">
           <span
             class="
-              font-display text-sm font-semibold tracking-[0.15em] uppercase
+              font-display text-sm font-semibold tracking-150 uppercase
             "
           >
             <span class="text-foreground">Tileserver</span
@@ -124,7 +124,7 @@
       <NuxtLink
         to="https://docs.tileserver.app"
         external
-        class="font-display text-2xl font-semibold tracking-[0.15em] uppercase"
+        class="font-display text-2xl font-semibold tracking-150 uppercase"
         @click="mobileOpen = false"
       >
         Docs
@@ -132,7 +132,7 @@
       <NuxtLink
         to="https://demo.tileserver.app"
         external
-        class="font-display text-2xl font-semibold tracking-[0.15em] uppercase"
+        class="font-display text-2xl font-semibold tracking-150 uppercase"
         @click="mobileOpen = false"
       >
         Demo
@@ -140,7 +140,7 @@
       <NuxtLink
         to="https://github.com/vinayakkulkarni/tileserver-rs"
         external
-        class="font-display text-2xl font-semibold tracking-[0.15em] uppercase"
+        class="font-display text-2xl font-semibold tracking-150 uppercase"
         @click="mobileOpen = false"
       >
         GitHub

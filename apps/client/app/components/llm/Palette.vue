@@ -79,7 +79,7 @@
     v-if="mode === 'expanded'"
     :ref="setPanelRef"
     :style="dragStyle"
-    class="fixed z-50 flex h-[480px] w-[400px] flex-col border border-border bg-background/95 shadow-2xl backdrop-blur-xl"
+    class="fixed z-50 flex h-[480px] w-llm-panel flex-col border border-border bg-background/95 shadow-2xl backdrop-blur-xl"
     :class="{ 'select-none': isDragging }"
   >
     <LlmPaletteExpandedHeader

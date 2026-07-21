@@ -6,7 +6,7 @@
 
 <template>
   <p
-    class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+    class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
   >
     <template v-for="(crumb, idx) in items" :key="idx">
       <NuxtLink

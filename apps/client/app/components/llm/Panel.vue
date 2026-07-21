@@ -40,7 +40,7 @@
   <UiSheet :open="open" @update:open="emit('update:open', $event)">
     <UiSheetContent
       side="right"
-      class="flex w-[400px] flex-col gap-0 border-l border-border/50 p-0 shadow-2xl sm:max-w-[400px]"
+      class="flex w-llm-panel flex-col gap-0 border-l border-border/50 p-0 shadow-2xl sm:max-w-llm-panel"
     >
       <LlmPanelHeader
         :engine-status="engineStatus"

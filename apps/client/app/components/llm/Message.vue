@@ -66,7 +66,7 @@
         </template>
       </ClientOnly>
 
-      <span v-if="message.createdAt" class="mt-1 block text-[10px] opacity-50">
+      <span v-if="message.createdAt" class="mt-1 block text-10 opacity-50">
         {{ formatMessageTime(message.createdAt) }}
       </span>
     </div>

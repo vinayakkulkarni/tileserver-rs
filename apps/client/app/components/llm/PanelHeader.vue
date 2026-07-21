@@ -36,7 +36,7 @@
       </UiSheetTitle>
       <span
         v-if="engineStatus === 'ready'"
-        class="inline-flex items-center gap-1 border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary"
+        class="inline-flex items-center gap-1 border border-primary/30 bg-primary/10 px-2 py-0.5 text-10 font-semibold uppercase tracking-wider text-primary"
       >
         <span class="size-1.5 bg-primary"></span>
         Ready

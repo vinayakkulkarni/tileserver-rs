@@ -69,7 +69,7 @@
 
     <main id="main" class="w-full flex-1 overflow-y-auto" role="main">
       <div
-        class="mx-auto max-w-screen-2xl px-[clamp(12px,4vw,24px)] py-5 flex flex-col gap-4"
+        class="mx-auto max-w-screen-2xl px-page-x-sm py-5 flex flex-col gap-4"
       >
         <HomeSection
           title="Map styles"

@@ -27,7 +27,7 @@
 <template>
   <div class="flex min-h-dvh flex-col">
     <header
-      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+      class="border-b border-border px-page-x py-5 sm:py-6"
     >
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
@@ -40,33 +40,33 @@
       </p>
     </header>
 
-    <section class="flex-1 px-[clamp(16px,4vw,40px)] py-6 sm:py-8">
+    <section class="flex-1 px-page-x py-6 sm:py-8">
       <div v-if="isLoading" class="overflow-x-auto border border-border">
-        <table class="w-full min-w-[640px] border-collapse">
+        <table class="w-full min-w-table-min border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Client
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Scopes
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Sessions
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Last seen
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Actions
               </th>
@@ -78,24 +78,24 @@
               :key="row"
               class="border-b border-border align-middle last:border-b-0"
             >
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <Skeleton class="h-4 w-40" />
                 <Skeleton class="mt-2 h-3 w-28" />
               </td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <Skeleton class="h-5 w-16" />
                   <Skeleton class="h-5 w-20" />
                   <Skeleton class="h-5 w-14" />
                 </div>
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <Skeleton class="ml-auto h-4 w-6" />
               </td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <Skeleton class="h-3 w-24" />
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <Skeleton class="ml-auto h-3 w-16" />
               </td>
             </tr>
@@ -105,7 +105,7 @@
 
       <div v-else-if="error" class="border border-border px-6 py-8">
         <p
-          class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+          class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
         >
           {{ friendly.title }}
         </p>
@@ -129,7 +129,7 @@
           </div>
           <div>
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               Zero clients registered
             </p>
@@ -149,31 +149,31 @@
       </div>
 
       <div v-else class="overflow-x-auto border border-border">
-        <table class="w-full min-w-[640px] border-collapse">
+        <table class="w-full min-w-table-min border-collapse">
           <thead>
             <tr class="border-b border-border bg-card">
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Client
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Scopes
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Sessions
               </th>
               <th
-                class="px-4 py-3 text-left font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-left font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Last seen
               </th>
               <th
-                class="px-4 py-3 text-right font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                class="px-4 py-3 text-right font-mono text-11 tracking-wider text-muted-foreground uppercase"
               >
                 Actions
               </th>
@@ -185,32 +185,32 @@
               :key="client.client_id"
               class="border-b border-border align-middle last:border-b-0 hover:bg-secondary/40"
             >
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <div class="text-sm font-semibold text-foreground">
                   {{ client.client_name ?? client.client_id }}
                 </div>
-                <div class="mt-1 font-mono text-[11px] text-muted-foreground">
+                <div class="mt-1 font-mono text-11 text-muted-foreground">
                   {{ client.client_id }}
                 </div>
               </td>
-              <td class="px-4 py-[18px]">
+              <td class="px-4 py-panel">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span
                     v-for="scope in visibleScopes(client)"
                     :key="scope"
-                    class="border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
+                    class="border border-border bg-card px-2 py-0.5 font-mono text-11 text-foreground"
                   >
                     {{ scope }}
                   </span>
                   <Popover v-if="overflowScopes(client).length > 0">
                     <PopoverTrigger
-                      class="border border-border bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                      class="border border-border bg-secondary px-2 py-0.5 font-mono text-11 text-muted-foreground transition-colors hover:text-foreground"
                     >
                       +{{ overflowScopes(client).length }} more
                     </PopoverTrigger>
                     <PopoverContent class="w-72">
                       <p
-                        class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+                        class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
                       >
                         All scopes
                       </p>
@@ -218,7 +218,7 @@
                         <span
                           v-for="scope in client.scopes"
                           :key="scope"
-                          class="border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-foreground"
+                          class="border border-border bg-card px-2 py-0.5 font-mono text-11 text-foreground"
                         >
                           {{ scope }}
                         </span>
@@ -227,20 +227,20 @@
                   </Popover>
                 </div>
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <span class="font-mono text-sm tabular-nums text-foreground">
                   {{ client.active_sessions }}
                 </span>
               </td>
               <td
-                class="px-4 py-[18px] font-mono text-[11px] text-muted-foreground"
+                class="px-4 py-panel font-mono text-11 text-muted-foreground"
               >
                 {{ formatTimestamp(client.last_seen_at) }}
               </td>
-              <td class="px-4 py-[18px] text-right">
+              <td class="px-4 py-panel text-right">
                 <button
                   type="button"
-                  class="font-mono text-[11px] tracking-wider text-destructive uppercase transition-colors hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  class="font-mono text-11 tracking-wider text-destructive uppercase transition-colors hover:text-destructive-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   :disabled="pendingClientId !== null"
                   @click="openRevokeConfirm(client.client_id)"
                 >
@@ -260,7 +260,7 @@
       >
         <div class="w-full max-w-md border border-border bg-card p-6">
           <p
-            class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
           >
             Confirm revoke
           </p>
@@ -276,7 +276,7 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
-              class="border border-border px-4 py-2 font-mono text-[11px] tracking-wider text-muted-foreground uppercase transition-colors hover:bg-secondary hover:text-foreground"
+              class="border border-border px-4 py-2 font-mono text-11 tracking-wider text-muted-foreground uppercase transition-colors hover:bg-secondary hover:text-foreground"
               :disabled="pendingClientId !== null"
               @click="closeRevokeConfirm"
             >
@@ -284,7 +284,7 @@
             </button>
             <button
               type="button"
-              class="border border-destructive bg-destructive px-4 py-2 font-mono text-[11px] tracking-wider text-destructive-foreground uppercase transition-colors hover:bg-destructive/80 disabled:cursor-not-allowed disabled:opacity-60"
+              class="border border-destructive bg-destructive px-4 py-2 font-mono text-11 tracking-wider text-destructive-foreground uppercase transition-colors hover:bg-destructive/80 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="pendingClientId !== null"
               @click="confirmRevoke"
             >

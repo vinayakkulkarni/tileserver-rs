@@ -9,7 +9,7 @@
     <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
       <p
         class="
-          mb-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground
+          mb-3 font-mono text-10 tracking-300 text-muted-foreground
           uppercase
           lg:text-xs
         "
@@ -58,7 +58,7 @@
         </p>
         <p
           class="
-            mt-3 font-mono text-[10px] tracking-wider text-muted-foreground
+            mt-3 font-mono text-10 tracking-wider text-muted-foreground
             uppercase
           "
         >

@@ -35,7 +35,7 @@
         <div
           class="
             mb-8 flex flex-col items-center justify-center gap-2 font-mono
-            text-[10px] tracking-wider uppercase
+            text-10 tracking-wider uppercase
             md:flex-row md:gap-4 md:text-xs
           "
         >
@@ -74,8 +74,8 @@
 
         <h1
           class="
-            mb-8 font-display text-3xl leading-[1.1] font-bold
-            tracking-[-0.04em]
+            mb-8 font-display text-3xl/1-1 font-bold
+            tracking-n40
             sm:text-4xl
             md:text-5xl
             lg:text-6xl
@@ -86,7 +86,7 @@
           <ShinyText
             text="At Lightning Speed"
             :speed="4"
-            class="mt-2 block pb-2 font-display leading-[1.1]"
+            class="mt-2 block pb-2 font-display leading-1-1"
           />
         </h1>
 
@@ -187,7 +187,7 @@
             <Terminal class="size-4 shrink-0 text-primary" />
             <code
               class="
-                min-w-0 flex-1 truncate text-left font-mono text-[11px]
+                min-w-0 flex-1 truncate text-left font-mono text-11
                 text-foreground
                 sm:text-sm
               "

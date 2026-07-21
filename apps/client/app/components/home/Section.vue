@@ -30,14 +30,14 @@
           class="section-icon size-9 grid place-items-center bg-muted text-foreground transition-colors duration-[var(--d-fast,120ms)] group-hover/toggle:bg-primary/10 group-hover/toggle:text-primary"
           aria-hidden="true"
         >
-          <component :is="icon" class="size-[18px]" />
+          <component :is="icon" class="size-panel" />
         </div>
         <div>
-          <div class="section-title text-[16px] font-semibold leading-tight">
+          <div class="section-title text-16/tight font-semibold">
             {{ title }}
           </div>
           <div
-            class="section-count mt-0.5 font-mono text-[11px] font-medium tracking-[0.04em] text-muted-foreground"
+            class="section-count mt-0.5 font-mono text-11 font-medium tracking-40 text-muted-foreground"
           >
             {{ count }} {{ countLabel }}
           </div>

@@ -23,7 +23,7 @@
     <p class="mb-1 font-display text-sm font-semibold tracking-tight">
       Loading AI Model
     </p>
-    <p class="mb-6 text-[11px] text-muted-foreground">
+    <p class="mb-6 text-11 text-muted-foreground">
       {{ modelName }} · {{ modelSize }} GB
     </p>
 
@@ -37,10 +37,10 @@
       </div>
       <div class="mt-2.5 flex items-center justify-between">
         <span
-          class="text-[10px] uppercase tracking-wider text-muted-foreground"
+          class="text-10 uppercase tracking-wider text-muted-foreground"
           >{{ stageText }}</span
         >
-        <span class="text-[10px] font-semibold tabular-nums text-foreground">
+        <span class="text-10 font-semibold tabular-nums text-foreground">
           {{ Math.round(progress * 100) }}%
         </span>
       </div>
@@ -48,7 +48,7 @@
 
     <!-- First-load hint -->
     <p
-      class="mt-8 max-w-[200px] text-center text-[10px] leading-relaxed text-muted-foreground/40"
+      class="mt-8 max-w-[200px] text-center text-10/relaxed text-muted-foreground/40"
     >
       First load downloads the model. Future loads are near-instant.
     </p>

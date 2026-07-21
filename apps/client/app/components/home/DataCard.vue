@@ -43,18 +43,18 @@
         <div class="card-top flex items-start justify-between gap-2.5">
           <div class="min-w-0">
             <h3
-              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
+              class="card-title text-15/1-3 font-bold tracking-n5"
             >
               {{ source.name || source.id }}
             </h3>
             <p class="mt-1.5 flex flex-wrap items-center gap-2">
               <code
-                class="card-id font-mono text-[11px] bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
+                class="card-id font-mono text-11 bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
               >
                 {{ source.id }}
               </code>
               <span
-                class="badge-outline font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground px-1.5 py-0.5 border border-border font-medium"
+                class="badge-outline font-mono text-10 tracking-120 uppercase text-muted-foreground px-1.5 py-0.5 border border-border font-medium"
               >
                 {{ coverage.rangeLabel.value }}
               </span>
