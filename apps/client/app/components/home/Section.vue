@@ -20,7 +20,7 @@
   <section class="section" :class="{ open: isOpen }">
     <button
       type="button"
-      class="section-toggle group/toggle min-h-14 w-full flex items-center justify-between gap-3 px-[clamp(14px,3vw,20px)] py-3.5 transition-colors duration-(--d-fast) hover:bg-muted/50"
+      class="section-toggle group/toggle min-h-14 w-full flex items-center justify-between gap-3 px-section-x py-3.5 transition-colors duration-(--d-fast) hover:bg-muted/50"
       :aria-expanded="isOpen"
       :aria-controls="bodyId"
       @click="$emit('toggle-section')"
@@ -52,7 +52,7 @@
     <div :id="bodyId" class="section-body-wrap">
       <div class="section-body-inner">
         <div
-          class="section-body grid gap-2 border-t border-border px-[clamp(12px,3vw,20px)] py-3"
+          class="section-body grid gap-2 border-t border-border px-section-x-sm py-3"
           style="
             grid-template-columns: repeat(
               auto-fit,

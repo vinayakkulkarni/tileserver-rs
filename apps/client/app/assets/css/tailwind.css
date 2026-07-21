@@ -72,6 +72,9 @@
   --spacing-panel: 18px;
   --spacing-page-x: clamp(16px, 4vw, 40px);
   --spacing-page-x-sm: clamp(12px, 4vw, 24px);
+  --spacing-hero-x: clamp(16px, 4vw, 32px);
+  --spacing-section-x: clamp(14px, 3vw, 20px);
+  --spacing-section-x-sm: clamp(12px, 3vw, 20px);
   --spacing-table-min: 640px;
   --spacing-llm-panel: 400px;
   --spacing-llm-palette-h: 480px;

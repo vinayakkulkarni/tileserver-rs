@@ -173,7 +173,7 @@
     <!-- Dense status strip (lg+) — single horizontal row, pills on the left,
          inline label:value metrics on the right. Linear/Vercel-status-bar dense. -->
     <div
-      class="mx-auto hidden max-w-screen-2xl lg:flex lg:items-center lg:gap-5 px-[clamp(16px,4vw,32px)] py-2.5"
+      class="mx-auto hidden max-w-screen-2xl lg:flex lg:items-center lg:gap-5 px-hero-x py-2.5"
       role="group"
       aria-label="Runtime status"
     >
