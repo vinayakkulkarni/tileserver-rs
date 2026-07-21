@@ -17,7 +17,7 @@
         aria-label="Tileserver RS home"
       >
         <div
-          class="brand-glyph size-9 bg-primary grid place-items-center text-primary-foreground shrink-0 transition-filter duration-[var(--d-fast,120ms)]"
+          class="brand-glyph size-9 bg-primary grid place-items-center text-primary-foreground shrink-0 transition-filter duration-(--d-fast)"
           aria-hidden="true"
         >
           <Globe class="size-5" />
@@ -41,13 +41,13 @@
         <NuxtLink
           to="/admin"
           aria-label="Open admin settings"
-          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-card hover:text-foreground"
+          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-(--d-fast) hover:bg-card hover:text-foreground"
         >
           <Settings class="size-panel" />
         </NuxtLink>
         <button
           type="button"
-          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-card hover:text-foreground"
+          class="icon-btn size-11 grid place-items-center text-muted-foreground transition-colors duration-(--d-fast) hover:bg-card hover:text-foreground"
           aria-label="Toggle color mode"
           @click="toggleColorMode"
         >

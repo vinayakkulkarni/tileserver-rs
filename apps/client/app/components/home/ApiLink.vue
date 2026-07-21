@@ -5,7 +5,7 @@
 <template>
   <a href="/_openapi" target="_blank" class="block">
     <div
-      class="flex items-center gap-3 border border-border bg-card p-4 transition-colors duration-[var(--d-fast,120ms)] hover:border-primary/30"
+      class="flex items-center gap-3 border border-border bg-card p-4 transition-colors duration-(--d-fast) hover:border-primary/30"
     >
       <div class="size-8 shrink-0 bg-muted grid place-items-center">
         <ExternalLink class="size-4 text-muted-foreground" />

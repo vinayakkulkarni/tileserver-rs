@@ -74,6 +74,9 @@
   --spacing-page-x-sm: clamp(12px, 4vw, 24px);
   --spacing-table-min: 640px;
   --spacing-llm-panel: 400px;
+  --spacing-llm-palette-h: 480px;
+  --spacing-loading-bar: 200px;
+  --spacing-loading-bar-lg: 220px;
 
   --grid-template-columns-hero: 3fr 2fr;
   --grid-template-columns-row: auto 1fr;
@@ -237,6 +240,16 @@
   --d-base: 180ms;
   --d-slow: 320ms;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /*
+   * Tailwind exposes --ease-* as a utility namespace, so this alias lets markup
+   * use the first-class `ease-brand` class instead of the arbitrary
+   * ease-[var(--ease,…)] wrapper. Duration has no such theme namespace (only
+   * numeric duration-<n> or the duration-(--var) shorthand), so components
+   * reference the raw token directly via duration-(--d-fast). Same values →
+   * identical output; the raw --d-* vars still back the @layer CSS below.
+   */
+  --ease-brand: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* A11y baseline — CLAUDE.md Rule #20.I + Rule #20.J */

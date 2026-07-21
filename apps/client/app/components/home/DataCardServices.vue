@@ -28,13 +28,13 @@
     <a
       :href="`/data/${source.id}.json`"
       target="_blank"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >TileJSON</a
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <button
       type="button"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       @click="emit('toggle-xyz')"
     >
       XYZ URL

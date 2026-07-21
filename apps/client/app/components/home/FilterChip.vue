@@ -17,7 +17,7 @@
   <button
     type="button"
     :aria-pressed="active"
-    class="inline-flex shrink-0 items-center gap-1.5 border px-3 py-1.5 font-mono text-11 font-medium tracking-60 transition-colors duration-[var(--d-fast,120ms)]"
+    class="inline-flex shrink-0 items-center gap-1.5 border px-3 py-1.5 font-mono text-11 font-medium tracking-60 transition-colors duration-(--d-fast)"
     :class="
       active
         ? 'border-primary bg-primary/10 text-primary'

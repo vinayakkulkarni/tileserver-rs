@@ -108,6 +108,8 @@
   --spacing-frame-inner: 72px;
   --spacing-frame-gutter: 48px;
 
+  --spacing-table-min: 640px;
+
   --grid-template-columns-frame: 80px 1fr auto 80px;
   --grid-template-columns-frame-sm: 72px 1fr 48px;
 }

@@ -28,7 +28,7 @@
     </p>
 
     <!-- Progress bar -->
-    <div class="w-full max-w-[220px]">
+    <div class="w-full max-w-loading-bar-lg">
       <div class="relative h-1 overflow-hidden bg-muted">
         <div
           class="absolute inset-y-0 left-0 bg-primary transition-[width] duration-500 ease-out"
@@ -48,7 +48,7 @@
 
     <!-- First-load hint -->
     <p
-      class="mt-8 max-w-[200px] text-center text-10/relaxed text-muted-foreground/40"
+      class="mt-8 max-w-loading-bar text-center text-10/relaxed text-muted-foreground/40"
     >
       First load downloads the model. Future loads are near-instant.
     </p>

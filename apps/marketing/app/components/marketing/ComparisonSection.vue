@@ -46,7 +46,7 @@
     </div>
 
     <div class="overflow-x-auto px-6 pb-12 md:px-12 lg:px-20">
-      <table class="w-full min-w-[640px] border-collapse">
+      <table class="w-full min-w-table-min border-collapse">
         <thead>
           <tr class="border-b border-border">
             <th

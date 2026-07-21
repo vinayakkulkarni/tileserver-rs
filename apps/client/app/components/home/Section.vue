@@ -20,14 +20,14 @@
   <section class="section" :class="{ open: isOpen }">
     <button
       type="button"
-      class="section-toggle group/toggle min-h-14 w-full flex items-center justify-between gap-3 px-[clamp(14px,3vw,20px)] py-3.5 transition-colors duration-[var(--d-fast,120ms)] hover:bg-muted/50"
+      class="section-toggle group/toggle min-h-14 w-full flex items-center justify-between gap-3 px-[clamp(14px,3vw,20px)] py-3.5 transition-colors duration-(--d-fast) hover:bg-muted/50"
       :aria-expanded="isOpen"
       :aria-controls="bodyId"
       @click="$emit('toggle-section')"
     >
       <div class="section-left min-w-0 flex items-center gap-3 text-left">
         <div
-          class="section-icon size-9 grid place-items-center bg-muted text-foreground transition-colors duration-[var(--d-fast,120ms)] group-hover/toggle:bg-primary/10 group-hover/toggle:text-primary"
+          class="section-icon size-9 grid place-items-center bg-muted text-foreground transition-colors duration-(--d-fast) group-hover/toggle:bg-primary/10 group-hover/toggle:text-primary"
           aria-hidden="true"
         >
           <component :is="icon" class="size-panel" />
@@ -44,7 +44,7 @@
         </div>
       </div>
       <ChevronDown
-        class="section-chev size-5 shrink-0 text-muted-foreground transition-transform duration-[var(--d-base,180ms)] ease-[var(--ease,cubic-bezier(0.16,1,0.3,1))]"
+        class="section-chev size-5 shrink-0 text-muted-foreground transition-transform duration-(--d-base) ease-brand"
         :class="{ 'rotate-180': isOpen }"
         aria-hidden="true"
       />

@@ -31,7 +31,7 @@
     <div class="hero-compact lg:hidden" :class="{ open: heroExpanded }">
       <button
         type="button"
-        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-page-x-sm py-2.5 text-left transition-colors duration-[var(--d-fast,120ms)] hover:bg-primary/4"
+        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-page-x-sm py-2.5 text-left transition-colors duration-(--d-fast) hover:bg-primary/4"
         :aria-expanded="heroExpanded"
         aria-controls="hero-detail"
         @click="toggleHero"
@@ -76,7 +76,7 @@
           </template>
         </span>
         <ChevronDown
-          class="size-panel shrink-0 text-muted-foreground transition-transform duration-[var(--d-base,180ms)] ease-[var(--ease,cubic-bezier(0.16,1,0.3,1))]"
+          class="size-panel shrink-0 text-muted-foreground transition-transform duration-(--d-base) ease-brand"
           :class="{ 'rotate-180': heroExpanded }"
           aria-hidden="true"
         />
