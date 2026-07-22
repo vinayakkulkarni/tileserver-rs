@@ -54,7 +54,7 @@
   <div v-else class="min-h-0 flex-1 overflow-y-auto">
     <div v-if="messages.length === 0" class="flex flex-col gap-3 p-4">
       <p
-        class="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50"
+        class="text-10 font-medium uppercase tracking-widest text-muted-foreground/50"
       >
         Try asking
       </p>
@@ -69,7 +69,7 @@
             :is="getIconComponent(s.icon)"
             class="size-3.5 text-muted-foreground transition-colors group-hover:text-primary"
           />
-          <span class="text-[11px] font-medium leading-snug">{{
+          <span class="text-11/snug font-medium">{{
             s.title
           }}</span>
         </button>

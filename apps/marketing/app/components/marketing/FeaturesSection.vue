@@ -7,7 +7,7 @@
     <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
       <p
         class="
-          mb-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground
+          mb-3 font-mono text-10 tracking-300 text-muted-foreground
           uppercase
           lg:text-xs
         "
@@ -34,7 +34,7 @@
       <div class="px-6 py-3 md:px-12 lg:px-20">
         <h3
           class="
-            font-mono text-[10px] tracking-[0.3em] text-muted-foreground
+            font-mono text-10 tracking-300 text-muted-foreground
             uppercase
             lg:text-xs
           "

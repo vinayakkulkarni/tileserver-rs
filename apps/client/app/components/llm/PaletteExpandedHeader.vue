@@ -29,7 +29,7 @@
       <span class="text-xs font-semibold tracking-tight">Map AI</span>
       <span
         v-if="engineStatus === 'ready'"
-        class="inline-flex items-center gap-1 border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary"
+        class="inline-flex items-center gap-1 border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-9 font-semibold uppercase tracking-wider text-primary"
       >
         <span class="size-1 bg-primary"></span>
         Ready

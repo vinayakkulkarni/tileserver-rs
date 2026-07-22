@@ -19,7 +19,7 @@
     <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
       <p
         class="
-          mb-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground
+          mb-3 font-mono text-10 tracking-300 text-muted-foreground
           uppercase
           lg:text-xs
         "
@@ -46,13 +46,13 @@
     </div>
 
     <div class="overflow-x-auto px-6 pb-12 md:px-12 lg:px-20">
-      <table class="w-full min-w-[640px] border-collapse">
+      <table class="w-full min-w-table-min border-collapse">
         <thead>
           <tr class="border-b border-border">
             <th
               scope="col"
               class="
-                pr-6 pb-3 text-left font-mono text-[10px] tracking-[0.3em]
+                pr-6 pb-3 text-left font-mono text-10 tracking-300
                 text-muted-foreground uppercase
                 lg:text-xs
               "
@@ -64,7 +64,7 @@
               :key="col"
               scope="col"
               class="
-                px-4 pb-3 text-center font-mono text-[10px] tracking-[0.2em]
+                px-4 pb-3 text-center font-mono text-10 tracking-200
                 uppercase
                 lg:text-xs
               "

@@ -39,7 +39,7 @@
 <template>
   <div class="flex min-h-dvh flex-col">
     <header
-      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+      class="border-b border-border px-page-x py-5 sm:py-6"
     >
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1
@@ -55,11 +55,11 @@
 
     <section
       v-if="pingError"
-      class="border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8"
+      class="border-b border-border px-page-x py-6 sm:py-8"
     >
       <div class="max-w-2xl border border-border px-5 py-5 sm:px-6 sm:py-6">
         <p
-          class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+          class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
         >
           {{ friendlyPingError.title }}
         </p>
@@ -76,12 +76,12 @@
     </section>
 
     <section v-else class="border-b border-border">
-      <div class="grid grid-cols-1 lg:grid-cols-[3fr_2fr]">
+      <div class="grid grid-cols-1 lg:grid-cols-hero">
         <div
-          class="flex flex-col justify-between gap-3 border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8 lg:border-r lg:border-b-0"
+          class="flex flex-col justify-between gap-3 border-b border-border px-page-x py-6 sm:py-8 lg:border-r lg:border-b-0"
         >
           <p
-            class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
           >
             Uptime
           </p>
@@ -94,7 +94,7 @@
           >
             {{ uptimeLabel }}
           </p>
-          <p class="font-mono text-[11px] text-muted-foreground">
+          <p class="font-mono text-11 text-muted-foreground">
             since last config reload
           </p>
         </div>
@@ -102,7 +102,7 @@
         <div class="grid grid-cols-2 grid-rows-2">
           <div class="border-b border-border px-5 py-5 sm:px-6 sm:py-6">
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               Sources
             </p>
@@ -116,7 +116,7 @@
             class="border-b border-l border-border px-5 py-5 sm:px-6 sm:py-6"
           >
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               Styles
             </p>
@@ -128,7 +128,7 @@
           </div>
           <div class="px-5 py-5 sm:px-6 sm:py-6">
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               Clients
             </p>
@@ -140,7 +140,7 @@
           </div>
           <div class="border-l border-border px-5 py-5 sm:px-6 sm:py-6">
             <p
-              class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
             >
               Devices
             </p>
@@ -154,19 +154,19 @@
       </div>
     </section>
 
-    <section class="grid flex-1 grid-cols-1 lg:grid-cols-[2fr_1fr]">
+    <section class="grid flex-1 grid-cols-1 lg:grid-cols-split">
       <div
-        class="border-b border-border px-[clamp(16px,4vw,40px)] py-6 sm:py-8 lg:border-r lg:border-b-0"
+        class="border-b border-border px-page-x py-6 sm:py-8 lg:border-r lg:border-b-0"
       >
         <div class="flex items-baseline justify-between">
           <p
-            class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
           >
             Recent activity
           </p>
           <NuxtLink
             to="/admin/mcp/connected-apps"
-            class="flex items-center gap-1 font-mono text-[11px] tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
+            class="flex items-center gap-1 font-mono text-11 tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground"
           >
             View all clients <ArrowUpRight class="size-3" />
           </NuxtLink>
@@ -196,7 +196,7 @@
           class="mt-6 border border-border px-5 py-8 sm:px-6 sm:py-10"
         >
           <p
-            class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
           >
             Nothing to show
           </p>
@@ -217,13 +217,13 @@
                 {{ client.client_name ?? client.client_id }}
               </p>
               <p
-                class="mt-1 truncate font-mono text-[11px] text-muted-foreground"
+                class="mt-1 truncate font-mono text-11 text-muted-foreground"
               >
                 {{ client.client_id }}
               </p>
             </div>
             <p
-              class="shrink-0 font-mono text-[11px] text-muted-foreground tabular-nums"
+              class="shrink-0 font-mono text-11 text-muted-foreground tabular-nums"
             >
               {{ formatLastSeen(client.last_seen_at) }}
             </p>
@@ -278,25 +278,25 @@
 
         <div class="flex-1 border-b border-border px-5 py-5 sm:px-6 sm:py-6">
           <p
-            class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
           >
             Build
           </p>
-          <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dl class="mt-3 grid grid-cols-row gap-x-4 gap-y-2 text-sm">
             <dt
-              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
             >
               Version
             </dt>
             <dd class="font-mono text-foreground">v{{ versionLabel }}</dd>
             <dt
-              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
             >
               Config
             </dt>
             <dd class="font-mono text-foreground">{{ configHashShort }}</dd>
             <dt
-              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
             >
               Renderer
             </dt>
@@ -308,7 +308,7 @@
               {{ rendererEnabled ? 'enabled' : 'disabled' }}
             </dd>
             <dt
-              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
             >
               Compression
             </dt>
@@ -322,7 +322,7 @@
               {{ compressionLabel }}
             </dd>
             <dt
-              class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
             >
               OGC API
             </dt>
@@ -338,7 +338,7 @@
 
         <div class="px-5 py-5 sm:px-6 sm:py-6">
           <p
-            class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
           >
             Endpoints
           </p>

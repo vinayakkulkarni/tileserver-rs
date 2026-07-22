@@ -18,11 +18,11 @@
     >
       {{ title }}
     </h4>
-    <div class="text-sm leading-relaxed text-muted-foreground">
+    <div class="text-sm/relaxed text-muted-foreground">
       <slot />
     </div>
     <span
-      class="mt-3 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
+      class="mt-3 inline-flex items-center gap-1 font-mono text-10 uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
     >
       Read more
       <ArrowRight
@@ -37,7 +37,7 @@
     <h4 class="mb-1.5 font-display text-sm font-semibold tracking-tight">
       {{ title }}
     </h4>
-    <div class="text-sm leading-relaxed text-muted-foreground">
+    <div class="text-sm/relaxed text-muted-foreground">
       <slot />
     </div>
   </div>

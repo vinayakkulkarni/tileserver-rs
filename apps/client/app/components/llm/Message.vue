@@ -34,7 +34,7 @@
 
     <!-- Bubble -->
     <div
-      class="max-w-[80%] px-3 py-2 text-sm leading-relaxed"
+      class="max-w-[80%] px-3 py-2 text-sm/relaxed"
       :class="
         message.role === 'user'
           ? 'bg-primary text-primary-foreground'
@@ -66,7 +66,7 @@
         </template>
       </ClientOnly>
 
-      <span v-if="message.createdAt" class="mt-1 block text-[10px] opacity-50">
+      <span v-if="message.createdAt" class="mt-1 block text-10 opacity-50">
         {{ formatMessageTime(message.createdAt) }}
       </span>
     </div>

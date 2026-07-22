@@ -23,14 +23,14 @@
   <div class="mt-2.5 flex items-center gap-2">
     <NuxtLink
       :to="`/styles/${style.id}/?raster`"
-      class="pill inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-muted text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-muted hover:text-foreground"
+      class="pill inline-flex items-center gap-1.5 px-2.5 py-1.5 text-11 font-medium bg-muted text-muted-foreground transition-colors duration-(--d-fast) hover:bg-muted hover:text-foreground"
     >
       <Image class="size-3.5" />
       Raster
     </NuxtLink>
     <NuxtLink
       :to="`/styles/${style.id}/#2/0/0`"
-      class="pill inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium bg-muted text-muted-foreground transition-colors duration-[var(--d-fast,120ms)] hover:bg-muted hover:text-foreground"
+      class="pill inline-flex items-center gap-1.5 px-2.5 py-1.5 text-11 font-medium bg-muted text-muted-foreground transition-colors duration-(--d-fast) hover:bg-muted hover:text-foreground"
     >
       <Grid3x3 class="size-3.5" />
       Vector
@@ -39,33 +39,33 @@
 
   <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
     <span
-      class="lbl font-mono text-[10.5px] tracking-[0.10em] uppercase text-muted-foreground font-medium"
+      class="lbl font-mono text-10-5 tracking-widest uppercase text-muted-foreground font-medium"
       >Services:</span
     >
     <a
       :href="`/styles/${style.id}/style.json`"
       target="_blank"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >GL Style</a
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <a
       :href="`/styles/${style.id}.json`"
       target="_blank"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >TileJSON</a
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <a
       :href="`/styles/${style.id}/wmts.xml`"
       target="_blank"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >WMTS</a
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <button
       type="button"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       @click="emit('toggle-xyz')"
     >
       XYZ URL

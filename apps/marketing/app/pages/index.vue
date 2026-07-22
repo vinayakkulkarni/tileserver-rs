@@ -48,16 +48,16 @@
       <!-- Fixed left gutter -->
       <div
         class="
-          fixed top-[72px] bottom-0 left-0 z-20 flex w-[48px] items-center
+          fixed top-frame-inner bottom-0 left-0 z-20 flex w-frame-gutter items-center
           justify-center border-r border-border bg-background
-          lg:top-[80px] lg:w-[80px]
+          lg:top-frame-outer lg:w-frame-outer
         "
       >
         <Transition name="fade" mode="out-in">
           <span
             :key="activeLabel"
             class="
-              vertical-text font-mono text-[10px] tracking-[0.3em]
+              vertical-text font-mono text-10 tracking-300
               text-muted-foreground uppercase
             "
           >
@@ -69,8 +69,8 @@
       <!-- Content with left margin -->
       <div
         class="
-          mt-[72px] ml-[48px] w-[calc(100vw-48px)] overflow-hidden
-          lg:mt-[80px] lg:ml-[80px] lg:w-[calc(100vw-80px)]
+          mt-frame-inner ml-frame-gutter w-[calc(100vw-48px)] overflow-hidden
+          lg:mt-frame-outer lg:ml-frame-outer lg:w-[calc(100vw-80px)]
         "
       >
         <MarketingHeroSection />

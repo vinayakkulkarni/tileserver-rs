@@ -43,7 +43,7 @@
     :class="{ open: filtersOpen }"
   >
     <div
-      class="mx-auto flex max-w-screen-2xl flex-col gap-2.5 px-[clamp(12px,4vw,24px)] py-2.5"
+      class="mx-auto flex max-w-screen-2xl flex-col gap-2.5 px-page-x-sm py-2.5"
     >
       <div class="flex items-center gap-2">
         <div class="search relative flex-1">
@@ -56,19 +56,19 @@
             type="text"
             placeholder="Search styles and data sources..."
             autocomplete="off"
-            class="h-11 w-full border border-border bg-card px-4 pl-11 text-[15px] text-foreground transition-colors duration-[var(--d-fast,120ms)] placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+            class="h-11 w-full border border-border bg-card px-4 pl-11 text-15 text-foreground transition-colors duration-(--d-fast) placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
             :class="searchQuery ? 'text-foreground' : 'text-muted-foreground'"
             @input="handleSearch(($event.target as HTMLInputElement).value)"
           />
           <Search
-            class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors duration-[var(--d-fast,120ms)]"
+            class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors duration-(--d-fast)"
             :class="searchQuery ? 'text-primary' : 'text-muted-foreground'"
             aria-hidden="true"
           />
         </div>
         <button
           type="button"
-          class="filters-toggle flex h-11 shrink-0 items-center gap-2 border border-border bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors duration-[var(--d-fast,120ms)] hover:border-primary hover:text-primary lg:hidden"
+          class="filters-toggle flex h-11 shrink-0 items-center gap-2 border border-border bg-card px-3.5 text-13 font-medium text-foreground transition-colors duration-(--d-fast) hover:border-primary hover:text-primary lg:hidden"
           :class="
             activeFilterCount > 0 || filtersOpen
               ? 'border-primary text-primary'
@@ -82,11 +82,11 @@
           <span>Filters</span>
           <span
             v-if="activeFilterCount > 0"
-            class="grid size-[18px] place-items-center bg-primary text-[10px] font-semibold text-primary-foreground tabular-nums"
+            class="grid size-panel place-items-center bg-primary text-10 font-semibold text-primary-foreground tabular-nums"
             >{{ activeFilterCount }}</span
           >
           <ChevronDown
-            class="size-4 transition-transform duration-[var(--d-base,180ms)] ease-[var(--ease,cubic-bezier(0.16,1,0.3,1))]"
+            class="size-4 transition-transform duration-(--d-base) ease-brand"
             :class="{ 'rotate-180': filtersOpen }"
             aria-hidden="true"
           />
@@ -105,7 +105,7 @@
               aria-label="Filter map styles"
             >
               <span
-                class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                class="font-mono text-10 font-medium uppercase tracking-180 text-muted-foreground"
                 aria-hidden="true"
                 >Styles</span
               >
@@ -126,7 +126,7 @@
               aria-label="Filter data sources"
             >
               <span
-                class="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                class="font-mono text-10 font-medium uppercase tracking-180 text-muted-foreground"
                 aria-hidden="true"
                 >Sources</span
               >

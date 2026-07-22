@@ -159,7 +159,7 @@
     <!-- ═══ Header: Grid-cell nav (full-width, above gutter) ═══ -->
     <header class="fixed top-0 z-50 w-full bg-background">
       <div
-        class="grid h-[72px] grid-cols-[72px_1fr_48px] border-b border-border lg:h-[80px] lg:grid-cols-[80px_1fr_auto_80px]"
+        class="grid h-frame-inner grid-cols-frame-sm border-b border-border lg:h-frame-outer lg:grid-cols-frame"
       >
         <!-- Logo cell -->
         <div class="flex items-center justify-center border-r border-border">
@@ -177,11 +177,11 @@
             to="/"
             class="flex items-center gap-2.5"
           >
-            <span class="font-display text-sm font-semibold uppercase tracking-[0.15em]">
+            <span class="font-display text-sm font-semibold uppercase tracking-150">
               <span class="text-foreground">Tileserver</span><span class="text-primary"> RS</span>
             </span>
             <span
-              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-10 uppercase tracking-wider text-muted-foreground"
             >
               docs
             </span>
@@ -236,7 +236,7 @@
 
     <!-- ═══ Fixed left gutter: persistent structural frame ═══ -->
     <div
-      class="fixed left-0 top-[72px] bottom-0 z-20 flex w-[48px] items-center justify-center border-r border-border bg-background lg:top-[80px] lg:w-[80px]"
+      class="fixed left-0 top-frame-inner bottom-0 z-20 flex w-frame-gutter items-center justify-center border-r border-border bg-background lg:top-frame-outer lg:w-frame-outer"
     >
       <Transition
         name="fade"
@@ -244,7 +244,7 @@
       >
         <span
           :key="activeLabel"
-          class="vertical-text font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground"
+          class="vertical-text font-mono text-10 uppercase tracking-300 text-muted-foreground"
         >
           {{ activeLabel }}
         </span>
@@ -263,7 +263,7 @@
     </div>
 
     <!-- ═══ Scrollable content area ═══ -->
-    <div class="relative z-10 ml-[48px] mt-[72px] lg:ml-[80px] lg:mt-[80px]">
+    <div class="relative z-10 ml-frame-gutter mt-frame-inner lg:ml-frame-outer lg:mt-frame-outer">
       <!-- ═══ Hero: Full-height ═══ -->
       <section
         data-label="Documentation"
@@ -274,7 +274,7 @@
           aria-hidden="true"
         />
         <div class="relative flex h-full min-h-[inherit] flex-col justify-center px-6 py-16 md:px-12 lg:px-20">
-          <p class="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground lg:text-xs">
+          <p class="mb-4 font-mono text-10 uppercase tracking-300 text-muted-foreground lg:text-xs">
             Documentation
           </p>
           <h1
@@ -284,7 +284,7 @@
             Tileserver
             <span class="text-primary">RS</span>
           </h1>
-          <p class="mb-10 max-w-2xl font-sans text-lg leading-relaxed text-muted-foreground">
+          <p class="mb-10 max-w-2xl font-sans text-lg/relaxed text-muted-foreground">
             High-performance vector tile server built in Rust. Serve PMTiles and
             MBTiles with native raster rendering, static map images, and TileJSON
             3.0 metadata.
@@ -328,7 +328,7 @@
         class="border-b border-border"
       >
         <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
-          <p class="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground lg:text-xs">
+          <p class="mb-3 font-mono text-10 uppercase tracking-300 text-muted-foreground lg:text-xs">
             Features
           </p>
           <h2
@@ -353,7 +353,7 @@
             <h3 class="mb-2 font-display text-sm font-semibold tracking-tight">
               {{ feature.title }}
             </h3>
-            <p class="font-sans text-sm leading-relaxed text-muted-foreground">
+            <p class="font-sans text-sm/relaxed text-muted-foreground">
               {{ feature.description }}
             </p>
           </div>
@@ -366,7 +366,7 @@
         class="border-b border-border"
       >
         <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
-          <p class="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground lg:text-xs">
+          <p class="mb-3 font-mono text-10 uppercase tracking-300 text-muted-foreground lg:text-xs">
             Explore
           </p>
           <h2
@@ -388,11 +388,11 @@
             <h3 class="mb-2 font-display text-sm font-semibold tracking-tight group-hover:text-primary">
               {{ section.title }}
             </h3>
-            <p class="mb-4 font-sans text-sm leading-relaxed text-muted-foreground">
+            <p class="mb-4 font-sans text-sm/relaxed text-muted-foreground">
               {{ section.description }}
             </p>
             <span
-              class="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
+              class="inline-flex items-center gap-1.5 font-mono text-10 uppercase tracking-wider text-muted-foreground group-hover:text-foreground"
             >
               Read more
               <ArrowRight
@@ -408,7 +408,7 @@
         <div class="flex items-center justify-between px-5 py-6 lg:px-8">
           <div class="flex items-center gap-3">
             <Globe class="size-4 text-muted-foreground" />
-            <span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground lg:text-xs">
+            <span class="font-mono text-10 uppercase tracking-wider text-muted-foreground lg:text-xs">
               &copy; {{ new Date().getFullYear() }}
               <NuxtLink
                 to="https://vinayakkulkarni.dev"
@@ -421,21 +421,21 @@
             <NuxtLink
               to="https://tileserver.app"
               external
-              class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
             >
               Home
             </NuxtLink>
             <NuxtLink
               to="https://github.com/vinayakkulkarni/tileserver-rs"
               external
-              class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
             >
               GitHub
             </NuxtLink>
             <NuxtLink
               to="https://github.com/vinayakkulkarni/tileserver-rs/blob/main/LICENSE"
               external
-              class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
             >
               MIT License
             </NuxtLink>

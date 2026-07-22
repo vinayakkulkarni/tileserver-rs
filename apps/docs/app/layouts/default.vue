@@ -25,7 +25,7 @@
     <!-- ═══ Header: Grid-cell nav ═══ -->
     <nav class="fixed top-0 z-50 w-full bg-background">
       <div
-        class="grid h-[72px] grid-cols-[72px_1fr_48px] border-b border-border lg:h-[80px] lg:grid-cols-[80px_1fr_auto_80px]"
+        class="grid h-frame-inner grid-cols-frame-sm border-b border-border lg:h-frame-outer lg:grid-cols-frame"
       >
         <!-- Logo cell -->
         <div
@@ -59,11 +59,11 @@
             class="flex items-center gap-2.5"
           >
             <Globe class="size-5 text-primary lg:hidden" />
-            <span class="font-display text-sm font-semibold uppercase tracking-[0.15em]">
+            <span class="font-display text-sm font-semibold uppercase tracking-150">
               <span class="text-foreground">Tileserver</span><span class="text-primary"> RS</span>
             </span>
             <span
-              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-10 uppercase tracking-wider text-muted-foreground"
             >
               docs
             </span>
@@ -141,7 +141,7 @@
     <!-- ═══ Sidebar with geometric borders ═══ -->
     <aside
       :class="[
-        'fixed top-[72px] bottom-0 z-40 w-64 overflow-y-auto border-r border-border bg-background px-4 py-6 lg:top-[80px]',
+        'fixed top-frame-inner bottom-0 z-40 w-64 overflow-y-auto border-r border-border bg-background px-4 py-6 lg:top-frame-outer',
         'transition-transform lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
       ]"
@@ -152,7 +152,7 @@
           :key="section.path"
         >
           <p
-            class="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground"
+            class="mb-2 font-mono text-10 font-medium uppercase tracking-200 text-muted-foreground"
           >
             {{ section.title }}
           </p>
@@ -182,7 +182,7 @@
     </aside>
 
     <!-- Main content -->
-    <main class="pt-[72px] lg:pl-64 lg:pt-[80px]">
+    <main class="pt-frame-inner lg:pl-64 lg:pt-frame-outer">
       <slot />
     </main>
   </div>

@@ -19,7 +19,7 @@
 <template>
   <div class="flex min-h-dvh flex-col">
     <header
-      class="border-b border-border px-[clamp(16px,4vw,40px)] py-5 sm:py-6"
+      class="border-b border-border px-page-x py-5 sm:py-6"
     >
       <AdminBreadcrumb :items="breadcrumbs" />
       <div class="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -28,7 +28,7 @@
         </h1>
         <span
           v-if="sourcePath"
-          class="font-mono text-[11px] tracking-wider text-muted-foreground uppercase"
+          class="font-mono text-11 tracking-wider text-muted-foreground uppercase"
         >
           {{ sourcePath }} · #{{ configHashShort }}
         </span>
@@ -41,7 +41,7 @@
       </p>
     </header>
 
-    <section class="flex-1 px-[clamp(16px,4vw,40px)] py-6 sm:py-8">
+    <section class="flex-1 px-page-x py-6 sm:py-8">
       <div v-if="isPending" class="flex flex-col gap-3">
         <div
           v-for="i in 8"
@@ -55,7 +55,7 @@
         class="flex max-w-2xl flex-col gap-3 border border-destructive/40 bg-destructive/10 p-6"
       >
         <div
-          class="flex items-center gap-2 font-mono text-[11px] tracking-wider text-destructive uppercase"
+          class="flex items-center gap-2 font-mono text-11 tracking-wider text-destructive uppercase"
         >
           <TriangleAlert class="size-4" />
           {{ friendly.title }}
@@ -78,19 +78,19 @@
             </code>
             <span
               v-if="section.schema.featureGate"
-              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-muted-foreground uppercase"
+              class="border border-border bg-muted px-1.5 py-0.5 font-mono text-10 tracking-wider text-muted-foreground uppercase"
             >
               feature: {{ section.schema.featureGate }}
             </span>
             <span
               v-if="!section.isPresent"
-              class="font-mono text-[10px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-10 tracking-wider text-muted-foreground uppercase"
             >
               not in your config
             </span>
             <span
               v-else-if="section.occurrences > 1"
-              class="font-mono text-[10px] tracking-wider text-muted-foreground uppercase"
+              class="font-mono text-10 tracking-wider text-muted-foreground uppercase"
             >
               {{ section.occurrences }} entries
             </span>
@@ -100,7 +100,7 @@
           </header>
 
           <pre
-            class="overflow-x-auto border border-border bg-card p-4 font-mono text-[13px] leading-relaxed"
+            class="overflow-x-auto border border-border bg-card p-4 font-mono text-13/relaxed"
           ><template
             v-for="(line, idx) in section.lines"
             :key="`${section.schema.header}-${idx}`"

@@ -32,7 +32,7 @@
     <Sparkles class="size-4 text-primary" />
     <span class="text-sm text-muted-foreground">Ask about the map…</span>
     <kbd
-      class="border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+      class="border border-border/60 bg-muted/50 px-1.5 py-0.5 text-10 font-medium text-muted-foreground"
       >⌘K</kbd
     >
   </button>

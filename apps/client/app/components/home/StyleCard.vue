@@ -57,13 +57,13 @@
         <div class="card-top flex items-start justify-between gap-2.5">
           <div class="min-w-0">
             <h3
-              class="card-title text-[15px] font-bold tracking-[-0.005em] leading-[1.3]"
+              class="card-title text-15/1-3 font-bold tracking-n5"
             >
               {{ style.name }}
             </h3>
             <p class="mt-1.5">
               <code
-                class="card-id font-mono text-[11px] bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
+                class="card-id font-mono text-11 bg-muted px-1.5 py-0.5 text-muted-foreground tracking-wide"
               >
                 {{ style.id }}
               </code>

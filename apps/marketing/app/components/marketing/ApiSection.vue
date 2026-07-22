@@ -17,7 +17,7 @@
       <div>
         <p
           class="
-            mb-3 font-mono text-[10px] tracking-[0.3em] text-muted-foreground
+            mb-3 font-mono text-10 tracking-300 text-muted-foreground
             uppercase
             lg:text-xs
           "

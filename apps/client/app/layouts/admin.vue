@@ -35,10 +35,10 @@
         </div>
         <div class="flex flex-col leading-tight">
           <span
-            class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+            class="font-mono text-10 uppercase tracking-wider text-muted-foreground"
             >tileserver-rs</span
           >
-          <span class="text-[13px] font-semibold text-foreground">Admin</span>
+          <span class="text-13 font-semibold text-foreground">Admin</span>
         </div>
       </NuxtLink>
       <button
@@ -95,7 +95,7 @@
             </div>
             <div class="flex flex-col leading-tight">
               <span
-                class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+                class="font-mono text-11 uppercase tracking-wider text-muted-foreground"
                 >tileserver-rs</span
               >
               <span class="text-sm font-semibold text-foreground">Admin</span>
@@ -119,7 +119,7 @@
           >
             <p
               v-if="group.heading"
-              class="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+              class="px-3 pb-2 font-mono text-10 uppercase tracking-180 text-muted-foreground"
             >
               {{ group.heading }}
             </p>
@@ -145,7 +145,7 @@
         >
           <NuxtLink
             to="/"
-            class="px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            class="px-3 py-2 font-mono text-11 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
           >
             ← Back to viewer
           </NuxtLink>
@@ -176,7 +176,7 @@
         </div>
         <div class="flex flex-col leading-tight">
           <span
-            class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+            class="font-mono text-11 uppercase tracking-wider text-muted-foreground"
             >tileserver-rs</span
           >
           <span class="text-sm font-semibold text-foreground">Admin</span>
@@ -191,7 +191,7 @@
         >
           <p
             v-if="group.heading"
-            class="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+            class="px-3 pb-2 font-mono text-10 uppercase tracking-180 text-muted-foreground"
           >
             {{ group.heading }}
           </p>
@@ -217,7 +217,7 @@
       >
         <NuxtLink
           to="/"
-          class="px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+          class="px-3 py-2 font-mono text-11 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
         >
           ← Back to viewer
         </NuxtLink>

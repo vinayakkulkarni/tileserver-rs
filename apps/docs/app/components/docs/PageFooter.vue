@@ -69,7 +69,7 @@
             class="size-3.5 text-muted-foreground transition-all duration-300 group-hover:-translate-x-1 group-hover:text-primary lg:size-4"
           />
           <span
-            class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+            class="font-mono text-10 uppercase tracking-wider text-muted-foreground"
           >
             Previous
           </span>
@@ -108,7 +108,7 @@
           class="relative mb-1.5 flex items-center gap-1.5 lg:mb-3 lg:gap-2"
         >
           <span
-            class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+            class="font-mono text-10 uppercase tracking-wider text-muted-foreground"
           >
             Next
           </span>

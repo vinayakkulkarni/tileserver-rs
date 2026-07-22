@@ -22,19 +22,19 @@
 <template>
   <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
     <span
-      class="lbl font-mono text-[10.5px] tracking-[0.10em] uppercase text-muted-foreground font-medium"
+      class="lbl font-mono text-10-5 tracking-widest uppercase text-muted-foreground font-medium"
       >Services:</span
     >
     <a
       :href="`/data/${source.id}.json`"
       target="_blank"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >TileJSON</a
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <button
       type="button"
-      class="services-link text-primary font-medium transition-colors duration-[var(--d-fast,120ms)]"
+      class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       @click="emit('toggle-xyz')"
     >
       XYZ URL

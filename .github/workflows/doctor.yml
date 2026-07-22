@@ -1,0 +1,53 @@
+name: 'Doctor'
+
+on:
+  workflow_call:
+    secrets:
+      DOCTOR_API_KEY:
+        description: 'API key for pushing scores to app.the-doctor.report'
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  doctor:
+    name: 'Nuxt Doctor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      # Generates each app's .nuxt/tsconfig.json via the `postinstall: nuxt
+      # prepare` hook. Without it, knip can't resolve nuxt.config.ts (it extends
+      # ./.nuxt/tsconfig.json) and the audit errors out with
+      # "File './.nuxt/tsconfig.json' not found."
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Gate on real errors only (fail-on: error), not the aggregate score —
+      # the vendored shadcn-vue primitives and three-app monorepo carry many
+      # style-level warnings that would otherwise block every merge.
+      # threshold: 0 disables the score gate; the PR comment still surfaces the
+      # full findings.
+      - name: Audit with nuxt-doctor
+        uses: geoql/doctor-action@v2
+        with:
+          framework: nuxt
+          preset: recommended
+          threshold: ${{ vars.DOCTOR_THRESHOLD || '0' }}
+          fail-on: error
+          api-key: ${{ secrets.DOCTOR_API_KEY }}
+          project: ${{ github.repository }}
+          pr-comment: true
+          comment-mode: both

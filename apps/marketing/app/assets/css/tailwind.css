@@ -87,6 +87,31 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
   --font-display: 'General Sans', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
+
+  /*
+   * Micro-type scale (direction-I). Value-encoded, byte-identical tokens:
+   *   --text-N     : font-size, Npx (bare, no bundled line-height)
+   *   --tracking-N : letter-spacing, em x 1000 (n prefix = negative)
+   *   --leading-N-M: line-height ratio (dash = decimal point)
+   */
+  --text-10: 0.625rem;
+  --text-11: 0.6875rem;
+
+  --tracking-n40: -0.04em;
+  --tracking-150: 0.15em;
+  --tracking-200: 0.2em;
+  --tracking-300: 0.3em;
+
+  --leading-1-1: 1.1;
+
+  --spacing-frame-outer: 80px;
+  --spacing-frame-inner: 72px;
+  --spacing-frame-gutter: 48px;
+
+  --spacing-table-min: 640px;
+
+  --grid-template-columns-frame: 80px 1fr auto 80px;
+  --grid-template-columns-frame-sm: 72px 1fr 48px;
 }
 
 @theme inline {

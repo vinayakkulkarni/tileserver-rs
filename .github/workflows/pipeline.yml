@@ -52,6 +52,20 @@ jobs:
       (needs.lint-pr.result == 'success' || needs.lint-pr.result == 'skipped')
     uses: ./.github/workflows/ci-node.yml
 
+  doctor:
+    name: 'Doctor'
+    needs: [extract-branch, lint-branch, lint-pr]
+    if: |
+      always() &&
+      github.event.action != 'edited' &&
+      (needs.lint-branch.result == 'success' || needs.lint-branch.result == 'skipped') &&
+      (needs.lint-pr.result == 'success' || needs.lint-pr.result == 'skipped')
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/doctor.yml
+    secrets: inherit
+
   ci-rust:
     name: 'CI (Rust)'
     needs: [extract-branch, lint-branch, lint-pr]

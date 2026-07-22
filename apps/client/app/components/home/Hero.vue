@@ -31,17 +31,17 @@
     <div class="hero-compact lg:hidden" :class="{ open: heroExpanded }">
       <button
         type="button"
-        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-[clamp(12px,4vw,24px)] py-2.5 text-left transition-colors duration-[var(--d-fast,120ms)] hover:bg-primary/[0.04]"
+        class="flex min-h-11 w-full items-center justify-between gap-2.5 px-page-x-sm py-2.5 text-left transition-colors duration-(--d-fast) hover:bg-primary/4"
         :aria-expanded="heroExpanded"
         aria-controls="hero-detail"
         @click="toggleHero"
       >
         <span
-          class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] font-medium tracking-[0.06em] text-muted-foreground"
+          class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-11 font-medium tracking-60 text-muted-foreground"
         >
           <span
             v-if="!isLoading"
-            class="inline-flex items-center gap-1.5 border px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.14em]"
+            class="inline-flex items-center gap-1.5 border px-2 py-0.5 text-9-5 font-semibold uppercase tracking-140"
             :class="
               statusOk
                 ? 'border-success/30 bg-success/10 text-success'
@@ -76,7 +76,7 @@
           </template>
         </span>
         <ChevronDown
-          class="size-[18px] shrink-0 text-muted-foreground transition-transform duration-[var(--d-base,180ms)] ease-[var(--ease,cubic-bezier(0.16,1,0.3,1))]"
+          class="size-panel shrink-0 text-muted-foreground transition-transform duration-(--d-base) ease-brand"
           :class="{ 'rotate-180': heroExpanded }"
           aria-hidden="true"
         />
@@ -84,10 +84,10 @@
       <div id="hero-detail" class="hero-detail-wrap">
         <div class="hero-detail-inner">
           <div
-            class="flex flex-col gap-2.5 border-t border-border px-[clamp(12px,4vw,24px)] pb-3 pt-3"
+            class="flex flex-col gap-2.5 border-t border-border px-page-x-sm pb-3 pt-3"
           >
             <p
-              class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+              class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 font-mono text-10 font-medium uppercase tracking-140 text-muted-foreground"
             >
               <span
                 >Renderer
@@ -118,12 +118,12 @@
             >
               <div class="flex flex-col">
                 <dt
-                  class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+                  class="font-mono text-9-5 font-medium uppercase tracking-140 text-muted-foreground"
                 >
                   Cache
                 </dt>
                 <dd
-                  class="flex items-baseline gap-0.5 font-mono text-[15px] font-semibold leading-none tabular-nums"
+                  class="flex items-baseline gap-0.5 font-mono text-15 font-semibold leading-none tabular-nums"
                 >
                   <span v-if="!cacheEnabled" class="text-muted-foreground"
                     >—</span
@@ -131,7 +131,7 @@
                   <template v-else>
                     {{ cacheMb
                     }}<span
-                      class="text-[10px] font-medium text-muted-foreground"
+                      class="text-10 font-medium text-muted-foreground"
                       >MB</span
                     >
                   </template>
@@ -139,24 +139,24 @@
               </div>
               <div class="flex flex-col">
                 <dt
-                  class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+                  class="font-mono text-9-5 font-medium uppercase tracking-140 text-muted-foreground"
                 >
                   Uptime
                 </dt>
                 <dd
-                  class="font-mono text-[15px] font-semibold leading-none tabular-nums"
+                  class="font-mono text-15 font-semibold leading-none tabular-nums"
                 >
                   {{ uptime }}
                 </dd>
               </div>
               <div class="flex flex-col">
                 <dt
-                  class="font-mono text-[9.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground"
+                  class="font-mono text-9-5 font-medium uppercase tracking-140 text-muted-foreground"
                 >
                   Codec
                 </dt>
                 <dd
-                  class="font-mono text-[13px] font-semibold leading-none text-foreground"
+                  class="font-mono text-13 font-semibold leading-none text-foreground"
                 >
                   <span v-if="!compressionEnabled" class="text-muted-foreground"
                     >off</span
@@ -173,12 +173,12 @@
     <!-- Dense status strip (lg+) — single horizontal row, pills on the left,
          inline label:value metrics on the right. Linear/Vercel-status-bar dense. -->
     <div
-      class="mx-auto hidden max-w-screen-2xl lg:flex lg:items-center lg:gap-5 px-[clamp(16px,4vw,32px)] py-2.5"
+      class="mx-auto hidden max-w-screen-2xl lg:flex lg:items-center lg:gap-5 px-hero-x py-2.5"
       role="group"
       aria-label="Runtime status"
     >
       <p
-        class="flex flex-wrap items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+        class="flex flex-wrap items-center gap-1.5 font-mono text-10 uppercase tracking-140 text-muted-foreground"
       >
         <span
           class="inline-flex items-center gap-1.5 border px-2 py-0.5 font-semibold"
@@ -207,28 +207,28 @@
       ></span>
 
       <dl
-        class="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+        class="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 font-mono text-10 uppercase tracking-140 text-muted-foreground"
         aria-label="Runtime metrics"
       >
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Sources</dt>
-          <dd class="font-mono text-[13px] font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
             {{ sourceCount }}
           </dd>
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Styles</dt>
-          <dd class="font-mono text-[13px] font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
             {{ styleCount }}
           </dd>
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Cache</dt>
-          <dd class="font-mono text-[13px] font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
             <span v-if="!cacheEnabled" class="text-muted-foreground">—</span>
             <template v-else>
               {{ cacheMb
-              }}<span class="text-[10px] font-medium text-muted-foreground"
+              }}<span class="text-10 font-medium text-muted-foreground"
                 >MB</span
               >
             </template>
@@ -236,7 +236,7 @@
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Uptime</dt>
-          <dd class="font-mono text-[13px] font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
             {{ isLoading ? '—' : uptime }}
           </dd>
         </div>

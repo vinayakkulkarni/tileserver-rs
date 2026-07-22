@@ -39,8 +39,8 @@
             <p class="truncate text-xs font-medium" :title="overlay.fileName">
               {{ overlay.fileName }}
             </p>
-            <p class="text-[10px] text-muted-foreground">
-              <span class="border border-border/60 px-1 py-px text-[9px]">
+            <p class="text-10 text-muted-foreground">
+              <span class="border border-border/60 px-1 py-px text-9">
                 {{ formatBadge(overlay.format) }}
               </span>
               {{ ' ' }}

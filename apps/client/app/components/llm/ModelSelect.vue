@@ -30,7 +30,7 @@
     @update:model-value="handleChange"
   >
     <UiSelectTrigger
-      class="h-8 w-full gap-1.5 border border-border/60 bg-background px-2.5 text-[11px] shadow-none transition-colors hover:border-primary/40 hover:bg-primary/5"
+      class="h-8 w-full gap-1.5 border border-border/60 bg-background px-2.5 text-11 shadow-none transition-colors hover:border-primary/40 hover:bg-primary/5"
     >
       <UiSelectValue placeholder="Select model" />
     </UiSelectTrigger>

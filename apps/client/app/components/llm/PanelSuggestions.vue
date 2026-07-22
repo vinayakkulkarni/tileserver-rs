@@ -14,7 +14,7 @@
 <template>
   <div class="flex flex-col gap-3 p-5">
     <p
-      class="text-[11px] font-medium uppercase tracking-widest text-muted-foreground/60"
+      class="text-11 font-medium uppercase tracking-widest text-muted-foreground/60"
     >
       Suggestions
     </p>
@@ -29,7 +29,7 @@
           :is="getIconComponent(suggestion.icon)"
           class="size-4 text-muted-foreground transition-colors group-hover:text-primary"
         />
-        <span class="text-xs font-medium leading-snug">{{
+        <span class="text-xs/snug font-medium">{{
           suggestion.title
         }}</span>
       </button>

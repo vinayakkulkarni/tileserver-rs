@@ -67,7 +67,7 @@
               <Globe class="size-5 text-primary" />
               <span
                 class="
-                  font-display text-sm font-semibold tracking-[0.15em] uppercase
+                  font-display text-sm font-semibold tracking-150 uppercase
                 "
               >
                 <span class="text-foreground">Tileserver</span>

@@ -9,7 +9,7 @@
         <Globe class="size-4 text-muted-foreground" />
         <span
           class="
-            font-mono text-[10px] tracking-wider text-muted-foreground uppercase
+            font-mono text-10 tracking-wider text-muted-foreground uppercase
             lg:text-xs
           "
         >
@@ -30,7 +30,7 @@
           to="https://docs.tileserver.app"
           external
           class="
-            font-mono text-[10px] tracking-wider text-muted-foreground uppercase
+            font-mono text-10 tracking-wider text-muted-foreground uppercase
             transition-colors
             hover:text-foreground
             lg:text-xs
@@ -42,7 +42,7 @@
           to="https://github.com/vinayakkulkarni/tileserver-rs"
           external
           class="
-            font-mono text-[10px] tracking-wider text-muted-foreground uppercase
+            font-mono text-10 tracking-wider text-muted-foreground uppercase
             transition-colors
             hover:text-foreground
             lg:text-xs
@@ -54,7 +54,7 @@
           to="https://github.com/vinayakkulkarni/tileserver-rs/blob/main/LICENSE"
           external
           class="
-            font-mono text-[10px] tracking-wider text-muted-foreground uppercase
+            font-mono text-10 tracking-wider text-muted-foreground uppercase
             transition-colors
             hover:text-foreground
             lg:text-xs
