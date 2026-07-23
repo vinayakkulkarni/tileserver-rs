@@ -38,8 +38,8 @@ catalogs:
       specifier: ^0.15.1
       version: 0.15.1
     '@tanstack/query-db-collection':
-      specifier: ^1.1.0
-      version: 1.1.0
+      specifier: ^1.2.0
+      version: 1.2.0
     '@tanstack/vue-db':
       specifier: ^0.0.127
       version: 0.0.127
@@ -266,7 +266,7 @@ importers:
         version: 0.15.1(@tanstack/ai@0.42.0)(vue@3.5.40(typescript@6.0.3))
       '@tanstack/query-db-collection':
         specifier: catalog:client
-        version: 1.1.0(@tanstack/query-core@5.101.4)(typescript@6.0.3)
+        version: 1.2.0(@tanstack/query-core@5.101.4)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
         version: 0.0.127(typescript@6.0.3)(vue@3.5.40(typescript@6.0.3))
@@ -3303,8 +3303,8 @@ packages:
   '@tanstack/query-core@5.101.4':
     resolution: {integrity: sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw==}
 
-  '@tanstack/query-db-collection@1.1.0':
-    resolution: {integrity: sha512-duggStGqINUX9dqq7+1JDsq4utNn/XExgtna1ACTO+WueqOmDyh83Lu2XUf+9457m9ozlbZvIFq2bcxdTXhx4Q==}
+  '@tanstack/query-db-collection@1.2.0':
+    resolution: {integrity: sha512-WPVj8TW5/qtGWkvBz/ru/odYm+QnD6ZuWmk59xD2biq2T+/cIssRgHuNIOvVw4texGrUiROzF8NUcuNICijXkg==}
     peerDependencies:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
@@ -10758,7 +10758,7 @@ snapshots:
 
   '@tanstack/query-core@5.101.4': {}
 
-  '@tanstack/query-db-collection@1.1.0(@tanstack/query-core@5.101.4)(typescript@6.0.3)':
+  '@tanstack/query-db-collection@1.2.0(@tanstack/query-core@5.101.4)(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@tanstack/db': 0.6.16(typescript@6.0.3)
