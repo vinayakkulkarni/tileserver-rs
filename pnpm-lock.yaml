@@ -190,8 +190,8 @@ catalogs:
       version: 3.3.8
   docs:
     '@nuxt/content':
-      specifier: ^3.15.1
-      version: 3.15.1
+      specifier: ^3.15.2
+      version: 3.15.2
     better-sqlite3:
       specifier: ^13.0.1
       version: 13.0.1
@@ -393,7 +393,7 @@ importers:
         version: 1.26.0(vue@3.5.40(typescript@6.0.3))
       '@nuxt/content':
         specifier: catalog:docs
-        version: 3.15.1(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(better-sqlite3@13.0.1)(esbuild@0.28.1)(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(rollup@4.62.2)(supports-color@10.2.2)(valibot@1.4.2(typescript@6.0.3))(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
+        version: 3.15.2(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(better-sqlite3@13.0.1)(esbuild@0.28.1)(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(rollup@4.62.2)(supports-color@10.2.2)(valibot@1.4.2(typescript@6.0.3))(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
       '@nuxt/fonts':
         specifier: catalog:default
         version: 0.14.0(db0@0.3.4(better-sqlite3@13.0.1))(esbuild@0.28.1)(ioredis@5.11.1(supports-color@10.2.2))(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(rollup@4.62.2)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
@@ -1763,8 +1763,8 @@ packages:
       '@nuxt/schema':
         optional: true
 
-  '@nuxt/content@3.15.1':
-    resolution: {integrity: sha512-J7wW66N4jU1vrGzgbOlezy08/QRTz76Y1051UlHFgLYiVaI00eqrbnoIkmfafg4FKGlxGieM4urwnTiO6W+ghw==}
+  '@nuxt/content@3.15.2':
+    resolution: {integrity: sha512-jBK48RbA5RIt2SdtHPBcu4eX8+PYVsspbN+Cfx52kbpl8uXCiwjFudqGZrl2yqRQuEqVDYk9FGIOvWiMarLDtA==}
     engines: {node: '>= 20.19.0'}
     peerDependencies:
       '@electric-sql/pglite': '*'
@@ -8840,7 +8840,7 @@ snapshots:
       - magicast
       - supports-color
 
-  '@nuxt/content@3.15.1(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(better-sqlite3@13.0.1)(esbuild@0.28.1)(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(rollup@4.62.2)(supports-color@10.2.2)(valibot@1.4.2(typescript@6.0.3))(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
+  '@nuxt/content@3.15.2(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(better-sqlite3@13.0.1)(esbuild@0.28.1)(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(rollup@4.62.2)(supports-color@10.2.2)(valibot@1.4.2(typescript@6.0.3))(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))':
     dependencies:
       '@nuxt/kit': 4.5.0(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.0)(rollup@4.62.2)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)))
       '@nuxtjs/mdc': 0.22.2(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.139.0)(rolldown@1.2.0)(supports-color@10.2.2)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.0)(rollup@4.62.2)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)))
