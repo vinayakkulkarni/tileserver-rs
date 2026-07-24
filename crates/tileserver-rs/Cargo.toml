@@ -114,7 +114,7 @@ duckdb           = { workspace = true, optional = true }
 # Inspector, claude.ai via mcp-remote bridges).
 rmcp             = { version = "2.2", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
 schemars         = { version = "1", optional = true }
-base64           = { version = "0.22", optional = true }
+base64           = { version = "0.23", optional = true }
 
 # OAuth 2.0 support for the MCP HTTP transport (RFC 7591 DCR + claude.ai
 # Custom Connectors). Pulled in only when both `mcp` and the operator's
@@ -173,7 +173,7 @@ tempfile         = { workspace = true }
 insta            = { workspace = true }
 criterion        = { workspace = true }
 url              = { workspace = true }
-base64           = { version = "0.22" }
+base64           = { version = "0.23" }
 sha2             = { workspace = true }
 serde_urlencoded = "0.7"
 jsonwebtoken     = { version = "10", default-features = false, features = ["rust_crypto", "use_pem"] }
