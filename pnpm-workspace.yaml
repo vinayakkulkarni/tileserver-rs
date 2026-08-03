@@ -47,7 +47,7 @@ catalogs:
     '@nuxtjs/color-mode': ^4.0.1
     '@tailwindcss/vite': ^4.3.3
     '@types/node': ^26.1.1
-    '@vueuse/core': ^14.3.0
+    '@vueuse/core': ^14.4.0
     '@vueuse/nuxt': ^14.3.0
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
