@@ -6947,9 +6947,9 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stac"
-version = "0.17.2"
+version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79e4b3d417e58a0eeae1022484652d91bb92b8a8e69daabae126452397f15622"
+checksum = "28dfe48524b7335999e0420938bc957ac8889c164049d02ceec47d5155c4cade"
 dependencies = [
  "bytes",
  "chrono",
@@ -6969,12 +6969,12 @@ dependencies = [
 
 [[package]]
 name = "stac-derive"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "087057f442c3a980721f249f723db459460ce74221730c9b2115bd63957027ae"
+checksum = "06ada3595f5c00e6ea5782fc5e3070c5d63cb43bd0d9cc1d604fe28b78db5f1d"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.2",
 ]
 
 [[package]]
@@ -7161,7 +7161,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.59.0",
