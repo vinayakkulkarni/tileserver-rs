@@ -18,9 +18,9 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use rmcp::ErrorData as McpError;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
-    CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResult, ListPromptsResult,
+    CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResponse, ListPromptsResult,
     ListResourceTemplatesResult, PaginatedRequestParams, ProtocolVersion,
-    ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
+    ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities, ServerInfo,
 };
 use rmcp::service::{NotificationContext, RequestContext, RoleServer};
 use rmcp::{ServerHandler, tool, tool_handler, tool_router};
@@ -611,8 +611,8 @@ impl ServerHandler for McpHandler {
         &self,
         request: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
-        read_resource(&request.uri, &self.state)
+    ) -> Result<ReadResourceResponse, McpError> {
+        Ok(read_resource(&request.uri, &self.state)?.into())
     }
 
     async fn list_prompts(
@@ -627,8 +627,8 @@ impl ServerHandler for McpHandler {
         &self,
         request: GetPromptRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<GetPromptResult, McpError> {
-        get_prompt(&request)
+    ) -> Result<GetPromptResponse, McpError> {
+        Ok(get_prompt(&request)?.into())
     }
 
     async fn on_cancelled(
