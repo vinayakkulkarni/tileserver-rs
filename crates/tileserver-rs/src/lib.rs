@@ -10,6 +10,8 @@ pub mod composite;
 pub mod compression;
 pub mod config;
 pub mod config_schema;
+#[cfg(feature = "convert")]
+pub mod convert;
 pub mod cors_origin;
 pub mod embed;
 pub mod error;

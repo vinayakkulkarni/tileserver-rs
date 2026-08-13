@@ -1,0 +1,10 @@
+{
+  "id": "point",
+  "minzoom": 0,
+  "maxzoom": 14,
+  "fields": {
+    "id": "Number",
+    "name": "String",
+    "population": "Number"
+  }
+}

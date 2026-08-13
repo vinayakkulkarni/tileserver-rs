@@ -107,6 +107,10 @@ pub enum TileServerError {
         got: String,
     },
 
+    #[cfg(feature = "convert")]
+    #[error("convert error: {0}")]
+    ConvertError(String),
+
     #[error("upload error: {0}")]
     UploadError(String),
 
@@ -203,6 +207,10 @@ impl IntoResponse for TileServerError {
             }
             #[cfg(feature = "stac")]
             TileServerError::StacError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            #[cfg(feature = "convert")]
+            TileServerError::ConvertError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
             TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::UploadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, self.to_string()),
             TileServerError::Internal(_) => (
@@ -341,6 +349,15 @@ mod tests {
     fn test_compression_error_display_and_status() {
         let err = TileServerError::CompressionError("brotli encode: oom".to_string());
         assert_eq!(err.to_string(), "compression error: brotli encode: oom");
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[cfg(feature = "convert")]
+    #[test]
+    fn test_convert_error_display_and_status() {
+        let err = TileServerError::ConvertError("bad geojson".to_string());
+        assert_eq!(err.to_string(), "convert error: bad geojson");
         let response = err.into_response();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
