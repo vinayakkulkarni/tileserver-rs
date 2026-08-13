@@ -19,7 +19,8 @@ on:
   push:
     tags:
       - "mbgl-sys-v*" # e.g. mbgl-sys-v0.1.7
-  workflow_dispatch: # manual retry without re-tagging
+  workflow_dispatch:
+    # manual retry without re-tagging
 
 permissions:
   contents: read
@@ -40,7 +41,7 @@ jobs:
 
       - name: Authenticate with crates.io (Trusted Publishing / OIDC)
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@v1.0.5
 
       - name: Publish mbgl-sys
         env:
