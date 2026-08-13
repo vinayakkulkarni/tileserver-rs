@@ -112,7 +112,7 @@ duckdb           = { workspace = true, optional = true }
 # the two transports we expose: stdio (`transport-io`) for local clients
 # like Claude Desktop and Streamable HTTP for remote clients (Cursor, MCP
 # Inspector, claude.ai via mcp-remote bridges).
-rmcp             = { version = "2.2", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
+rmcp             = { version = "3.1", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
 schemars         = { version = "1", optional = true }
 base64           = { version = "0.23", optional = true }
 
@@ -122,7 +122,7 @@ base64           = { version = "0.23", optional = true }
 # tokens are signed with RS256. `subtle` powers the constant-time PKCE +
 # bearer comparisons; declared optional under `mcp` so it does not enter
 # default builds even though it is a transitive dep via `rsa`.
-jsonwebtoken     = { version = "10", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
+jsonwebtoken     = { version = "11", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
 askama           = { version = "0.16", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 rsa              = { version = "0.9", optional = true, features = ["pem"] }
@@ -176,8 +176,8 @@ url              = { workspace = true }
 base64           = { version = "0.23" }
 sha2             = { workspace = true }
 serde_urlencoded = "0.7"
-jsonwebtoken     = { version = "10", default-features = false, features = ["rust_crypto", "use_pem"] }
-serial_test      = "3"
+jsonwebtoken     = { version = "11", default-features = false, features = ["rust_crypto", "use_pem"] }
+serial_test      = "4"
 
 [[bench]]
 name = "mlt"
