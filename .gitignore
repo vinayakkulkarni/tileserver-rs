@@ -181,3 +181,6 @@ docs/superpowers
 
 # git worktrees
 .worktrees/
+
+# cortexkit local index cache
+.cortexkit/
