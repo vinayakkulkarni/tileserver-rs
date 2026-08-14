@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.36.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.1...v2.36.2) (2026-08-14)
+
+
+### Bug Fixes
+
+* **deps:** bump @tanstack/ai-vue from 0.15.1 to 0.16.2 ([#1378](https://github.com/vinayakkulkarni/tileserver-rs/issues/1378)) ([82fb7f9](https://github.com/vinayakkulkarni/tileserver-rs/commit/82fb7f9243dee8829467b088e7af3b6301d189d8))
+* **deps:** bump ureq from 3.3.0 to 3.4.0 ([#1379](https://github.com/vinayakkulkarni/tileserver-rs/issues/1379)) ([1afcedd](https://github.com/vinayakkulkarni/tileserver-rs/commit/1afcedd1a50878c806403a0a2e44a18260eec105))
+
+
+### Miscellaneous
+
+* **deps:** skip better-sqlite3 native rebuild in Docker builds ([c119e38](https://github.com/vinayakkulkarni/tileserver-rs/commit/c119e38d537f53d39d36ec90e2e922c8d741d5c3))
+
 ## [2.36.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.0...v2.36.1) (2026-08-13)
 
 
