@@ -141,10 +141,27 @@ impl McpAuthMode {
 /// and JWT validation is layered on `/mcp`.
 pub fn mcp_router(shared: SharedState, auth: McpAuthMode, cors_origins: &[String]) -> Router {
     let factory_state = shared.clone();
+    let mcp_config = StreamableHttpServerConfig::default().with_allowed_hosts(
+        cors_origins
+            .iter()
+            // rmcp's DNS-rebinding guard matches against raw authority (host[:port]), so
+            // strip any scheme prefix from the configured CORS origins (e.g.
+            // "https://demo.tileserver.app" → "demo.tileserver.app"). The same
+            // first-party origins already gate CORS, so reusing them keeps the two
+            // allowlists in sync.
+            .map(|origin| {
+                let trimmed = origin.trim();
+                match trimmed.split_once("://") {
+                    Some((_, rest)) => rest.to_string(),
+                    None => trimmed.to_string(),
+                }
+            })
+            .collect::<Vec<_>>(),
+    );
     let svc = StreamableHttpService::new(
         move || Ok(McpHandler::new(factory_state.load())),
         Arc::new(LocalSessionManager::default()),
-        StreamableHttpServerConfig::default(),
+        mcp_config,
     );
 
     let mut mcp = Router::new().nest_service("/mcp", svc);
@@ -461,6 +478,59 @@ mod tests {
             response.status(),
             StatusCode::UNAUTHORIZED,
             "no-auth mode must not reject unauthenticated requests"
+        );
+    }
+
+    #[tokio::test]
+    async fn mcp_router_allows_hosts_derived_from_cors_origins() {
+        // rmcp's Streamable HTTP server guards against DNS rebinding via
+        // `allowed_hosts` (defaults to localhost only). The configured CORS
+        // origins must be re-used (scheme-stripped) so first-party hosts are
+        // accepted — without this, a proxy-fronted /mcp endpoint 403s every
+        // request with "disallowed Host header".
+        let origins = ["https://demo.tileserver.app".to_string()];
+        let router = mcp_router(minimal_shared_state(), McpAuthMode::None, &origins);
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/mcp")
+                    .header(axum::http::header::HOST, "demo.tileserver.app")
+                    .body(Body::empty())
+                    .expect("build GET request with first-party Host"),
+            )
+            .await
+            .expect("oneshot GET");
+
+        assert_ne!(
+            response.status(),
+            StatusCode::FORBIDDEN,
+            "first-party host from cors_origins must pass the rmcp host allowlist"
+        );
+    }
+
+    #[tokio::test]
+    async fn mcp_router_rejects_hosts_not_in_cors_origins() {
+        let origins = ["https://demo.tileserver.app".to_string()];
+        let router = mcp_router(minimal_shared_state(), McpAuthMode::None, &origins);
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method(Method::GET)
+                    .uri("/mcp")
+                    .header(axum::http::header::HOST, "evil.example.com")
+                    .body(Body::empty())
+                    .expect("build GET request with foreign Host"),
+            )
+            .await
+            .expect("oneshot GET");
+
+        assert_eq!(
+            response.status(),
+            StatusCode::FORBIDDEN,
+            "hosts not present in cors_origins must be rejected by the rmcp allowlist"
         );
     }
 
