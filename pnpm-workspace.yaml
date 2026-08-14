@@ -66,7 +66,7 @@ catalogs:
     maplibre-gl: ^5.24.0
     motion-v: ^2.3.0
     nuxt: ^4.5.2
-    oxfmt: ^0.61.0
+    oxfmt: ^0.63.0
     oxlint: ^1.78.0
     radix-vue: ^1.9.17
     reka-ui: ^2.10.3
@@ -80,14 +80,14 @@ catalogs:
     vue: ^3.5.41
     vue-tsc: ^3.3.9
   client:
-    '@comark/nuxt': ^0.5.1
+    '@comark/nuxt': ^0.6.2
     '@geoql/v-maplibre': ^2.0.1
     '@maplibre/mlt': ^1.1.12
     '@mlc-ai/web-llm': ^0.2.84
-    '@tanstack/ai': ^0.42.0
+    '@tanstack/ai': ^0.44.0
     '@tanstack/ai-vue': ^0.16.2
-    '@tanstack/query-db-collection': ^1.2.3
-    '@tanstack/vue-db': ^0.0.128
+    '@tanstack/query-db-collection': ^1.2.4
+    '@tanstack/vue-db': ^0.1.1
     '@tanstack/vue-query': ^5.101.4
     '@tmcw/togeojson': ^7.1.2
     '@types/geojson': ^7946.0.16
@@ -100,7 +100,7 @@ catalogs:
     shpjs: ^6.2.0
     zod: ^4.4.3
   marketing:
-    '@nuxtjs/plausible': ^3.0.2
+    '@nuxtjs/plausible': ^4.0.0
     ogl: ^1.0.11
     wrangler: ^4.123.0
   docs:
