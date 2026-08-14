@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.1...v2.36.2) (2026-08-14)
+
+
+### Miscellaneous
+
+* **deps:** bump remaining catalogs to latest ([fc9dad4](https://github.com/vinayakkulkarni/tileserver-rs/commit/fc9dad42e600b1fafd9fc2b31af95a44a0d0000f))
+
 ## [2.36.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.0...v2.36.1) (2026-08-13)
 
 
