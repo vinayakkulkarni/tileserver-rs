@@ -78,7 +78,7 @@
           </span>
         </div>
         <div class="space-y-4 p-5">
-          <div v-for="(msg, i) in aiChatExample" :key="i" class="flex gap-3">
+          <div v-for="msg in aiChatExample" :key="msg.text" class="flex gap-3">
             <div
               class="
                 mt-0.5 flex size-6 shrink-0 items-center justify-center border
@@ -135,25 +135,25 @@
         </p>
         <ul class="mb-8 space-y-2">
           <li class="flex items-center gap-3 text-sm">
-            <span class="size-1.5 bg-emerald-400"></span>
+            <span class="size-1.5 bg-success"></span>
             <span class="text-foreground"
               >Works offline after first model download</span
             >
           </li>
           <li class="flex items-center gap-3 text-sm">
-            <span class="size-1.5 bg-emerald-400"></span>
+            <span class="size-1.5 bg-success"></span>
             <span class="text-foreground"
               >10+ map tools: navigate, filter, style, query</span
             >
           </li>
           <li class="flex items-center gap-3 text-sm">
-            <span class="size-1.5 bg-emerald-400"></span>
+            <span class="size-1.5 bg-success"></span>
             <span class="text-foreground"
               >Spatial queries against your tile data</span
             >
           </li>
           <li class="flex items-center gap-3 text-sm">
-            <span class="size-1.5 bg-emerald-400"></span>
+            <span class="size-1.5 bg-success"></span>
             <span class="text-foreground"
               >Chat history persisted locally in IndexedDB</span
             >

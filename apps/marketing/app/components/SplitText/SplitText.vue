@@ -38,17 +38,49 @@
     { threshold: props.threshold },
   );
 
+  // Split-text tokens have no intrinsic identity, so each word/char is keyed
+  // by its position-derived id (stable for a given props.text) and carries its
+  // own precomputed transition, avoiding inline object literals in the v-for
+  // subtree and index keys that defeat DOM reuse.
   const words = computed(() => {
-    if (props.by === 'words') {
-      return props.text.split(' ').map((word, i, arr) => ({
-        characters: [word],
-        needsSpace: i < arr.length - 1,
-      }));
+    const tokens = props.text.split(' ');
+    const result: Array<{
+      id: string;
+      needsSpace: boolean;
+      characters: Array<{
+        id: string;
+        char: string;
+        transition: {
+          duration: number;
+          delay: number;
+          type: 'spring';
+          damping: number;
+          stiffness: number;
+        };
+      }>;
+    }> = [];
+    let globalIndex = 0;
+    for (let i = 0; i < tokens.length; i += 1) {
+      const token = tokens[i];
+      const chars = props.by === 'words' ? [token] : token.split('');
+      result.push({
+        id: `word-${i}`,
+        needsSpace: i < tokens.length - 1,
+        characters: chars.map((char, ci) => ({
+          id: `char-${globalIndex + ci}`,
+          char,
+          transition: {
+            duration: props.duration,
+            delay: getDelay(globalIndex + ci),
+            type: 'spring' as const,
+            damping: 25,
+            stiffness: 300,
+          },
+        })),
+      });
+      globalIndex += chars.length;
     }
-    return props.text.split(' ').map((word, i, arr) => ({
-      characters: word.split(''),
-      needsSpace: i < arr.length - 1,
-    }));
+    return result;
   });
 
   function getDelay(globalIndex: number): number {
@@ -58,28 +90,18 @@
 
 <template>
   <p ref="el" :class="cn('flex flex-wrap whitespace-pre-wrap', props.class)">
-    <span v-for="(word, wi) in words" :key="wi" class="inline-flex">
+    <span v-for="word in words" :key="word.id" class="inline-flex">
       <component
         :is="motion.span"
-        v-for="(char, ci) in word.characters"
-        :key="`${wi}-${ci}`"
+        v-for="char in word.characters"
+        :key="char.id"
         class="inline-block"
         :initial="from"
         :animate="isInView ? to : from"
-        :transition="{
-          duration,
-          delay: getDelay(
-            words
-              .slice(0, wi)
-              .reduce((sum, w) => sum + w.characters.length, 0) + ci,
-          ),
-          type: 'spring',
-          damping: 25,
-          stiffness: 300,
-        }"
+        :transition="char.transition"
         style="will-change: transform, opacity"
       >
-        {{ char }}
+        {{ char.char }}
       </component>
       <span v-if="word.needsSpace" class="whitespace-pre">&nbsp;</span>
     </span>

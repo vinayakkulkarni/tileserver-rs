@@ -52,13 +52,7 @@
     <div :id="bodyId" class="section-body-wrap">
       <div class="section-body-inner">
         <div
-          class="section-body grid gap-2 border-t border-border px-section-x-sm py-3"
-          style="
-            grid-template-columns: repeat(
-              auto-fit,
-              minmax(min(100%, 360px), 1fr)
-            );
-          "
+          class="section-body grid grid-cols-section gap-2 border-t border-border px-section-x-sm py-3"
         >
           <slot></slot>
         </div>

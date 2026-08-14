@@ -64,7 +64,7 @@
     :ref="setPanelRef"
     :style="dragStyle"
     class="fixed z-50 flex items-center gap-2 border border-border bg-background/95 px-3 py-2 shadow-lg backdrop-blur-sm transition-shadow hover:shadow-xl"
-    :class="{ 'cursor-grabbing': isDragging, 'cursor-grab': !isDragging }"
+    :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
   >
     <LlmPaletteMinimized
       :set-handle-ref="setHandleRef"

@@ -55,9 +55,9 @@
     :class="
       cn(
         `
-          relative overflow-hidden bg-linear-to-b from-neutral-50 to-white
-          ring-1 ring-neutral-200 transition-all duration-500
-          dark:from-neutral-950 dark:to-neutral-900 dark:ring-white/10
+          relative overflow-hidden bg-linear-to-b from-muted to-background
+          ring-1 ring-border transition-all duration-500
+          dark:from-background dark:to-card dark:ring-foreground/10
         `,
         props.class,
       )

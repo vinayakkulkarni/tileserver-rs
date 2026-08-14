@@ -20,7 +20,7 @@ export function useHomeHero() {
   );
 
   const cacheMb = computed(() => {
-    if (!pingQuery.data.value) return '—';
+    if (!pingQuery.data.value) return 'n/a';
     return `${(pingQuery.data.value.cache_bytes / 1024 / 1024).toFixed(0)}`;
   });
 
@@ -35,14 +35,14 @@ export function useHomeHero() {
 
   const uptime = computed(() => {
     const unix = pingQuery.data.value?.loaded_at_unix;
-    if (!unix) return '—';
+    if (!unix) return 'n/a';
     return formatUptime(unix);
   });
 
   const sourceCount = computed(
-    () => pingQuery.data.value?.loaded_sources ?? '—',
+    () => pingQuery.data.value?.loaded_sources ?? 'n/a',
   );
-  const styleCount = computed(() => pingQuery.data.value?.loaded_styles ?? '—');
+  const styleCount = computed(() => pingQuery.data.value?.loaded_styles ?? 'n/a');
 
   const compressionEnabled = computed(
     () => pingQuery.data.value?.compression_enabled ?? false,
@@ -50,7 +50,7 @@ export function useHomeHero() {
 
   const compressionLabel = computed(() => {
     const ping = pingQuery.data.value;
-    if (!ping?.compression_enabled) return '—';
+    if (!ping?.compression_enabled) return 'n/a';
     return `br q${ping.compression_br_quality} · zstd L${ping.compression_zstd_level}`;
   });
 
@@ -69,7 +69,7 @@ export function useHomeHero() {
 
   const corsLabel = computed(() => {
     const origins = pingQuery.data.value?.cors_origins;
-    if (!origins?.length) return '—';
+    if (!origins?.length) return 'n/a';
     if (origins.length === 1 && origins[0] === '*') return 'any origin';
     return `${origins.length} origin${origins.length === 1 ? '' : 's'}`;
   });

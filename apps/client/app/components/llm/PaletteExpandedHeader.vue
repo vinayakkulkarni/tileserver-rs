@@ -21,7 +21,7 @@
   <div
     :ref="setHandleRef"
     class="flex items-center justify-between border-b border-border/50 bg-muted/30 px-3 py-2"
-    :class="{ 'cursor-grabbing': isDragging, 'cursor-grab': !isDragging }"
+    :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
   >
     <div class="flex items-center gap-2">
       <GripHorizontal class="size-3 text-muted-foreground/50" />

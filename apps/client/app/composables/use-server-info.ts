@@ -40,7 +40,7 @@ export function usePingStats() {
   );
   const uptime = computed(() => {
     const unix = pingQuery.data.value?.loaded_at_unix;
-    if (!unix) return '—';
+    if (!unix) return 'n/a';
     const seconds = Math.floor(Date.now() / 1000 - unix);
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;

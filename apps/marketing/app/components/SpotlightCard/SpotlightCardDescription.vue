@@ -9,8 +9,7 @@
     :class="
       cn(
         `
-          text-sm text-neutral-600
-          dark:text-neutral-400
+          text-sm text-muted-foreground
         `,
         props.class,
       )

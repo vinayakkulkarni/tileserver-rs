@@ -45,6 +45,7 @@
     <a
       :href="`/styles/${style.id}/style.json`"
       target="_blank"
+      rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >GL Style</a
     >
@@ -52,6 +53,7 @@
     <a
       :href="`/styles/${style.id}.json`"
       target="_blank"
+      rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >TileJSON</a
     >
@@ -59,6 +61,7 @@
     <a
       :href="`/styles/${style.id}/wmts.xml`"
       target="_blank"
+      rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >WMTS</a
     >

@@ -9,7 +9,6 @@
   <header class="header shrink-0 border-b border-border bg-background">
     <div
       class="mx-auto flex min-h-14 max-w-screen-2xl items-center justify-between gap-3 px-page-x-sm"
-      style="min-height: 56px"
     >
       <NuxtLink
         to="/"

@@ -17,6 +17,9 @@ const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
   { label: 'Configuration' },
 ];
 
+/** Stable empty fallback so the computed returns the same reference across recomputes. */
+const EMPTY_SECTIONS: readonly ConfigSectionSchema[] = [];
+
 const LINE_RE = /^([a-z_][\w.-]*)\s*=/i;
 const ROOT_HEADER = '(root)';
 
@@ -103,7 +106,7 @@ export function useAdminConfig() {
 
   const payload = computed(() => configQuery.data.value ?? null);
   const schemaSections = computed<readonly ConfigSectionSchema[]>(
-    () => schemaQuery.data.value?.sections ?? [],
+    () => schemaQuery.data.value?.sections ?? EMPTY_SECTIONS,
   );
   const isPending = computed(
     () => configQuery.isPending.value || schemaQuery.isPending.value,
@@ -117,7 +120,7 @@ export function useAdminConfig() {
   const sourcePath = computed(() => payload.value?.source_path ?? null);
   const configHashShort = computed(() => {
     const hash = payload.value?.config_hash;
-    return hash ? hash.slice(0, 12) : '—';
+    return hash ? hash.slice(0, 12) : 'n/a';
   });
 
   const sections = computed<readonly ConfigSectionView[]>(() => {

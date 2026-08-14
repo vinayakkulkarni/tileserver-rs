@@ -9,7 +9,7 @@
           'name': 'Tileserver RS Docs',
           'url': 'https://docs.tileserver.app',
           'description':
-            'Documentation for tileserver-rs — a high-performance vector tile server built in Rust.',
+            'Documentation for tileserver-rs, a high-performance vector tile server built in Rust.',
           'potentialAction': {
             '@type': 'SearchAction',
             'target': {

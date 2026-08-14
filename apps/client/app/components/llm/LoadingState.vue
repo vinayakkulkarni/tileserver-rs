@@ -31,7 +31,7 @@
     <div class="w-full max-w-loading-bar-lg">
       <div class="relative h-1 overflow-hidden bg-muted">
         <div
-          class="absolute inset-y-0 left-0 bg-primary transition-[width] duration-500 ease-out"
+          class="absolute inset-y-0 left-0 bg-primary transition-width duration-500 ease-out"
           :style="{ width: `${Math.max(progress * 100, 2)}%` }"
         ></div>
       </div>

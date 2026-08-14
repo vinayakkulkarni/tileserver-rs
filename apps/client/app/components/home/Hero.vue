@@ -137,7 +137,7 @@
                   </template>
                 </dd>
               </div>
-              <div class="flex flex-col">
+              <div class="flex flex-col border-l border-border">
                 <dt
                   class="font-mono text-9-5 font-medium uppercase tracking-140 text-muted-foreground"
                 >
@@ -149,7 +149,7 @@
                   {{ uptime }}
                 </dd>
               </div>
-              <div class="flex flex-col">
+              <div class="flex flex-col border-l border-border">
                 <dt
                   class="font-mono text-9-5 font-medium uppercase tracking-140 text-muted-foreground"
                 >

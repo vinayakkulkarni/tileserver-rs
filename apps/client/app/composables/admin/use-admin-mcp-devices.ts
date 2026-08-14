@@ -8,6 +8,9 @@ import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
 
 const SKELETON_ROWS = 5;
 
+/** Stable empty fallback so the computed returns the same reference across recomputes. */
+const EMPTY_SESSIONS: AdminMcpSession[] = [];
+
 const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
   { label: 'Home', to: '/' },
   { label: 'Admin', to: '/admin' },
@@ -19,7 +22,7 @@ export function useAdminMcpDevices() {
   const deleteMutation = useDeleteAdminMcpSessionMutation();
 
   const sessions = computed<AdminMcpSession[]>(
-    () => sessionsQuery.data.value ?? [],
+    () => sessionsQuery.data.value ?? EMPTY_SESSIONS,
   );
   const isLoading = computed(() => sessionsQuery.isPending.value);
   const error = computed(() => sessionsQuery.error.value);

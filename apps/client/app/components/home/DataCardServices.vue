@@ -28,6 +28,7 @@
     <a
       :href="`/data/${source.id}.json`"
       target="_blank"
+      rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
       >TileJSON</a
     >

@@ -3,7 +3,7 @@
   import { motion, AnimatePresence } from 'motion-v';
   import type { LayerColor } from '~/types/data';
 
-  defineProps<{
+  const props = defineProps<{
     panelOpen: boolean;
     layerColors: LayerColor[];
   }>();
@@ -11,6 +11,33 @@
   const emit = defineEmits<{
     toggleLayerVisibility: [layerId: string];
   }>();
+
+  // Stable per-layer refs so the inline class/style objects are not recreated
+  // on every render inside the v-for subtree.
+  const rowClassMap = computed(() =>
+    new Map(
+      props.layerColors.map((layer) => [
+        layer.id,
+        { 'opacity-40': !layer.visible },
+      ]),
+    ),
+  );
+  const dotStyleMap = computed(() =>
+    new Map(
+      props.layerColors.map((layer) => [
+        layer.id,
+        { backgroundColor: layer.color },
+      ]),
+    ),
+  );
+  const labelClassMap = computed(() =>
+    new Map(
+      props.layerColors.map((layer) => [
+        layer.id,
+        { 'line-through': !layer.visible },
+      ]),
+    ),
+  );
 </script>
 
 <template>
@@ -29,16 +56,16 @@
           v-for="layer in layerColors"
           :key="layer.id"
           class="flex w-full items-center gap-2 px-1.5 py-1 text-sm transition-colors hover:bg-accent"
-          :class="{ 'opacity-40': !layer.visible }"
+          :class="rowClassMap.get(layer.id)"
           @click="emit('toggleLayerVisibility', layer.id)"
         >
           <div
             class="size-3.5 shrink-0"
-            :style="{ backgroundColor: layer.color }"
+            :style="dotStyleMap.get(layer.id)"
           ></div>
           <span
             class="flex-1 truncate text-left text-muted-foreground"
-            :class="{ 'line-through': !layer.visible }"
+            :class="labelClassMap.get(layer.id)"
           >
             {{ layer.id }}
           </span>

@@ -40,15 +40,21 @@
       </div>
       <div class="border border-border/40 bg-muted/50 px-3 py-2">
         <span class="flex gap-1">
-          <span
-            class="size-1.5 animate-bounce bg-muted-foreground/50 [animation-delay:-0.3s]"
-          ></span>
-          <span
-            class="size-1.5 animate-bounce bg-muted-foreground/50 [animation-delay:-0.15s]"
-          ></span>
-          <span class="size-1.5 animate-bounce bg-muted-foreground/50"></span>
+          <span class="size-1.5 animate-bounce bg-muted-foreground/50 typing-dot typing-dot-1"></span>
+          <span class="size-1.5 animate-bounce bg-muted-foreground/50 typing-dot typing-dot-2"></span>
+          <span class="size-1.5 animate-bounce bg-muted-foreground/50 typing-dot"></span>
         </span>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+  /* Staggered bounce delays for the typing indicator (was [animation-delay:...]) */
+  .typing-dot-1 {
+    animation-delay: -0.3s;
+  }
+  .typing-dot-2 {
+    animation-delay: -0.15s;
+  }
+</style>

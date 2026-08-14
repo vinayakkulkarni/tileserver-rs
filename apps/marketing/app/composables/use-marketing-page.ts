@@ -73,7 +73,7 @@ export function useMarketingPage() {
       icon: RefreshCw,
       title: 'MLT Transcoding',
       description:
-        'On-the-fly MLT↔MVT transcoding via mlt-core 0.11 native reader. Serve next-gen MapLibre Tiles from existing MVT sources — up to 6x smaller tiles, ~22% faster transcode.',
+        'On-the-fly MLT↔MVT transcoding via mlt-core 0.11 native reader. Serve next-gen MapLibre Tiles from existing MVT sources: up to 6x smaller tiles, ~22% faster transcode.',
       category: 'Rendering',
     },
     {
@@ -94,14 +94,14 @@ export function useMarketingPage() {
       icon: Mountain,
       title: 'DEM Terrain Encoding',
       description:
-        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source — ~4–10× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
+        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source: ~4–10× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
       category: 'Rendering',
     },
     {
       icon: MountainSnow,
       title: '3D Terrain & Hillshade',
       description:
-        'Drape vector basemaps over elevation for hillshade relief and MapLibre 3D terrain meshes — no external DEM tile provider required.',
+        'Drape vector basemaps over elevation for hillshade relief and MapLibre 3D terrain meshes, with no external DEM tile provider required.',
       category: 'Rendering',
     },
     {
@@ -157,14 +157,14 @@ export function useMarketingPage() {
       icon: Combine,
       title: 'Composite Tiles',
       description:
-        'Merge layers from multiple vector sources into one tile — ad-hoc via URL or named [[composites]] in config. One request, N sources.',
+        'Merge layers from multiple vector sources into one tile, ad-hoc via URL or named [[composites]] in config. One request, N sources.',
       category: 'Developer experience',
     },
     {
       icon: WandSparkles,
       title: 'Style Auto-Generation',
       description:
-        'Every vector source is instantly viewable — styles are generated on the fly with deterministic colors when none is authored.',
+        'Every vector source is instantly viewable: styles are generated on the fly with deterministic colors when none is authored.',
       category: 'Developer experience',
     },
     {
@@ -185,42 +185,42 @@ export function useMarketingPage() {
       icon: Frame,
       title: 'Embeddable Maps',
       description:
-        'Drop any style into an <iframe> with the /embed endpoint — a self-contained MapLibre page, no client code needed.',
+        'Drop any style into an <iframe> with the /embed endpoint: a self-contained MapLibre page, no client code needed.',
       category: 'Developer experience',
     },
     {
       icon: Share2,
       title: 'OpenGraph Images',
       description:
-        'Server-rendered social preview images per style via /og — share links that unfurl into real map snapshots.',
+        'Server-rendered social preview images per style via /og: share links that unfurl into real map snapshots.',
       category: 'Developer experience',
     },
     {
       icon: BotMessageSquare,
       title: 'Browser-Local AI',
       description:
-        'Talk to your maps with a built-in LLM. Runs entirely in your browser via WebGPU — no API keys, no cloud, no token costs.',
+        'Talk to your maps with a built-in LLM. Runs entirely in your browser via WebGPU: no API keys, no cloud, no token costs.',
       category: 'Intelligence',
     },
     {
       icon: FileSpreadsheet,
       title: 'GeoParquet Source',
       description:
-        'Serve vector tiles directly from GeoParquet files — no preprocessing. Point at Overture Maps data and get instant tiles.',
+        'Serve vector tiles directly from GeoParquet files: no preprocessing. Point at Overture Maps data and get instant tiles.',
       category: 'Data formats',
     },
     {
       icon: Braces,
       title: 'DuckDB Backend',
       description:
-        'Generate tiles from SQL queries against embedded DuckDB. Query GeoParquet, CSV, or any format DuckDB reads — PostGIS power, zero ops.',
+        'Generate tiles from SQL queries against embedded DuckDB. Query GeoParquet, CSV, or any format DuckDB reads: PostGIS power, zero ops.',
       category: 'Data formats',
     },
     {
       icon: FolderSync,
       title: 'SFTP Sources',
       description:
-        'Serve PMTiles straight from any SSH/SFTP host — range reads over the wire, no file sync, no object storage required.',
+        'Serve PMTiles straight from any SSH/SFTP host: range reads over the wire, no file sync, no object storage required.',
       category: 'Data formats',
     },
     {
@@ -248,21 +248,21 @@ export function useMarketingPage() {
       icon: Satellite,
       title: 'STAC Catalog Sources',
       description:
-        'Point at any STAC API (Element84, Planetary Computer, USGS) and serve COGs as tiles. Static discovery, dynamic per-tile bbox search, and multi-asset mosaic compositing — all without preprocessing.',
+        'Point at any STAC API (Element84, Planetary Computer, USGS) and serve COGs as tiles. Static discovery, dynamic per-tile bbox search, and multi-asset mosaic compositing: all without preprocessing.',
       category: 'Data formats',
     },
     {
       icon: Plug,
       title: 'MCP Server',
       description:
-        'First Rust tile server with built-in Model Context Protocol on rmcp 2.0. Wire your deployment into Claude Desktop, Cursor, or claude.ai — 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
+        'First Rust tile server with built-in Model Context Protocol on rmcp 2.0. Wire your deployment into Claude Desktop, Cursor, or claude.ai: 11 tools + 4 prompts spanning introspection, rendering, CQL2 feature queries, and STAC search. OAuth 2.0 DCR for claude.ai Custom Connectors; strict CORS origin allow-listing.',
       category: 'Intelligence',
     },
     {
       icon: MessageSquare,
       title: 'Agentic Map Tools',
       description:
-        'The built-in AI drives the map itself — fly_to, fit_bounds, layer styling, spatial queries, and 10+ more tools callable in natural language.',
+        'The built-in AI drives the map itself: fly_to, fit_bounds, layer styling, spatial queries, and 10+ more tools callable in natural language.',
       category: 'Intelligence',
     },
   ];
@@ -496,13 +496,13 @@ export function useMarketingPage() {
       icon: MessageSquare,
       title: 'Natural Language Control',
       description:
-        'Fly to locations, filter layers, query features, and restyle your map — all by chatting in plain English.',
+        'Fly to locations, filter layers, query features, and restyle your map: all by chatting in plain English.',
     },
     {
       icon: Puzzle,
       title: '10+ Map Tools',
       description:
-        'fly_to, fit_bounds, set_layer_paint, query_rendered_features, spatial_query, and more — all callable by the LLM.',
+        'fly_to, fit_bounds, set_layer_paint, query_rendered_features, spatial_query, and more: all callable by the LLM.',
     },
   ];
 

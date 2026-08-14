@@ -2,7 +2,7 @@
   import { Eye, EyeOff, Trash2, X } from '@lucide/vue';
   import type { OverlayLayer } from '~/types/file-upload';
 
-  defineProps<{
+  const props = defineProps<{
     overlays: OverlayLayer[];
   }>();
 
@@ -11,6 +11,17 @@
     remove: [overlayId: string];
     removeAll: [];
   }>();
+
+  // Stable per-overlay ref so the inline style object is not recreated on
+  // every render inside the v-for subtree.
+  const dotStyleMap = computed(() =>
+    new Map(
+      props.overlays.map((overlay) => [
+        overlay.id,
+        { backgroundColor: overlay.color },
+      ]),
+    ),
+  );
 
   function formatCount(count: number): string {
     if (count === 0) return 'tiles';
@@ -33,7 +44,7 @@
         >
           <span
             class="size-3 shrink-0 rounded-full"
-            :style="{ backgroundColor: overlay.color }"
+            :style="dotStyleMap.get(overlay.id)"
           ></span>
           <div class="min-w-0 flex-1">
             <p class="truncate text-xs font-medium" :title="overlay.fileName">

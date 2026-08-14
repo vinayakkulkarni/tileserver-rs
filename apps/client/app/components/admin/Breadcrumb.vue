@@ -8,7 +8,7 @@
   <p
     class="font-mono text-11 tracking-180 text-muted-foreground uppercase"
   >
-    <template v-for="(crumb, idx) in items" :key="idx">
+    <template v-for="(crumb, idx) in items" :key="crumb.label">
       <NuxtLink
         v-if="crumb.to"
         :to="crumb.to"

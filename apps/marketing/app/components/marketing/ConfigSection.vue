@@ -62,9 +62,9 @@
       <!-- Right: code block -->
       <div class="overflow-hidden bg-background">
         <div class="flex items-center gap-2 border-b border-border px-4 py-2.5">
-          <span class="size-2.5 rounded-full bg-red-500/60"></span>
-          <span class="size-2.5 rounded-full bg-yellow-500/60"></span>
-          <span class="size-2.5 rounded-full bg-green-500/60"></span>
+          <span class="size-2.5 rounded-full bg-destructive/60"></span>
+          <span class="size-2.5 rounded-full bg-warning/60"></span>
+          <span class="size-2.5 rounded-full bg-success/60"></span>
           <span class="ml-2 font-mono text-xs text-muted-foreground">
             config.toml
           </span>

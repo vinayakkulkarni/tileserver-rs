@@ -32,7 +32,7 @@ export default defineNuxtConfig({
         {
           name: 'description',
           content:
-            'Documentation for tileserver-rs — a high-performance vector tile server built in Rust.',
+            'Documentation for tileserver-rs, a high-performance vector tile server built in Rust.',
         },
         {
           name: 'theme-color',

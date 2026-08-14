@@ -9,6 +9,9 @@ import { friendlyAdminError } from '~/utils/api/admin-mcp/friendly-error';
 const SCOPE_VISIBLE_LIMIT = 3;
 const SKELETON_ROWS = 5;
 
+/** Stable empty fallback so the computed returns the same reference across recomputes. */
+const EMPTY_CLIENTS: AdminMcpClient[] = [];
+
 const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
   { label: 'Home', to: '/' },
   { label: 'Admin', to: '/admin' },
@@ -20,7 +23,7 @@ export function useAdminMcpConnectedApps() {
   const deleteMutation = useDeleteAdminMcpClientMutation();
 
   const clients = computed<AdminMcpClient[]>(
-    () => clientsQuery.data.value ?? [],
+    () => clientsQuery.data.value ?? EMPTY_CLIENTS,
   );
   const isLoading = computed(() => clientsQuery.isPending.value);
   const error = computed(() => clientsQuery.error.value);
@@ -62,7 +65,7 @@ export function useAdminMcpConnectedApps() {
   }
 
   function formatTimestamp(unixSecs: number | null): string {
-    if (unixSecs === null) return '—';
+    if (unixSecs === null) return 'n/a';
     return new Date(unixSecs * 1000).toLocaleString(undefined, {
       year: 'numeric',
       month: 'short',

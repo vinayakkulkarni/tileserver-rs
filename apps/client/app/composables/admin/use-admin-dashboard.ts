@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/vue-query';
-import type { AdminBreadcrumbCrumb } from '~/types';
+import type {
+  AdminBreadcrumbCrumb,
+  AdminMcpClient,
+  AdminMcpSession,
+} from '~/types';
 import {
   adminMcpClientsQueryOptions,
   adminMcpSessionsQueryOptions,
@@ -13,6 +17,10 @@ const BREADCRUMBS: AdminBreadcrumbCrumb[] = [
 ];
 
 const RECENT_CLIENT_LIMIT = 5;
+
+/** Stable empty fallbacks so the computeds return the same reference across recomputes. */
+const EMPTY_CLIENTS: AdminMcpClient[] = [];
+const EMPTY_SESSIONS: AdminMcpSession[] = [];
 
 function formatUptime(loadedAtUnix: number, nowMs: number): string {
   const deltaSec = Math.max(0, Math.floor(nowMs / 1000 - loadedAtUnix));
@@ -33,8 +41,8 @@ export function useAdminDashboard() {
   const now = useNow({ interval: 60_000 });
 
   const ping = computed(() => pingQuery.data.value ?? null);
-  const clients = computed(() => clientsQuery.data.value ?? []);
-  const sessions = computed(() => sessionsQuery.data.value ?? []);
+  const clients = computed(() => clientsQuery.data.value ?? EMPTY_CLIENTS);
+  const sessions = computed(() => sessionsQuery.data.value ?? EMPTY_SESSIONS);
 
   const isLoading = computed(() => pingQuery.isPending.value);
   const pingError = computed(() => pingQuery.error.value);
@@ -44,7 +52,7 @@ export function useAdminDashboard() {
   const RECENT_SKELETON_ROWS = 4;
 
   const uptimeLabel = computed(() => {
-    if (!ping.value) return '—';
+    if (!ping.value) return 'n/a';
     return formatUptime(ping.value.loaded_at_unix, now.value.getTime());
   });
 
@@ -60,10 +68,10 @@ export function useAdminDashboard() {
     return `br q${p.compression_br_quality} · zstd L${p.compression_zstd_level}`;
   });
   const ogcEnabled = computed(() => ping.value?.ogc_enabled ?? false);
-  const versionLabel = computed(() => ping.value?.version ?? '—');
+  const versionLabel = computed(() => ping.value?.version ?? 'n/a');
   const configHashShort = computed(() => {
     const h = ping.value?.config_hash;
-    return h ? h.slice(0, 12) : '—';
+    return h ? h.slice(0, 12) : 'n/a';
   });
 
   const clientsCount = computed(() => clients.value.length);

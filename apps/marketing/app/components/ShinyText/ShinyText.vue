@@ -5,12 +5,10 @@
   const props = withDefaults(
     defineProps<{
       text: string;
-      disabled?: boolean;
       speed?: number;
       class?: string;
     }>(),
     {
-      disabled: false,
       speed: 5,
       class: '',
     },
@@ -24,10 +22,9 @@
     :class="
       cn(
         `
-          shiny-text inline-block bg-size-[200%_100%] bg-clip-text
+          shiny-text inline-block bg-clip-text
           text-transparent
         `,
-        !disabled && 'animate-[shiny-sweep_var(--shiny-speed)_linear_infinite]',
         props.class,
       )
     "
@@ -50,6 +47,7 @@
   }
 
   .shiny-text {
+    background-size: 200% 100%;
     animation: shiny-sweep var(--shiny-speed, 5s) linear infinite;
   }
 

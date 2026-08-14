@@ -64,7 +64,7 @@
         >
           {{ stat.label }}
         </p>
-        <p class="mt-1 font-sans text-xs text-emerald-400">{{ stat.detail }}</p>
+        <p class="mt-1 font-sans text-xs text-success">{{ stat.detail }}</p>
       </div>
     </div>
 

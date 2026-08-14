@@ -18,6 +18,27 @@
     () => route.path,
     () => closeSidebar(),
   );
+
+  // Stable per-path class refs so the inline class array is not recreated on
+  // every render inside the v-for subtree. Rebuilt only when the route
+  // changes (isActive/isInSection read route.path).
+  const navLinkClassMap = computed(() => {
+    const map = new Map<string, string[]>();
+    for (const section of sections) {
+      for (const item of section.children) {
+        map.set(item.path, [
+          'block py-1.5 pl-3 text-sm transition-colors',
+          'border-l',
+          isActive.value(item.path)
+            ? 'border-primary text-foreground font-medium'
+            : isInSection.value(section.path)
+              ? 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-foreground/30',
+        ]);
+      }
+    }
+    return map;
+  });
 </script>
 
 <template>
@@ -163,15 +184,7 @@
             >
               <NuxtLink
                 :to="item.path"
-                :class="[
-                  'block py-1.5 pl-3 text-sm transition-colors',
-                  'border-l',
-                  isActive(item.path)
-                    ? 'border-primary text-foreground font-medium'
-                    : isInSection(section.path)
-                      ? 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-foreground/30',
-                ]"
+                :class="navLinkClassMap.get(item.path)"
               >
                 {{ item.title }}
               </NuxtLink>

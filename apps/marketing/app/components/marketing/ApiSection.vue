@@ -107,8 +107,8 @@
           >
             <span
               class="
-                bg-emerald-500/20 px-1.5 py-0.5 text-xs font-medium
-                text-emerald-400
+                bg-success/20 px-1.5 py-0.5 text-xs font-medium
+                text-success
               "
             >
               {{ endpoint.method }}

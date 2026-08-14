@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <a href="/_openapi" target="_blank" class="block">
+  <a href="/_openapi" target="_blank" rel="noopener noreferrer" class="block">
     <div
       class="flex items-center gap-3 border border-border bg-card p-4 transition-colors duration-(--d-fast) hover:border-primary/30"
     >

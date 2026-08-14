@@ -18,6 +18,23 @@
         node,
       }));
   });
+
+  // Stable per-tab class refs so the inline class array is not recreated on
+  // every render inside the v-for subtree. Rebuilt only when the active tab
+  // changes.
+  const tabClassMap = computed(() =>
+    new Map(
+      tabs.value.map((tab) => [
+        tab.label,
+        [
+          'px-4 py-2 font-mono text-xs transition-colors',
+          activeTab.value === tab.index
+            ? 'border-b-2 border-primary text-foreground'
+            : 'text-muted-foreground hover:text-foreground',
+        ],
+      ]),
+    ),
+  );
 </script>
 
 <template>
@@ -28,13 +45,8 @@
     >
       <button
         v-for="tab in tabs"
-        :key="tab.index"
-        :class="[
-          'px-4 py-2 font-mono text-xs transition-colors',
-          activeTab === tab.index
-            ? 'border-b-2 border-primary text-foreground'
-            : 'text-muted-foreground hover:text-foreground',
-        ]"
+        :key="tab.label"
+        :class="tabClassMap.get(tab.label)"
         @click="activeTab = tab.index"
       >
         {{ tab.label }}
@@ -43,7 +55,7 @@
     <div class="[&_pre]:my-0 [&_pre]:border-0">
       <template
         v-for="(tab, i) in tabs"
-        :key="i"
+        :key="tab.label"
       >
         <div v-show="activeTab === i">
           <component :is="tab.node" />

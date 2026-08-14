@@ -84,6 +84,10 @@
   --grid-template-columns-hero: 3fr 2fr;
   --grid-template-columns-row: auto 1fr;
   --grid-template-columns-split: 2fr 1fr;
+  --grid-template-columns-section: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+
+  /* LoadingState progress bar — width-only transition (was transition-[width]) */
+  --transition-property-width: width;
 }
 
 @layer base {

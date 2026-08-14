@@ -2,7 +2,7 @@
   const { isDark } = useThemeToggle();
 
   usePageSeo({
-    title: 'Tileserver RS — one binary for all geospatial data',
+    title: 'Tileserver RS: one binary for all geospatial data',
     description:
       'Serve vector tiles, raster tiles, PostGIS collections, COG, STAC, and OGC APIs from a single Rust binary. Browser-local AI. Self-hosted. Zero config.',
     path: '/',

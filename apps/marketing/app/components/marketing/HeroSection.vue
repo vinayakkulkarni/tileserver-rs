@@ -166,7 +166,7 @@
               href="https://demo.tileserver.app"
               target="_blank"
               class="
-                w-full gap-2 border-0 bg-transparent text-emerald-400
+                w-full gap-2 border-0 bg-transparent text-success
                 hover:bg-transparent
                 sm:w-auto
               "
@@ -206,7 +206,7 @@
                     "
                     @click="copyToClipboard()"
                   >
-                    <Check v-if="copied" class="size-4 text-emerald-400" />
+                    <Check v-if="copied" class="size-4 text-success" />
                     <Copy v-else class="size-4" />
                   </Button>
                 </TooltipTrigger>

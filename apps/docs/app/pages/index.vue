@@ -34,7 +34,7 @@
   usePageSeo({
     title: 'Tileserver RS Docs - High-Performance Vector Tile Server',
     description:
-      'Documentation for tileserver-rs — a high-performance vector tile server built in Rust.',
+      'Documentation for tileserver-rs, a high-performance vector tile server built in Rust.',
     path: '/',
   });
 
@@ -90,13 +90,13 @@
       icon: RefreshCw,
       title: 'MLT Transcoding',
       description:
-        'On-the-fly MLT↔MVT transcoding — serve next-gen MapLibre Tiles from existing MVT sources.',
+        'On-the-fly MLT↔MVT transcoding: serve next-gen MapLibre Tiles from existing MVT sources.',
     },
     {
       icon: RotateCw,
       title: 'Hot Reload',
       description:
-        'Live configuration reload via SIGHUP or admin API — zero downtime source and style updates.',
+        'Live configuration reload via SIGHUP or admin API, with zero downtime source and style updates.',
     },
     {
       icon: Server,

@@ -18,6 +18,27 @@
       closeMobileNav();
     }
   });
+
+  // Stable per-route class refs so the inline class arrays are not recreated
+  // on every render inside the v-for subtrees. Rebuilt only when the route
+  // changes (isActive reads route.path) or NAV_GROUPS updates.
+  function buildNavLinkClassMap(padding: string): Map<string, string[]> {
+    const map = new Map<string, string[]>();
+    for (const group of navGroups) {
+      for (const item of group.items) {
+        map.set(item.to, [
+          `flex items-center gap-3 px-3 ${padding} text-sm transition-colors`,
+          isActive(item.to)
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+        ]);
+      }
+    }
+    return map;
+  }
+
+  const mobileNavLinkClasses = computed(() => buildNavLinkClassMap('py-3'));
+  const desktopNavLinkClasses = computed(() => buildNavLinkClassMap('py-2'));
 </script>
 
 <template>
@@ -127,12 +148,7 @@
               v-for="item in group.items"
               :key="item.to"
               :to="item.to"
-              :class="[
-                'flex items-center gap-3 px-3 py-3 text-sm transition-colors',
-                isActive(item.to)
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-              ]"
+              :class="mobileNavLinkClasses.get(item.to)"
             >
               <component :is="item.icon" class="size-4" />
               <span>{{ item.label }}</span>
@@ -199,12 +215,7 @@
             v-for="item in group.items"
             :key="item.to"
             :to="item.to"
-            :class="[
-              'flex items-center gap-3 px-3 py-2 text-sm transition-colors',
-              isActive(item.to)
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-            ]"
+            :class="desktopNavLinkClasses.get(item.to)"
           >
             <component :is="item.icon" class="size-4" />
             <span>{{ item.label }}</span>
