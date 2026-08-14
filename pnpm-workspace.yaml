@@ -10,6 +10,12 @@ packages:
 # 60 minutes still prevents publish-and-pivot attacks but unblocks normal flow.
 minimumReleaseAge: 60
 
+# First-party packages published by geoql (e.g. maplibre-gl-inspect) are exempt
+# from the age gate — publishing a fix for our own package must not be blocked
+# by our own supply-chain policy (same pattern as @oxlint/* in geoql/doctor).
+minimumReleaseAgeExclude:
+  - maplibre-gl-inspect
+
 # pnpm 11 blocks all package build scripts by default. The allowBuilds
 # map below is security-sensitive — true = postinstall runs; false = skipped.
 # Warning: pnpm auto-manages this block. Edits made while pnpm install is
@@ -63,7 +69,7 @@ catalogs:
     is-ci: ^4.1.0
     lint-staged: ^17.3.0
     '@lucide/vue': ^1.31.0
-    maplibre-gl: ^5.24.0
+    maplibre-gl: ^6.3.0
     motion-v: ^2.3.0
     nuxt: ^4.5.2
     oxfmt: ^0.63.0
@@ -81,10 +87,10 @@ catalogs:
     vue-tsc: ^3.3.9
   client:
     '@comark/nuxt': ^0.6.2
-    '@geoql/v-maplibre': ^2.0.1
+    '@geoql/v-maplibre': ^3.0.0
     '@maplibre/mlt': ^1.1.12
     '@mlc-ai/web-llm': ^0.2.84
-    '@tanstack/ai': ^0.44.0
+    '@tanstack/ai': ^0.44.1
     '@tanstack/ai-vue': ^0.16.2
     '@tanstack/query-db-collection': ^1.2.4
     '@tanstack/vue-db': ^0.1.1
@@ -94,7 +100,7 @@ catalogs:
     '@types/papaparse': ^5.5.2
     '@types/shpjs': ^3.4.7
     destr: ^2.0.5
-    maplibre-gl-inspect: ^0.0.8
+    maplibre-gl-inspect: ^0.0.10
     papaparse: ^5.6.0
     pmtiles: ^4.5.0
     shpjs: ^6.2.0
