@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.37.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.2...v2.37.0) (2026-08-14)
+
+
+### Features
+
+* **deps:** upgrade to maplibre-gl 6 ([2229404](https://github.com/vinayakkulkarni/tileserver-rs/commit/2229404a96ef855156cecf68cd3f997ed156a8b2))
+
 ## [2.36.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.36.1...v2.36.2) (2026-08-14)
 
 
