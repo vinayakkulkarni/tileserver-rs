@@ -24,7 +24,12 @@ minimumReleaseAge: 60
 #   - vue-demi: alias/symlink script; not required at runtime
 allowBuilds:
   '@parcel/watcher': false
-  better-sqlite3: true
+  # better-sqlite3: prebuilt binaries ship in the tarball (prebuilds/<platform>-<arch>.node
+  # for linux-x64/arm64, darwin, win32 — loaded via lib/binding.js at runtime). pnpm's
+  # gypfile auto-detection injects `node-gyp rebuild` when true, which fails in the
+  # Docker node-builder stage (node:24-slim has no Python). Keep false to skip the
+  # unnecessary rebuild; the prebuilds work at runtime.
+  better-sqlite3: false
   esbuild: true
   sharp: true
   unrs-resolver: true
