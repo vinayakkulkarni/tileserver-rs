@@ -307,7 +307,15 @@ async fn main() -> anyhow::Result<()> {
             #[allow(unused_mut)]
             let mut admin_app = admin::admin_router(admin_shared);
             #[cfg(feature = "mcp")]
-            if let Some(store) = admin_oauth_store {
+            {
+                // Always mount the admin OAuth routes so the UI can render its
+                // connected-apps / device-sessions pages. When OAuth is disabled
+                // (or a static bearer token is used) there is no backing store —
+                // fall back to an empty in-memory store so the routes answer
+                // with empty lists instead of 404. The admin UI shows honest
+                // empty states, and the pages stay functional.
+                let store = admin_oauth_store
+                    .unwrap_or_else(|| std::sync::Arc::new(mcp::auth_store::InMemoryStore::new()));
                 admin_app = admin_app.merge(mcp::admin_routes::admin_router(store));
                 tracing::info!("MCP admin OAuth routes mounted at /__admin/oauth/*");
             }

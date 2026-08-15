@@ -408,6 +408,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn empty_store_returns_empty_lists() {
+        // The admin UI mounts these routes even when OAuth is disabled
+        // (static bearer / no auth). An empty in-memory store must answer
+        // with empty lists, never 404 — the connected-apps and devices
+        // pages render their empty states instead of erroring.
+        let store: Arc<dyn OAuthBackend> = Arc::new(InMemoryStore::new());
+        let parsed: Vec<AdminClient> = server(Arc::clone(&store))
+            .get("/__admin/oauth/clients")
+            .await
+            .json();
+        assert!(parsed.is_empty());
+
+        let sessions: Vec<AdminSession> = server(Arc::clone(&store))
+            .get("/__admin/oauth/sessions")
+            .await
+            .json();
+        assert!(sessions.is_empty());
+
+        // Idempotent deletes on an empty store still answer 200.
+        let del: DeleteResponse = server(Arc::clone(&store))
+            .delete("/__admin/oauth/clients/never-existed")
+            .await
+            .json();
+        assert!(del.ok);
+        assert!(!del.deleted);
+    }
+
+    #[tokio::test]
     async fn delete_session_reports_deleted_true_when_exists() {
         let store = seed_store().await;
         let parsed: DeleteResponse = server(Arc::clone(&store))
