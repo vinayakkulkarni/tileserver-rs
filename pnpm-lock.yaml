@@ -141,8 +141,8 @@ catalogs:
       specifier: ^17.3.0
       version: 17.3.0
     maplibre-gl:
-      specifier: ^6.3.0
-      version: 6.3.0
+      specifier: ^6.4.0
+      version: 6.4.0
     motion-v:
       specifier: ^2.4.0
       version: 2.4.0
@@ -293,10 +293,10 @@ importers:
         version: 2.0.5
       maplibre-gl:
         specifier: catalog:default
-        version: 6.3.0
+        version: 6.4.0
       maplibre-gl-inspect:
         specifier: catalog:client
-        version: 0.0.10(maplibre-gl@6.3.0)
+        version: 0.0.10(maplibre-gl@6.4.0)
       motion-v:
         specifier: catalog:default
         version: 2.4.0(@vueuse/core@14.4.0(vue@3.5.41(typescript@6.0.3)))(vue@3.5.41(typescript@6.0.3))
@@ -5720,8 +5720,8 @@ packages:
     peerDependencies:
       maplibre-gl: '>=5.0.0'
 
-  maplibre-gl@6.3.0:
-    resolution: {integrity: sha512-F0Is48MTzn3DvOEidPjh68E0kuSA7hdzY1YIR0ypPtFgcif3WPtzI1oZFgsv9WtHmarQnbwIXfsf+EfQYvM00A==}
+  maplibre-gl@6.4.0:
+    resolution: {integrity: sha512-pCgDUsaYFuZwIH37aV2qF4m03nZPlW79DlqC+cQ+48tpqiqW2SJyA7fEOcFrS5ilDK493f0X3LxiH17T5BqV7g==}
     engines: {node: '>=16.14.0', npm: '>=8.1.0'}
 
   markdown-exit@1.1.0-beta.2:
@@ -8764,7 +8764,7 @@ snapshots:
 
   '@geoql/v-maplibre@3.0.0(vue@3.5.41(typescript@6.0.3))':
     dependencies:
-      maplibre-gl: 6.3.0
+      maplibre-gl: 6.4.0
       pmtiles: 4.5.0
       vue: 3.5.41(typescript@6.0.3)
 
@@ -14481,12 +14481,12 @@ snapshots:
 
   manage-path@2.0.0: {}
 
-  maplibre-gl-inspect@0.0.10(maplibre-gl@6.3.0):
+  maplibre-gl-inspect@0.0.10(maplibre-gl@6.4.0):
     dependencies:
-      maplibre-gl: 6.3.0
+      maplibre-gl: 6.4.0
       randomcolor: 0.6.2
 
-  maplibre-gl@6.3.0:
+  maplibre-gl@6.4.0:
     dependencies:
       '@mapbox/point-geometry': 1.1.0
       '@mapbox/tiny-sdf': 2.2.0
