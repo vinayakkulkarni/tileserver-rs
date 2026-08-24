@@ -26,8 +26,8 @@ catalogs:
       specifier: ^3.0.0
       version: 3.0.0
     '@maplibre/mlt':
-      specifier: ^1.1.12
-      version: 1.1.12
+      specifier: ^1.2.0
+      version: 1.2.0
     '@mlc-ai/web-llm':
       specifier: ^0.2.84
       version: 0.2.84
@@ -248,7 +248,7 @@ importers:
         version: 1.31.0(vue@3.5.41(typescript@6.0.3))
       '@maplibre/mlt':
         specifier: catalog:client
-        version: 1.1.12
+        version: 1.2.0
       '@mlc-ai/web-llm':
         specifier: catalog:client
         version: 0.2.84
@@ -1768,8 +1768,8 @@ packages:
     resolution: {integrity: sha512-QFKCXkOeSzOr8jF75jm6kySOg+dUvOehPhRi68gcOYPHb7U5JloUq0dJW0Y5/fZV8ygfT0Vp2RWodvq+fyxFWA==}
     hasBin: true
 
-  '@maplibre/mlt@1.1.12':
-    resolution: {integrity: sha512-ZeK5w2TTeHOajcLaEQs1KZXw2V9wIKo1PmThlxlsHoXsQsYlBqLJzPOd6tJHRtGTChUY3DPPmjXRArYVvAbmZw==}
+  '@maplibre/mlt@1.2.0':
+    resolution: {integrity: sha512-g45M8gEI4sMO3X9ib4K7n3ZKFf0qQOL+NMkHCnEK51lOrYFHiEssOuZncx1+miIgi1IEE2NcbRMcq8RBkL+QHA==}
 
   '@maplibre/vt-pbf@4.3.2':
     resolution: {integrity: sha512-j6p0AdjvAR19Z3XaCysle7A4ZSo08tYOzxD0Y9NQylwPAkwJJeYub5b2eVucdeDh7erhv69DahoLOevDRERRUw==}
@@ -9032,7 +9032,7 @@ snapshots:
       quickselect: 3.0.0
       tinyqueue: 3.0.0
 
-  '@maplibre/mlt@1.1.12':
+  '@maplibre/mlt@1.2.0':
     dependencies:
       '@mapbox/point-geometry': 1.1.0
 
@@ -14520,7 +14520,7 @@ snapshots:
       '@mapbox/vector-tile': 3.0.0
       '@maplibre/geojson-vt': 6.1.1
       '@maplibre/maplibre-gl-style-spec': 26.2.1
-      '@maplibre/mlt': 1.1.12
+      '@maplibre/mlt': 1.2.0
       '@maplibre/vt-pbf': 4.3.2
       '@types/geojson': 7946.0.16
       earcut: 3.2.3
