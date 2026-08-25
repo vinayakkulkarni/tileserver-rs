@@ -68,7 +68,7 @@ catalogs:
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.3.0
-    '@lucide/vue': ^1.31.0
+    '@lucide/vue': ^1.33.0
     maplibre-gl: ^6.5.0
     motion-v: ^2.4.0
     nuxt: ^4.5.2
