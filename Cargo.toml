@@ -59,7 +59,7 @@ object_store     = { version = "0.14", default-features = false, features = ["aw
 # under `russh::keys` (the standalone russh-keys crate is deprecated/merged),
 # so we only need russh + russh-sftp. `ring` crypto provider is preferred over
 # `aws-lc-rs` for build-time predictability on Linux/macOS.
-russh            = { version = "0.62", default-features = false, features = ["ring"] }
+russh            = { version = "0.63", default-features = false, features = ["ring"] }
 russh-sftp       = { version = "2.4", default-features = false }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.9"
