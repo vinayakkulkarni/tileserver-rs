@@ -38,8 +38,8 @@ catalogs:
       specifier: ^0.18.1
       version: 0.18.1
     '@tanstack/query-db-collection':
-      specifier: ^1.2.4
-      version: 1.2.4
+      specifier: ^1.2.7
+      version: 1.2.7
     '@tanstack/vue-db':
       specifier: ^0.1.1
       version: 0.1.1
@@ -266,7 +266,7 @@ importers:
         version: 0.18.1(@tanstack/ai@0.44.1(zod@4.4.3))(vue@3.5.41(typescript@6.0.3))(zod@4.4.3)
       '@tanstack/query-db-collection':
         specifier: catalog:client
-        version: 1.2.4(@tanstack/query-core@5.101.4)(typescript@6.0.3)
+        version: 1.2.7(@tanstack/query-core@5.101.4)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
         version: 0.1.1(typescript@6.0.3)(vue@3.5.41(typescript@6.0.3))
@@ -3220,8 +3220,18 @@ packages:
     peerDependencies:
       typescript: '>=4.7'
 
+  '@tanstack/db-ivm@0.1.19':
+    resolution: {integrity: sha512-3VGvgNXAPSVqny/pL8Y6n/txnaZzV49WmgSQ9N5eyCQNgMtuOEOJHKDatqqCy3gDxVu6pkhSHDKxcNFOtxMouw==}
+    peerDependencies:
+      typescript: '>=4.7'
+
   '@tanstack/db@0.7.2':
     resolution: {integrity: sha512-gQjUIMKRK1ktg+dXFsTNK2pGgasGOz/qV877nG6vOfC5qggu6yDZzFn9PVhKp5t8um/4kFc4cfPlJP2WM6RmjA==}
+    peerDependencies:
+      typescript: '>=4.7'
+
+  '@tanstack/db@0.8.2':
+    resolution: {integrity: sha512-ZnwTCH4bd7fodVCbI1SGQWlqL/wWNErfbloweErwfgSD4ULzGoW4AVyxYHH/kK2b5iM9X6Qui0OeTFaY7FM52A==}
     peerDependencies:
       typescript: '>=4.7'
 
@@ -3241,8 +3251,8 @@ packages:
   '@tanstack/query-core@5.101.4':
     resolution: {integrity: sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw==}
 
-  '@tanstack/query-db-collection@1.2.4':
-    resolution: {integrity: sha512-5VpOxTC4tfaxpgcCaXEtKfRUwC1xJD1FYou6kSsjqb5gqEGHz4HKOk5sv1H7HaT2B9m3MkXvrcTeIlO4EU6PJQ==}
+  '@tanstack/query-db-collection@1.2.7':
+    resolution: {integrity: sha512-+oWJuVc36ggY9fOT+DXzTzwhFeY52ZvkCC2Iy5L8xDvukCF93tNKsDhd08FBJSBatedbESsp4YWf11ageHBroQ==}
     peerDependencies:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
@@ -11557,10 +11567,23 @@ snapshots:
       sorted-btree: 1.8.1
       typescript: 6.0.3
 
+  '@tanstack/db-ivm@0.1.19(typescript@6.0.3)':
+    dependencies:
+      fractional-indexing: 3.4.0
+      sorted-btree: 1.8.1
+      typescript: 6.0.3
+
   '@tanstack/db@0.7.2(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@tanstack/db-ivm': 0.1.18(typescript@6.0.3)
+      '@tanstack/pacer-lite': 0.2.2
+      typescript: 6.0.3
+
+  '@tanstack/db@0.8.2(typescript@6.0.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db-ivm': 0.1.19(typescript@6.0.3)
       '@tanstack/pacer-lite': 0.2.2
       typescript: 6.0.3
 
@@ -11574,10 +11597,10 @@ snapshots:
 
   '@tanstack/query-core@5.101.4': {}
 
-  '@tanstack/query-db-collection@1.2.4(@tanstack/query-core@5.101.4)(typescript@6.0.3)':
+  '@tanstack/query-db-collection@1.2.7(@tanstack/query-core@5.101.4)(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@tanstack/db': 0.7.2(typescript@6.0.3)
+      '@tanstack/db': 0.8.2(typescript@6.0.3)
       '@tanstack/query-core': 5.101.4
       typescript: 6.0.3
 
