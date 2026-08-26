@@ -2,9 +2,12 @@
 #
 # WHY: Homebrew's `rust` bottle lags behind the latest stable release by up
 # to ~2 weeks. Without this pin, `rustc --version` on a dev machine can be
-# 1.94.1 while CI (via `dtolnay/rust-toolchain@stable`) installs 1.95.0 —
+# 1.97.1 while CI (via `dtolnay/rust-toolchain@stable`) installs 1.98.0 —
 # and new lints that CI enforces (e.g. `clippy::collapsible_match`,
 # `clippy::useless_conversion`) will silently pass locally then fail in CI.
+#
+# This must also stay >= the highest MSRV of any dependency. mlt-core 0.12.6
+# raised its `rust-version` to 1.98, so the pin cannot drop below that.
 #
 # Format: https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file
 #
@@ -13,6 +16,6 @@
 #   2. re-run `cargo clippy --all-targets --all-features -- -D warnings` locally
 #   3. fix any newly-promoted lint failures BEFORE pushing
 [toolchain]
-channel = "1.95"
+channel = "1.98"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

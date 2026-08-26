@@ -13,7 +13,7 @@ use pmtiles::{
 };
 use russh::client::{self, Handle};
 use russh::keys::ssh_key::{HashAlg, PublicKey};
-use russh::keys::{PrivateKeyWithHashAlg, load_secret_key};
+use russh::keys::{PrivateKeyWithHashAlg, PublicKeyOrCertificate, load_secret_key};
 use russh_sftp::client::SftpSession;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -445,9 +445,9 @@ fn sha1(data: &[u8]) -> [u8; 20] {
     }
     msg.extend_from_slice(&ml.to_be_bytes());
 
-    for chunk in msg.chunks_exact(64) {
+    for chunk in msg.as_chunks::<64>().0 {
         let mut w = [0u32; 80];
-        for (i, word) in chunk.chunks_exact(4).enumerate() {
+        for (i, word) in chunk.as_chunks::<4>().0.iter().enumerate() {
             w[i] = u32::from_be_bytes([word[0], word[1], word[2], word[3]]);
         }
         for i in 16..80 {
@@ -550,7 +550,7 @@ impl client::Handler for SftpHandler {
 
     async fn check_server_key(
         &mut self,
-        server_public_key: &PublicKey,
+        server_public_key: &PublicKeyOrCertificate,
     ) -> std::result::Result<bool, Self::Error> {
         if self.insecure_skip {
             warn!(
@@ -560,7 +560,14 @@ impl client::Handler for SftpHandler {
             return Ok(true);
         }
 
-        let received = server_public_key.to_bytes().unwrap_or_default();
+        // russh 0.63 changed the `Handler::check_server_key` signature to pass a
+        // `PublicKeyOrCertificate`; `.public_key()` yields the raw host key for
+        // both plain-key and host-certificate presentations, preserving the
+        // known_hosts byte comparison below.
+        let received = server_public_key
+            .public_key()
+            .to_bytes()
+            .unwrap_or_default();
         match check_host_key(&self.entries, &self.host, self.port, &received, self.strict) {
             HostKeyCheckOutcome::Match => Ok(true),
             HostKeyCheckOutcome::Mismatch { expected, got } => {

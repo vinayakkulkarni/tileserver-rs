@@ -43,7 +43,9 @@ pub fn to_jpeg(img: &RasterImage, quality: u8) -> Result<Vec<u8>, EncodeError> {
     let rgba = rgba_from_raster(img).map_err(EncodeError::Convert)?;
     let (w, h) = rgba.dimensions();
     let rgb: Vec<u8> = rgba
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|px| [px[0], px[1], px[2]])
         .collect();
     let mut buf = Vec::with_capacity(rgb.len() / 4);

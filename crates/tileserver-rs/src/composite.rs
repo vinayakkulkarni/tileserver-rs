@@ -117,7 +117,7 @@ fn append_layer_features(merged: &mut tile::Layer, src: &tile::Layer) {
 
     for feature in &src.features {
         let mut new_tags = Vec::with_capacity(feature.tags.len());
-        for pair in feature.tags.chunks_exact(2) {
+        for pair in feature.tags.as_chunks::<2>().0 {
             let (k, v) = (pair[0] as usize, pair[1] as usize);
             new_tags.push(*key_remap.get(k).unwrap_or(&pair[0]));
             new_tags.push(*value_remap.get(v).unwrap_or(&pair[1]));
