@@ -208,4 +208,33 @@ mod tests {
     async fn service_leaves_non_matching_path_untouched() {
         assert_eq!(echo_uri("/maps", "/other/ping").await, "/other/ping");
     }
+
+    // ---- rewrite_request_path: malformed rebuild ------------------------
+
+    #[test]
+    fn rewrite_with_invalid_path_leaves_request_untouched() {
+        // A `new_path` containing a control character cannot be parsed as a
+        // `PathAndQuery`, so the rebuild bails and the request keeps its
+        // original URI rather than being dropped or corrupted.
+        let mut req = Request::builder()
+            .uri("/maps/ping")
+            .body(Body::empty())
+            .expect("valid request");
+        rewrite_request_path(&mut req, "/bad\u{7f}path");
+        assert_eq!(req.uri().path(), "/maps/ping");
+    }
+
+    #[test]
+    fn rewrite_with_valid_path_preserves_query() {
+        // Happy-path direct call: the query string survives the rebuild.
+        let mut req = Request::builder()
+            .uri("/maps/styles/x?raster")
+            .body(Body::empty())
+            .expect("valid request");
+        rewrite_request_path(&mut req, "/styles/x");
+        assert_eq!(
+            req.uri().path_and_query().map(|pq| pq.as_str()),
+            Some("/styles/x?raster")
+        );
+    }
 }

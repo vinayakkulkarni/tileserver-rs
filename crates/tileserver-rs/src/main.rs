@@ -291,12 +291,7 @@ async fn main() -> anyhow::Result<()> {
     let base_path = tileserver_rs::config::derive_base_path(config.server.public_url.as_deref());
     #[cfg(feature = "frontend")]
     init_spa_cache(&base_path);
-    let strip_base = if config.server.subfolder_mode == tileserver_rs::config::SubfolderMode::Nested
-    {
-        base_path.clone()
-    } else {
-        String::new()
-    };
+    let strip_base = config.server.subfolder_mode.strip_base(&base_path);
 
     // Layers wrap the router from the OUTSIDE (routing runs before inner
     // `.layer()` middleware). Order: strip the subfolder prefix FIRST (nested
