@@ -818,7 +818,7 @@ export function createServerClientTools() {
   const getSourceSchema = getSourceSchemaDef.client(async ({ source }) => {
     try {
       const response = await fetch(
-        `/api/spatial/schema/${encodeURIComponent(source)}`,
+        apiUrl(`/api/spatial/schema/${encodeURIComponent(source)}`),
       );
       if (!response.ok) {
         return {
@@ -846,7 +846,7 @@ export function createServerClientTools() {
   const getSourceStats = getSourceStatsDef.client(async ({ source }) => {
     try {
       const response = await fetch(
-        `/api/spatial/stats/${encodeURIComponent(source)}`,
+        apiUrl(`/api/spatial/stats/${encodeURIComponent(source)}`),
       );
       if (!response.ok) {
         return {
@@ -882,7 +882,7 @@ export function createServerClientTools() {
   const spatialQuery = spatialQueryDef.client(
     async ({ source, bbox, zoom, layers, limit }) => {
       try {
-        const response = await fetch('/api/spatial/query', {
+        const response = await fetch(apiUrl('/api/spatial/query'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source, bbox, zoom, layers, limit }),

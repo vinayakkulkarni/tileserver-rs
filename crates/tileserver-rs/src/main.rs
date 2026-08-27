@@ -282,7 +282,22 @@ async fn main() -> anyhow::Result<()> {
     // wrap the Router from the OUTSIDE: routing happens before inner `.layer()`
     // middleware, so applying it via `Router::layer()` would run too late. The
     // resulting service is served via `ServiceExt::into_make_service`.
-    let app = SelectiveTrailingSlashLayer.layer(router);
+    // Derive the URL subfolder from public_url (empty for a root deployment).
+    // The embedded GUI is rebased for BOTH subfolder modes so the browser
+    // requests prefixed asset/API URLs; the modes differ only in WHERE the
+    // prefix is stripped. In `Nested` mode the server strips it itself via
+    // `BasePathStripLayer`; in `ProxyStrip` mode the reverse proxy strips it,
+    // so the in-server strip base stays empty (a no-op layer).
+    let base_path = tileserver_rs::config::derive_base_path(config.server.public_url.as_deref());
+    #[cfg(feature = "frontend")]
+    init_spa_cache(&base_path);
+    let strip_base = config.server.subfolder_mode.strip_base(&base_path);
+
+    // Layers wrap the router from the OUTSIDE (routing runs before inner
+    // `.layer()` middleware). Order: strip the subfolder prefix FIRST (nested
+    // mode only), then normalize trailing slashes, then route.
+    let app = tileserver_rs::base_path::BasePathStripLayer::new(strip_base.as_str())
+        .layer(SelectiveTrailingSlashLayer.layer(router));
 
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
     tracing::info!("Starting tileserver on http://{}", addr);
@@ -443,11 +458,54 @@ async fn shutdown_signal() {
     tracing::info!("Shutdown signal received, starting graceful shutdown");
 }
 
+/// Rewritten embedded SPA assets, keyed by their root-relative path (e.g.
+/// `_nuxt/entry.js`). Populated once at startup for subfolder deployments;
+/// empty for root deployments, in which case [`serve_spa`] serves the raw
+/// embedded bytes unchanged (zero behavioural change for the common case).
+#[cfg(feature = "frontend")]
+static SPA_CACHE: std::sync::OnceLock<std::collections::HashMap<String, Vec<u8>>> =
+    std::sync::OnceLock::new();
+
+/// Build the rewritten-asset cache for a subfolder deployment. For an empty
+/// `base_path` (root deployment) the cache stays empty and every asset is
+/// served from the raw embed. Idempotent: only the first call populates it.
+#[cfg(feature = "frontend")]
+fn init_spa_cache(base_path: &str) {
+    let mut map = std::collections::HashMap::new();
+    if !base_path.is_empty() {
+        for file in Assets::iter() {
+            let path = file.as_ref();
+            if let Some(content) = Assets::get(path)
+                && let Some(rewritten) =
+                    tileserver_rs::spa::rewrite_asset(path, &content.data, base_path)
+            {
+                map.insert(path.to_owned(), rewritten);
+            }
+        }
+        tracing::info!(
+            base_path,
+            rewritten_assets = map.len(),
+            "Rebased embedded GUI for subfolder deployment"
+        );
+    }
+    let _ = SPA_CACHE.set(map);
+}
+
+/// Resolve embedded SPA bytes for `path`, preferring the rewritten cache and
+/// falling back to the raw embed.
+#[cfg(feature = "frontend")]
+fn resolve_spa_asset(path: &str) -> Option<Vec<u8>> {
+    if let Some(bytes) = SPA_CACHE.get().and_then(|cache| cache.get(path)) {
+        return Some(bytes.clone());
+    }
+    Assets::get(path).map(|content| content.data.to_vec())
+}
+
 #[cfg(feature = "frontend")]
 async fn serve_spa(uri: Uri) -> impl IntoResponse {
     let path = uri.path().trim_start_matches('/');
 
-    if let Some(content) = Assets::get(path) {
+    if let Some(data) = resolve_spa_asset(path) {
         let mime = mime_guess::from_path(path).first_or_octet_stream();
         let mut headers = HeaderMap::new();
         let content_type = HeaderValue::from_str(mime.as_ref())
@@ -461,11 +519,11 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
             );
         }
 
-        return (headers, content.data.to_vec()).into_response();
+        return (headers, data).into_response();
     }
 
-    if let Some(index) = Assets::get("index.html") {
-        return Html(index.data.to_vec()).into_response();
+    if let Some(index) = resolve_spa_asset("index.html") {
+        return Html(index).into_response();
     }
 
     (StatusCode::NOT_FOUND, "Not Found").into_response()

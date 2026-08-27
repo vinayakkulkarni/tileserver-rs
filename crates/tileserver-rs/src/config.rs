@@ -345,6 +345,54 @@ impl Default for RasterConfig {
     }
 }
 
+/// How the server serves the embedded GUI and API routes when deployed
+/// under a URL subfolder (derived from [`ServerConfig::public_url`]).
+///
+/// The subfolder itself is taken from the path component of `public_url`
+/// (e.g. `https://example.com/maps` yields the base path `/maps`). When
+/// `public_url` has no path, both modes behave identically to a root
+/// deployment and this setting has no effect.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum SubfolderMode {
+    /// The reverse proxy strips the subfolder prefix before forwarding
+    /// (e.g. nginx `proxy_pass http://backend/;` with a trailing slash).
+    /// The server keeps serving its routes at the root; only the embedded
+    /// GUI is rebased so the browser requests subfolder-prefixed URLs that
+    /// the proxy strips back to root. This is the default.
+    #[default]
+    ProxyStrip,
+    /// The reverse proxy forwards the subfolder prefix untouched. The server
+    /// mounts its entire router under the base path, so it serves the GUI
+    /// and API directly at `/<subfolder>/*`.
+    Nested,
+}
+
+impl SubfolderMode {
+    /// The in-server strip base for this mode given the derived subfolder
+    /// `base_path`.
+    ///
+    /// In [`SubfolderMode::Nested`] the server strips the subfolder prefix
+    /// itself, so the strip base is the full `base_path`. In
+    /// [`SubfolderMode::ProxyStrip`] the reverse proxy strips it, so the
+    /// in-server strip base is empty and the strip layer becomes a no-op.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tileserver_rs::config::SubfolderMode;
+    /// assert_eq!(SubfolderMode::Nested.strip_base("/maps"), "/maps");
+    /// assert_eq!(SubfolderMode::ProxyStrip.strip_base("/maps"), "");
+    /// ```
+    #[must_use]
+    pub fn strip_base(self, base_path: &str) -> String {
+        match self {
+            Self::Nested => base_path.to_owned(),
+            Self::ProxyStrip => String::new(),
+        }
+    }
+}
+
 /// Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
@@ -396,6 +444,45 @@ pub struct ServerConfig {
     /// binary was built with the `ogc` feature.
     #[serde(default)]
     pub disable_ogc: bool,
+    /// How to serve under a URL subfolder when [`Self::public_url`] carries a
+    /// path component. Ignored for root deployments. See [`SubfolderMode`].
+    #[serde(default)]
+    pub subfolder_mode: SubfolderMode,
+}
+
+/// Derive the URL subfolder base path from an optional public URL.
+///
+/// Returns the normalized path component with a leading slash and no trailing
+/// slash (e.g. `/maps`), or an empty string for a root deployment (no path,
+/// a bare `/`, or an unparseable value).
+///
+/// # Examples
+///
+/// ```
+/// # use tileserver_rs::config::derive_base_path;
+/// assert_eq!(derive_base_path(Some("https://example.com/maps")), "/maps");
+/// assert_eq!(derive_base_path(Some("https://example.com/maps/")), "/maps");
+/// assert_eq!(derive_base_path(Some("https://example.com")), "");
+/// assert_eq!(derive_base_path(Some("https://example.com/")), "");
+/// assert_eq!(derive_base_path(None), "");
+/// ```
+#[must_use]
+pub fn derive_base_path(public_url: Option<&str>) -> String {
+    let Some(raw) = public_url else {
+        return String::new();
+    };
+    // Strip the scheme + authority if present so we are left with the path.
+    let after_scheme = raw.split_once("://").map_or(raw, |(_, rest)| rest);
+    let path = match after_scheme.find('/') {
+        Some(idx) => &after_scheme[idx..],
+        None => "",
+    };
+    let trimmed = path.trim_end_matches('/');
+    if trimmed.is_empty() {
+        String::new()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn default_host() -> String {
@@ -427,6 +514,7 @@ impl Default for ServerConfig {
             extra_response_headers: None,
             disable_render: false,
             disable_ogc: false,
+            subfolder_mode: SubfolderMode::default(),
         }
     }
 }
@@ -2822,6 +2910,122 @@ entries = [
             let c = CompositeConfig::default();
             assert!(c.id.is_empty());
             assert!(c.sources.is_empty());
+        }
+    }
+
+    mod subfolder {
+        use super::*;
+
+        // ---- derive_base_path ----------------------------------------
+
+        #[test]
+        fn derive_base_path_none_is_root() {
+            assert_eq!(derive_base_path(None), "");
+        }
+
+        #[test]
+        fn derive_base_path_no_path_component_is_root() {
+            assert_eq!(derive_base_path(Some("https://example.com")), "");
+        }
+
+        #[test]
+        fn derive_base_path_bare_slash_is_root() {
+            assert_eq!(derive_base_path(Some("https://example.com/")), "");
+        }
+
+        #[test]
+        fn derive_base_path_single_segment() {
+            assert_eq!(derive_base_path(Some("https://example.com/maps")), "/maps");
+        }
+
+        #[test]
+        fn derive_base_path_strips_trailing_slash() {
+            assert_eq!(derive_base_path(Some("https://example.com/maps/")), "/maps");
+        }
+
+        #[test]
+        fn derive_base_path_multi_segment() {
+            assert_eq!(
+                derive_base_path(Some("https://example.com/tiles/maps")),
+                "/tiles/maps"
+            );
+        }
+
+        #[test]
+        fn derive_base_path_preserves_port_in_authority() {
+            assert_eq!(
+                derive_base_path(Some("http://localhost:8080/maps")),
+                "/maps"
+            );
+        }
+
+        #[test]
+        fn derive_base_path_without_scheme_treats_first_slash_as_path() {
+            // No `://` — the authority-vs-path split falls back to the first
+            // slash, so `example.com/maps` still yields `/maps`.
+            assert_eq!(derive_base_path(Some("example.com/maps")), "/maps");
+        }
+
+        #[test]
+        fn derive_base_path_only_slashes_is_root() {
+            assert_eq!(derive_base_path(Some("https://example.com///")), "");
+        }
+
+        // ---- SubfolderMode -------------------------------------------
+
+        #[test]
+        fn subfolder_mode_default_is_proxy_strip() {
+            assert_eq!(SubfolderMode::default(), SubfolderMode::ProxyStrip);
+        }
+
+        #[test]
+        fn subfolder_mode_deserializes_kebab_case() {
+            #[derive(Deserialize)]
+            struct Wrap {
+                mode: SubfolderMode,
+            }
+            let proxy: Wrap = toml::from_str(r#"mode = "proxy-strip""#).expect("parse");
+            assert_eq!(proxy.mode, SubfolderMode::ProxyStrip);
+            let nested: Wrap = toml::from_str(r#"mode = "nested""#).expect("parse");
+            assert_eq!(nested.mode, SubfolderMode::Nested);
+        }
+
+        #[test]
+        fn subfolder_mode_rejects_unknown_variant() {
+            #[derive(Deserialize)]
+            struct Wrap {
+                #[allow(dead_code)]
+                mode: SubfolderMode,
+            }
+            assert!(toml::from_str::<Wrap>(r#"mode = "bogus""#).is_err());
+        }
+
+        #[test]
+        fn server_config_default_subfolder_mode_is_proxy_strip() {
+            assert_eq!(
+                ServerConfig::default().subfolder_mode,
+                SubfolderMode::ProxyStrip
+            );
+        }
+
+        // ---- SubfolderMode::strip_base -------------------------------
+
+        #[test]
+        fn strip_base_nested_returns_base_path() {
+            assert_eq!(SubfolderMode::Nested.strip_base("/maps"), "/maps");
+        }
+
+        #[test]
+        fn strip_base_proxy_strip_returns_empty() {
+            // The reverse proxy strips the prefix, so the in-server layer is a
+            // no-op regardless of the derived base path.
+            assert_eq!(SubfolderMode::ProxyStrip.strip_base("/maps"), "");
+        }
+
+        #[test]
+        fn strip_base_nested_with_empty_base_is_empty() {
+            // A root deployment in nested mode still yields an empty strip base.
+            assert_eq!(SubfolderMode::Nested.strip_base(""), "");
         }
     }
 }

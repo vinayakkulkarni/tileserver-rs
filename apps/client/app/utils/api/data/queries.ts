@@ -13,12 +13,12 @@ import { DATA_SOURCES_QUERY_KEYS } from '~/utils/query-keys';
 // ============================================================================
 
 export async function fetchDataSources(): Promise<Data[]> {
-  const result = await $fetch<Data[]>('/data.json');
+  const result = await $fetch<Data[]>(apiUrl('/data.json'));
   return result ?? [];
 }
 
 export async function fetchDataSource(id: string): Promise<Data | null> {
-  const result = await $fetch<Data>(`/data/${id}.json`);
+  const result = await $fetch<Data>(apiUrl(`/data/${id}.json`));
   return result ?? null;
 }
 

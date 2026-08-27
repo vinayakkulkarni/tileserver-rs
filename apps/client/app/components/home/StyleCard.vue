@@ -44,7 +44,7 @@
       >
         <img
           v-if="!imgError"
-          :src="`/styles/${style.id}/static/0,0,1/160x160.png`"
+          :src="apiUrl(`/styles/${style.id}/static/0,0,1/160x160.png`)"
           :alt="style.name"
           class="size-full object-cover"
           loading="lazy"

@@ -13,7 +13,7 @@ export function useDeleteUploadMutation() {
 
   return useMutation({
     mutationFn: async (uploadId: string): Promise<void> => {
-      await $fetch(`/api/upload/${uploadId}`, {
+      await $fetch(apiUrl(`/api/upload/${uploadId}`), {
         method: 'DELETE',
       });
     },

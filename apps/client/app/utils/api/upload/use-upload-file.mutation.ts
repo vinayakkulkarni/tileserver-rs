@@ -18,7 +18,7 @@ export function useUploadFileMutation() {
       const formData = new FormData();
       formData.append('file', file);
 
-      return $fetch<UploadResponse>('/api/upload', {
+      return $fetch<UploadResponse>(apiUrl('/api/upload'), {
         method: 'POST',
         body: formData,
       });
