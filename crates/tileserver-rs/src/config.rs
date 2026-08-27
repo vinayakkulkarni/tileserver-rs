@@ -345,6 +345,29 @@ impl Default for RasterConfig {
     }
 }
 
+/// How the server serves the embedded GUI and API routes when deployed
+/// under a URL subfolder (derived from [`ServerConfig::public_url`]).
+///
+/// The subfolder itself is taken from the path component of `public_url`
+/// (e.g. `https://example.com/maps` yields the base path `/maps`). When
+/// `public_url` has no path, both modes behave identically to a root
+/// deployment and this setting has no effect.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum SubfolderMode {
+    /// The reverse proxy strips the subfolder prefix before forwarding
+    /// (e.g. nginx `proxy_pass http://backend/;` with a trailing slash).
+    /// The server keeps serving its routes at the root; only the embedded
+    /// GUI is rebased so the browser requests subfolder-prefixed URLs that
+    /// the proxy strips back to root. This is the default.
+    #[default]
+    ProxyStrip,
+    /// The reverse proxy forwards the subfolder prefix untouched. The server
+    /// mounts its entire router under the base path, so it serves the GUI
+    /// and API directly at `/<subfolder>/*`.
+    Nested,
+}
+
 /// Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerConfig {
@@ -396,6 +419,45 @@ pub struct ServerConfig {
     /// binary was built with the `ogc` feature.
     #[serde(default)]
     pub disable_ogc: bool,
+    /// How to serve under a URL subfolder when [`Self::public_url`] carries a
+    /// path component. Ignored for root deployments. See [`SubfolderMode`].
+    #[serde(default)]
+    pub subfolder_mode: SubfolderMode,
+}
+
+/// Derive the URL subfolder base path from an optional public URL.
+///
+/// Returns the normalized path component with a leading slash and no trailing
+/// slash (e.g. `/maps`), or an empty string for a root deployment (no path,
+/// a bare `/`, or an unparseable value).
+///
+/// # Examples
+///
+/// ```
+/// # use tileserver_rs::config::derive_base_path;
+/// assert_eq!(derive_base_path(Some("https://example.com/maps")), "/maps");
+/// assert_eq!(derive_base_path(Some("https://example.com/maps/")), "/maps");
+/// assert_eq!(derive_base_path(Some("https://example.com")), "");
+/// assert_eq!(derive_base_path(Some("https://example.com/")), "");
+/// assert_eq!(derive_base_path(None), "");
+/// ```
+#[must_use]
+pub fn derive_base_path(public_url: Option<&str>) -> String {
+    let Some(raw) = public_url else {
+        return String::new();
+    };
+    // Strip the scheme + authority if present so we are left with the path.
+    let after_scheme = raw.split_once("://").map_or(raw, |(_, rest)| rest);
+    let path = match after_scheme.find('/') {
+        Some(idx) => &after_scheme[idx..],
+        None => "",
+    };
+    let trimmed = path.trim_end_matches('/');
+    if trimmed.is_empty() {
+        String::new()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 fn default_host() -> String {
@@ -427,6 +489,7 @@ impl Default for ServerConfig {
             extra_response_headers: None,
             disable_render: false,
             disable_ogc: false,
+            subfolder_mode: SubfolderMode::default(),
         }
     }
 }

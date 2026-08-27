@@ -4,6 +4,7 @@
 
 pub mod admin;
 pub mod autodetect;
+pub mod base_path;
 pub mod cache;
 pub mod cache_control;
 pub mod composite;
@@ -24,6 +25,8 @@ pub mod render;
 pub mod response_headers;
 pub mod routes;
 pub mod sources;
+#[cfg(feature = "frontend")]
+pub mod spa;
 pub mod startup;
 pub mod stylegen;
 pub mod styles;

@@ -243,6 +243,17 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "subfolder_mode",
+                field_type: "enum",
+                default: Some("proxy-strip"),
+                description: "How to serve the embedded GUI and API when public_url \
+                    carries a path (subfolder deployment). `proxy-strip`: the reverse \
+                    proxy strips the prefix; `nested`: the server strips it itself. \
+                    Ignored for root deployments.",
+                optional: false,
+                enum_values: Some(&["proxy-strip", "nested"]),
+            },
         ],
     },
     ConfigSectionSchema {
