@@ -6,7 +6,7 @@ import { ADMIN_CONFIG_QUERY_KEYS } from '~/utils/query-keys/admin-config';
 export function adminConfigQueryOptions() {
   return queryOptions({
     queryKey: ADMIN_CONFIG_QUERY_KEYS.view(),
-    queryFn: () => $fetch<AdminConfigPayload>('/__admin/config'),
+    queryFn: () => $fetch<AdminConfigPayload>(apiUrl('/__admin/config')),
     staleTime: 0,
     refetchOnMount: 'always',
   });
@@ -15,7 +15,7 @@ export function adminConfigQueryOptions() {
 export function adminConfigSchemaQueryOptions() {
   return queryOptions({
     queryKey: ADMIN_CONFIG_QUERY_KEYS.schema(),
-    queryFn: () => $fetch<ConfigSchemaPayload>('/__admin/config/schema'),
+    queryFn: () => $fetch<ConfigSchemaPayload>(apiUrl('/__admin/config/schema')),
     staleTime: 1000 * 60 * 60,
   });
 }

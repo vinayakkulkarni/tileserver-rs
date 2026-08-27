@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/vue-query';
 import { pingQueryOptions } from '~/utils/api/server/queries';
 
 export function useServerInfo() {
-  const { data, error } = useFetch<PingResponse>('/ping');
+  const { data, error } = useFetch<PingResponse>(apiUrl('/ping'));
 
   const versionLabel = computed(() => {
     if (!data.value) return '';

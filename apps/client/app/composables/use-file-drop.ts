@@ -116,7 +116,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
       // COG = raster source
       map.addSource(sourceId, {
         type: 'raster',
-        url: `/data/${response.source_id}.json`,
+        url: apiUrl(`/data/${response.source_id}.json`),
         tileSize: 256,
       });
 
@@ -142,7 +142,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
       // MBTiles / SQLite = vector source
       map.addSource(sourceId, {
         type: 'vector',
-        url: `/data/${response.source_id}.json`,
+        url: apiUrl(`/data/${response.source_id}.json`),
       });
 
       const layerIds = addVectorLayersFromTileJSON(

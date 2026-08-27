@@ -54,7 +54,7 @@ export function useDataInspector(dataId: Ref<string>) {
       sources: {
         vector_layer_: {
           type: 'vector',
-          url: `/data/${dataId.value}.json`,
+          url: apiUrl(`/data/${dataId.value}.json`),
         },
       },
       layers: [],

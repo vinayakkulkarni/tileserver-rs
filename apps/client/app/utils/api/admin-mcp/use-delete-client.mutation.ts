@@ -15,7 +15,7 @@ export function useDeleteAdminMcpClientMutation() {
   return useMutation({
     mutationFn: async (clientId: string): Promise<AdminMcpDeleteResponse> => {
       return $fetch<AdminMcpDeleteResponse>(
-        `/__admin/oauth/clients/${encodeURIComponent(clientId)}`,
+        apiUrl(`/__admin/oauth/clients/${encodeURIComponent(clientId)}`),
         {
           method: 'DELETE',
         },

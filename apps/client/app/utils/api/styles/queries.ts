@@ -34,7 +34,7 @@ export const defaultStyle: StyleSpecification = {
 // ============================================================================
 
 export async function fetchStyles(): Promise<Style[]> {
-  const result = await $fetch<Style[]>('/styles.json');
+  const result = await $fetch<Style[]>(apiUrl('/styles.json'));
   return result ?? [];
 }
 
@@ -42,7 +42,7 @@ export async function fetchVectorStyle(
   id: string,
 ): Promise<StyleSpecification> {
   const styleSpec = await $fetch<StyleSpecification>(
-    `/styles/${id}/style.json`,
+    apiUrl(`/styles/${id}/style.json`),
   );
   return styleSpec ?? defaultStyle;
 }
@@ -50,7 +50,7 @@ export async function fetchVectorStyle(
 export async function fetchRasterStyle(
   id: string,
 ): Promise<StyleSpecification> {
-  const tileJSON = await $fetch<TileJSON>(`/styles/${id}.json`);
+  const tileJSON = await $fetch<TileJSON>(apiUrl(`/styles/${id}.json`));
 
   if (!tileJSON) {
     return defaultStyle;

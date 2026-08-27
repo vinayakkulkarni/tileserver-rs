@@ -43,7 +43,7 @@
       >Services:</span
     >
     <a
-      :href="`/styles/${style.id}/style.json`"
+      :href="apiUrl(`/styles/${style.id}/style.json`)"
       target="_blank"
       rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
@@ -51,7 +51,7 @@
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <a
-      :href="`/styles/${style.id}.json`"
+      :href="apiUrl(`/styles/${style.id}.json`)"
       target="_blank"
       rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
@@ -59,7 +59,7 @@
     >
     <span class="sep text-muted-foreground opacity-50">·</span>
     <a
-      :href="`/styles/${style.id}/wmts.xml`"
+      :href="apiUrl(`/styles/${style.id}/wmts.xml`)"
       target="_blank"
       rel="noopener noreferrer"
       class="services-link text-primary font-medium transition-colors duration-(--d-fast)"
