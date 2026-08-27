@@ -63,6 +63,14 @@ export default {
     // installed. Same blind spot affects any catalog:-referenced dep imported via
     // a non-root subpath.
     'dead-code/unlisted-dependency': 'off',
+    // knip is blind to Nuxt auto-imports. Every composable, `app/utils/**`
+    // helper, and collection-key module is consumed via auto-import (never an
+    // explicit `import`), so knip reports ~25 live files (use-home-page,
+    // use-style-viewer, the whole utils/api TanStack layer, api-url, etc.) as
+    // unused. Across the project's history this rule surfaced exactly one truly
+    // dead file amid that permanent false-positive wall, so it is pure noise for
+    // a Nuxt app. Same auto-import blind spot as the two dead-code rules above.
+    'dead-code/unused-file': 'off',
     // Nuxt's generated .nuxt/tsconfig.json already sets `strict: true`; the rule
     // reads the root tsconfig literally and misses the value inherited via
     // `extends`, so it is a false positive here.
