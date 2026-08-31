@@ -1331,32 +1331,6 @@ dependencies = [
 
 [[package]]
 name = "cql2"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f4f79c6a08f91e52144eb2eaae7954c23454bcff5799500ae967cde7b027b7"
-dependencies = [
- "geo",
- "geo-types",
- "geojson 0.24.2",
- "geozero 0.14.0",
- "jiff",
- "json_dotpath",
- "jsonschema",
- "lazy_static",
- "like",
- "pest",
- "pest_derive",
- "pg_escape",
- "serde",
- "serde_json",
- "sqlparser 0.58.0",
- "thiserror 2.0.20",
- "unaccent",
- "wkt 0.14.0",
-]
-
-[[package]]
-name = "cql2"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eb18586f8df5069847022de2533046825c4a8149d7d7c759d4d3e612548a7b4"
@@ -1375,7 +1349,7 @@ dependencies = [
  "pg_escape",
  "serde",
  "serde_json",
- "sqlparser 0.62.0",
+ "sqlparser",
  "thiserror 2.0.20",
  "unaccent",
  "wkt 0.14.0",
@@ -2161,7 +2135,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4163,7 +4137,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5367,7 +5341,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6106,7 +6080,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6165,7 +6139,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6851,35 +6825,13 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.58.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec4b661c54b1e4b603b37873a18c59920e4c51ea8ea2cf527d925424dbd4437c"
-dependencies = [
- "log",
- "recursive",
- "sqlparser_derive 0.3.0",
-]
-
-[[package]]
-name = "sqlparser"
 version = "0.62.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c6d1b651dc4edf07eead2a0c6c78016ce971bc2c10da5266861b13f25e7cec"
 dependencies = [
  "log",
  "recursive",
- "sqlparser_derive 0.5.0",
-]
-
-[[package]]
-name = "sqlparser_derive"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da5fc6819faabb412da764b99d3b713bb55083c11e7e0c00144d386cd6a1939c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
+ "sqlparser_derive",
 ]
 
 [[package]]
@@ -6971,13 +6923,13 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stac"
-version = "0.17.4"
+version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f525fce7334372b47e2c3cbd7c4a4b12a56c629577b95dbff009ac5e13a79a"
+checksum = "575e6c6635abeb68301c084fa8ceec0fc3569ea69d145d3ed3087aa91ff283c2"
 dependencies = [
  "bytes",
  "chrono",
- "cql2 0.5.7",
+ "cql2",
  "geojson 1.0.0",
  "indexmap 2.14.0",
  "log",
@@ -7165,7 +7117,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7231,7 +7183,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.37.0"
+version = "2.38.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7246,7 +7198,7 @@ dependencies = [
  "brotli",
  "bytes",
  "clap",
- "cql2 0.6.0",
+ "cql2",
  "criterion",
  "crossbeam-channel",
  "deadpool-postgres",
@@ -8228,7 +8180,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
