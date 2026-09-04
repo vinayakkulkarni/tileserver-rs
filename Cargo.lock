@@ -3007,18 +3007,18 @@ dependencies = [
 
 [[package]]
 name = "hotpath"
-version = "0.23.3"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dce755d457a63bdd0c95e4c91511daad1b58b33209543b7f38027b676f387e5e"
+checksum = "e2645642a23d4061ec15a4a6e74f851a3145c3125356846cfc7772ff9c6f2737"
 dependencies = [
  "hotpath-macros",
 ]
 
 [[package]]
 name = "hotpath-macros"
-version = "0.23.3"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a903af89a8429cb07790c3818bc15270b394f80af1bc254e5ccf9c7de2961770"
+checksum = "89a3d3cdf9b0d4d3d4f6d4a29798f3b9170401ba500eaa58dd8f890f926af0f1"
 
 [[package]]
 name = "http"
@@ -4009,9 +4009,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ea7b5e93abd986703dd3974c9eba229072ef0b585018374ffc9736e1499945f"
+checksum = "eff9dd5f2eda9c0332214ca6639b73ce800abc3d8117e80389d179e773907c1b"
 dependencies = [
  "bitvec",
  "bytemuck",
