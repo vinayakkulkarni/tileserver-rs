@@ -93,7 +93,7 @@ catalogs:
     '@tanstack/ai': ^0.52.0
     '@tanstack/ai-vue': ^0.19.4
     '@tanstack/query-db-collection': ^1.2.11
-    '@tanstack/vue-db': ^0.1.8
+    '@tanstack/vue-db': ^0.1.9
     '@tanstack/vue-query': ^5.102.8
     '@tmcw/togeojson': ^7.1.2
     '@types/geojson': ^7946.0.16

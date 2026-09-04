@@ -41,8 +41,8 @@ catalogs:
       specifier: ^1.2.11
       version: 1.2.11
     '@tanstack/vue-db':
-      specifier: ^0.1.8
-      version: 0.1.8
+      specifier: ^0.1.9
+      version: 0.1.9
     '@tanstack/vue-query':
       specifier: ^5.102.8
       version: 5.102.8
@@ -269,7 +269,7 @@ importers:
         version: 1.2.11(@tanstack/query-core@5.102.8)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
-        version: 0.1.8(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
+        version: 0.1.9(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       '@tanstack/vue-query':
         specifier: catalog:client
         version: 5.102.8(vue@3.5.42(typescript@6.0.3))
@@ -3123,6 +3123,11 @@ packages:
     peerDependencies:
       typescript: '>=4.7'
 
+  '@tanstack/db@0.8.7':
+    resolution: {integrity: sha512-NIocfK737qPvkE1Ot2iM5PXN6CSBZY5cw1ovAwo0RvQDc/iinyr3x7v+kavoiWxClbkul98J/wRzr0KLanMxOA==}
+    peerDependencies:
+      typescript: '>=4.7'
+
   '@tanstack/devtools-event-client@0.4.4':
     resolution: {integrity: sha512-6T5Yop/793YI+H+5J8Hsyj4kCih9sl4t3ElLgKioW5hk3ocn+ZdSJ94tT7vL7uabxSugWYBZlOTMPzEw2puvQw==}
     engines: {node: '>=18'}
@@ -3148,8 +3153,8 @@ packages:
   '@tanstack/virtual-core@3.17.5':
     resolution: {integrity: sha512-AXfBC3sq6PuYSwyxYORqqgHCNjPGAvKJvZuBBJ1klhztWBB5cgqgwsq8+fNfaQJG7/K4xYBja9S90QFn2zmQAg==}
 
-  '@tanstack/vue-db@0.1.8':
-    resolution: {integrity: sha512-bYfhNmk799MAOJeOca+BZ1g0k86BuiE0twctydmgWS9fscK1ubD/LEvw7RdeO7MT1bmaQ64AReQqtBhXUd+urw==}
+  '@tanstack/vue-db@0.1.9':
+    resolution: {integrity: sha512-BfEA9UHtSmuS1QpOK0E0GWKAqBUUHfeUohV9t/Xu/gPjgEyH8x3CHX532ViqoFxze7mFt+6ykZ6JWjkb3Jwvbg==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -8200,7 +8205,7 @@ snapshots:
       nostics: 1.2.0
       pathe: 2.0.3
       perfect-debounce: 2.1.0
-      tinyexec: 1.2.4
+      tinyexec: 1.3.0
       zigpty: 0.2.1
     optional: true
 
@@ -8212,7 +8217,7 @@ snapshots:
       nostics: 1.2.0
       pathe: 2.0.3
       perfect-debounce: 2.1.0
-      tinyexec: 1.2.4
+      tinyexec: 1.3.0
       zigpty: 0.2.1
     optional: true
 
@@ -11431,6 +11436,13 @@ snapshots:
       '@tanstack/pacer-lite': 0.2.2
       typescript: 6.0.3
 
+  '@tanstack/db@0.8.7(typescript@6.0.3)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/db-ivm': 0.1.19(typescript@6.0.3)
+      '@tanstack/pacer-lite': 0.2.2
+      typescript: 6.0.3
+
   '@tanstack/devtools-event-client@0.4.4': {}
 
   '@tanstack/match-sorter-utils@8.19.4':
@@ -11450,9 +11462,9 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.5': {}
 
-  '@tanstack/vue-db@0.1.8(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))':
+  '@tanstack/vue-db@0.1.9(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))':
     dependencies:
-      '@tanstack/db': 0.8.6(typescript@6.0.3)
+      '@tanstack/db': 0.8.7(typescript@6.0.3)
       vue: 3.5.42(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
@@ -15684,7 +15696,7 @@ snapshots:
     dependencies:
       citty: 0.2.2
       pathe: 2.0.3
-      tinyexec: 1.2.4
+      tinyexec: 1.3.0
 
   object-deep-merge@2.0.1: {}
 
@@ -16500,7 +16512,7 @@ snapshots:
   rollup-plugin-visualizer@7.0.1(rolldown@1.2.4)(rollup@4.62.2):
     dependencies:
       open: 11.0.0
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       source-map: 0.7.6
       yargs: 18.0.0
     optionalDependencies:
@@ -17287,7 +17299,7 @@ snapshots:
   unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       esbuild: 0.28.1
