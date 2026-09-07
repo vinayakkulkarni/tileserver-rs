@@ -74,8 +74,8 @@ catalogs:
       specifier: ^6.2.0
       version: 6.2.0
     zod:
-      specifier: ^4.4.3
-      version: 4.4.3
+      specifier: ^4.5.4
+      version: 4.5.4
   default:
     '@commitlint/cli':
       specifier: ^21.2.2
@@ -260,10 +260,10 @@ importers:
         version: 4.0.1(magic-string@1.2.0)(magicast@0.5.3)(oxc-parser@0.140.0)(rolldown@1.2.4)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)))
       '@tanstack/ai':
         specifier: catalog:client
-        version: 0.53.0(zod@4.4.3)
+        version: 0.53.0(zod@4.5.4)
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 0.19.4(@tanstack/ai@0.53.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)
+        version: 0.19.4(@tanstack/ai@0.53.0(zod@4.5.4))(vue@3.5.42(typescript@6.0.3))(zod@4.5.4)
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.2.12(@tanstack/query-core@5.102.8)(typescript@6.0.3)
@@ -332,7 +332,7 @@ importers:
         version: 3.5.42(typescript@6.0.3)
       zod:
         specifier: catalog:client
-        version: 4.4.3
+        version: 4.5.4
     devDependencies:
       '@nuxt/eslint':
         specifier: catalog:default
@@ -7775,14 +7775,17 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
 
-  '@ag-ui/core@0.1.1-canary.beta.0(zod@4.4.3)':
+  '@ag-ui/core@0.1.1-canary.beta.0(zod@4.5.4)':
     optionalDependencies:
-      zod: 4.4.3
+      zod: 4.5.4
 
   '@antfu/install-pkg@1.1.0':
     dependencies:
@@ -11393,9 +11396,9 @@ snapshots:
       tailwindcss: 4.3.3
       vite: 8.2.2(@types/node@26.4.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)
 
-  '@tanstack/ai-client@0.29.2(zod@4.4.3)':
+  '@tanstack/ai-client@0.29.2(zod@4.5.4)':
     dependencies:
-      '@tanstack/ai': 0.52.0(zod@4.4.3)
+      '@tanstack/ai': 0.52.0(zod@4.5.4)
       '@tanstack/ai-event-client': 0.11.2
       '@tanstack/ai-utils': 0.4.0
     transitivePeerDependencies:
@@ -11408,18 +11411,18 @@ snapshots:
 
   '@tanstack/ai-utils@0.4.0': {}
 
-  '@tanstack/ai-vue@0.19.4(@tanstack/ai@0.53.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)':
+  '@tanstack/ai-vue@0.19.4(@tanstack/ai@0.53.0(zod@4.5.4))(vue@3.5.42(typescript@6.0.3))(zod@4.5.4)':
     dependencies:
-      '@tanstack/ai': 0.53.0(zod@4.4.3)
-      '@tanstack/ai-client': 0.29.2(zod@4.4.3)
+      '@tanstack/ai': 0.53.0(zod@4.5.4)
+      '@tanstack/ai-client': 0.29.2(zod@4.5.4)
       vue: 3.5.42(typescript@6.0.3)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - zod
 
-  '@tanstack/ai@0.52.0(zod@4.4.3)':
+  '@tanstack/ai@0.52.0(zod@4.5.4)':
     dependencies:
-      '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.4.3)
+      '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.5.4)
       '@standard-schema/spec': 1.1.0
       '@tanstack/ai-event-client': 0.11.2
       '@tanstack/ai-utils': 0.4.0
@@ -11427,9 +11430,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@tanstack/ai@0.53.0(zod@4.4.3)':
+  '@tanstack/ai@0.53.0(zod@4.5.4)':
     dependencies:
-      '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.4.3)
+      '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.5.4)
       '@standard-schema/spec': 1.1.0
       '@tanstack/ai-event-client': 0.11.2
       '@tanstack/ai-utils': 0.4.0
@@ -17772,6 +17775,9 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zod@4.4.3: {}
+  zod@4.4.3:
+    optional: true
+
+  zod@4.5.4: {}
 
   zwitch@2.0.4: {}
