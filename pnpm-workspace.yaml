@@ -90,7 +90,7 @@ catalogs:
     '@geoql/v-maplibre': ^3.0.0
     '@maplibre/mlt': ^1.2.0
     '@mlc-ai/web-llm': ^0.2.84
-    '@tanstack/ai': ^0.52.0
+    '@tanstack/ai': ^0.53.0
     '@tanstack/ai-vue': ^0.19.4
     '@tanstack/query-db-collection': ^1.2.12
     '@tanstack/vue-db': ^0.1.9

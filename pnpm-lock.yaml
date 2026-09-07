@@ -32,8 +32,8 @@ catalogs:
       specifier: ^0.2.84
       version: 0.2.84
     '@tanstack/ai':
-      specifier: ^0.52.0
-      version: 0.52.0
+      specifier: ^0.53.0
+      version: 0.53.0
     '@tanstack/ai-vue':
       specifier: ^0.19.4
       version: 0.19.4
@@ -260,10 +260,10 @@ importers:
         version: 4.0.1(magic-string@1.2.0)(magicast@0.5.3)(oxc-parser@0.140.0)(rolldown@1.2.4)(unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0)))
       '@tanstack/ai':
         specifier: catalog:client
-        version: 0.52.0(zod@4.4.3)
+        version: 0.53.0(zod@4.4.3)
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 0.19.4(@tanstack/ai@0.52.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)
+        version: 0.19.4(@tanstack/ai@0.53.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.2.12(@tanstack/query-core@5.102.8)(typescript@6.0.3)
@@ -3106,6 +3106,15 @@ packages:
 
   '@tanstack/ai@0.52.0':
     resolution: {integrity: sha512-a2a+A+QguzZ3b8D7dqaA94A+CT42WUgxGYfscLrKJ+e2gHuEI8VNFGLq17KFuJI60A481bGpoGZ17fKpJF7q1A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@opentelemetry/api': '>=1.9.0'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+
+  '@tanstack/ai@0.53.0':
+    resolution: {integrity: sha512-a4zDqb7SU0PU+pua69y5IDKLHO9dsD99vMIrzKNfcJyzJ81aASIkbrXXcD4n15YOj+FaWPZmD4Qewmd+5IV4Iw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@opentelemetry/api': '>=1.9.0'
@@ -11399,9 +11408,9 @@ snapshots:
 
   '@tanstack/ai-utils@0.4.0': {}
 
-  '@tanstack/ai-vue@0.19.4(@tanstack/ai@0.52.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)':
+  '@tanstack/ai-vue@0.19.4(@tanstack/ai@0.53.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)':
     dependencies:
-      '@tanstack/ai': 0.52.0(zod@4.4.3)
+      '@tanstack/ai': 0.53.0(zod@4.4.3)
       '@tanstack/ai-client': 0.29.2(zod@4.4.3)
       vue: 3.5.42(typescript@6.0.3)
     transitivePeerDependencies:
@@ -11409,6 +11418,16 @@ snapshots:
       - zod
 
   '@tanstack/ai@0.52.0(zod@4.4.3)':
+    dependencies:
+      '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.4.3)
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/ai-event-client': 0.11.2
+      '@tanstack/ai-utils': 0.4.0
+      partial-json: 0.1.7
+    transitivePeerDependencies:
+      - zod
+
+  '@tanstack/ai@0.53.0(zod@4.4.3)':
     dependencies:
       '@ag-ui/core': 0.1.1-canary.beta.0(zod@4.4.3)
       '@standard-schema/spec': 1.1.0
