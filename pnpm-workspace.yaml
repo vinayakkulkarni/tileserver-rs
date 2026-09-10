@@ -70,7 +70,7 @@ catalogs:
     lint-staged: ^17.4.1
     '@lucide/vue': ^1.41.0
     maplibre-gl: ^6.7.0
-    motion-v: ^2.4.1
+    motion-v: ^2.4.2
     nuxt: ^4.5.2
     oxfmt: ^0.66.0
     oxlint: ^1.81.0
