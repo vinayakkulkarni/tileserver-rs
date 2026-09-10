@@ -67,7 +67,7 @@ catalogs:
     eslint-plugin-oxlint: ^1.81.0
     husky: ^9.1.7
     is-ci: ^4.1.0
-    lint-staged: ^17.4.1
+    lint-staged: ^17.5.0
     '@lucide/vue': ^1.41.0
     maplibre-gl: ^6.7.0
     motion-v: ^2.4.1
