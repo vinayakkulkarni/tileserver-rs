@@ -104,7 +104,7 @@ catalogs:
     papaparse: ^5.7.0
     pmtiles: ^4.5.0
     shpjs: ^6.2.0
-    zod: ^4.4.3
+    zod: ^4.5.4
   marketing:
     '@nuxtjs/plausible': ^4.0.0
     ogl: ^1.0.11
