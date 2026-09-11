@@ -141,8 +141,8 @@ catalogs:
       specifier: ^17.5.0
       version: 17.5.0
     maplibre-gl:
-      specifier: ^6.7.0
-      version: 6.7.0
+      specifier: ^6.8.0
+      version: 6.8.0
     motion-v:
       specifier: ^2.4.2
       version: 2.4.2
@@ -293,10 +293,10 @@ importers:
         version: 2.0.5
       maplibre-gl:
         specifier: catalog:default
-        version: 6.7.0
+        version: 6.8.0
       maplibre-gl-inspect:
         specifier: catalog:client
-        version: 0.0.10(maplibre-gl@6.7.0)
+        version: 0.0.10(maplibre-gl@6.8.0)
       motion-v:
         specifier: catalog:default
         version: 2.4.2(@vueuse/core@14.4.0(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))
@@ -1785,6 +1785,9 @@ packages:
 
   '@maplibre/mlt@1.2.0':
     resolution: {integrity: sha512-g45M8gEI4sMO3X9ib4K7n3ZKFf0qQOL+NMkHCnEK51lOrYFHiEssOuZncx1+miIgi1IEE2NcbRMcq8RBkL+QHA==}
+
+  '@maplibre/mlt@1.2.1':
+    resolution: {integrity: sha512-5n5dgolE2EYxwCKgx8vlwURCB8A+kyfJJyThlYimjlGgOcOe2Bhw9VxxnnHC91OC9PgHg+nVdgVPTYPkIo62vg==}
 
   '@maplibre/vt-pbf@4.3.2':
     resolution: {integrity: sha512-j6p0AdjvAR19Z3XaCysle7A4ZSo08tYOzxD0Y9NQylwPAkwJJeYub5b2eVucdeDh7erhv69DahoLOevDRERRUw==}
@@ -5646,8 +5649,8 @@ packages:
     peerDependencies:
       maplibre-gl: '>=5.0.0'
 
-  maplibre-gl@6.7.0:
-    resolution: {integrity: sha512-Y1Q1+UP9WXou0DUrnaFdDsoMqiMCWy6aS968IBUaQ2eZi6H1/kPCfpfZOWXFJZbeKMkX9Wo6OFzY/k48qqPf3Q==}
+  maplibre-gl@6.8.0:
+    resolution: {integrity: sha512-+ZkjKTodsVLY0ewQThvXRxXQsclcsSgOm5LlnrBM3G8AloMJKt6Haw8mY4xrOl8T0WMqH6DTYjktZ9zGQXZd4w==}
     engines: {node: '>=16.14.0', npm: '>=8.1.0'}
 
   markdown-exit@1.1.0-beta.2:
@@ -8662,7 +8665,7 @@ snapshots:
 
   '@geoql/v-maplibre@3.0.0(vue@3.5.42(typescript@6.0.3))':
     dependencies:
-      maplibre-gl: 6.7.0
+      maplibre-gl: 6.8.0
       pmtiles: 4.5.0
       vue: 3.5.42(typescript@6.0.3)
 
@@ -8927,6 +8930,10 @@ snapshots:
       tinyqueue: 3.0.0
 
   '@maplibre/mlt@1.2.0':
+    dependencies:
+      '@mapbox/point-geometry': 1.1.0
+
+  '@maplibre/mlt@1.2.1':
     dependencies:
       '@mapbox/point-geometry': 1.1.0
 
@@ -14454,12 +14461,12 @@ snapshots:
 
   manage-path@2.0.0: {}
 
-  maplibre-gl-inspect@0.0.10(maplibre-gl@6.7.0):
+  maplibre-gl-inspect@0.0.10(maplibre-gl@6.8.0):
     dependencies:
-      maplibre-gl: 6.7.0
+      maplibre-gl: 6.8.0
       randomcolor: 0.6.2
 
-  maplibre-gl@6.7.0:
+  maplibre-gl@6.8.0:
     dependencies:
       '@mapbox/point-geometry': 1.1.0
       '@mapbox/tiny-sdf': 2.2.0
@@ -14467,7 +14474,7 @@ snapshots:
       '@mapbox/vector-tile': 3.0.0
       '@maplibre/geojson-vt': 6.1.1
       '@maplibre/maplibre-gl-style-spec': 26.4.1
-      '@maplibre/mlt': 1.2.0
+      '@maplibre/mlt': 1.2.1
       '@maplibre/vt-pbf': 4.3.2
       '@types/geojson': 7946.0.16
       earcut: 3.2.3
