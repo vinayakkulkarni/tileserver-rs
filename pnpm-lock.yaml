@@ -38,8 +38,8 @@ catalogs:
       specifier: ^0.19.4
       version: 0.19.4
     '@tanstack/query-db-collection':
-      specifier: ^1.2.12
-      version: 1.2.12
+      specifier: ^1.2.13
+      version: 1.2.13
     '@tanstack/vue-db':
       specifier: ^0.1.10
       version: 0.1.10
@@ -266,7 +266,7 @@ importers:
         version: 0.19.4(@tanstack/ai@0.53.0(zod@4.4.3))(vue@3.5.42(typescript@6.0.3))(zod@4.4.3)
       '@tanstack/query-db-collection':
         specifier: catalog:client
-        version: 1.2.12(@tanstack/query-core@5.102.8)(typescript@6.0.3)
+        version: 1.2.13(@tanstack/query-core@5.102.8)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
         version: 0.1.10(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
@@ -493,7 +493,7 @@ importers:
         version: 3.3.11(typescript@6.0.3)
       wrangler:
         specifier: catalog:marketing
-        version: 4.131.0(@types/node@26.4.1)
+        version: 4.131.0(@types/node@26.5.1)
 
   apps/marketing:
     dependencies:
@@ -599,7 +599,7 @@ importers:
         version: 3.3.11(typescript@6.0.3)
       wrangler:
         specifier: catalog:marketing
-        version: 4.131.0(@types/node@26.4.1)
+        version: 4.131.0(@types/node@26.5.1)
 
   benchmarks:
     dependencies:
@@ -3143,18 +3143,8 @@ packages:
       '@opentelemetry/api':
         optional: true
 
-  '@tanstack/db-ivm@0.1.19':
-    resolution: {integrity: sha512-3VGvgNXAPSVqny/pL8Y6n/txnaZzV49WmgSQ9N5eyCQNgMtuOEOJHKDatqqCy3gDxVu6pkhSHDKxcNFOtxMouw==}
-    peerDependencies:
-      typescript: '>=4.7'
-
   '@tanstack/db-ivm@0.1.20':
     resolution: {integrity: sha512-Rpol77pI6JgVO4CtuKXZ/SQAzK4+BuiTSebRsIBo5qiiswtHKrvmiLNfbMXSHpXUF2xJkohFrJq9ndsMP1jAuA==}
-    peerDependencies:
-      typescript: '>=4.7'
-
-  '@tanstack/db@0.8.7':
-    resolution: {integrity: sha512-NIocfK737qPvkE1Ot2iM5PXN6CSBZY5cw1ovAwo0RvQDc/iinyr3x7v+kavoiWxClbkul98J/wRzr0KLanMxOA==}
     peerDependencies:
       typescript: '>=4.7'
 
@@ -3179,8 +3169,8 @@ packages:
   '@tanstack/query-core@5.102.8':
     resolution: {integrity: sha512-ZNjkJ33CqvPNec/6lZBnHqLc3EVGPZ9ySLhYahU9TcuRFdmwXewuj0c4hwSWcGHqEUwcSrKeZ+oGcvPBqXcQcg==}
 
-  '@tanstack/query-db-collection@1.2.12':
-    resolution: {integrity: sha512-cvts5dWl/Q35RBg1qv5JP82+DJczn0LlmQtO7JslGkPPJq8BT6H1CitcCb+kjhh0TLtB97VLRRV63MEYZkzzZw==}
+  '@tanstack/query-db-collection@1.2.13':
+    resolution: {integrity: sha512-/q7vmFAm8Z/mMuBpFERbVxGpdNH2tgIPESGKmnGPIWr9iDZxoUT9XQx6kR7muafNi8SwS7KS6JLheav//lb6kA==}
     peerDependencies:
       '@tanstack/query-core': ^5.0.0
       typescript: '>=4.7'
@@ -11517,23 +11507,10 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@tanstack/db-ivm@0.1.19(typescript@6.0.3)':
-    dependencies:
-      fractional-indexing: 3.4.0
-      sorted-btree: 1.8.1
-      typescript: 6.0.3
-
   '@tanstack/db-ivm@0.1.20(typescript@6.0.3)':
     dependencies:
       fractional-indexing: 3.4.0
       sorted-btree: 1.8.1
-      typescript: 6.0.3
-
-  '@tanstack/db@0.8.7(typescript@6.0.3)':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@tanstack/db-ivm': 0.1.19(typescript@6.0.3)
-      '@tanstack/pacer-lite': 0.2.2
       typescript: 6.0.3
 
   '@tanstack/db@0.9.0(typescript@6.0.3)':
@@ -11553,10 +11530,10 @@ snapshots:
 
   '@tanstack/query-core@5.102.8': {}
 
-  '@tanstack/query-db-collection@1.2.12(@tanstack/query-core@5.102.8)(typescript@6.0.3)':
+  '@tanstack/query-db-collection@1.2.13(@tanstack/query-core@5.102.8)(typescript@6.0.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      '@tanstack/db': 0.8.7(typescript@6.0.3)
+      '@tanstack/db': 0.9.0(typescript@6.0.3)
       '@tanstack/query-core': 5.102.8
       typescript: 6.0.3
 
@@ -14885,10 +14862,10 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  miniflare@5.20260910.0-alpha(@types/node@26.4.1):
+  miniflare@5.20260910.0-alpha(@types/node@26.5.1):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
-      sharp: 0.35.4(@types/node@26.4.1)
+      sharp: 0.35.4(@types/node@26.5.1)
       undici: 7.29.0
       workerd: 1.20260910.1
       ws: 8.21.0
@@ -16756,7 +16733,7 @@ snapshots:
       - '@emnapi/runtime'
       - magicast
 
-  sharp@0.35.4(@types/node@26.4.1):
+  sharp@0.35.4(@types/node@26.5.1):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -16787,7 +16764,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.4
       '@img/sharp-win32-ia32': 0.35.4
       '@img/sharp-win32-x64': 0.35.4
-      '@types/node': 26.4.1
+      '@types/node': 26.5.1
 
   shebang-command@2.0.0:
     dependencies:
@@ -17772,13 +17749,13 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260910.1
       '@cloudflare/workerd-windows-64': 1.20260910.1
 
-  wrangler@4.131.0(@types/node@26.4.1):
+  wrangler@4.131.0(@types/node@26.5.1):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260910.1)
       blake3-wasm: 2.1.5
       esbuild: 0.28.1
-      miniflare: 5.20260910.0-alpha(@types/node@26.4.1)
+      miniflare: 5.20260910.0-alpha(@types/node@26.5.1)
       path-to-regexp: 6.3.0
       unenv: 2.0.0-rc.24
       workerd: 1.20260910.1
