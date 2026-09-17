@@ -89,7 +89,7 @@ catalogs:
     '@comark/nuxt': ^0.6.2
     '@geoql/v-maplibre': ^3.0.0
     '@maplibre/mlt': ^1.2.1
-    '@mlc-ai/web-llm': ^0.2.84
+    '@mlc-ai/web-llm': ^0.2.85
     '@tanstack/ai': ^0.54.0
     '@tanstack/ai-vue': ^0.19.4
     '@tanstack/query-db-collection': ^1.2.13
