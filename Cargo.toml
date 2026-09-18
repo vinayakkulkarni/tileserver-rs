@@ -64,7 +64,7 @@ russh-sftp       = { version = "2.4", default-features = false }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.9"
 brotli           = "8.0.4"
-zstd             = "0.13.3"
+zstd             = "0.14.0"
 prost            = "0.14.4"
 geo-types        = "0.7.20"
 
