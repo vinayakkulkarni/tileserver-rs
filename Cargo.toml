@@ -63,7 +63,7 @@ russh            = { version = "0.63", default-features = false, features = ["ri
 russh-sftp       = { version = "2.4", default-features = false }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.9"
-brotli           = "8.0.4"
+brotli           = "9.0.0"
 zstd             = "0.13.3"
 prost            = "0.14.4"
 geo-types        = "0.7.20"
