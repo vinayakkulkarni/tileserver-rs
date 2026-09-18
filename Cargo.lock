@@ -3997,9 +3997,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.12.9"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3993e5bbd0b7ec8d3d25493a34690770fc4ca3bf3b52241eb2e429686ac5d0cb"
+checksum = "0dcd6c989ff58b7084c3a2ee4e81a41e3ffa0e3715f1b445fbee5ec92a260241"
 dependencies = [
  "bitvec",
  "bytemuck",
@@ -7113,7 +7113,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
