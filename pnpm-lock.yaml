@@ -23,8 +23,8 @@ catalogs:
       specifier: ^0.7.0
       version: 0.7.0
     '@geoql/v-maplibre':
-      specifier: ^3.0.0
-      version: 3.0.0
+      specifier: ^3.0.1
+      version: 3.0.1
     '@maplibre/mlt':
       specifier: ^1.2.1
       version: 1.2.1
@@ -242,7 +242,7 @@ importers:
         version: 0.7.0(f2a7c3a1b440e46402d4bfbd8a69c195)
       '@geoql/v-maplibre':
         specifier: catalog:client
-        version: 3.0.0(vue@3.5.43(typescript@6.0.3))
+        version: 3.0.1(vue@3.5.43(typescript@6.0.3))
       '@lucide/vue':
         specifier: catalog:default
         version: 1.47.0(vue@3.5.43(typescript@6.0.3))
@@ -1421,8 +1421,8 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
-  '@geoql/v-maplibre@3.0.0':
-    resolution: {integrity: sha512-YYN/28qyps66HykC8dXABBrtnnDUkvXWPgnVKHZwi4tFuM1UVJWofPzBIoVsO/hSDIjq/4a4JOX9i9evTNvBTg==}
+  '@geoql/v-maplibre@3.0.1':
+    resolution: {integrity: sha512-SPo1fE99Abi17cbaDqD+Q+pwR0O16Hf2Wgp23ikLs2IX6mrl7MiG6/JCq+ZVwpgmf8E5TJDTSKdjkyJaDpBdYQ==}
     peerDependencies:
       3d-tiles-renderer: ^0.5.0
       3d-tiles-rendererjs-3dgs-plugin: ^0.1.15
@@ -8688,7 +8688,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@geoql/v-maplibre@3.0.0(vue@3.5.43(typescript@6.0.3))':
+  '@geoql/v-maplibre@3.0.1(vue@3.5.43(typescript@6.0.3))':
     dependencies:
       maplibre-gl: 6.10.0
       pmtiles: 4.5.0
