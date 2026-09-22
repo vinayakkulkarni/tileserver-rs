@@ -128,10 +128,10 @@ scalar_api_reference = { version = "0.2", features = ["axum"] }
 # publishes on crates.io with `opentelemetry ^0.32` deps.
 # The `opentelemetry` group in `.github/dependabot.yml` bumps these crates
 # atomically — never solo-bump.
-opentelemetry    = "0.32.0"
-opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "metrics", "logs"] }
-opentelemetry-semantic-conventions = "0.32.1"
+opentelemetry    = "0.33.0"
+opentelemetry_sdk = { version = "0.33.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.33.0", features = ["grpc-tonic", "metrics", "logs"] }
+opentelemetry-semantic-conventions = "0.33.0"
 tracing-opentelemetry = "0.33.0"
 # Official `opentelemetry-prometheus` crate, un-deprecated and re-released
 # on 2026-05-08 by open-telemetry/opentelemetry-rust under OTel 0.32 family.
@@ -139,7 +139,7 @@ tracing-opentelemetry = "0.33.0"
 # carried while the official crate was deprecated (Sep 2025 → May 2026).
 # Pairs with the `prometheus = "0.14"` crate's `Registry` + `TextEncoder`
 # for the `/metrics` scrape endpoint — see `crates/tileserver-rs/src/metrics/server.rs`.
-opentelemetry-prometheus = "0.32.0"
+opentelemetry-prometheus = "0.33.0"
 prometheus       = "0.14.0"
 
 # Raster / GDAL (optional)
