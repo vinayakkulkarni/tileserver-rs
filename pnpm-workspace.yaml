@@ -87,7 +87,7 @@ catalogs:
     vue-tsc: ^3.3.11
   client:
     '@comark/nuxt': ^0.7.0
-    '@geoql/v-maplibre': ^3.0.0
+    '@geoql/v-maplibre': ^3.0.1
     '@maplibre/mlt': ^1.2.1
     '@mlc-ai/web-llm': ^0.2.85
     '@tanstack/ai': ^0.54.0
