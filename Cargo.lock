@@ -3007,18 +3007,18 @@ dependencies = [
 
 [[package]]
 name = "hotpath"
-version = "0.26.0"
+version = "0.28.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f37234f85a8d1bda6b84d486245dd0847c5b33cca10d5f3691375e66704de0f8"
+checksum = "34aabdeba3c81cef2075a2961a370ebfe1d9cc3f8d2242fd400ce6ef6f3bbfcb"
 dependencies = [
  "hotpath-macros",
 ]
 
 [[package]]
 name = "hotpath-macros"
-version = "0.26.0"
+version = "0.28.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ac39b5517f540cab511bdbd5a4dc8cfc62858d6cd26a095463c1d2acfb3f290"
+checksum = "8c6275c8d1931d280bd505debb7ef91dbeae2c23477aabbfe10487b7430bdeb3"
 
 [[package]]
 name = "http"
@@ -3997,9 +3997,9 @@ dependencies = [
 
 [[package]]
 name = "mlt-core"
-version = "0.16.0"
+version = "0.19.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ede86516f7eb70aea510c00d9f6e55e6e34888e9bd4e98f65e6a24a6ad309f25"
+checksum = "fadc8decb383ec1bf9d3d7c10eadc91760f401ed9883beaaea3ae7b1d042f3e0"
 dependencies = [
  "bitvec",
  "bytemuck",
@@ -4024,6 +4024,7 @@ dependencies = [
  "union-find",
  "usize_cast",
  "wide",
+ "xxhash-rust",
  "zigzag",
 ]
 
@@ -7114,7 +7115,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
@@ -8456,6 +8457,12 @@ dependencies = [
  "libc",
  "rustix 1.1.4",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "550a2b930b62486a393c52d5c3b84bff264b28aa437ed64694d31e93b1757af7"
 
 [[package]]
 name = "yansi"
