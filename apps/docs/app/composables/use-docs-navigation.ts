@@ -44,6 +44,11 @@ export function useDocsNavigation() {
       ],
     },
     {
+      title: 'Deploy',
+      path: '/deploy',
+      children: [{ title: 'Hosting Cost', path: '/deploy/cost' }],
+    },
+    {
       title: 'Integrations',
       path: '/integrations',
       children: [{ title: 'MapLibre', path: '/integrations/maplibre' }],
