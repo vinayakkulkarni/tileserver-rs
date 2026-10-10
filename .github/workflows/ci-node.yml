@@ -57,6 +57,9 @@ jobs:
       - name: Lint docs
         run: pnpm --filter @tileserver-rs/docs run lint
 
+      - name: Test docs
+        run: pnpm --filter @tileserver-rs/docs run test
+
       - name: Build docs
         run: |
           max_attempts=3
