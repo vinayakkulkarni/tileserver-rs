@@ -7,17 +7,8 @@
  */
 
 // Re-export core types from TanStack AI Vue
-import type {
-  UIMessage as TanStackUIMessage,
-  UseChatReturn,
-} from '@tanstack/ai-vue';
+import type { UIMessage as TanStackUIMessage } from '@tanstack/ai-vue';
 import type { MessagePart as TanStackMessagePart } from '@tanstack/ai';
-
-export type { UseChatReturn };
-
-export type ChatWithEngineStatus = UseChatReturn & {
-  engineStatus: LlmEngineStatus;
-};
 
 // Re-export message part types from TanStack AI
 export type {
@@ -33,7 +24,7 @@ export type {
  */
 export interface ReadonlyUIMessage {
   readonly id: string;
-  readonly role: 'system' | 'user' | 'assistant';
+  readonly role: TanStackUIMessage['role'];
   readonly parts: readonly TanStackMessagePart[];
   readonly createdAt?: Date;
 }

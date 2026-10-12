@@ -13,8 +13,12 @@
  */
 
 import { useChat, stream } from '@tanstack/ai-vue';
-import type { UIMessage } from '@tanstack/ai-vue';
-import type { MessagePart } from '@tanstack/ai';
+import { EventType, convertMessagesToModelMessages } from '@tanstack/ai';
+import type { ModelMessage, StreamChunk } from '@tanstack/ai';
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+} from '@mlc-ai/web-llm';
 import type { Map as MaplibreMap } from 'maplibre-gl';
 import type { OverlayLayer } from '~/types/file-upload';
 import {
@@ -24,7 +28,7 @@ import {
   WEBLLM_SERVER_TOOLS,
 } from '~/lib/map-tools';
 import { chatCollection } from '~/lib/chat-db';
-import type { ChatWithEngineStatus, StoredToolCall } from '~/types/llm';
+import type { StoredToolCall } from '~/types/llm';
 
 /** System prompt for models with WebLLM native tool calling enabled. */
 const SYSTEM_PROMPT_WITH_TOOLS = `You are a helpful map assistant embedded in tileserver-rs, a vector tile server.
@@ -75,92 +79,41 @@ ALWAYS include the [MAP_ACTION] block when the user asks to go somewhere, fly to
 Keep responses concise and helpful. You're a map expert.`;
 
 /**
- * Convert TanStack AI UIMessage parts to OpenAI-format messages for WebLLM.
- *
- * Handles three part types:
- * - text → { role, content }
- * - tool-call → { role: 'assistant', tool_calls: [...] }
- * - tool-result → { role: 'tool', tool_call_id, content }
+ * Convert TanStack model messages to WebLLM's OpenAI-compatible format.
+ * Tool calls and tool results are only forwarded for tool-capable models.
  */
-function convertMessagesToOpenAI(
-  messages: UIMessage[],
+function toWebLlmMessages(
+  messages: ModelMessage[],
   systemPrompt: string,
-): Array<{
-  role: string;
-  content: string;
-  tool_calls?: Array<{
-    id: string;
-    type: 'function';
-    function: { name: string; arguments: string };
-  }>;
-  tool_call_id?: string;
-}> {
-  const result: Array<{
-    role: string;
-    content: string;
-    tool_calls?: Array<{
-      id: string;
-      type: 'function';
-      function: { name: string; arguments: string };
-    }>;
-    tool_call_id?: string;
-  }> = [{ role: 'system', content: systemPrompt }];
+  includeTools: boolean,
+): ChatCompletionMessageParam[] {
+  const result: ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+  ];
 
   for (const msg of messages) {
-    // Group parts by type for each message
-    const textParts: string[] = [];
-    const toolCallParts: Array<{
-      id: string;
-      type: 'function';
-      function: { name: string; arguments: string };
-    }> = [];
-    const toolResultParts: Array<{ toolCallId: string; result: unknown }> = [];
-
-    for (const part of msg.parts as MessagePart[]) {
-      switch (part.type) {
-        case 'text':
-          textParts.push(part.content);
-          break;
-        case 'tool-call':
-          toolCallParts.push({
-            id: part.toolCallId,
-            type: 'function',
-            function: {
-              name: part.toolName,
-              arguments: JSON.stringify(part.args),
-            },
-          });
-          break;
-        case 'tool-result':
-          toolResultParts.push({
-            toolCallId: part.toolCallId,
-            result: part.result,
-          });
-          break;
-      }
-    }
-
-    // Emit text content as a regular message
-    if (textParts.length > 0) {
-      result.push({ role: msg.role, content: textParts.join('') });
-    }
-
-    // Emit tool calls as assistant message with tool_calls
-    if (toolCallParts.length > 0) {
-      result.push({
-        role: 'assistant',
-        content: '',
-        tool_calls: toolCallParts,
-      });
-    }
-
-    // Emit tool results as individual tool messages
-    for (const tr of toolResultParts) {
-      result.push({
-        role: 'tool',
-        content: JSON.stringify(tr.result),
-        tool_call_id: tr.toolCallId,
-      });
+    const content = contentToText(msg.content);
+    if (msg.role === 'user') {
+      result.push({ role: 'user', content });
+    } else if (msg.role === 'assistant') {
+      const toolCalls: ChatCompletionMessageToolCall[] =
+        includeTools && msg.toolCalls
+          ? msg.toolCalls.map((call) => ({
+              id: call.id,
+              type: 'function',
+              function: {
+                name: call.function.name,
+                arguments: call.function.arguments,
+              },
+            }))
+          : [];
+      result.push(
+        toolCalls.length > 0
+          ? { role: 'assistant', content, tool_calls: toolCalls }
+          : { role: 'assistant', content },
+      );
+    } else if (includeTools && msg.toolCallId) {
+      result.push({ role: 'tool', content, tool_call_id: msg.toolCallId });
     }
   }
 
@@ -168,13 +121,12 @@ function convertMessagesToOpenAI(
 }
 
 /**
- * Extract text content from a UIMessage (for non-tool fallback)
+ * Flatten a model message's content to plain text (non-text parts are dropped).
  */
-function extractText(message: UIMessage): string {
-  return message.parts
-    .filter((p): p is { type: 'text'; content: string } => p.type === 'text')
-    .map((p) => p.content)
-    .join('');
+function contentToText(content: ModelMessage['content']): string {
+  if (typeof content === 'string') return content;
+  if (!content) return '';
+  return content.map((part) => (part.type === 'text' ? part.content : '')).join('');
 }
 
 /**
@@ -189,8 +141,10 @@ function parseMapActions(
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
+    const json = match[1];
+    if (json === undefined) continue;
     try {
-      const parsed = JSON.parse(match[1]) as { action: string } & Record<
+      const parsed = JSON.parse(json) as { action: string } & Record<
         string,
         unknown
       >;
@@ -203,6 +157,15 @@ function parseMapActions(
   }
 
   return actions;
+}
+
+/**
+ * Parse the first capture group of a regex match as a number.
+ * Returns undefined when the pattern did not match.
+ */
+function parseCapturedNumber(match: RegExpMatchArray | null): number | undefined {
+  const raw = match?.[1];
+  return raw === undefined ? undefined : Number.parseFloat(raw);
 }
 
 /**
@@ -220,8 +183,10 @@ function parseToolIntentsFromText(
   const toolCallRegex = /<tool_call>\s*(\{[\s\S]*?\})\s*<\/tool_call>/g;
   let tcMatch: RegExpExecArray | null;
   while ((tcMatch = toolCallRegex.exec(text)) !== null) {
+    const json = tcMatch[1];
+    if (json === undefined) continue;
     try {
-      const parsed = JSON.parse(tcMatch[1]) as {
+      const parsed = JSON.parse(json) as {
         name?: string;
         arguments?: Record<string, unknown>;
       };
@@ -244,10 +209,10 @@ function parseToolIntentsFromText(
   const arrayRegex = /\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/g;
   let arrMatch: RegExpExecArray | null;
   while ((arrMatch = arrayRegex.exec(text)) !== null) {
-    coordArrays.push([
-      Number.parseFloat(arrMatch[1]),
-      Number.parseFloat(arrMatch[2]),
-    ]);
+    const first = arrMatch[1];
+    const second = arrMatch[2];
+    if (first === undefined || second === undefined) continue;
+    coordArrays.push([Number.parseFloat(first), Number.parseFloat(second)]);
   }
 
   const mentionsBounds = /fit_bounds|bounds|bounding|southwest|northeast/i.test(
@@ -255,8 +220,8 @@ function parseToolIntentsFromText(
   );
 
   // Two coordinate arrays + bounds context → fit_bounds
-  if (coordArrays.length >= 2 && mentionsBounds) {
-    const [sw, ne] = coordArrays;
+  const [sw, ne] = coordArrays;
+  if (sw && ne && mentionsBounds) {
     intents.push({
       action: 'fit_bounds',
       west: Math.min(sw[0], ne[0]),
@@ -268,70 +233,65 @@ function parseToolIntentsFromText(
   }
 
   // Single coordinate array → fly_to
-  if (coordArrays.length >= 1) {
-    const [lng, lat] = coordArrays[0];
+  if (sw) {
+    const [lng, lat] = sw;
     // Sanity check: valid geographic coordinates
     if (Math.abs(lng) <= 180 && Math.abs(lat) <= 90) {
-      const zoomMatch = text.match(/zoom\D*(\d+(?:\.\d+)?)/i);
-      intents.push({
-        action: 'fly_to',
-        lng,
-        lat,
-        ...(zoomMatch
-          ? { zoom: Number.parseFloat(zoomMatch[1]) }
-          : { zoom: 10 }),
-      });
+      const zoom = parseCapturedNumber(text.match(/zoom\D*(\d+(?:\.\d+)?)/i));
+      intents.push({ action: 'fly_to', lng, lat, zoom: zoom ?? 10 });
       return intents;
     }
   }
 
   // 3. Cardinal direction coordinates: south: 35.8, west: -16.3, etc.
-  const south = text.match(/south[:\s]+(-?\d+(?:\.\d+)?)/i);
-  const west = text.match(/west[:\s]+(-?\d+(?:\.\d+)?)/i);
-  const north = text.match(/north[:\s]+(-?\d+(?:\.\d+)?)/i);
-  const east = text.match(/east[:\s]+(-?\d+(?:\.\d+)?)/i);
-  if (south && west && north && east) {
-    intents.push({
-      action: 'fit_bounds',
-      west: Number.parseFloat(west[1]),
-      south: Number.parseFloat(south[1]),
-      east: Number.parseFloat(east[1]),
-      north: Number.parseFloat(north[1]),
-    });
+  const south = parseCapturedNumber(
+    text.match(/south[:\s]+(-?\d+(?:\.\d+)?)/i),
+  );
+  const west = parseCapturedNumber(text.match(/west[:\s]+(-?\d+(?:\.\d+)?)/i));
+  const north = parseCapturedNumber(
+    text.match(/north[:\s]+(-?\d+(?:\.\d+)?)/i),
+  );
+  const east = parseCapturedNumber(text.match(/east[:\s]+(-?\d+(?:\.\d+)?)/i));
+  if (
+    south !== undefined &&
+    west !== undefined &&
+    north !== undefined &&
+    east !== undefined
+  ) {
+    intents.push({ action: 'fit_bounds', west, south, east, north });
     return intents;
   }
 
   // 4. Labeled lng/lat: lng: 12.49, lat: 41.89
-  const lngMatch = text.match(/(?:lng|longitude)[:\s]+(-?\d+(?:\.\d+)?)/i);
-  const latMatch = text.match(/(?:lat|latitude)[:\s]+(-?\d+(?:\.\d+)?)/i);
-  if (lngMatch && latMatch) {
-    const zoomMatch = text.match(/zoom\D*(\d+(?:\.\d+)?)/i);
+  const labeledLng = parseCapturedNumber(
+    text.match(/(?:lng|longitude)[:\s]+(-?\d+(?:\.\d+)?)/i),
+  );
+  const labeledLat = parseCapturedNumber(
+    text.match(/(?:lat|latitude)[:\s]+(-?\d+(?:\.\d+)?)/i),
+  );
+  if (labeledLng !== undefined && labeledLat !== undefined) {
+    const zoom = parseCapturedNumber(text.match(/zoom\D*(\d+(?:\.\d+)?)/i));
     intents.push({
       action: 'fly_to',
-      lng: Number.parseFloat(lngMatch[1]),
-      lat: Number.parseFloat(latMatch[1]),
-      ...(zoomMatch ? { zoom: Number.parseFloat(zoomMatch[1]) } : {}),
+      lng: labeledLng,
+      lat: labeledLat,
+      ...(zoom !== undefined ? { zoom } : {}),
     });
     return intents;
   }
 
   // 5. Bare coordinate pair: "41.8902, 12.4922" (lat, lng natural order)
   const bareCoords = text.match(/(-?\d+\.\d{2,})\s*,\s*(-?\d+\.\d{2,})/);
-  if (bareCoords) {
-    const first = Number.parseFloat(bareCoords[1]);
-    const second = Number.parseFloat(bareCoords[2]);
+  const bareFirst = bareCoords?.[1];
+  const bareSecond = bareCoords?.[2];
+  if (bareFirst !== undefined && bareSecond !== undefined) {
+    const first = Number.parseFloat(bareFirst);
+    const second = Number.parseFloat(bareSecond);
     // Heuristic: if |first| > 90, it's lng,lat; otherwise lat,lng
     const [lat, lng] = Math.abs(first) > 90 ? [second, first] : [first, second];
     if (Math.abs(lng) <= 180 && Math.abs(lat) <= 90) {
-      const zoomMatch = text.match(/zoom\D*(\d+(?:\.\d+)?)/i);
-      intents.push({
-        action: 'fly_to',
-        lng,
-        lat,
-        ...(zoomMatch
-          ? { zoom: Number.parseFloat(zoomMatch[1]) }
-          : { zoom: 6 }),
-      });
+      const zoom = parseCapturedNumber(text.match(/zoom\D*(\d+(?:\.\d+)?)/i));
+      intents.push({ action: 'fly_to', lng, lat, zoom: zoom ?? 6 });
       return intents;
     }
   }
@@ -392,7 +352,7 @@ function executeFallbackAction(
 export function useLlmChat(
   mapRef: Ref<MaplibreMap | null>,
   overlaysRef: Ref<readonly OverlayLayer[]>,
-): ChatWithEngineStatus {
+) {
   const { engine, status, selectedModel } = useLlmEngine();
 
   // Create client tools bound to the map ref and overlays
@@ -416,7 +376,12 @@ export function useLlmChat(
    *   - Text-only streaming
    *   - [MAP_ACTION] blocks parsed and executed after streaming
    */
-  const connection = stream(async function* (messages: UIMessage[]) {
+  // AG-UI thread id: one conversation per composable instance.
+  const threadId = crypto.randomUUID();
+
+  const connection = stream(async function* (
+    messages,
+  ): AsyncGenerator<StreamChunk> {
     const currentEngine = engine.value;
     if (!currentEngine) {
       throw new Error(
@@ -431,9 +396,14 @@ export function useLlmChat(
       ? SYSTEM_PROMPT_WITH_TOOLS
       : SYSTEM_PROMPT_NO_TOOLS;
 
-    yield { type: 'RUN_STARTED' as const, runId, timestamp: Date.now() };
     yield {
-      type: 'TEXT_MESSAGE_START' as const,
+      type: EventType.RUN_STARTED,
+      threadId,
+      runId,
+      timestamp: Date.now(),
+    };
+    yield {
+      type: EventType.TEXT_MESSAGE_START,
       messageId,
       role: 'assistant' as const,
       timestamp: Date.now(),
@@ -443,13 +413,12 @@ export function useLlmChat(
     let accumulatedText = '';
 
     try {
-      // Convert UIMessage[] → OpenAI format for WebLLM
-      const openaiMessages = useTools
-        ? convertMessagesToOpenAI(messages, systemPrompt)
-        : [
-            { role: 'system', content: systemPrompt },
-            ...messages.map((m) => ({ role: m.role, content: extractText(m) })),
-          ];
+      // Convert UI/model messages → OpenAI-compatible format for WebLLM
+      const openaiMessages = toWebLlmMessages(
+        convertMessagesToModelMessages(messages),
+        systemPrompt,
+        useTools,
+      );
 
       const response = await currentEngine.chat.completions.create({
         messages: openaiMessages,
@@ -475,7 +444,7 @@ export function useLlmChat(
         if (delta) {
           accumulatedText += delta;
           yield {
-            type: 'TEXT_MESSAGE_CONTENT' as const,
+            type: EventType.TEXT_MESSAGE_CONTENT,
             messageId,
             delta,
             timestamp: Date.now(),
@@ -502,26 +471,26 @@ export function useLlmChat(
       if (pendingToolCalls.length > 0) {
         // End text message, then emit tool call events
         yield {
-          type: 'TEXT_MESSAGE_END' as const,
+          type: EventType.TEXT_MESSAGE_END,
           messageId,
           timestamp: Date.now(),
         };
 
         for (const toolCall of pendingToolCalls) {
           yield {
-            type: 'TOOL_CALL_START' as const,
+            type: EventType.TOOL_CALL_START,
             toolCallId: toolCall.id,
-            toolName: toolCall.function.name,
+            toolCallName: toolCall.function.name,
             timestamp: Date.now(),
           };
           yield {
-            type: 'TOOL_CALL_ARGS' as const,
+            type: EventType.TOOL_CALL_ARGS,
             toolCallId: toolCall.id,
             delta: toolCall.function.arguments,
             timestamp: Date.now(),
           };
           yield {
-            type: 'TOOL_CALL_END' as const,
+            type: EventType.TOOL_CALL_END,
             toolCallId: toolCall.id,
             timestamp: Date.now(),
           };
@@ -535,20 +504,20 @@ export function useLlmChat(
         for (const action of actions) {
           const resultText = executeFallbackAction(action, mapRef.value);
           yield {
-            type: 'TEXT_MESSAGE_CONTENT' as const,
+            type: EventType.TEXT_MESSAGE_CONTENT,
             messageId,
             delta: `\n\n✅ ${resultText}`,
             timestamp: Date.now(),
           };
         }
         yield {
-          type: 'TEXT_MESSAGE_END' as const,
+          type: EventType.TEXT_MESSAGE_END,
           messageId,
           timestamp: Date.now(),
         };
       } else {
         yield {
-          type: 'TEXT_MESSAGE_END' as const,
+          type: EventType.TEXT_MESSAGE_END,
           messageId,
           timestamp: Date.now(),
         };
@@ -568,7 +537,7 @@ export function useLlmChat(
           for (const intent of intents) {
             const resultText = executeFallbackAction(intent, mapRef.value);
             yield {
-              type: 'TEXT_MESSAGE_CONTENT' as const,
+              type: EventType.TEXT_MESSAGE_CONTENT,
               messageId,
               delta: `\n\n✅ ${resultText}`,
               timestamp: Date.now(),
@@ -599,7 +568,7 @@ export function useLlmChat(
               `- Visible layers (${layers.length}): ${layers.slice(0, 10).join(', ')}${layers.length > 10 ? '...' : ''}`,
             ].join('\n');
             yield {
-              type: 'TEXT_MESSAGE_CONTENT' as const,
+              type: EventType.TEXT_MESSAGE_CONTENT,
               messageId,
               delta: stateBlock,
               timestamp: Date.now(),
@@ -609,23 +578,24 @@ export function useLlmChat(
       } else if (errorMessage) {
         // Genuine error (engine not ready, network, etc.) — show a clean user message
         yield {
-          type: 'TEXT_MESSAGE_CONTENT' as const,
+          type: EventType.TEXT_MESSAGE_CONTENT,
           messageId,
           delta: '\n\nSomething went wrong. Please try again.',
           timestamp: Date.now(),
         };
       }
       yield {
-        type: 'TEXT_MESSAGE_END' as const,
+        type: EventType.TEXT_MESSAGE_END,
         messageId,
         timestamp: Date.now(),
       };
     }
 
     yield {
-      type: 'RUN_FINISHED' as const,
+      type: EventType.RUN_FINISHED,
+      threadId,
       runId,
-      finishReason: 'stop' as const,
+      finishReason: 'stop',
       timestamp: Date.now(),
     };
   });
@@ -639,30 +609,16 @@ export function useLlmChat(
     // Persist completed messages to TanStack DB (localStorage-backed)
     onFinish: (message) => {
       if (!import.meta.client) return;
-      // Extract text content from message parts
-      const textContent = message.parts
-        .filter(
-          (p): p is { type: 'text'; content: string } => p.type === 'text',
-        )
-        .map((p) => p.content)
-        .join('');
-      // Extract tool calls if present
-      const toolCalls: StoredToolCall[] = message.parts
-        .filter(
-          (
-            p,
-          ): p is {
-            type: 'tool-call';
-            toolCallId: string;
-            toolName: string;
-            args: Record<string, unknown>;
-          } => p.type === 'tool-call',
-        )
-        .map((p) => ({
-          id: p.toolCallId,
-          name: p.toolName,
-          args: JSON.stringify(p.args),
-        }));
+      // Flatten text + tool-call parts for localStorage-friendly storage
+      let textContent = '';
+      const toolCalls: StoredToolCall[] = [];
+      for (const part of message.parts) {
+        if (part.type === 'text') {
+          textContent += part.content;
+        } else if (part.type === 'tool-call') {
+          toolCalls.push({ id: part.id, name: part.name, args: part.arguments });
+        }
+      }
       chatCollection.insert({
         id: message.id,
         role: message.role as 'user' | 'assistant',
@@ -676,5 +632,5 @@ export function useLlmChat(
   return {
     ...chat,
     engineStatus: status,
-  } as ChatWithEngineStatus;
+  };
 }

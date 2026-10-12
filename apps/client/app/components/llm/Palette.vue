@@ -45,12 +45,12 @@
     (mode: LlmPaletteMode) => emit('update:mode', mode),
   );
 
-  function setPanelRef(el: Element | null) {
-    panelRef.value = el as HTMLElement | null;
+  function setPanelRef(el: Element | ComponentPublicInstance | null) {
+    panelRef.value = el instanceof HTMLElement ? el : null;
   }
 
-  function setHandleRef(el: Element | null) {
-    handleRef.value = el as HTMLElement | null;
+  function setHandleRef(el: Element | ComponentPublicInstance | null) {
+    handleRef.value = el instanceof HTMLElement ? el : null;
   }
 
   function onAnchorMounted(el: HTMLElement | null) {

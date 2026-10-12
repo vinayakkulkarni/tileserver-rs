@@ -7,7 +7,7 @@
     engineStatus: LlmEngineStatus;
     selectedModel: LlmModelConfig;
     availableModels: LlmModelConfig[];
-    setHandleRef: (el: Element | null) => void;
+    setHandleRef: (el: Element | ComponentPublicInstance | null) => void;
   }>();
 
   const emit = defineEmits<{

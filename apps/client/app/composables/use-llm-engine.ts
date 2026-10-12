@@ -16,6 +16,14 @@ import type {
   LlmModelConfig,
 } from '~/types/llm';
 
+/** Default model — the first entry of AVAILABLE_MODELS. */
+const DEFAULT_MODEL: LlmModelConfig = {
+  id: 'Qwen3-4B-q4f16_1-MLC',
+  name: 'Qwen3 4B (recommended)',
+  sizeGb: 3.4,
+  supportsTools: false,
+};
+
 /**
  * Available models for the chat.
  *
@@ -25,12 +33,7 @@ import type {
  * which works well because Qwen3 is a strong instruction follower.
  */
 const AVAILABLE_MODELS: LlmModelConfig[] = [
-  {
-    id: 'Qwen3-4B-q4f16_1-MLC',
-    name: 'Qwen3 4B (recommended)',
-    sizeGb: 3.4,
-    supportsTools: false,
-  },
+  DEFAULT_MODEL,
   {
     id: 'Qwen3-8B-q4f16_1-MLC',
     name: 'Qwen3 8B (best quality)',
@@ -51,7 +54,6 @@ const AVAILABLE_MODELS: LlmModelConfig[] = [
   },
 ];
 
-const DEFAULT_MODEL = AVAILABLE_MODELS[0];
 
 /**
  * Shared engine state — singleton across the app.

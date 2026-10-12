@@ -5,7 +5,7 @@
   defineProps<{
     engineStatus: LlmEngineStatus;
     isDragging: boolean;
-    setHandleRef: (el: Element | null) => void;
+    setHandleRef: (el: Element | ComponentPublicInstance | null) => void;
   }>();
 
   const emit = defineEmits<{

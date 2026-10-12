@@ -38,7 +38,8 @@ export function useAdminDashboard() {
   const clientsQuery = useQuery(adminMcpClientsQueryOptions());
   const sessionsQuery = useQuery(adminMcpSessionsQueryOptions());
 
-  const now = useNow({ interval: 60_000 });
+  // VueUse 15 removed `interval`; without a scheduler useNow ticks every frame.
+  const now = useNow({ scheduler: (cb) => useIntervalFn(cb, 60_000) });
 
   const ping = computed(() => pingQuery.data.value ?? null);
   const clients = computed(() => clientsQuery.data.value ?? EMPTY_CLIENTS);

@@ -6,6 +6,7 @@
     SelectTrigger as UiSelectTrigger,
     SelectValue as UiSelectValue,
   } from '~/components/ui/select';
+  import type { AcceptableValue } from 'reka-ui';
   import type { LlmModelConfig } from '~/types/llm';
 
   defineProps<{
@@ -18,8 +19,8 @@
     select: [modelId: string];
   }>();
 
-  function handleChange(value: string) {
-    emit('select', value);
+  function handleChange(value: AcceptableValue) {
+    if (typeof value === 'string') emit('select', value);
   }
 </script>
 
