@@ -522,6 +522,13 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
         return (headers, data).into_response();
     }
 
+    // A missing build asset must be a real 404. Serving index.html here gives
+    // the browser HTML with status 200 for a script/worker URL, which hides
+    // the defect (MapLibre v6 worker 404 rendered as a silent empty map).
+    if path.starts_with("_nuxt/") {
+        return (StatusCode::NOT_FOUND, "Not Found").into_response();
+    }
+
     if let Some(index) = resolve_spa_asset("index.html") {
         return Html(index).into_response();
     }
