@@ -5,8 +5,10 @@
  */
 
 import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
+import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
 
 export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
+  ensureMaplibreWorker();
   const { style, isLoading } = useMapStyle(styleId, isRaster);
 
   // Map instance ref for LLM tool integration

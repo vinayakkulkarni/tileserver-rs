@@ -9,8 +9,10 @@ import type { Map, MapOptions } from 'maplibre-gl';
 
 import type { LayerColor } from '~/types/data';
 import { fetchDataSource } from '~/utils/api/data';
+import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
 
 export function useDataInspector(dataId: Ref<string>) {
+  ensureMaplibreWorker();
   const layerColors = ref<LayerColor[]>([]);
   const panelOpen = ref(true);
   const mapRef = shallowRef<Map | null>(null);
