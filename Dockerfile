@@ -34,7 +34,7 @@ ARG FEATURES="frontend geoparquet"
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.0.0-rc.5 --activate
+RUN corepack enable && corepack prepare pnpm@12.11.2 --activate
 
 # Copy workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./

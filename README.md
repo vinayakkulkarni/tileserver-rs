@@ -62,7 +62,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 ## Requirements
 
 - [Rust 1.75+](https://www.rust-lang.org/)
-- [Node.js 24+](https://nodejs.org/) with [pnpm 11](https://pnpm.io/) (via `corepack enable`)
+- [Node.js 24+](https://nodejs.org/) with [pnpm 12](https://pnpm.io/) (via `corepack enable`)
 - (Optional) [Docker](https://www.docker.com/)
 
 ### For Native Rendering (Optional)

@@ -62,11 +62,11 @@ jobs:
       - name: Deploy to Cloudflare Pages
         working-directory: apps/docs
         # `pnpm dlx` runs an ephemeral install that does not consult
-        # pnpm-workspace.yaml's allowBuilds. Under pnpm 11's default
+        # pnpm-workspace.yaml's allowBuilds. Under pnpm's default
         # strictDepBuilds=true, wrangler's transitive deps (esbuild, sharp,
         # workerd) trigger ERR_PNPM_IGNORED_BUILDS. The --allow-build flags
-        # are pnpm 11's documented escape hatch for this case
-        # (https://pnpm.io/11.x/cli/dlx#--allow-build).
+        # are pnpm's documented escape hatch for this case
+        # (https://pnpm.io/cli/dlx#--allow-build).
         run: >-
           pnpm dlx
           --allow-build=esbuild
