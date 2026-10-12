@@ -58,7 +58,7 @@ export function total(
 }
 
 /** Cost of `units` on one plan: the plan fee plus extra units. */
-export function planCost(plan: PricePlan, units: number): number | null {
+function planCost(plan: PricePlan, units: number): number | null {
   if (units <= plan.included) {
     return plan.monthly;
   }

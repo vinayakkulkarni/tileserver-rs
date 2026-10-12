@@ -14,7 +14,7 @@
 <template>
   <article class="border-b border-border px-4 py-4 last:border-b-0">
     <div
-      class="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1.1fr)] md:gap-6"
+      class="grid gap-3 md:grid-cols-cost-row md:gap-6"
     >
       <h4 class="font-display text-sm font-semibold">
         {{ row.name }}

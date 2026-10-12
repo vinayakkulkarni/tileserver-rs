@@ -25,7 +25,7 @@ import {
  * The Lambda size and run time the Protomaps calculator assumes for one
  * tile request: 512 MB for 200 ms.
  */
-export const protomapsLambda = { memoryGb: 0.5, seconds: 0.2 } as const;
+const protomapsLambda = { memoryGb: 0.5, seconds: 0.2 } as const;
 
 function cloudflare(
   requests: number,

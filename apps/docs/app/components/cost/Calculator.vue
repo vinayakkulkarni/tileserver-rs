@@ -29,7 +29,7 @@
     />
 
     <div
-      class="hidden border-b border-border px-4 py-3 font-mono text-10 uppercase tracking-200 text-muted-foreground md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,1.1fr)] md:gap-6"
+      class="hidden border-b border-border px-4 py-3 font-mono text-10 uppercase tracking-200 text-muted-foreground md:grid md:grid-cols-cost-row md:gap-6"
       aria-hidden="true"
     >
       <span>Option</span>

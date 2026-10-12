@@ -5,6 +5,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Safari still draws the <summary> disclosure triangle through this
+ * pseudo-element; `list-none` alone does not remove it there. */
+@custom-variant details-marker (&::-webkit-details-marker);
+
 /*
  * Violet theme — Zinc base
  * Sharp geometric design — zero border radius
@@ -94,6 +98,10 @@
 
   --grid-template-columns-frame: 80px 1fr auto 80px;
   --grid-template-columns-frame-sm: 72px 1fr 48px;
+
+  /* Cost calculator tables (deploy/cost page). */
+  --grid-template-columns-cost-row: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(0, 1.1fr);
+  --grid-template-columns-cost-breakdown: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.6fr);
 }
 
 @theme inline {

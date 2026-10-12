@@ -11,7 +11,7 @@
 <template>
   <details class="group mt-3">
     <summary
-      class="cursor-pointer list-none font-mono text-10 uppercase tracking-200 text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground [&::-webkit-details-marker]:hidden"
+      class="cursor-pointer list-none font-mono text-10 uppercase tracking-200 text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:text-foreground details-marker:hidden"
     >
       <span class="group-open:hidden">+ Show cost breakdown</span>
       <span class="hidden group-open:inline">− Hide cost breakdown</span>
@@ -20,7 +20,7 @@
       <li
         v-for="line in lines"
         :key="line.label"
-        class="grid gap-1 px-3 py-2 font-mono text-xs sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.6fr)] sm:gap-4"
+        class="grid gap-1 px-3 py-2 font-mono text-xs sm:grid-cols-cost-breakdown sm:gap-4"
       >
         <a
           :href="line.source.url"
