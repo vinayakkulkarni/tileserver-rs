@@ -20,7 +20,7 @@ use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{
     CallToolResult, ContentBlock, GetPromptRequestParams, GetPromptResponse, ListPromptsResult,
     ListResourceTemplatesResult, PaginatedRequestParams, ProtocolVersion,
-    ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities, ServerInfo,
+    ReadResourceRequestParams, ReadResourceResponse, ServerCapabilities, ServerConfig,
 };
 use rmcp::service::{NotificationContext, RequestContext, RoleServer};
 use rmcp::{ServerHandler, tool, tool_handler, tool_router};
@@ -576,13 +576,13 @@ impl McpHandler {
 
 #[tool_handler]
 impl ServerHandler for McpHandler {
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let capabilities = ServerCapabilities::builder()
             .enable_tools()
             .enable_resources()
             .enable_prompts()
             .build();
-        ServerInfo::new(capabilities)
+        ServerConfig::new(capabilities)
             .with_protocol_version(ProtocolVersion::default())
             .with_server_info(
                 rmcp::model::Implementation::new("tileserver-rs", env!("CARGO_PKG_VERSION"))
