@@ -112,9 +112,9 @@ duckdb           = { workspace = true, optional = true }
 # the two transports we expose: stdio (`transport-io`) for local clients
 # like Claude Desktop and Streamable HTTP for remote clients (Cursor, MCP
 # Inspector, claude.ai via mcp-remote bridges).
-rmcp             = { version = "3.1", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
-schemars         = { version = "1", optional = true }
-base64           = { version = "0.23", optional = true }
+rmcp             = { version = "3.5.1", optional = true, features = ["transport-io", "transport-streamable-http-server"] }
+schemars         = { version = "1.2.2", optional = true }
+base64           = { version = "0.23.1", optional = true }
 
 # OAuth 2.0 support for the MCP HTTP transport (RFC 7591 DCR + claude.ai
 # Custom Connectors). Pulled in only when both `mcp` and the operator's
@@ -122,10 +122,10 @@ base64           = { version = "0.23", optional = true }
 # tokens are signed with RS256. `subtle` powers the constant-time PKCE +
 # bearer comparisons; declared optional under `mcp` so it does not enter
 # default builds even though it is a transitive dep via `rsa`.
-jsonwebtoken     = { version = "11", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
-askama           = { version = "0.16", optional = true }
-serde_urlencoded = { version = "0.7", optional = true }
-rsa              = { version = "0.9", optional = true, features = ["pem"] }
+jsonwebtoken     = { version = "11.1.0", optional = true, default-features = false, features = ["rust_crypto", "use_pem"] }
+askama           = { version = "0.16.1", optional = true }
+serde_urlencoded = { version = "0.7.1", optional = true }
+rsa              = { version = "0.9.10", optional = true, features = ["pem"] }
 subtle           = { workspace = true, optional = true }
 
 [features]
@@ -173,11 +173,11 @@ tempfile         = { workspace = true }
 insta            = { workspace = true }
 criterion        = { workspace = true }
 url              = { workspace = true }
-base64           = { version = "0.23" }
+base64           = { version = "0.23.1" }
 sha2             = { workspace = true }
-serde_urlencoded = "0.7"
-jsonwebtoken     = { version = "11", default-features = false, features = ["rust_crypto", "use_pem"] }
-serial_test      = "4"
+serde_urlencoded = "0.7.1"
+jsonwebtoken     = { version = "11.1.0", default-features = false, features = ["rust_crypto", "use_pem"] }
+serial_test      = "4.0.1"
 
 [[bench]]
 name = "mlt"
