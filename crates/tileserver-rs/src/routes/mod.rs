@@ -7,6 +7,7 @@ mod data;
 mod embed;
 mod files;
 mod fonts;
+mod llm;
 mod og;
 #[cfg(feature = "postgres")]
 pub(crate) mod ogc;
@@ -98,7 +99,15 @@ pub fn api_router(state: SharedState) -> Router {
             "/api/spatial/stats/{source}",
             get(spatial::get_spatial_stats),
         )
-        .route("/api/spatial/query", post(spatial::post_spatial_query));
+        .route("/api/spatial/query", post(spatial::post_spatial_query))
+        // Server-side LLM proxy for the Map AI panel (issue #1547)
+        .route("/api/llm/config", get(llm::get_llm_config))
+        .route(
+            "/api/llm/chat",
+            post(llm::post_llm_chat).layer(axum::extract::DefaultBodyLimit::max(
+                llm::MAX_TRANSPORT_BODY_BYTES,
+            )),
+        );
 
     if !config.server.disable_render {
         router = router.merge(render_router());

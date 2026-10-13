@@ -42,6 +42,9 @@ pub struct Config {
     /// Tile body compression negotiation (`Accept-Encoding` → br/zstd/gzip)
     #[serde(default)]
     pub compression: CompressionConfig,
+    /// Server-side LLM proxy for the Map AI chat panel (`[llm]`).
+    #[serde(default)]
+    pub llm: LlmConfig,
     /// Model Context Protocol (MCP) server configuration.
     ///
     /// Only present when the binary is compiled with `--features mcp`.
@@ -316,6 +319,156 @@ impl CompressionConfig {
                 "compression.zstd_level must be 1-22, got {}",
                 self.zstd_level
             )));
+        }
+        Ok(())
+    }
+}
+
+/// API family spoken by the upstream LLM provider behind `/api/llm/chat`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LlmProviderKind {
+    /// `POST {base_url}/chat/completions` (OpenAI, OpenRouter, Groq, vLLM,
+    /// Ollama, LM Studio, OmniRoute, ...).
+    #[default]
+    OpenaiCompatible,
+    /// `POST {base_url}/v1/messages` (Anthropic Messages API).
+    Anthropic,
+}
+
+impl LlmProviderKind {
+    /// Stable wire name, identical to the serde spelling.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::OpenaiCompatible => "openai-compatible",
+            Self::Anthropic => "anthropic",
+        }
+    }
+}
+
+/// Server-side LLM proxy for the Map AI chat panel (`[llm]`).
+///
+/// When enabled, `POST /api/llm/chat` forwards chat requests to the upstream
+/// provider and streams the response back. The API key is read from the
+/// environment variable named by `api_key_env` on every request, so it never
+/// appears in the config file or reaches the browser.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmConfig {
+    /// Enable the `/api/llm/chat` proxy (default: false).
+    #[serde(default)]
+    pub enabled: bool,
+    /// Upstream API family (default: `openai-compatible`).
+    #[serde(default)]
+    pub provider: LlmProviderKind,
+    /// Upstream base URL, e.g. `https://api.anthropic.com` or
+    /// `https://openrouter.ai/api/v1`. `https://` only, except loopback hosts.
+    #[serde(default)]
+    pub base_url: Option<String>,
+    /// Name of the environment variable that holds the upstream API key.
+    /// Optional for keyless local servers (Ollama, LM Studio).
+    #[serde(default)]
+    pub api_key_env: Option<String>,
+    /// Model sent upstream. Overrides any model in the client request.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Also let users bring their own key from the browser (default: true).
+    #[serde(default = "default_true_llm")]
+    pub allow_user_keys: bool,
+    /// Upstream timeout for one chat response, in seconds (default: 120).
+    #[serde(default = "default_llm_timeout_secs")]
+    pub timeout_secs: u64,
+    /// Largest accepted request body, in bytes (default: 1 MiB).
+    #[serde(default = "default_llm_max_body_bytes")]
+    pub max_body_bytes: usize,
+    /// Proxy requests allowed per minute across all clients; 0 = unlimited
+    /// (default: 30).
+    #[serde(default = "default_llm_rate_limit")]
+    pub rate_limit_per_minute: u32,
+}
+
+const fn default_true_llm() -> bool {
+    true
+}
+const fn default_llm_timeout_secs() -> u64 {
+    120
+}
+const fn default_llm_max_body_bytes() -> usize {
+    1024 * 1024
+}
+const fn default_llm_rate_limit() -> u32 {
+    30
+}
+
+impl Default for LlmConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            provider: LlmProviderKind::default(),
+            base_url: None,
+            api_key_env: None,
+            model: None,
+            allow_user_keys: default_true_llm(),
+            timeout_secs: default_llm_timeout_secs(),
+            max_body_bytes: default_llm_max_body_bytes(),
+            rate_limit_per_minute: default_llm_rate_limit(),
+        }
+    }
+}
+
+/// Whether `url` is an acceptable LLM provider base URL: `https://` for any
+/// host, plain `http://` only for loopback hosts (local Ollama / LM Studio).
+#[must_use]
+pub fn is_allowed_llm_base_url(url: &str) -> bool {
+    let url = url.trim();
+    let lower = url.to_ascii_lowercase();
+    if let Some(rest) = lower.strip_prefix("https://") {
+        return !rest.is_empty() && !rest.starts_with('/');
+    }
+    let Some(rest) = lower.strip_prefix("http://") else {
+        return false;
+    };
+    ["localhost", "127.0.0.1", "[::1]"].iter().any(|host| {
+        rest.strip_prefix(host)
+            .is_some_and(|tail| tail.is_empty() || tail.starts_with(':') || tail.starts_with('/'))
+    })
+}
+
+impl LlmConfig {
+    /// Validate the proxy settings. A disabled proxy is always valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns a config error when the proxy is enabled without a valid
+    /// `base_url` or `model`, with an `api_key_env` that is not set, or with
+    /// a zero timeout / body limit.
+    pub fn validate(&self) -> crate::error::Result<()> {
+        use crate::error::TileServerError::ConfigError;
+        if !self.enabled {
+            return Ok(());
+        }
+        let base_url = self.base_url.as_deref().unwrap_or_default();
+        if !is_allowed_llm_base_url(base_url) {
+            return Err(ConfigError(format!(
+                "llm.base_url must be an https:// URL (http:// only for localhost), got '{base_url}'"
+            )));
+        }
+        if self.model.as_deref().is_none_or(|m| m.trim().is_empty()) {
+            return Err(ConfigError(
+                "llm.model is required when llm.enabled = true".to_string(),
+            ));
+        }
+        if let Some(var) = self.api_key_env.as_deref()
+            && std::env::var(var).is_err()
+        {
+            return Err(ConfigError(format!(
+                "llm.api_key_env names '{var}', but that environment variable is not set"
+            )));
+        }
+        if self.timeout_secs == 0 || self.max_body_bytes == 0 {
+            return Err(ConfigError(
+                "llm.timeout_secs and llm.max_body_bytes must be greater than 0".to_string(),
+            ));
         }
         Ok(())
     }
@@ -1377,6 +1530,7 @@ impl Config {
         self.validate_filters()?;
         validate_extra_response_headers(self.server.extra_response_headers.as_ref())?;
         self.compression.validate()?;
+        self.llm.validate()?;
         Ok(())
     }
 
@@ -3154,6 +3308,118 @@ entries = [
         fn strip_base_nested_with_empty_base_is_empty() {
             // A root deployment in nested mode still yields an empty strip base.
             assert_eq!(SubfolderMode::Nested.strip_base(""), "");
+        }
+    }
+}
+
+#[cfg(test)]
+mod llm_config_tests {
+    use super::{Config, LlmConfig, LlmProviderKind, is_allowed_llm_base_url};
+
+    #[test]
+    fn llm_defaults_are_disabled_and_valid() {
+        let llm = LlmConfig::default();
+        assert!(!llm.enabled);
+        assert_eq!(llm.provider, LlmProviderKind::OpenaiCompatible);
+        assert!(llm.allow_user_keys);
+        assert_eq!(llm.timeout_secs, 120);
+        assert_eq!(llm.max_body_bytes, 1_048_576);
+        assert_eq!(llm.rate_limit_per_minute, 30);
+        assert!(llm.validate().is_ok());
+    }
+
+    #[test]
+    fn llm_section_parses_from_toml() {
+        let config: Config = toml::from_str(
+            r#"
+            [llm]
+            enabled = true
+            provider = "anthropic"
+            base_url = "https://api.anthropic.com"
+            model = "claude-sonnet-4-5"
+            allow_user_keys = false
+            rate_limit_per_minute = 5
+            "#,
+        )
+        .expect("parse [llm]");
+        assert!(config.llm.enabled);
+        assert_eq!(config.llm.provider, LlmProviderKind::Anthropic);
+        assert_eq!(config.llm.model.as_deref(), Some("claude-sonnet-4-5"));
+        assert!(!config.llm.allow_user_keys);
+        assert_eq!(config.llm.rate_limit_per_minute, 5);
+        assert!(config.llm.validate().is_ok());
+    }
+
+    #[test]
+    fn llm_unknown_provider_is_rejected() {
+        let parsed: Result<Config, _> = toml::from_str("[llm]\nprovider = \"gemini\"\n");
+        assert!(parsed.is_err());
+    }
+
+    fn enabled(base_url: &str) -> LlmConfig {
+        LlmConfig {
+            enabled: true,
+            base_url: Some(base_url.to_string()),
+            model: Some("m".to_string()),
+            ..LlmConfig::default()
+        }
+    }
+
+    #[test]
+    fn llm_validate_requires_safe_base_url_and_model() {
+        assert!(enabled("https://openrouter.ai/api/v1").validate().is_ok());
+        assert!(enabled("http://localhost:11434/v1").validate().is_ok());
+        assert!(enabled("http://example.com/v1").validate().is_err());
+        assert!(enabled("").validate().is_err());
+        let no_model = LlmConfig {
+            model: None,
+            ..enabled("https://api.openai.com/v1")
+        };
+        assert!(no_model.validate().is_err());
+        let zero_timeout = LlmConfig {
+            timeout_secs: 0,
+            ..enabled("https://api.openai.com/v1")
+        };
+        assert!(zero_timeout.validate().is_err());
+    }
+
+    #[test]
+    fn llm_validate_rejects_unset_key_env() {
+        let llm = LlmConfig {
+            api_key_env: Some("TILESERVER_TEST_LLM_KEY_THAT_IS_NEVER_SET".to_string()),
+            ..enabled("https://api.openai.com/v1")
+        };
+        let err = llm.validate().expect_err("unset env var must fail");
+        assert!(
+            err.to_string()
+                .contains("TILESERVER_TEST_LLM_KEY_THAT_IS_NEVER_SET")
+        );
+    }
+
+    #[test]
+    fn llm_base_url_allow_list() {
+        for ok in [
+            "https://api.anthropic.com",
+            "https://openrouter.ai/api/v1",
+            "HTTPS://API.OPENAI.COM/v1",
+            "http://localhost",
+            "http://localhost:1234/v1",
+            "http://127.0.0.1:11434/v1",
+            "http://[::1]:8080",
+        ] {
+            assert!(is_allowed_llm_base_url(ok), "{ok} should be allowed");
+        }
+        for bad in [
+            "http://example.com",
+            "http://localhost.evil.com",
+            "http://127.0.0.1.nip.io",
+            "javascript:alert(1)",
+            "ftp://localhost",
+            "https://",
+            "https:///path",
+            "",
+        ] {
+            assert!(!is_allowed_llm_base_url(bad), "{bad} should be rejected");
         }
     }
 }
