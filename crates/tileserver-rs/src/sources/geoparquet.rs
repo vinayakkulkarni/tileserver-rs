@@ -455,8 +455,6 @@ fn encode_wkb_ring(
     let lon0 = read_f64_le(wkb, coord_start);
     let lat0 = read_f64_le(wkb, coord_start + 8);
     let (x0, y0) = lon_lat_to_tile_xy(lon0, lat0, tile_bbox, MVT_EXTENT);
-    let move_x = x0;
-    let move_y = y0;
 
     geom.push(mvt_command(1, 1));
     geom.push(zigzag_encode(x0 - *cursor_x));
@@ -478,10 +476,9 @@ fn encode_wkb_ring(
         *cursor_y = py;
     }
 
+    // MVT 2.1 §4.3.3.3: ClosePath does not move the cursor; the next
+    // MoveTo is relative to the last LineTo vertex.
     geom.push(mvt_command(7, 1));
-    // Per MVT spec, delta cursor resets to the ring's MoveTo position after ClosePath
-    *cursor_x = move_x;
-    *cursor_y = move_y;
 
     Some(ring_data_len)
 }
@@ -1358,6 +1355,24 @@ mod tests {
         assert_eq!(geom_type, 3);
         assert_eq!(geom[0], mvt_command(1, 1));
         assert!(geom.contains(&mvt_command(7, 1)));
+    }
+
+    #[test]
+    fn test_wkb_polygon_hole_moveto_relative_to_last_lineto() {
+        // MVT 2.1 §4.3.3.3: ClosePath does not move the cursor, so the hole's
+        // MoveTo delta is measured from the outer ring's last LineTo vertex,
+        // not from the outer ring's start.
+        let bbox = [0.0, 0.0, 1.0, 1.0];
+        let outer = vec![(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.9), (0.1, 0.1)];
+        let hole = vec![(0.3, 0.3), (0.3, 0.7), (0.7, 0.7), (0.7, 0.3), (0.3, 0.3)];
+        let wkb = make_wkb_polygon(&[outer, hole]);
+        let (geom, _) = wkb_polygon_to_mvt(&wkb, &bbox).expect("polygon");
+        let last_lineto = lon_lat_to_tile_xy(0.1, 0.9, &bbox, MVT_EXTENT);
+        let hole_start = lon_lat_to_tile_xy(0.3, 0.3, &bbox, MVT_EXTENT);
+        // outer: MoveTo(3) + LineTo(1 + 3*2) + ClosePath(1) = 11 ints
+        assert_eq!(geom[11], mvt_command(1, 1));
+        assert_eq!(geom[12], zigzag_encode(hole_start.0 - last_lineto.0));
+        assert_eq!(geom[13], zigzag_encode(hole_start.1 - last_lineto.1));
     }
 
     #[test]

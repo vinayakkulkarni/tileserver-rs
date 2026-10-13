@@ -289,8 +289,6 @@ fn encode_wkb_ring(
     let lon0 = read_f64_le(wkb, coord_start);
     let lat0 = read_f64_le(wkb, coord_start + 8);
     let (x0, y0) = lon_lat_to_tile_xy(lon0, lat0, tile_bbox, MVT_EXTENT);
-    let move_x = x0;
-    let move_y = y0;
 
     geom.push(mvt_command(1, 1));
     geom.push(zigzag_encode(x0 - *cursor_x));
@@ -311,9 +309,11 @@ fn encode_wkb_ring(
         *cursor_y = py;
     }
 
+    // MVT 2.1 §4.3.3.3: ClosePath does not move the cursor; the next
+
+    // MoveTo is relative to the last LineTo vertex.
+
     geom.push(mvt_command(7, 1));
-    *cursor_x = move_x;
-    *cursor_y = move_y;
 
     Some(ring_data_len)
 }
@@ -895,5 +895,189 @@ mod tests {
         let name: String = row.get(1).unwrap();
         assert_eq!(id, 1);
         assert_eq!(name, "test");
+    }
+}
+
+#[cfg(test)]
+mod wkb_tests {
+    //! Expected geometry streams are written out by hand from the MVT 2.1
+    //! spec: `MoveTo`=1, `LineTo`=2, `ClosePath`=7, `command = id | count << 3`,
+    //! `zigzag(n) = (n << 1) ^ (n >> 31)`, and the cursor is NOT moved by
+    //! `ClosePath`. The tile bbox `[0, 0, 4096, 4096]` maps (lon, lat) to
+    //! pixel (lon, 4096 - lat), so every coordinate below is exact.
+    use super::*;
+
+    const BBOX: [f64; 4] = [0.0, 0.0, 4096.0, 4096.0];
+
+    fn px(x: f64, y: f64) -> [f64; 2] {
+        [x, 4096.0 - y]
+    }
+
+    fn header(buf: &mut Vec<u8>, kind: u32) {
+        buf.push(1);
+        buf.extend_from_slice(&kind.to_le_bytes());
+    }
+
+    fn coords(buf: &mut Vec<u8>, points: &[[f64; 2]]) {
+        for [x, y] in points {
+            buf.extend_from_slice(&x.to_le_bytes());
+            buf.extend_from_slice(&y.to_le_bytes());
+        }
+    }
+
+    fn point(p: [f64; 2]) -> Vec<u8> {
+        let mut b = Vec::new();
+        header(&mut b, 1);
+        coords(&mut b, &[p]);
+        b
+    }
+
+    fn line(points: &[[f64; 2]]) -> Vec<u8> {
+        let mut b = Vec::new();
+        header(&mut b, 2);
+        b.extend_from_slice(&u32::try_from(points.len()).expect("len").to_le_bytes());
+        coords(&mut b, points);
+        b
+    }
+
+    fn rings_body(buf: &mut Vec<u8>, rings: &[&[[f64; 2]]]) {
+        buf.extend_from_slice(&u32::try_from(rings.len()).expect("len").to_le_bytes());
+        for ring in rings {
+            buf.extend_from_slice(&u32::try_from(ring.len()).expect("len").to_le_bytes());
+            coords(buf, ring);
+        }
+    }
+
+    fn polygon(rings: &[&[[f64; 2]]]) -> Vec<u8> {
+        let mut b = Vec::new();
+        header(&mut b, 3);
+        rings_body(&mut b, rings);
+        b
+    }
+
+    fn multi(kind: u32, parts: &[Vec<u8>]) -> Vec<u8> {
+        let mut b = Vec::new();
+        header(&mut b, kind);
+        b.extend_from_slice(&u32::try_from(parts.len()).expect("len").to_le_bytes());
+        for part in parts {
+            b.extend_from_slice(part);
+        }
+        b
+    }
+
+    /// Square outer ring, pixels (10,10) (20,10) (20,20) (10,20) closed.
+    fn outer() -> Vec<[f64; 2]> {
+        vec![
+            px(10.0, 10.0),
+            px(20.0, 10.0),
+            px(20.0, 20.0),
+            px(10.0, 20.0),
+            px(10.0, 10.0),
+        ]
+    }
+
+    /// Hole ring, pixels (12,12) (12,18) (18,18) (18,12) closed.
+    fn hole() -> Vec<[f64; 2]> {
+        vec![
+            px(12.0, 12.0),
+            px(12.0, 18.0),
+            px(18.0, 18.0),
+            px(18.0, 12.0),
+            px(12.0, 12.0),
+        ]
+    }
+
+    #[test]
+    fn point_encodes_moveto() {
+        assert_eq!(
+            wkb_to_mvt(&point(px(10.0, 10.0)), &BBOX),
+            Some((vec![9, 20, 20], 1))
+        );
+    }
+
+    #[test]
+    fn linestring_encodes_deltas() {
+        let wkb = line(&[px(10.0, 10.0), px(20.0, 20.0), px(15.0, 10.0)]);
+        // MoveTo(10,10); LineTo x2: (+10,+10), (-5,-10)
+        assert_eq!(
+            wkb_to_mvt(&wkb, &BBOX),
+            Some((vec![9, 20, 20, 18, 20, 20, 9, 19], 2))
+        );
+    }
+
+    #[test]
+    fn polygon_single_ring_drops_closing_point() {
+        let ring = outer();
+        // MoveTo(10,10); LineTo x3: (+10,0) (0,+10) (-10,0); ClosePath
+        assert_eq!(
+            wkb_to_mvt(&polygon(&[&ring]), &BBOX),
+            Some((vec![9, 20, 20, 26, 20, 0, 0, 20, 19, 0, 15], 3))
+        );
+    }
+
+    #[test]
+    fn polygon_hole_moveto_is_relative_to_last_lineto() {
+        let (o, h) = (outer(), hole());
+        let (geom, kind) = wkb_to_mvt(&polygon(&[&o, &h]), &BBOX).expect("polygon");
+        assert_eq!(kind, 3);
+        // After the outer ring the cursor sits at (10,20), the last LineTo.
+        // Hole MoveTo(12,12) is therefore (+2,-8) -> zigzag 4, 15.
+        assert_eq!(&geom[11..14], &[9, 4, 15]);
+        assert_eq!(geom.len(), 22);
+    }
+
+    #[test]
+    fn multipoint_shares_one_moveto() {
+        let wkb = multi(4, &[point(px(10.0, 10.0)), point(px(13.0, 6.0))]);
+        // MoveTo x2: (10,10), (+3,-4)
+        assert_eq!(wkb_to_mvt(&wkb, &BBOX), Some((vec![17, 20, 20, 6, 7], 1)));
+    }
+
+    #[test]
+    fn multilinestring_cursor_carries_across_parts() {
+        let a = line(&[px(10.0, 10.0), px(20.0, 10.0)]);
+        let b = line(&[px(20.0, 30.0), px(10.0, 30.0)]);
+        // MoveTo(10,10) LineTo(+10,0); MoveTo(0,+20) LineTo(-10,0)
+        assert_eq!(
+            wkb_to_mvt(&multi(5, &[a, b]), &BBOX),
+            Some((vec![9, 20, 20, 10, 20, 0, 9, 0, 40, 10, 19, 0], 2))
+        );
+    }
+
+    #[test]
+    fn multipolygon_second_part_moveto_is_relative_to_last_lineto() {
+        let o = outer();
+        let shifted: Vec<[f64; 2]> = o.iter().map(|[x, y]| [x + 100.0, *y]).collect();
+        let mut p1 = Vec::new();
+        header(&mut p1, 3);
+        rings_body(&mut p1, &[&o]);
+        let mut p2 = Vec::new();
+        header(&mut p2, 3);
+        rings_body(&mut p2, &[&shifted]);
+        let (geom, kind) = wkb_to_mvt(&multi(6, &[p1, p2]), &BBOX).expect("multipolygon");
+        assert_eq!(kind, 3);
+        // Cursor after part 1 = (10,20); part 2 starts at (110,10): (+100,-10).
+        assert_eq!(&geom[11..14], &[9, 200, 19]);
+    }
+
+    #[test]
+    fn malformed_input_returns_none() {
+        assert_eq!(wkb_to_mvt(&[1, 1, 0], &BBOX), None);
+        assert_eq!(wkb_to_mvt(&point(px(1.0, 1.0))[..20], &BBOX), None);
+        let mut unknown = Vec::new();
+        header(&mut unknown, 7);
+        unknown.extend_from_slice(&[0; 8]);
+        assert_eq!(wkb_to_mvt(&unknown, &BBOX), None);
+        assert_eq!(wkb_to_mvt(&line(&[px(1.0, 1.0)]), &BBOX), None);
+        let full = line(&[px(1.0, 1.0), px(2.0, 2.0)]);
+        assert_eq!(wkb_to_mvt(&full[..full.len() - 1], &BBOX), None);
+        let short_ring = [px(1.0, 1.0), px(2.0, 2.0), px(1.0, 1.0)];
+        assert_eq!(wkb_to_mvt(&polygon(&[&short_ring]), &BBOX), None);
+        assert_eq!(wkb_to_mvt(&polygon(&[]), &BBOX), None);
+        assert_eq!(wkb_to_mvt(&multi(4, &[]), &BBOX), None);
+        assert_eq!(wkb_to_mvt(&multi(5, &[]), &BBOX), None);
+        assert_eq!(wkb_to_mvt(&multi(6, &[]), &BBOX), None);
+        let bad_part = multi(5, &[line(&[px(1.0, 1.0)])]);
+        assert_eq!(wkb_to_mvt(&bad_part, &BBOX), None);
     }
 }
