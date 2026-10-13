@@ -1516,3 +1516,60 @@ mod tests {
         assert!(query.contains("WHERE geom IS NOT NULL"));
     }
 }
+
+#[cfg(test)]
+mod pure_helper_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn pg_type_to_json_schema_maps_every_family() {
+        let cases = [
+            ("INTEGER", json!({"type": "integer"}), true),
+            ("bigint", json!({"type": "integer"}), true),
+            ("smallint", json!({"type": "integer"}), true),
+            ("double precision", json!({"type": "number"}), true),
+            ("numeric", json!({"type": "number"}), true),
+            ("real", json!({"type": "number"}), true),
+            ("decimal", json!({"type": "number"}), true),
+            ("boolean", json!({"type": "boolean"}), true),
+            ("character varying", json!({"type": "string"}), true),
+            ("citext", json!({"type": "string"}), true),
+            ("uuid", json!({"type": "string", "format": "uuid"}), true),
+            ("date", json!({"type": "string", "format": "date"}), true),
+            (
+                "timestamp with time zone",
+                json!({"type": "string", "format": "date-time"}),
+                true,
+            ),
+            (
+                "time without time zone",
+                json!({"type": "string", "format": "time"}),
+                true,
+            ),
+            ("jsonb", json!({"type": "object"}), false),
+            ("ARRAY", json!({"type": "array"}), false),
+            ("record", json!({"type": "array"}), false),
+            ("tsvector", json!({"type": "string"}), false),
+        ];
+        for (pg, schema, sortable) in cases {
+            assert_eq!(pg_type_to_json_schema(pg), (schema, sortable), "{pg}");
+        }
+    }
+
+    #[test]
+    fn encode_property_param_picks_placeholder_per_json_type() {
+        let cases = [
+            (json!(null), "NULL"),
+            (json!(true), "$3"),
+            (json!(42), "$3::text::numeric"),
+            (json!(1.5), "$3::text::numeric"),
+            (json!("x"), "$3"),
+            (json!([1, 2]), "$3::jsonb"),
+            (json!({"a": 1}), "$3::jsonb"),
+        ];
+        for (value, sql) in cases {
+            assert_eq!(encode_property_param(&value, 3).0, sql, "{value}");
+        }
+    }
+}
