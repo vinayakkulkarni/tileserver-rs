@@ -191,6 +191,48 @@ async fn anthropic_proxy_uses_messages_endpoint_and_x_api_key() {
 }
 
 #[tokio::test]
+async fn config_endpoint_reports_anthropic_provider_and_host() {
+    let server = common::test_server_with_config(llm_config(LlmConfig {
+        enabled: true,
+        provider: LlmProviderKind::Anthropic,
+        base_url: Some("https://api.anthropic.com".to_string()),
+        model: Some("claude-test".to_string()),
+        ..LlmConfig::default()
+    }));
+    let resp = server.get("/api/llm/config").await;
+    resp.assert_status_ok();
+    let body: Value = resp.json();
+    assert_eq!(body["proxy_enabled"], true);
+    assert_eq!(body["provider"], "anthropic");
+    assert_eq!(body["model"], "claude-test");
+    assert_eq!(body["upstream_host"], "api.anthropic.com");
+}
+
+#[tokio::test]
+async fn chat_returns_500_when_key_env_var_is_unset() {
+    let (base, rec) = mock_upstream().await;
+    // SAFETY: test-only env var with a name unique to this test.
+    unsafe { std::env::remove_var("TS_TEST_LLM_KEY_NEVER_SET") };
+    let server = common::test_server_with_config(llm_config(LlmConfig {
+        enabled: true,
+        base_url: Some(format!("{base}/v1")),
+        api_key_env: Some("TS_TEST_LLM_KEY_NEVER_SET".to_string()),
+        model: Some("gpt-test".to_string()),
+        rate_limit_per_minute: 0,
+        ..LlmConfig::default()
+    }));
+    let resp = server
+        .post("/api/llm/chat")
+        .json(&json!({"messages": []}))
+        .await;
+    resp.assert_status(StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(
+        rec.lock().expect("lock").is_none(),
+        "upstream must not be called without a key"
+    );
+}
+
+#[tokio::test]
 async fn keyless_local_upstream_sends_no_auth_header() {
     let (base, rec) = mock_upstream().await;
     let server = common::test_server_with_config(llm_config(LlmConfig {
