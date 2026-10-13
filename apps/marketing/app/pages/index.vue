@@ -69,8 +69,8 @@
       <!-- Content with left margin -->
       <div
         class="
-          mt-frame-inner ml-frame-gutter w-[calc(100vw-48px)] overflow-hidden
-          lg:mt-frame-outer lg:ml-frame-outer lg:w-[calc(100vw-80px)]
+          mt-frame-inner ml-frame-gutter w-frame-content overflow-hidden
+          lg:mt-frame-outer lg:ml-frame-outer lg:w-frame-content-lg
         "
       >
         <MarketingHeroSection />

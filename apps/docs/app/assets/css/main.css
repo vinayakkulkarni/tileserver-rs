@@ -9,6 +9,15 @@
  * pseudo-element; `list-none` alone does not remove it there. */
 @custom-variant details-marker (&::-webkit-details-marker);
 
+/* Style prose children rendered by MDC slots (no class hook on them). */
+@custom-variant descendant-p (& p);
+@custom-variant descendant-pre (& pre);
+
+/* Full-height hero sections inherit the min-height of their frame. */
+@utility min-h-inherit {
+  min-height: inherit;
+}
+
 /*
  * Violet theme — Zinc base
  * Sharp geometric design — zero border radius

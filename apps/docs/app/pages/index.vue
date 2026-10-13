@@ -273,7 +273,7 @@
           class="geometric-grid-bg pointer-events-none absolute inset-0 opacity-30"
           aria-hidden="true"
         />
-        <div class="relative flex h-full min-h-[inherit] flex-col justify-center px-6 py-16 md:px-12 lg:px-20">
+        <div class="relative flex h-full min-h-inherit flex-col justify-center px-6 py-16 md:px-12 lg:px-20">
           <p class="mb-4 font-mono text-10 uppercase tracking-300 text-muted-foreground lg:text-xs">
             Documentation
           </p>

@@ -25,7 +25,7 @@
 
     <div
       class="
-        relative flex h-full min-h-[inherit] flex-col justify-center px-3 py-16
+        relative flex h-full min-h-inherit flex-col justify-center px-3 py-16
         sm:px-6
         md:px-12
         lg:px-20

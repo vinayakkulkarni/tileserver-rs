@@ -35,7 +35,7 @@
     >
       <UiSelectValue placeholder="Select model" />
     </UiSelectTrigger>
-    <UiSelectContent class="w-[--reka-popper-anchor-width]">
+    <UiSelectContent class="w-(--reka-popper-anchor-width)">
       <UiSelectItem
         v-for="model in models"
         :key="model.id"

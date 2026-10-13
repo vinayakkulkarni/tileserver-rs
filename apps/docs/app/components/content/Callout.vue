@@ -55,7 +55,7 @@
         {{ config.label }}
       </span>
     </div>
-    <div class="text-sm/relaxed text-muted-foreground [&_p]:mb-0">
+    <div class="text-sm/relaxed text-muted-foreground descendant-p:mb-0">
       <slot />
     </div>
   </div>

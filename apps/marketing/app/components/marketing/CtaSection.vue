@@ -6,7 +6,7 @@
   <section data-label="Get Started" class="section-full">
     <div
       class="
-        flex min-h-[inherit] flex-col items-center justify-center px-6 py-20
+        flex min-h-inherit flex-col items-center justify-center px-6 py-20
         text-center
         md:px-12
         lg:px-20 lg:py-28

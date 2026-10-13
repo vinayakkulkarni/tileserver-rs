@@ -34,7 +34,7 @@
 
     <!-- Bubble -->
     <div
-      class="max-w-[80%] px-3 py-2 text-sm/relaxed"
+      class="max-w-4/5 px-3 py-2 text-sm/relaxed"
       :class="
         message.role === 'user'
           ? 'bg-primary text-primary-foreground'

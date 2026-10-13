@@ -5,6 +5,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Full-height hero sections inherit the min-height of their frame. */
+@utility min-h-inherit {
+  min-height: inherit;
+}
+
 /*
  * Violet theme — Zinc base
  * Sharp geometric design — zero border radius
@@ -111,6 +116,9 @@
   --spacing-frame-outer: 80px;
   --spacing-frame-inner: 72px;
   --spacing-frame-gutter: 48px;
+  /* Content column width: viewport minus the left frame gutter/rail. */
+  --spacing-frame-content: calc(100vw - 48px);
+  --spacing-frame-content-lg: calc(100vw - 80px);
 
   --spacing-table-min: 640px;
 

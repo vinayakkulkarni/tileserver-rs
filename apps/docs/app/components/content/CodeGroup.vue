@@ -52,7 +52,7 @@
         {{ tab.label }}
       </button>
     </div>
-    <div class="[&_pre]:my-0 [&_pre]:border-0">
+    <div class="descendant-pre:my-0 descendant-pre:border-0">
       <template
         v-for="(tab, i) in tabs"
         :key="tab.label"
