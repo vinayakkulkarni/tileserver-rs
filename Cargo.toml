@@ -14,7 +14,7 @@ members = ["crates/tileserver-rs", "crates/mbgl-sys"]
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.91"
+rust-version = "1.98"
 repository = "https://github.com/vinayakkulkarni/tileserver-rs"
 
 [workspace.dependencies]

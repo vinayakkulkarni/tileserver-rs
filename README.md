@@ -38,10 +38,10 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 ## Tech Stack
 
-- **Backend**: Rust 1.75+, Axum 0.8, Tokio
+- **Backend**: Rust 1.98+, Axum 0.8, Tokio
 - **Native Rendering**: MapLibre Native (C++) via FFI bindings
 - **Frontend**: Nuxt 4, Vue 3.5, Tailwind CSS v4, shadcn-vue
-- **Tooling**: Bun workspaces, Docker multi-stage builds
+- **Tooling**: pnpm workspaces, Docker multi-stage builds
 
 ## Table of Contents
 
@@ -61,7 +61,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 ## Requirements
 
-- [Rust 1.75+](https://www.rust-lang.org/)
+- [Rust 1.98+](https://www.rust-lang.org/)
 - [Node.js 24+](https://nodejs.org/) with [pnpm 12](https://pnpm.io/) (via `corepack enable`)
 - (Optional) [Docker](https://www.docker.com/)
 

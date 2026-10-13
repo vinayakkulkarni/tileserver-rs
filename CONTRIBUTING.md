@@ -39,7 +39,7 @@ This project follows our [Code of Conduct](./CODE_OF_CONDUCT.md). By participati
 
 ### Prerequisites
 
-- [Rust 1.75+](https://www.rust-lang.org/tools/install)
+- [Rust 1.98+](https://www.rust-lang.org/tools/install)
 - [Node.js 24+](https://nodejs.org/) with [pnpm 12](https://pnpm.io/) (via `corepack enable`)
 - [Git](https://git-scm.com/)
 - (Optional) [Docker](https://www.docker.com/)
