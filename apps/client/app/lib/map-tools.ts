@@ -20,7 +20,7 @@ import type { OverlayLayer } from '~/types/file-upload';
 // TOOL DEFINITIONS (zod schemas + metadata)
 // =============================================================================
 
-export const flyToDef = toolDefinition({
+const flyToDef = toolDefinition({
   name: 'fly_to',
   description:
     'Animate the map camera to a specific location. Use when the user asks to go to, show, or navigate to a place.',
@@ -37,7 +37,7 @@ export const flyToDef = toolDefinition({
   }),
 });
 
-export const fitBoundsDef = toolDefinition({
+const fitBoundsDef = toolDefinition({
   name: 'fit_bounds',
   description:
     'Fit the map camera to a bounding box. Use when showing a region, country, or area.',
@@ -54,7 +54,7 @@ export const fitBoundsDef = toolDefinition({
   }),
 });
 
-export const getMapStateDef = toolDefinition({
+const getMapStateDef = toolDefinition({
   name: 'get_map_state',
   description:
     'Get the current map center, zoom, bearing, pitch, and visible layers. Use to understand what the user is looking at.',
@@ -68,7 +68,7 @@ export const getMapStateDef = toolDefinition({
   }),
 });
 
-export const setLayerVisibilityDef = toolDefinition({
+const setLayerVisibilityDef = toolDefinition({
   name: 'set_layer_visibility',
   description: 'Show or hide a map layer by its ID.',
   inputSchema: z.object({
@@ -81,7 +81,7 @@ export const setLayerVisibilityDef = toolDefinition({
   }),
 });
 
-export const setLayerPaintDef = toolDefinition({
+const setLayerPaintDef = toolDefinition({
   name: 'set_layer_paint',
   description:
     'Change a paint property of a map layer (e.g., color, opacity, width).',
@@ -102,7 +102,7 @@ export const setLayerPaintDef = toolDefinition({
   }),
 });
 
-export const setLayerFilterDef = toolDefinition({
+const setLayerFilterDef = toolDefinition({
   name: 'set_layer_filter',
   description:
     'Apply a MapLibre filter expression to a layer to show only matching features.',
@@ -118,7 +118,7 @@ export const setLayerFilterDef = toolDefinition({
   }),
 });
 
-export const queryRenderedFeaturesDef = toolDefinition({
+const queryRenderedFeaturesDef = toolDefinition({
   name: 'query_rendered_features',
   description:
     'Query features visible in the current map viewport. Returns feature properties and geometry type.',
@@ -144,7 +144,7 @@ export const queryRenderedFeaturesDef = toolDefinition({
   }),
 });
 
-export const addHighlightDef = toolDefinition({
+const addHighlightDef = toolDefinition({
   name: 'add_highlight',
   description:
     'Temporarily highlight features on the map matching a filter. Highlight auto-removes after 8 seconds.',
@@ -164,7 +164,7 @@ export const addHighlightDef = toolDefinition({
   }),
 });
 
-export const generateStyleDef = toolDefinition({
+const generateStyleDef = toolDefinition({
   name: 'generate_style',
   description:
     'Modify the current map style based on a description (e.g., "make the water blue", "dark mode"). Adjusts paint properties of matching layers.',
@@ -191,7 +191,7 @@ export const generateStyleDef = toolDefinition({
   }),
 });
 
-export const getOverlaysDef = toolDefinition({
+const getOverlaysDef = toolDefinition({
   name: 'get_overlays',
   description:
     'Get the list of user-dropped file overlays currently on the map. Returns file names, formats, feature counts, colors, and visibility state.',
@@ -210,23 +210,6 @@ export const getOverlaysDef = toolDefinition({
     total: z.number(),
   }),
 });
-
-// =============================================================================
-// ALL TOOL DEFINITIONS (for iteration)
-// =============================================================================
-
-export const ALL_TOOL_DEFINITIONS = [
-  flyToDef,
-  fitBoundsDef,
-  getMapStateDef,
-  setLayerVisibilityDef,
-  setLayerPaintDef,
-  setLayerFilterDef,
-  queryRenderedFeaturesDef,
-  addHighlightDef,
-  generateStyleDef,
-  getOverlaysDef,
-] as const;
 
 // =============================================================================
 // CLIENT TOOL FACTORY
@@ -722,7 +705,7 @@ export const WEBLLM_TOOLS: Array<{
 // SERVER-SIDE TOOL DEFINITIONS (call Rust backend spatial API)
 // =============================================================================
 
-export const getSourceSchemaDef = toolDefinition({
+const getSourceSchemaDef = toolDefinition({
   name: 'get_source_schema',
   description:
     'Get the schema of a tile source: available layers, field names/types, zoom range, and bounds.',
@@ -752,7 +735,7 @@ export const getSourceSchemaDef = toolDefinition({
   }),
 });
 
-export const getSourceStatsDef = toolDefinition({
+const getSourceStatsDef = toolDefinition({
   name: 'get_source_stats',
   description:
     'Get statistics for a tile source: bounds, zoom range, layer count, attribution.',
@@ -773,7 +756,7 @@ export const getSourceStatsDef = toolDefinition({
   }),
 });
 
-export const spatialQueryDef = toolDefinition({
+const spatialQueryDef = toolDefinition({
   name: 'spatial_query',
   description:
     'Query features from a tile source within a bounding box. Returns feature properties from vector tiles.',

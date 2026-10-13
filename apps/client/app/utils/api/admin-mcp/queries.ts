@@ -15,12 +15,12 @@
 import type { AdminMcpClient, AdminMcpSession } from '~/types';
 import { ADMIN_MCP_QUERY_KEYS } from '~/utils/query-keys';
 
-export async function fetchAdminMcpClients(): Promise<AdminMcpClient[]> {
+async function fetchAdminMcpClients(): Promise<AdminMcpClient[]> {
   const result = await $fetch<AdminMcpClient[]>(apiUrl('/__admin/oauth/clients'));
   return result ?? [];
 }
 
-export async function fetchAdminMcpSessions(): Promise<AdminMcpSession[]> {
+async function fetchAdminMcpSessions(): Promise<AdminMcpSession[]> {
   const result = await $fetch<AdminMcpSession[]>(apiUrl('/__admin/oauth/sessions'));
   return result ?? [];
 }

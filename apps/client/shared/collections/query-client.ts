@@ -16,11 +16,3 @@ let queryClient: QueryClient | null = null;
 export function setQueryClient(client: QueryClient): void {
   queryClient = client;
 }
-
-/**
- * Get the QueryClient instance.
- * Returns null if not yet initialized.
- */
-export function getQueryClient(): QueryClient | null {
-  return queryClient;
-}

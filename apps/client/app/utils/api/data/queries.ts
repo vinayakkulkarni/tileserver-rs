@@ -6,7 +6,6 @@
  */
 
 import type { Data } from '~/types';
-import { DATA_SOURCES_QUERY_KEYS } from '~/utils/query-keys';
 
 // ============================================================================
 // FETCH FUNCTIONS
@@ -20,24 +19,4 @@ export async function fetchDataSources(): Promise<Data[]> {
 export async function fetchDataSource(id: string): Promise<Data | null> {
   const result = await $fetch<Data>(apiUrl(`/data/${id}.json`));
   return result ?? null;
-}
-
-// ============================================================================
-// QUERY OPTIONS
-// ============================================================================
-
-export function dataSourcesQueryOptions() {
-  return {
-    queryKey: DATA_SOURCES_QUERY_KEYS.all,
-    queryFn: fetchDataSources,
-    staleTime: 30 * 1000,
-  };
-}
-
-export function dataSourceQueryOptions(id: string) {
-  return {
-    queryKey: DATA_SOURCES_QUERY_KEYS.detail(id),
-    queryFn: (): Promise<Data | null> => fetchDataSource(id),
-    staleTime: 60 * 1000,
-  };
 }

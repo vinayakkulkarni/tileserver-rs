@@ -1,7 +1,7 @@
 import type { PingResponse } from '~/types';
 import { SERVER_QUERY_KEYS } from '~/utils/query-keys';
 
-export async function fetchPing(): Promise<PingResponse> {
+async function fetchPing(): Promise<PingResponse> {
   return await $fetch<PingResponse>(apiUrl('/ping'));
 }
 

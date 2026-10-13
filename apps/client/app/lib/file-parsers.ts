@@ -22,7 +22,7 @@ import {
  * Detect the geospatial format of a file from its extension.
  * Returns undefined for unsupported formats.
  */
-export function detectFormat(fileName: string): SupportedFormat | undefined {
+function detectFormat(fileName: string): SupportedFormat | undefined {
   const ext = fileName.slice(fileName.lastIndexOf('.')).toLowerCase();
   return FORMAT_EXTENSIONS[ext];
 }
@@ -30,7 +30,7 @@ export function detectFormat(fileName: string): SupportedFormat | undefined {
 /**
  * Check if a file can be processed client-side.
  */
-export function isClientSideFormat(format: SupportedFormat): boolean {
+function isClientSideFormat(format: SupportedFormat): boolean {
   return CLIENT_SIDE_FORMATS.has(format);
 }
 

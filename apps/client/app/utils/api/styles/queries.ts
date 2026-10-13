@@ -7,13 +7,12 @@
 
 import type { StyleSpecification } from 'maplibre-gl';
 import type { Style, TileJSON } from '~/types';
-import { MAP_STYLES_QUERY_KEYS } from '~/utils/query-keys';
 
 // ============================================================================
 // DEFAULT STYLE
 // ============================================================================
 
-export const defaultStyle: StyleSpecification = {
+const defaultStyle: StyleSpecification = {
   version: 8,
   metadata: {},
   sources: {},
@@ -75,26 +74,5 @@ export async function fetchRasterStyle(
         maxzoom: tileJSON.maxzoom,
       },
     ],
-  };
-}
-
-// ============================================================================
-// QUERY OPTIONS
-// ============================================================================
-
-export function stylesQueryOptions() {
-  return {
-    queryKey: MAP_STYLES_QUERY_KEYS.all,
-    queryFn: fetchStyles,
-    staleTime: 30 * 1000,
-  };
-}
-
-export function styleQueryOptions(id: string, isRaster: boolean = false) {
-  return {
-    queryKey: MAP_STYLES_QUERY_KEYS.style(id, isRaster),
-    queryFn: (): Promise<StyleSpecification> =>
-      isRaster ? fetchRasterStyle(id) : fetchVectorStyle(id),
-    staleTime: 60 * 1000,
   };
 }

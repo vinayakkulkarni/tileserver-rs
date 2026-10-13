@@ -1,1 +1,1 @@
-export { fetchPing, pingQueryOptions } from './queries';
+export { pingQueryOptions } from './queries';

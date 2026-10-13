@@ -1,21 +1,5 @@
-import type { PingResponse } from '~/types';
 import { useQuery } from '@tanstack/vue-query';
 import { pingQueryOptions } from '~/utils/api/server/queries';
-
-export function useServerInfo() {
-  const { data, error } = useFetch<PingResponse>(apiUrl('/ping'));
-
-  const versionLabel = computed(() => {
-    if (!data.value) return '';
-    return `v${data.value.version}`;
-  });
-
-  return {
-    ping: data,
-    pingError: error,
-    versionLabel,
-  };
-}
 
 export function usePingStats() {
   const pingQuery = useQuery(pingQueryOptions());

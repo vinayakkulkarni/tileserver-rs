@@ -16,7 +16,7 @@ import type {
  * Color palette for overlay layers.
  * Chosen for contrast against typical basemap backgrounds.
  */
-export const OVERLAY_COLORS = [
+const OVERLAY_COLORS = [
   '#3b82f6', // blue-500
   '#ef4444', // red-500
   '#10b981', // emerald-500
