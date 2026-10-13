@@ -27,6 +27,7 @@ import {
   FileArchive,
   FolderSync,
   Combine,
+  Funnel,
   WandSparkles,
   Frame,
   Share2,
@@ -158,6 +159,13 @@ export function useMarketingPage() {
       title: 'Composite Tiles',
       description:
         'Merge layers from multiple vector sources into one tile, ad-hoc via URL or named [[composites]] in config. One request, N sources.',
+      category: 'Developer experience',
+    },
+    {
+      icon: Funnel,
+      title: 'CEL Feature Filters',
+      description:
+        'Filter the features inside any vector tile with a CEL expression: ?filter= per request, or a per-source preset. Works on PMTiles, MBTiles, MLT and PostGIS.',
       category: 'Developer experience',
     },
     {
