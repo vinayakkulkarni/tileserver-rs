@@ -26,8 +26,112 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+  clippy:
+    name: 'Clippy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RUST_LOG: 'debug'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # ubuntu-latest ships with ~14GB free on /. The bundled libduckdb-sys +
+      # GDAL + mbgl-sys C++ build under cargo --all-features (libduckdb alone
+      # produces ~6GB of object files before archiving) exceeds that. Clearing
+      # pre-installed Android SDK / .NET / Haskell / large-packages reclaims
+      # ~30GB and unblocks the archive step (ar: No space left on device).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libclang-dev \
+            libgdal-dev \
+            libcurl4-openssl-dev \
+            libglfw3-dev \
+            libuv1-dev \
+            libpng-dev \
+            libicu-dev \
+            libjpeg-turbo8-dev \
+            libwebp-dev \
+            libsqlite3-dev \
+            libopengl-dev \
+            libgl-dev \
+            libegl-dev \
+            libx11-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6.1.0
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client
+        run: |
+          ulimit -s unlimited 2>/dev/null || true
+          max_attempts=3
+          for attempt in $(seq 1 $max_attempts); do
+            echo "Build attempt $attempt/$max_attempts..."
+            if pnpm --filter @tileserver-rs/client run build; then
+              echo "Build succeeded on attempt $attempt"
+              exit 0
+            fi
+            if [ $attempt -lt $max_attempts ]; then
+              echo "Build failed, retrying in 15s..."
+              sleep 15
+            fi
+          done
+          echo "Build failed after $max_attempts attempts"
+          exit 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Free disk space for cargo cache
+        run: rm -rf ~/.cargo/registry/src
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          # Only save cache on main to prevent branch cache bloat (3.4GB+)
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Share cache across all branches
+          shared-key: rust-ci-clippy
+          # Don't cache build targets (saves ~2GB)
+          cache-targets: false
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # Clippy and the instrumented test run used to share one job and ran one
+  # after the other (~24 + ~41 min). They compile in different profiles, so
+  # nothing was shared between them; running them as two parallel jobs cuts
+  # the wall-clock time to the longer of the two.
   ci:
-    name: 'Clippy, Check, Test & Build'
+    name: 'Test & Coverage'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -108,7 +212,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, llvm-tools-preview
+          components: llvm-tools-preview
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
@@ -125,9 +229,6 @@ jobs:
           shared-key: rust-ci
           # Don't cache build targets (saves ~2GB)
           cache-targets: false
-
-      - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
 
       # Runs the full --all-features test suite under llvm instrumentation, so
       # the gating test run and the LCOV that feeds cargo-crap come from ONE
@@ -146,3 +247,48 @@ jobs:
           path: lcov-all-features.info
           retention-days: 1
           if-no-files-found: error
+
+  # Complexity-vs-coverage (CRAP) gate. Consumes the --all-features LCOV that
+  # ci-rust.yml already produced (no second instrumented build here) and reports
+  # the worst offenders. Advisory for now (continue-on-error) — flip off once a
+  # main baseline is committed and switch to --baseline + regression gating.
+  crap:
+    name: Complexity (CRAP)
+    needs: [ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-crap
+        run: cargo install cargo-crap --locked
+
+      - name: Download all-features LCOV
+        uses: actions/download-artifact@v8
+        with:
+          name: lcov-all-features
+
+      - name: Run cargo-crap
+        # `|| true` keeps this advisory: the report is still written + posted
+        # even when functions exceed the threshold (cargo-crap exits non-zero).
+        run: |
+          cargo crap --path crates/tileserver-rs \
+            --lcov lcov-all-features.info \
+            --exclude 'tests/**' --exclude 'benches/**' \
+            --allow 'crates/mbgl-sys/**' \
+            --threshold 30 \
+            --format pr-comment \
+            --repo-url "${{ github.server_url }}/${{ github.repository }}" \
+            --commit-ref "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --output crap-report.md || true
+
+      - name: Post CRAP report as PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: cargo-crap
+          path: crap-report.md
