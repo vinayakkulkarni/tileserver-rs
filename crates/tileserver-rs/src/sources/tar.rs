@@ -501,6 +501,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         }
     }
 

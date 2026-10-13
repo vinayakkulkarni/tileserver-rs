@@ -142,8 +142,21 @@ pub(crate) async fn get_tile(
         .parse_y_and_format()
         .ok_or(TileServerError::InvalidTileRequest)?;
 
+    // CEL request filter (`?filter=`). Compiled before any fetch so an invalid
+    // expression is a 400 without touching the source.
+    #[cfg(feature = "cel")]
+    let request_filter = query
+        .get("filter")
+        .map(|expr| crate::cel_filter::CelFilter::compile(expr))
+        .transpose()?;
+
     if let Some(members) = resolve_composite_members(&shared, &params.source) {
-        return get_composite_tile(&state, &members, params.z, params.x, y).await;
+        let response = get_composite_tile(&state, &members, params.z, params.x, y).await?;
+        #[cfg(feature = "cel")]
+        if let Some(filter) = &request_filter {
+            return filter_composite_response(response, filter).await;
+        }
+        return Ok(response);
     }
 
     if format == "geojson" {
@@ -289,6 +302,46 @@ pub(crate) async fn get_tile(
     #[cfg(feature = "raster")]
     let tile = apply_band_math_if_requested(tile, &query);
 
+    // Every active CEL filter (source preset + request) folds into one hash:
+    // filtered variants get their own cache entries.
+    #[cfg(feature = "cel")]
+    let filter_hash = {
+        let preset = state.sources.preset_filter(&params.source);
+        let active: Vec<&crate::cel_filter::CelFilter> = preset
+            .map(AsRef::as_ref)
+            .into_iter()
+            .chain(request_filter.as_ref())
+            .collect();
+        crate::cel_filter::combined_hash(&active)
+    };
+    #[cfg(not(feature = "cel"))]
+    let filter_hash = 0;
+
+    #[cfg(feature = "cel")]
+    let tile = match &request_filter {
+        Some(filter) => {
+            filter_request_tile(
+                &state.sources,
+                TileId {
+                    source: &params.source,
+                    z: params.z,
+                    x: params.x,
+                    y,
+                    filter: filter_hash,
+                },
+                tile,
+                filter,
+            )
+            .await?
+        }
+        None => tile,
+    };
+
+    // A filter that removed every feature yields an empty tile: 204.
+    if filter_hash != 0 && tile.format.is_vector() && tile.data.is_empty() {
+        return Ok(axum::http::StatusCode::NO_CONTENT.into_response());
+    }
+
     // MLT transcoding: if the requested format differs from the source format
     // and the `mlt` feature is enabled, attempt on-the-fly transcoding.
     #[cfg(feature = "mlt")]
@@ -337,6 +390,7 @@ pub(crate) async fn get_tile(
             z: params.z,
             x: params.x,
             y,
+            filter: filter_hash,
         },
         tile,
         accept_encoding,
@@ -365,6 +419,59 @@ struct TileId<'a> {
     z: u8,
     x: u32,
     y: u32,
+    /// Combined CEL filter hash (`0` = unfiltered); part of the cache key.
+    filter: u64,
+}
+
+/// Apply a request CEL filter, caching the filtered tile under
+/// `(source, z, x, y, identity, filter hash)`.
+#[cfg(feature = "cel")]
+async fn filter_request_tile(
+    sources: &sources::SourceManager,
+    id: TileId<'_>,
+    tile: sources::TileData,
+    filter: &crate::cel_filter::CelFilter,
+) -> Result<sources::TileData, TileServerError> {
+    let key = sources.cache().map(|_| crate::cache::TileCacheKey {
+        source_id: id.source.into(),
+        z: id.z,
+        x: id.x,
+        y: id.y,
+        encoding: sources::TileCompression::None,
+        filter: id.filter,
+    });
+    if let (Some(cache), Some(key)) = (sources.cache(), key.as_ref())
+        && let Some(hit) = cache.get(key).await
+    {
+        return Ok(hit);
+    }
+    let filtered = crate::cel_filter::apply(tile, &[filter])?;
+    if let (Some(cache), Some(key)) = (sources.cache(), key) {
+        cache.insert(key, filtered.clone()).await;
+    }
+    Ok(filtered)
+}
+
+/// Apply a request CEL filter to a merged composite tile response.
+#[cfg(feature = "cel")]
+async fn filter_composite_response(
+    response: Response,
+    filter: &crate::cel_filter::CelFilter,
+) -> Result<Response, TileServerError> {
+    let (parts, body) = response.into_parts();
+    let bytes = axum::body::to_bytes(body, usize::MAX)
+        .await
+        .map_err(|e| TileServerError::RenderError(format!("composite body: {e}")))?;
+    let tile = sources::TileData {
+        data: bytes,
+        format: sources::TileFormat::Pbf,
+        compression: sources::TileCompression::None,
+    };
+    let filtered = crate::cel_filter::apply(tile, &[filter])?;
+    if filtered.data.is_empty() {
+        return Ok(axum::http::StatusCode::NO_CONTENT.into_response());
+    }
+    Ok((parts.headers, filtered.data).into_response())
 }
 
 /// Negotiate the response `Content-Encoding` for `tile` and re-encode if needed.
@@ -400,6 +507,7 @@ async fn negotiate_tile_encoding(
         x: id.x,
         y: id.y,
         encoding: target,
+        filter: id.filter,
     });
 
     if let (Some(cache), Some(key)) = (cache, key.as_ref())
@@ -514,8 +622,9 @@ async fn get_tile_as_geojson(
         ));
     }
 
-    let tile = source
-        .get_tile(z, x, y)
+    let tile = state
+        .sources
+        .get_tile(source_id, z, x, y)
         .await?
         .ok_or(TileServerError::TileNotFound { z, x, y })?;
 
@@ -809,5 +918,247 @@ mod band_math_tests {
         assert_eq!(out.format, sources::TileFormat::Png);
         assert!(!out.data.is_empty());
         assert_ne!(out.data.as_ref(), original.as_slice());
+    }
+}
+
+#[cfg(all(test, feature = "cel"))]
+mod cel_route_tests {
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    use async_trait::async_trait;
+    use axum::Router;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use bytes::Bytes;
+    use geozero::mvt::{Message, Tile, tile};
+    use tower::ServiceExt;
+
+    use crate::cel_filter::CelFilter;
+    use crate::config::CelFilterConfig;
+    use crate::reload::{AppState, ReloadController, ReloadMeta, RuntimeSettings, SharedState};
+    use crate::sources::{
+        SourceManager, TileCompression, TileData, TileFormat, TileMetadata, TileSource,
+    };
+    use crate::styles::StyleManager;
+
+    struct MvtSource {
+        meta: TileMetadata,
+        tile: Bytes,
+    }
+
+    #[async_trait]
+    impl TileSource for MvtSource {
+        async fn get_tile(
+            &self,
+            _z: u8,
+            _x: u32,
+            _y: u32,
+        ) -> crate::error::Result<Option<TileData>> {
+            Ok(Some(TileData {
+                data: self.tile.clone(),
+                format: TileFormat::Pbf,
+                compression: TileCompression::None,
+            }))
+        }
+
+        fn metadata(&self) -> &TileMetadata {
+            &self.meta
+        }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    /// One `landuse` layer: ids 0..3 with (type, height).
+    fn landuse_tile() -> Bytes {
+        let rows = [
+            ("residential", 10),
+            ("commercial", 120),
+            ("park", 0),
+            ("residential", 80),
+        ];
+        let mut values = Vec::with_capacity(rows.len() * 2);
+        let mut features = Vec::with_capacity(rows.len());
+        for (id, (kind, height)) in rows.iter().enumerate() {
+            values.push(tile::Value {
+                string_value: Some((*kind).to_string()),
+                ..Default::default()
+            });
+            values.push(tile::Value {
+                int_value: Some(*height),
+                ..Default::default()
+            });
+            let base = u32::try_from(id * 2).expect("index");
+            features.push(tile::Feature {
+                id: Some(id as u64),
+                tags: vec![0, base, 1, base + 1],
+                r#type: Some(1),
+                geometry: vec![9, 50, 34],
+            });
+        }
+        let layer = tile::Layer {
+            version: 2,
+            name: "landuse".to_string(),
+            features,
+            keys: vec!["type".to_string(), "height".to_string()],
+            values,
+            extent: Some(4096),
+        };
+        Bytes::from(
+            Tile {
+                layers: vec![layer],
+            }
+            .encode_to_vec(),
+        )
+    }
+
+    fn router(preset: Option<&str>) -> Router {
+        let source = MvtSource {
+            meta: TileMetadata {
+                id: "land".to_string(),
+                name: "land".to_string(),
+                description: None,
+                attribution: None,
+                format: TileFormat::Pbf,
+                minzoom: 0,
+                maxzoom: 14,
+                bounds: None,
+                center: None,
+                vector_layers: None,
+            },
+            tile: landuse_tile(),
+        };
+        let mut map: HashMap<String, Arc<dyn TileSource>> = HashMap::new();
+        map.insert("land".to_string(), Arc::new(source));
+        let mut filters = HashMap::new();
+        if let Some(expression) = preset {
+            let filter = CelFilter::from_config(&CelFilterConfig {
+                expression: expression.to_string(),
+                applies_to_layers: None,
+            })
+            .expect("preset compiles");
+            filters.insert("land".to_string(), Arc::new(filter));
+        }
+        let manager = SourceManager::from_sources(map).with_filters(filters);
+        let state = AppState {
+            sources: Arc::new(manager),
+            styles: Arc::new(StyleManager::new()),
+            renderer: None,
+            base_url: "http://localhost:8080".to_string(),
+            render_base_url: "http://localhost:8080".to_string(),
+            ui_enabled: false,
+            fonts_dir: None,
+            files_dir: None,
+            upload_dir: None,
+        };
+        let meta = ReloadMeta {
+            config_hash: "test".to_string(),
+            loaded_at_unix: 0,
+            loaded_sources: 1,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+        };
+        let runtime = RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: "127.0.0.1".to_string(),
+            runtime_port: 8080,
+            public_url_override: None,
+        };
+        let controller = Arc::new(ReloadController::new(
+            state,
+            meta,
+            crate::config::Config::default(),
+            None,
+            runtime,
+        ));
+        Router::new()
+            .route(
+                "/data/{source}/{z}/{x}/{y_fmt}",
+                axum::routing::get(super::get_tile),
+            )
+            .with_state(SharedState::new(controller))
+    }
+
+    async fn get(router: Router, uri: &str) -> (StatusCode, Vec<u64>) {
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .uri(uri)
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        if status != StatusCode::OK {
+            return (status, Vec::new());
+        }
+        let tile = Tile::decode(body.as_ref()).expect("MVT body");
+        let ids = tile
+            .layers
+            .iter()
+            .flat_map(|l| l.features.iter().filter_map(|f| f.id))
+            .collect();
+        (status, ids)
+    }
+
+    #[tokio::test]
+    async fn no_filter_returns_every_feature() {
+        assert_eq!(
+            get(router(None), "/data/land/1/0/0.pbf").await,
+            (StatusCode::OK, vec![0, 1, 2, 3])
+        );
+    }
+
+    #[tokio::test]
+    async fn request_filter_keeps_matching_features() {
+        assert_eq!(
+            get(
+                router(None),
+                "/data/land/1/0/0.pbf?filter=type%3D%3D'residential'"
+            )
+            .await,
+            (StatusCode::OK, vec![0, 3])
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_filter_is_bad_request() {
+        let (status, _) = get(router(None), "/data/land/1/0/0.pbf?filter=type%3D%3D").await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let (status, _) = get(router(None), "/data/land/1/0/0.pbf?filter=dyn(height)%3E1").await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn filter_matching_nothing_is_no_content() {
+        let (status, _) = get(router(None), "/data/land/1/0/0.pbf?filter=height%3E1000").await;
+        assert_eq!(status, StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn preset_always_applies() {
+        assert_eq!(
+            get(router(Some("height > 50")), "/data/land/1/0/0.pbf").await,
+            (StatusCode::OK, vec![1, 3])
+        );
+    }
+
+    #[tokio::test]
+    async fn preset_and_request_compose_with_and() {
+        assert_eq!(
+            get(
+                router(Some("height > 50")),
+                "/data/land/1/0/0.pbf?filter=type%3D%3D'residential'"
+            )
+            .await,
+            (StatusCode::OK, vec![3])
+        );
     }
 }

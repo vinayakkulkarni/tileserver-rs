@@ -333,6 +333,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Pbf);
@@ -382,6 +383,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Png);
@@ -430,6 +432,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Jpeg);
@@ -478,6 +481,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.format, TileFormat::Mlt);
@@ -528,6 +532,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.minzoom, 5);
@@ -580,6 +585,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let b = meta.bounds.unwrap();
@@ -639,6 +645,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -690,6 +697,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         let c = meta.center.unwrap();
@@ -741,6 +749,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "DB Name");
@@ -792,6 +801,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.attribution.as_deref(), Some("Config Attribution"));
@@ -838,6 +848,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
         let meta = MbTilesSource::read_metadata(&conn, &config).unwrap();
         assert_eq!(meta.name, "empty");
@@ -913,6 +924,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         }
     }
 

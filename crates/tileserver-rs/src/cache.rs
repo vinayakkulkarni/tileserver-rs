@@ -23,6 +23,9 @@ pub struct TileCacheKey {
     pub x: u32,
     pub y: u32,
     pub encoding: TileCompression,
+    /// Hash of the request CEL filter, `0` when unfiltered. Keeps filtered
+    /// variants apart from the plain tile (no cache poisoning).
+    pub filter: u64,
 }
 
 impl Hash for TileCacheKey {
@@ -32,6 +35,7 @@ impl Hash for TileCacheKey {
         self.x.hash(state);
         self.y.hash(state);
         self.encoding.hash(state);
+        self.filter.hash(state);
     }
 }
 
@@ -116,6 +120,7 @@ mod tests {
             x: 8580,
             y: 5737,
             encoding: TileCompression::None,
+            filter: 0,
         };
         cache.insert(key.clone(), make_tile(1024)).await;
         let result = cache.get(&key).await;
@@ -132,6 +137,7 @@ mod tests {
             x: 8580,
             y: 5737,
             encoding: TileCompression::None,
+            filter: 0,
         };
         assert!(cache.get(&key).await.is_none());
     }
@@ -146,6 +152,7 @@ mod tests {
                 x: i,
                 y: 0,
                 encoding: TileCompression::None,
+                filter: 0,
             };
             cache.insert(key, make_tile(1000)).await;
         }
@@ -162,6 +169,7 @@ mod tests {
             x: 0,
             y: 0,
             encoding: TileCompression::None,
+            filter: 0,
         };
         let k2 = TileCacheKey {
             source_id: "source-b".into(),
@@ -169,6 +177,7 @@ mod tests {
             x: 0,
             y: 0,
             encoding: TileCompression::None,
+            filter: 0,
         };
         cache.insert(k1.clone(), make_tile(100)).await;
         assert!(
@@ -186,6 +195,7 @@ mod tests {
             x: 0,
             y: 0,
             encoding: TileCompression::None,
+            filter: 0,
         };
         cache.insert(key.clone(), make_tile(512)).await;
         cache.cache.run_pending_tasks().await;
@@ -209,6 +219,7 @@ mod tests {
                 x: i,
                 y: 0,
                 encoding: TileCompression::None,
+                filter: 0,
             };
             cache.insert(key, make_tile(100)).await;
         }
@@ -224,6 +235,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::None,
+            filter: 0,
         };
         let k2 = TileCacheKey {
             source_id: "a".into(),
@@ -231,6 +243,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::None,
+            filter: 0,
         };
         assert_eq!(k1, k2);
     }
@@ -243,6 +256,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::None,
+            filter: 0,
         };
         let k2 = TileCacheKey {
             source_id: "a".into(),
@@ -250,6 +264,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::None,
+            filter: 0,
         };
         assert_ne!(k1, k2);
     }
@@ -265,6 +280,7 @@ mod tests {
             x: 10,
             y: 20,
             encoding: TileCompression::None,
+            filter: 0,
         };
         let k2 = TileCacheKey {
             source_id: "src".into(),
@@ -272,6 +288,7 @@ mod tests {
             x: 10,
             y: 20,
             encoding: TileCompression::None,
+            filter: 0,
         };
         let mut h1 = DefaultHasher::new();
         let mut h2 = DefaultHasher::new();
@@ -305,6 +322,7 @@ mod tests {
             x: 0,
             y: 0,
             encoding: TileCompression::None,
+            filter: 0,
         };
         cache.insert(key.clone(), make_tile(100)).await;
         cache.insert(key.clone(), make_tile(200)).await;
@@ -321,6 +339,7 @@ mod tests {
             x: 8,
             y: 5,
             encoding: TileCompression::Gzip,
+            filter: 0,
         };
         let brotli_key = TileCacheKey {
             source_id: "src".into(),
@@ -328,6 +347,7 @@ mod tests {
             x: 8,
             y: 5,
             encoding: TileCompression::Brotli,
+            filter: 0,
         };
         cache.insert(gzip_key.clone(), make_tile(100)).await;
         assert!(
@@ -345,6 +365,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::Gzip,
+            filter: 0,
         };
         let zstd = TileCacheKey {
             source_id: "a".into(),
@@ -352,6 +373,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: TileCompression::Zstd,
+            filter: 0,
         };
         assert_ne!(gzip, zstd);
     }
@@ -369,6 +391,7 @@ mod tests {
             x: 10,
             y: 20,
             encoding: TileCompression::Gzip,
+            filter: 0,
         }
         .hash(&mut h_gzip);
         TileCacheKey {
@@ -377,6 +400,7 @@ mod tests {
             x: 10,
             y: 20,
             encoding: TileCompression::Brotli,
+            filter: 0,
         }
         .hash(&mut h_brotli);
         assert_ne!(h_gzip.finish(), h_brotli.finish());

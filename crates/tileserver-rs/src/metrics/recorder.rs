@@ -10,7 +10,7 @@ use std::time::Duration;
 use opentelemetry::KeyValue;
 
 use super::instruments::{
-    HTTP_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_IN_FLIGHT, HTTP_REQUESTS_TOTAL,
+    CEL_COMPILE_TOTAL, HTTP_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_IN_FLIGHT, HTTP_REQUESTS_TOTAL,
     RENDER_DURATION_SECONDS, RENDER_ERRORS_TOTAL, TILE_CACHE_HITS_TOTAL, TILE_CACHE_MISSES_TOTAL,
     TILE_COMPRESSION_TOTAL, TILE_REQUEST_BYTES, TILE_REQUEST_DURATION_SECONDS, TILE_REQUESTS_TOTAL,
 };
@@ -181,6 +181,12 @@ pub fn compression_recorded(source: &str, encoding: &str, action: CompressionAct
         KeyValue::new("action", action.as_label()),
     ];
     TILE_COMPRESSION_TOTAL.add(1, &attrs);
+}
+
+/// Record a CEL filter compile-cache lookup.
+pub fn cel_compile_recorded(hit: bool) {
+    let attrs = [KeyValue::new("result", if hit { "hit" } else { "miss" })];
+    CEL_COMPILE_TOTAL.add(1, &attrs);
 }
 
 pub fn http_request_recorded(event: HttpEvent<'_>) {

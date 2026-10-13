@@ -1067,6 +1067,7 @@ mod mlt_mbtiles_tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         }
     }
 

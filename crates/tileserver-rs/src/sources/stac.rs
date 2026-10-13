@@ -140,6 +140,7 @@ impl StacSource {
                 dem_band: config.dem_band,
                 #[cfg(feature = "dem")]
                 dem_nodata_color: config.dem_nodata_color,
+                filter: None,
             };
 
             match CogSource::from_file(&cog_config).await {
@@ -622,6 +623,7 @@ async fn render_single_asset(
         dem_band: template.dem_band,
         #[cfg(feature = "dem")]
         dem_nodata_color: template.dem_nodata_color,
+        filter: None,
     };
 
     match CogSource::from_file(&cfg).await {

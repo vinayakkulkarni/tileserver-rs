@@ -107,6 +107,9 @@ pub enum TileServerError {
         got: String,
     },
 
+    #[error("invalid filter: {0}")]
+    InvalidFilter(String),
+
     #[error("upload error: {0}")]
     UploadError(String),
 
@@ -203,6 +206,7 @@ impl IntoResponse for TileServerError {
             }
             #[cfg(feature = "stac")]
             TileServerError::StacError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
+            TileServerError::InvalidFilter(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             TileServerError::UploadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, self.to_string()),
             TileServerError::Internal(_) => (

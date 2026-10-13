@@ -627,6 +627,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 enum_values: None,
             },
             ConfigFieldSchema {
+                key: "filter",
+                field_type: "table",
+                default: None,
+                description: "Per-feature CEL filter preset for vector sources: `expression` (CEL boolean) and optional `applies_to_layers`. Requests can add `?filter=` (logical AND). Needs the `cel` feature.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
                 key: "input_source",
                 field_type: "string",
                 default: None,

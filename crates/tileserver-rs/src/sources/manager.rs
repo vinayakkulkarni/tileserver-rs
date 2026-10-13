@@ -39,6 +39,10 @@ pub struct SourceManager {
     #[cfg(feature = "postgres")]
     tile_cache: Option<Arc<TileCache>>,
     global_cache: Option<Arc<crate::cache::TileCache>>,
+    /// Per-source CEL filter presets, applied to every tile read through the
+    /// manager. A source with a preset is never served unfiltered.
+    #[cfg(feature = "cel")]
+    filters: HashMap<String, Arc<crate::cel_filter::CelFilter>>,
 }
 
 impl SourceManager {
@@ -51,6 +55,8 @@ impl SourceManager {
             #[cfg(feature = "postgres")]
             tile_cache: None,
             global_cache: None,
+            #[cfg(feature = "cel")]
+            filters: HashMap::new(),
         }
     }
 
@@ -59,6 +65,90 @@ impl SourceManager {
     pub fn with_cache(mut self, cache: Arc<crate::cache::TileCache>) -> Self {
         self.global_cache = Some(cache);
         self
+    }
+
+    /// The CEL filter preset for a source, if one is configured.
+    #[cfg(feature = "cel")]
+    #[must_use]
+    pub fn preset_filter(&self, id: &str) -> Option<&Arc<crate::cel_filter::CelFilter>> {
+        self.filters.get(id)
+    }
+
+    /// Copy of every configured CEL preset, keyed by source id. Used to keep
+    /// presets when the manager is rebuilt (uploads).
+    #[cfg(feature = "cel")]
+    #[must_use]
+    pub fn clone_filters(&self) -> HashMap<String, Arc<crate::cel_filter::CelFilter>> {
+        self.filters.clone()
+    }
+
+    /// Attach CEL presets (see [`SourceManager::clone_filters`]).
+    #[cfg(feature = "cel")]
+    #[must_use]
+    pub fn with_filters(
+        mut self,
+        filters: HashMap<String, Arc<crate::cel_filter::CelFilter>>,
+    ) -> Self {
+        self.filters = filters;
+        self
+    }
+
+    /// Register the preset from `config`, failing when it does not compile.
+    #[cfg(feature = "cel")]
+    fn register_filter(
+        &mut self,
+        id: &str,
+        config: Option<&crate::config::CelFilterConfig>,
+    ) -> Result<()> {
+        if let Some(config) = config {
+            let filter = crate::cel_filter::CelFilter::from_config(config)?;
+            self.filters.insert(id.to_string(), Arc::new(filter));
+        }
+        Ok(())
+    }
+
+    /// Apply the source's preset to a fetched tile. No-op without a preset.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the tile cannot be decoded or is not a vector tile.
+    #[cfg(feature = "cel")]
+    pub fn apply_preset(
+        &self,
+        id: &str,
+        tile: Option<crate::sources::TileData>,
+    ) -> Result<Option<crate::sources::TileData>> {
+        match (self.filters.get(id), tile) {
+            (Some(filter), Some(tile)) => {
+                Ok(Some(crate::cel_filter::apply(tile, &[filter.as_ref()])?))
+            }
+            (_, tile) => Ok(tile),
+        }
+    }
+
+    /// Without the `cel` feature there are no presets: returns `tile` as is.
+    ///
+    /// # Errors
+    ///
+    /// Never fails.
+    #[cfg(not(feature = "cel"))]
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub fn apply_preset(
+        &self,
+        _id: &str,
+        tile: Option<crate::sources::TileData>,
+    ) -> Result<Option<crate::sources::TileData>> {
+        Ok(tile)
+    }
+
+    /// Cache-key filter component for a source: its preset hash, or `0`.
+    #[must_use]
+    pub fn preset_hash(&self, _id: &str) -> u64 {
+        #[cfg(feature = "cel")]
+        if let Some(filter) = self.filters.get(_id) {
+            return filter.hash();
+        }
+        0
     }
 
     /// Reference to the global cache, if configured (used by admin flush endpoint).
@@ -90,6 +180,7 @@ impl SourceManager {
                 x,
                 y,
                 encoding: crate::sources::TileCompression::None,
+                filter: self.preset_hash(id),
             };
             if let Some(cached) = cache.get(&key).await {
                 crate::metrics::cache_hit_recorded(id);
@@ -120,7 +211,7 @@ impl SourceManager {
                 outcome,
             });
 
-            let result = fetch_result?;
+            let result = self.apply_preset(id, fetch_result?)?;
             if let Some(ref tile) = result {
                 cache.insert(key, tile.clone()).await;
             }
@@ -140,7 +231,7 @@ impl SourceManager {
                 duration: started.elapsed(),
                 outcome,
             });
-            fetch_result
+            self.apply_preset(id, fetch_result?)
         }
     }
 
@@ -322,6 +413,25 @@ impl SourceManager {
             pool.warmup(&queries).await?;
         }
 
+        #[cfg(feature = "cel")]
+        for func_config in &config.functions {
+            if function_sources
+                .iter()
+                .any(|s| s.metadata().id == func_config.id)
+            {
+                self.register_filter(&func_config.id, func_config.filter.as_ref())?;
+            }
+        }
+        #[cfg(feature = "cel")]
+        for table_config in &config.tables {
+            if table_sources
+                .iter()
+                .any(|s| s.metadata().id == table_config.id)
+            {
+                self.register_filter(&table_config.id, table_config.filter.as_ref())?;
+            }
+        }
+
         for source in function_sources {
             self.sources
                 .insert(source.metadata().id.clone(), Arc::new(source));
@@ -350,6 +460,8 @@ impl SourceManager {
                             .await?,
                     );
                     self.sources.insert(config.id.clone(), source);
+                    #[cfg(feature = "cel")]
+                    self.register_filter(&config.id, config.filter.as_ref())?;
                     return Ok(());
                 }
 
@@ -359,6 +471,8 @@ impl SourceManager {
                         crate::sources::pmtiles::sftp::SftpPmTilesSource::from_url(config).await?,
                     );
                     self.sources.insert(config.id.clone(), source);
+                    #[cfg(feature = "cel")]
+                    self.register_filter(&config.id, config.filter.as_ref())?;
                     return Ok(());
                 }
 
@@ -399,6 +513,8 @@ impl SourceManager {
             }
         };
 
+        #[cfg(feature = "cel")]
+        self.register_filter(&config.id, config.filter.as_ref())?;
         self.sources.insert(config.id.clone(), source);
         Ok(())
     }
@@ -455,6 +571,8 @@ impl SourceManager {
             #[cfg(feature = "postgres")]
             tile_cache: None,
             global_cache: None,
+            #[cfg(feature = "cel")]
+            filters: HashMap::new(),
         }
     }
 
@@ -519,7 +637,8 @@ impl SourceManager {
             }
             #[cfg(not(feature = "postgres"))]
             let _ = query_params;
-            source.get_tile(z, x, y).await
+            let tile = source.get_tile(z, x, y).await?;
+            self.apply_preset(id, tile)
         }
     }
 
@@ -556,11 +675,13 @@ impl SourceManager {
             .as_any()
             .downcast_ref::<PostgresFunctionSource>()
         {
-            pg_func
+            let tile = pg_func
                 .get_tile_with_query_params(z, x, y, query_params)
-                .await
+                .await?;
+            self.apply_preset(id, tile)
         } else {
-            source.get_tile(z, x, y).await
+            let tile = source.get_tile(z, x, y).await?;
+            self.apply_preset(id, tile)
         }
     }
 
@@ -802,6 +923,7 @@ mod tests {
             x: 2,
             y: 3,
             encoding: crate::sources::TileCompression::None,
+            filter: 0,
         };
         let cached = cache.get(&key).await;
         assert!(cached.is_some());
@@ -978,6 +1100,7 @@ mod tests {
             x: 1,
             y: 1,
             encoding: crate::sources::TileCompression::None,
+            filter: 0,
         };
         assert!(cache.get(&key).await.is_none());
     }
@@ -1089,6 +1212,7 @@ mod tests {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         }
     }
 

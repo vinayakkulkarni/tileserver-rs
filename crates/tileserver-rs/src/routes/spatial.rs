@@ -211,8 +211,9 @@ pub(crate) async fn post_spatial_query(
     };
 
     // Fetch the tile
-    let tile_data = source
-        .get_tile(z, x, y)
+    let tile_data = state
+        .sources
+        .get_tile(&request.source, z, x, y)
         .await?
         .ok_or(TileServerError::TileNotFound { z, x, y })?;
 

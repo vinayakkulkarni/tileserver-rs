@@ -647,6 +647,7 @@ mod error_handling {
             dem_band: 1,
             #[cfg(feature = "dem")]
             dem_nodata_color: None,
+            filter: None,
         };
 
         let result = CogSource::from_file(&config).await;

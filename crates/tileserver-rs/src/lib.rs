@@ -7,6 +7,8 @@ pub mod autodetect;
 pub mod base_path;
 pub mod cache;
 pub mod cache_control;
+#[cfg(feature = "cel")]
+pub mod cel_filter;
 pub mod composite;
 pub mod compression;
 pub mod config;

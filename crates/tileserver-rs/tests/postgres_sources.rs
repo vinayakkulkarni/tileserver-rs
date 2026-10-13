@@ -158,6 +158,7 @@ mod validation_tests {
             minzoom: 5,
             maxzoom: 15,
             bounds: None,
+            filter: None,
         };
 
         assert_eq!(func.minzoom, 5);
@@ -447,6 +448,7 @@ mod integration_tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
+            filter: None,
         };
 
         let source = PostgresFunctionSource::new(pool, &config, None).await;
@@ -486,6 +488,7 @@ mod integration_tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
+            filter: None,
         };
 
         let source = match PostgresFunctionSource::new(pool, &config, None).await {
@@ -538,6 +541,7 @@ mod integration_tests {
             minzoom: 5,
             maxzoom: 10,
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
+            filter: None,
         };
 
         let source = match PostgresFunctionSource::new(pool, &config, None).await {
@@ -583,6 +587,7 @@ mod integration_tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
+            filter: None,
         };
 
         let source = PostgresFunctionSource::new(pool, &config, None).await;
@@ -622,6 +627,7 @@ mod integration_tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: None,
+            filter: None,
         };
 
         let source = match PostgresFunctionSource::new(pool, &config, None).await {
@@ -658,6 +664,7 @@ mod integration_tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: Some([8.45, 47.32, 8.63, 47.44]),
+            filter: None,
         };
 
         let source = match PostgresFunctionSource::new(pool, &config, None).await {

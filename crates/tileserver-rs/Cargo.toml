@@ -42,6 +42,8 @@ tar              = { workspace = true }
 # MLT (MapLibre Tiles) transcoding support (optional)
 mlt-core         = { workspace = true, optional = true }
 prost            = { workspace = true, optional = true }
+# CEL per-feature vector tile filtering (optional)
+cel              = { workspace = true, optional = true }
 geo-types        = { workspace = true, optional = true }
 tokio            = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -129,7 +131,7 @@ rsa              = { version = "0.9.10", optional = true, features = ["pem"] }
 subtle           = { workspace = true, optional = true }
 
 [features]
-default = ["postgres", "raster", "mlt", "cloud", "stac", "dem"]
+default = ["postgres", "raster", "mlt", "cloud", "stac", "dem", "cel"]
 frontend = ["rust-embed"]
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "dep:ogcapi-types", "dep:geojson", "dep:cql2"]
 postgres-integration = ["postgres"]
@@ -137,6 +139,8 @@ raster = ["gdal", "dep:ndarray", "dep:exmex"]
 cloud = ["object_store", "url"]
 sftp = ["dep:russh", "dep:russh-sftp"]
 mlt = ["mlt-core", "dep:prost", "geo-types"]
+# Per-feature CEL filtering of vector tiles (`?filter=` + `[sources.filter]`).
+cel = ["dep:cel"]
 geoparquet = ["dep:parquet", "dep:arrow-array", "dep:arrow-schema", "dep:arrow-cast", "dep:geo", "dep:prost"]
 duckdb = ["dep:duckdb", "dep:prost"]
 stac = ["raster", "dep:stac"]
@@ -234,3 +238,8 @@ required-features = ["geoparquet"]
 [[bench]]
 name = "metrics_overhead"
 harness = false
+
+[[bench]]
+name = "cel_filter"
+harness = false
+required-features = ["cel"]

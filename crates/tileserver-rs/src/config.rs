@@ -621,6 +621,22 @@ impl Default for TelemetryConfig {
     }
 }
 
+/// Per-feature CEL filter preset for a vector source (`[sources.filter]`).
+///
+/// Every tile served from the source is filtered with `expression`; a request
+/// `?filter=` expression is applied on top (logical AND). A source with a
+/// preset can never be read without it, so operators can use presets for
+/// data isolation. Needs the `cel` cargo feature.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CelFilterConfig {
+    /// CEL boolean expression evaluated against each feature's properties.
+    pub expression: String,
+    /// Only filter these layers; other layers pass through untouched.
+    /// `None` filters every layer.
+    #[serde(default)]
+    pub applies_to_layers: Option<Vec<String>>,
+}
+
 /// Configuration for a tile source (PMTiles or MBTiles)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceConfig {
@@ -700,6 +716,9 @@ pub struct SourceConfig {
     /// archives.
     #[serde(default)]
     pub tms: bool,
+    /// Per-feature CEL filter preset (vector sources only).
+    #[serde(default)]
+    pub filter: Option<CelFilterConfig>,
     #[cfg(feature = "dem")]
     #[serde(default)]
     pub input_source: Option<String>,
@@ -1160,6 +1179,9 @@ pub struct PostgresFunctionConfig {
     pub maxzoom: u8,
     /// Bounds [west, south, east, north] in WGS84
     pub bounds: Option<[f64; 4]>,
+    /// Per-feature CEL filter preset applied to every tile.
+    #[serde(default)]
+    pub filter: Option<CelFilterConfig>,
 }
 
 #[cfg(feature = "postgres")]
@@ -1228,6 +1250,9 @@ pub struct PostgresTableConfig {
     /// only; there is no built-in auth.
     #[serde(default)]
     pub writable: bool,
+    /// Per-feature CEL filter preset applied to every tile.
+    #[serde(default)]
+    pub filter: Option<CelFilterConfig>,
 }
 
 #[cfg(all(feature = "postgres", feature = "raster"))]
@@ -1348,8 +1373,36 @@ impl Config {
                 );
             }
         }
+        #[cfg(feature = "cel")]
+        self.validate_filters()?;
         validate_extra_response_headers(self.server.extra_response_headers.as_ref())?;
         self.compression.validate()?;
+        Ok(())
+    }
+
+    /// Compile every CEL filter preset so a bad expression fails at load time.
+    #[cfg(feature = "cel")]
+    fn validate_filters(&self) -> anyhow::Result<()> {
+        let presets = self
+            .sources
+            .iter()
+            .filter_map(|s| s.filter.as_ref().map(|f| (s.id.as_str(), f)));
+        #[cfg(feature = "postgres")]
+        let presets = presets
+            .chain(self.postgres.iter().flat_map(|pg| {
+                pg.tables
+                    .iter()
+                    .filter_map(|t| t.filter.as_ref().map(|f| (t.id.as_str(), f)))
+            }))
+            .chain(self.postgres.iter().flat_map(|pg| {
+                pg.functions
+                    .iter()
+                    .filter_map(|t| t.filter.as_ref().map(|f| (t.id.as_str(), f)))
+            }));
+        for (id, filter) in presets {
+            crate::cel_filter::CelFilter::from_config(filter)
+                .map_err(|e| anyhow::anyhow!("source `{id}`: {e}"))?;
+        }
         Ok(())
     }
 
@@ -1504,6 +1557,80 @@ minimal_recompression = true
         assert_eq!(config.compression.br_quality, 9);
         assert_eq!(config.compression.zstd_level, 19);
         assert!(config.compression.minimal_recompression);
+    }
+
+    #[cfg(feature = "cel")]
+    #[test]
+    fn test_source_filter_preset_parses() {
+        let config: Config = toml::from_str(
+            r#"
+            [[sources]]
+            id = "land"
+            type = "pmtiles"
+            path = "/data/land.pmtiles"
+
+            [sources.filter]
+            expression = "type == 'residential'"
+            applies_to_layers = ["landuse"]
+            "#,
+        )
+        .expect("config parses");
+        let filter = config.sources[0].filter.as_ref().expect("filter present");
+        assert_eq!(filter.expression, "type == 'residential'");
+        assert_eq!(
+            filter.applies_to_layers.as_deref(),
+            Some(&["landuse".to_string()][..])
+        );
+        config.validate().expect("valid preset");
+    }
+
+    #[cfg(feature = "cel")]
+    #[test]
+    fn test_invalid_filter_preset_fails_validation() {
+        let config: Config = toml::from_str(
+            r#"
+            [[sources]]
+            id = "land"
+            type = "pmtiles"
+            path = "/data/land.pmtiles"
+
+            [sources.filter]
+            expression = "type == "
+            "#,
+        )
+        .expect("config parses");
+        let err = config
+            .validate()
+            .expect_err("bad preset must fail")
+            .to_string();
+        assert!(err.contains("land"), "error should name the source: {err}");
+    }
+
+    #[cfg(all(feature = "cel", feature = "postgres"))]
+    #[test]
+    fn test_postgres_table_filter_preset_validated() {
+        let config: Config = toml::from_str(
+            r#"
+            [postgres]
+            connection_string = "postgresql://localhost/db"
+
+            [[postgres.tables]]
+            id = "buildings"
+            table = "buildings"
+
+            [postgres.tables.filter]
+            expression = "timestamp('2024-01-01T00:00:00Z') > timestamp('2023-01-01T00:00:00Z')"
+            "#,
+        )
+        .expect("config parses");
+        let err = config
+            .validate()
+            .expect_err("sandbox must reject")
+            .to_string();
+        assert!(
+            err.contains("buildings") && err.contains("not allowed"),
+            "{err}"
+        );
     }
 
     #[test]
@@ -2449,6 +2576,7 @@ port = ${{TEST_ENV_SUB_PORT}}
                 minzoom: 0,
                 maxzoom: 16,
                 bounds: Some([-10.0, -10.0, 10.0, 10.0]),
+                filter: None,
             };
 
             let json = serde_json::to_string(&func).unwrap();

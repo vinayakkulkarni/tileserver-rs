@@ -89,6 +89,13 @@ pub(super) static RENDER_ERRORS_TOTAL: LazyLock<Counter<u64>> = LazyLock::new(||
         .build()
 });
 
+pub(super) static CEL_COMPILE_TOTAL: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    meter()
+        .u64_counter("cel_filter_compile_total")
+        .with_description("CEL filter compile-cache lookups by result (hit or miss)")
+        .build()
+});
+
 pub(super) static TILE_COMPRESSION_TOTAL: LazyLock<Counter<u64>> = LazyLock::new(|| {
     meter()
         .u64_counter("tile_compression_total")

@@ -279,6 +279,7 @@ impl TileSource for PostgresFunctionSource {
             x,
             y,
             encoding: TileCompression::None,
+            filter: 0,
         });
 
         if let (Some(cache), Some(key)) = (&self.cache, &cache_key)
@@ -396,6 +397,7 @@ mod tests {
             minzoom: 0,
             maxzoom: 14,
             bounds: Some([-180.0, -85.0, 180.0, 85.0]),
+            filter: None,
         };
 
         // Test that center is calculated from bounds

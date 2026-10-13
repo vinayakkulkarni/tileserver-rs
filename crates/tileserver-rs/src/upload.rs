@@ -191,6 +191,7 @@ pub async fn upload_file(
         dem_band: 1,
         #[cfg(feature = "dem")]
         dem_nodata_color: None,
+        filter: None,
     };
 
     let mut temp_manager = SourceManager::new();
@@ -210,6 +211,8 @@ pub async fn upload_file(
     let mut sources_map = state.sources.clone_sources();
     sources_map.insert(source_id.clone(), new_source);
     let new_manager = SourceManager::from_sources(sources_map);
+    #[cfg(feature = "cel")]
+    let new_manager = new_manager.with_filters(state.sources.clone_filters());
 
     let new_state = state_with_sources(&state, new_manager);
 
@@ -284,6 +287,8 @@ pub async fn delete_upload(
     let mut sources_map = state.sources.clone_sources();
     sources_map.remove(&source_id);
     let new_manager = SourceManager::from_sources(sources_map);
+    #[cfg(feature = "cel")]
+    let new_manager = new_manager.with_filters(state.sources.clone_filters());
 
     let new_state = state_with_sources(&state, new_manager);
 
