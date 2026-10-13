@@ -3,7 +3,10 @@
 // NOTE: `exclude` REPLACES the built-in default ignore list rather than
 // extending it, so the defaults (node_modules, dist, .nuxt, .output, coverage)
 // are re-listed here explicitly. Drop any of them and the audit will start
-// walking build output.
+// walking build output. Each default uses the `**/<dir>/**` form: a bare name
+// matches only the repo root, so the audit also read the nested
+// `apps/*/node_modules` trees (third-party `.vue` sources such as
+// `@tanstack/ai-vue/src/chat-ui` then failed the `fail-on: error` gate).
 //
 // Authored as a plain default export (no `defineConfig` import) because this
 // file is loaded by the `pnpm dlx @geoql/nuxt-doctor` CLI via c12 — the package
@@ -11,12 +14,12 @@
 // resolve in CI.
 export default {
   exclude: [
-    'node_modules',
-    'dist',
-    '.nuxt',
-    '.output',
-    '.data',
-    'coverage',
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/.nuxt/**',
+    '**/.output/**',
+    '**/.data/**',
+    '**/coverage/**',
     // This config file itself: consumed by the nuxt-doctor CLI via c12, never
     // imported by app code, so knip's dead-code pass flags it as unused.
     'doctor.config.ts',
@@ -28,6 +31,9 @@ export default {
     // and 77 unused-file warnings — all false positives. Doctor must only see
     // the three Nuxt apps under apps/.
     'crates/**',
+    // Local git worktrees (gitignored) hold full copies of the repo; auditing
+    // them would count every finding once per worktree.
+    '.worktrees/**',
     // Any other vendored/bundled third-party trees, wherever they live.
     '**/vendor/**',
     // AI agent skill scripts (build.ts/validate.ts helpers). Tooling, never
