@@ -22,7 +22,7 @@ import type {
 } from '~/types/llm';
 
 /** `anthropic-version` header for the Messages API. */
-export const ANTHROPIC_VERSION = '2023-06-01';
+const ANTHROPIC_VERSION = '2023-06-01';
 
 /** Default base URL per provider family (shown as the input placeholder). */
 export const DEFAULT_BASE_URLS: Record<RemoteProviderKind, string> = {
@@ -112,7 +112,7 @@ export function proxyTarget(
 }
 
 /** Flatten message content to plain text (non-text parts are dropped). */
-export function contentToText(content: ModelMessage['content']): string {
+function contentToText(content: ModelMessage['content']): string {
   if (typeof content === 'string') return content;
   if (!content) return '';
   return content
@@ -134,7 +134,7 @@ type OpenAiMessage =
   | { role: 'tool'; content: string; tool_call_id: string };
 
 /** Convert TanStack model messages to OpenAI Chat Completions messages. */
-export function toOpenAiMessages(
+function toOpenAiMessages(
   messages: ModelMessage[],
   systemPrompt: string,
 ): OpenAiMessage[] {
@@ -437,7 +437,7 @@ export function describeHttpError(status: number, body: string): string {
 }
 
 /** Message for a request that never got a response (network / CORS). */
-export function describeNetworkError(url: string): string {
+function describeNetworkError(url: string): string {
   return `Could not reach ${hostOf(url)}. Check the base URL, or the provider may block browser requests (CORS).`;
 }
 
