@@ -535,3 +535,29 @@ async fn serve_spa(uri: Uri) -> impl IntoResponse {
 
     (StatusCode::NOT_FOUND, "Not Found").into_response()
 }
+
+#[cfg(all(test, feature = "frontend"))]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn missing_build_asset_returns_404() {
+        let response = serve_spa(Uri::from_static("/_nuxt/missing-chunk.mjs"))
+            .await
+            .into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn unknown_client_route_serves_index_html() {
+        let response = serve_spa(Uri::from_static("/styles/india-dark/"))
+            .await
+            .into_response();
+        assert_eq!(response.status(), StatusCode::OK);
+        let content_type = response
+            .headers()
+            .get(CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok());
+        assert_eq!(content_type, Some("text/html; charset=utf-8"));
+    }
+}
