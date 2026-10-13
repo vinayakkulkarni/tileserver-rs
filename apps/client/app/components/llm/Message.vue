@@ -46,12 +46,12 @@
         {{ textContent }}
       </p>
 
-      <!-- Assistant: Comark renders streaming markdown (autoClose is default) -->
+      <!-- Assistant: @comark/nuxt 0.7 registers <Markdown> (prop `value`) -->
       <ClientOnly v-else>
         <div class="ai-prose max-w-none overflow-hidden">
           <Suspense>
-            <Comark
-              :markdown="textContent"
+            <Markdown
+              :value="textContent"
               :streaming="isStreaming"
               :caret="isStreaming"
               class="text-sm/relaxed"

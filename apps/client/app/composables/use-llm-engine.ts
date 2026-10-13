@@ -18,9 +18,9 @@ import type {
 
 /** Default model — the first entry of AVAILABLE_MODELS. */
 const DEFAULT_MODEL: LlmModelConfig = {
-  id: 'Qwen3-4B-q4f16_1-MLC',
-  name: 'Qwen3 4B (recommended)',
-  sizeGb: 3.4,
+  id: 'Qwen3.5-4B-q4f16_1-MLC',
+  name: 'Qwen3.5 4B (recommended)',
+  sizeGb: 3.9,
   supportsTools: false,
 };
 
@@ -28,32 +28,34 @@ const DEFAULT_MODEL: LlmModelConfig = {
  * Available models for the chat.
  *
  * WebLLM's native tool-calling API (`tools` param) is restricted to Hermes
- * models only via an internal allowlist. All Qwen3 models use our text-based
+ * models only via an internal allowlist. All Qwen3.5 models use our text-based
  * [MAP_ACTION] parser + parseToolIntentsFromText() fallback instead —
- * which works well because Qwen3 is a strong instruction follower.
+ * which works well because Qwen3.5 is a strong instruction follower.
+ *
+ * Sizes are `vram_required_MB` from `prebuiltAppConfig` in
+ * `@mlc-ai/web-llm@0.2.86`.
  */
 const AVAILABLE_MODELS: LlmModelConfig[] = [
   DEFAULT_MODEL,
   {
-    id: 'Qwen3-8B-q4f16_1-MLC',
-    name: 'Qwen3 8B (best quality)',
-    sizeGb: 5.7,
+    id: 'Qwen3.5-9B-q4f16_1-MLC',
+    name: 'Qwen3.5 9B (best quality)',
+    sizeGb: 6.4,
     supportsTools: false,
   },
   {
-    id: 'Qwen3-1.7B-q4f16_1-MLC',
-    name: 'Qwen3 1.7B (lightweight)',
-    sizeGb: 2.0,
+    id: 'Qwen3.5-2B-q4f16_1-MLC',
+    name: 'Qwen3.5 2B (lightweight)',
+    sizeGb: 2.2,
     supportsTools: false,
   },
   {
-    id: 'Qwen3-0.6B-q4f16_1-MLC',
-    name: 'Qwen3 0.6B (minimal)',
-    sizeGb: 1.4,
+    id: 'Qwen3.5-0.8B-q4f16_1-MLC',
+    name: 'Qwen3.5 0.8B (minimal)',
+    sizeGb: 1.6,
     supportsTools: false,
   },
 ];
-
 
 /**
  * Shared engine state — singleton across the app.

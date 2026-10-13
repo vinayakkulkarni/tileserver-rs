@@ -62,9 +62,78 @@ export interface LlmLoadProgress {
 }
 
 /**
- * WebLLM engine state
+ * WebLLM engine state. `setup` means a remote provider is selected but not
+ * yet configured (base URL / model / key missing).
  */
-export type LlmEngineStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type LlmEngineStatus = 'idle' | 'loading' | 'ready' | 'error' | 'setup';
+
+// ============================================================================
+// REMOTE PROVIDER TYPES (issue #1547)
+// ============================================================================
+
+/** API family of a remote provider, as spoken on the wire. */
+export type RemoteProviderKind = 'openai-compatible' | 'anthropic';
+
+/**
+ * Where chat requests go:
+ * - `webllm` — local model in the browser (WebGPU)
+ * - `openai-compatible` / `anthropic` — the user's own provider, direct from the browser
+ * - `proxy` — this tileserver's `/api/llm/chat` (key held by the server)
+ */
+export type LlmProvider = 'webllm' | RemoteProviderKind | 'proxy';
+
+/** Non-secret settings for one bring-your-own-key provider. */
+export interface RemoteProviderSettings {
+  baseUrl: string;
+  model: string;
+}
+
+/** Response of `GET /api/llm/config`. Never contains a key. */
+export interface LlmServerConfig {
+  proxy_enabled: boolean;
+  provider: RemoteProviderKind;
+  model: string | null;
+  upstream_host: string | null;
+  allow_user_keys: boolean;
+}
+
+/** One provider choice offered in the settings picker. */
+export interface LlmProviderOption {
+  value: LlmProvider;
+  label: string;
+}
+
+/** Everything needed to send one remote chat request. */
+export interface RemoteChatTarget {
+  kind: RemoteProviderKind;
+  /** Full endpoint URL. */
+  url: string;
+  headers: Record<string, string>;
+  /** Model to send; `null` when the server proxy sets it. */
+  model: string | null;
+}
+
+/** OpenAI-style function tool, as used by WebLLM and OpenAI-compatible APIs. */
+export interface OpenAiTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+/** Anthropic Messages API tool definition. */
+export interface AnthropicTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+/** Provider-neutral event parsed from a remote stream. */
+export type RemoteStreamEvent =
+  | { kind: 'text'; delta: string }
+  | { kind: 'tool'; id: string; name: string; args: string };
 
 // ============================================================================
 // MAP TOOLS
@@ -219,6 +288,12 @@ export interface LlmInputProps {
   isLoading: boolean;
   engineStatus: LlmEngineStatus;
   hasMessages: boolean;
+}
+
+/** Result of a provider "Test connection" request. */
+export interface LlmConnectionTestResult {
+  ok: boolean;
+  message: string;
 }
 
 /**

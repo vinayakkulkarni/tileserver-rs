@@ -17,12 +17,15 @@
   const isDisabled = computed(
     () =>
       props.engineStatus === 'loading' ||
+      props.engineStatus === 'setup' ||
       (!props.modelValue.trim() && !props.isLoading),
   );
 
   const placeholder = computed(() => {
     if (props.engineStatus === 'loading') return 'Loading model...';
     if (props.engineStatus === 'error') return 'Model failed to load';
+    if (props.engineStatus === 'setup')
+      return 'Set up the AI provider to start';
     return 'Ask about the map...';
   });
 
@@ -49,7 +52,11 @@
       type="text"
       :value="modelValue"
       :placeholder="placeholder"
-      :disabled="engineStatus === 'loading' || engineStatus === 'error'"
+      :disabled="
+        engineStatus === 'loading' ||
+        engineStatus === 'error' ||
+        engineStatus === 'setup'
+      "
       class="flex-1 border border-border/60 bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 disabled:opacity-40"
       @input="updateValue"
       @keydown="handleKeydown"

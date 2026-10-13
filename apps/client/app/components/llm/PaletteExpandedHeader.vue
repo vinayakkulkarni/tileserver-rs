@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { GripHorizontal, Bot, Minimize2, X } from '@lucide/vue';
+  import { GripHorizontal, Bot, Minimize2, Settings2, X } from '@lucide/vue';
   import type { LlmEngineStatus, LlmModelConfig } from '~/types/llm';
 
   defineProps<{
@@ -15,6 +15,9 @@
     close: [];
     selectModel: [modelId: string];
   }>();
+
+  const { isRemote, remoteLabel, settingsOpen, toggleSettings } =
+    useLlmProvider();
 </script>
 
 <template>
@@ -36,13 +39,31 @@
       </span>
     </div>
     <div class="flex items-center gap-1">
+      <span
+        v-if="isRemote"
+        class="max-w-32 truncate text-11 text-muted-foreground"
+        :title="remoteLabel"
+      >
+        {{ remoteLabel }}
+      </span>
       <LlmModelSelect
+        v-else
         :models="availableModels"
         :selected-id="selectedModel.id"
         :disabled="engineStatus === 'loading'"
         class="w-32"
         @select="emit('selectModel', $event)"
       />
+      <button
+        class="flex size-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+        :class="{ 'text-primary': settingsOpen }"
+        title="AI provider settings"
+        aria-label="AI provider settings"
+        :aria-expanded="settingsOpen"
+        @click="toggleSettings"
+      >
+        <Settings2 class="size-3" />
+      </button>
       <button
         class="flex size-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
         title="Minimize"

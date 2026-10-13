@@ -11,7 +11,14 @@ import { Map, Layers, Search, Globe } from '@lucide/vue';
 import type { Map as MaplibreMap } from 'maplibre-gl';
 import type { OverlayLayer } from '~/types/file-upload';
 import type { MessagePart } from '@tanstack/ai';
-import type { LlmIconName, SuggestedPrompt } from '~/types/llm';
+import type {
+  LlmEngineStatus,
+  LlmIconName,
+  SuggestedPrompt,
+} from '~/types/llm';
+import { useLlmChat } from './use-llm-chat';
+import { useLlmEngine } from './use-llm-engine';
+import { useLlmProvider } from './use-llm-provider';
 
 const ICON_MAP: Record<LlmIconName, string> = {
   map: 'Map',
@@ -106,7 +113,7 @@ export function useLlmPanel(
   overlaysRef: Ref<readonly OverlayLayer[]> = ref<readonly OverlayLayer[]>([]),
 ) {
   const {
-    status: engineStatus,
+    status: webllmStatus,
     loadProgress,
     errorMessage,
     selectedModel,
@@ -115,6 +122,42 @@ export function useLlmPanel(
     resetEngine,
   } = useLlmEngine();
   const chat = useLlmChat(mapRef, overlaysRef);
+  const {
+    isRemote,
+    remoteTarget,
+    configPending,
+    whenConfigReady,
+    openSettings,
+    settingsOpen,
+    toggleSettings,
+    destinationHost,
+    remoteLabel,
+  } = useLlmProvider();
+
+  /**
+   * Status shown by the panel. Remote providers need no download: they are
+   * `ready` once configured and `setup` until then.
+   */
+  const engineStatus = computed<LlmEngineStatus>(() => {
+    if (!isRemote.value) return webllmStatus.value;
+    if (remoteTarget.value) return 'ready';
+    return configPending.value ? 'idle' : 'setup';
+  });
+
+  /**
+   * Make sure a backend can answer. Local: load the WebLLM model on first
+   * use. Remote: open the settings when setup is incomplete.
+   */
+  async function ensureReady(): Promise<boolean> {
+    if (isRemote.value) {
+      if (!remoteTarget.value) await whenConfigReady();
+      if (!isRemote.value) return ensureReady();
+      if (!remoteTarget.value) openSettings();
+      return Boolean(remoteTarget.value);
+    }
+    if (webllmStatus.value === 'idle') await initEngine();
+    return webllmStatus.value === 'ready';
+  }
 
   // Panel open/close state
   const panelOpen = ref(false);
@@ -174,13 +217,7 @@ export function useLlmPanel(
     e?.preventDefault();
     const trimmedInput = input.value.trim();
     if (!trimmedInput || chat.isLoading.value) return;
-
-    // Auto-initialize engine on first message
-    if (engineStatus.value === 'idle') {
-      await initEngine();
-    }
-
-    if (engineStatus.value !== 'ready') return;
+    if (!(await ensureReady())) return;
 
     try {
       input.value = '';
@@ -196,13 +233,7 @@ export function useLlmPanel(
    */
   async function handlePromptSelect(prompt: string) {
     if (chat.isLoading.value) return;
-
-    // Auto-initialize engine on first prompt
-    if (engineStatus.value === 'idle') {
-      await initEngine();
-    }
-
-    if (engineStatus.value !== 'ready') return;
+    if (!(await ensureReady())) return;
 
     try {
       await chat.sendMessage(prompt);
@@ -248,6 +279,13 @@ export function useLlmPanel(
     engineError: errorMessage,
     initEngine,
     selectModel,
+
+    // Provider state (issue #1547)
+    isRemote,
+    settingsOpen,
+    toggleSettings,
+    destinationHost,
+    remoteLabel,
 
     // Input
     input,

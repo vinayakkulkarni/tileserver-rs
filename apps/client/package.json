@@ -17,7 +17,8 @@
     "lint": "oxlint && eslint .",
     "lint:fix": "oxlint --fix && eslint . --fix",
     "format": "oxfmt --write .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run"
   },
   "dependencies": {
     "@comark/nuxt": "catalog:client",
@@ -70,6 +71,7 @@
     "tailwindcss": "catalog:default",
     "typescript": "catalog:default",
     "vite": "catalog:default",
+    "vitest": "catalog:default",
     "vue-tsc": "catalog:default"
   },
   "engines": {

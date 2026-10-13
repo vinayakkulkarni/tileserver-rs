@@ -28,7 +28,9 @@ import {
   WEBLLM_SERVER_TOOLS,
 } from '~/lib/map-tools';
 import { chatCollection } from '~/lib/chat-db';
-import type { StoredToolCall } from '~/types/llm';
+import { buildRequestBody, streamRemoteChat } from '~/lib/llm-remote';
+import type { RemoteChatTarget, StoredToolCall } from '~/types/llm';
+import { useLlmProvider } from './use-llm-provider';
 
 /** System prompt for models with WebLLM native tool calling enabled. */
 const SYSTEM_PROMPT_WITH_TOOLS = `You are a helpful map assistant embedded in tileserver-rs, a vector tile server.
@@ -126,7 +128,9 @@ function toWebLlmMessages(
 function contentToText(content: ModelMessage['content']): string {
   if (typeof content === 'string') return content;
   if (!content) return '';
-  return content.map((part) => (part.type === 'text' ? part.content : '')).join('');
+  return content
+    .map((part) => (part.type === 'text' ? part.content : ''))
+    .join('');
 }
 
 /**
@@ -163,7 +167,9 @@ function parseMapActions(
  * Parse the first capture group of a regex match as a number.
  * Returns undefined when the pattern did not match.
  */
-function parseCapturedNumber(match: RegExpMatchArray | null): number | undefined {
+function parseCapturedNumber(
+  match: RegExpMatchArray | null,
+): number | undefined {
   const raw = match?.[1];
   return raw === undefined ? undefined : Number.parseFloat(raw);
 }
@@ -340,6 +346,69 @@ function executeFallbackAction(
 }
 
 /**
+ * Stream one turn from a remote provider (bring-your-own-key or the server
+ * proxy) as AG-UI events. Remote models use native tool calling, so the
+ * full map + server tool set is sent and tool calls are emitted as
+ * TOOL_CALL_* events for useChat to execute.
+ */
+async function* streamRemoteTurn(
+  target: RemoteChatTarget,
+  messages: ModelMessage[],
+  messageId: string,
+): AsyncGenerator<StreamChunk> {
+  const body = buildRequestBody(target, messages, SYSTEM_PROMPT_WITH_TOOLS, [
+    ...WEBLLM_TOOLS,
+    ...WEBLLM_SERVER_TOOLS,
+  ]);
+  const toolCalls: Array<{ id: string; name: string; args: string }> = [];
+
+  try {
+    for await (const event of streamRemoteChat(target, body)) {
+      if (event.kind === 'text') {
+        yield {
+          type: EventType.TEXT_MESSAGE_CONTENT,
+          messageId,
+          delta: event.delta,
+          timestamp: Date.now(),
+        };
+      } else {
+        toolCalls.push(event);
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    yield {
+      type: EventType.TEXT_MESSAGE_CONTENT,
+      messageId,
+      delta: `\n\n⚠️ ${message}`,
+      timestamp: Date.now(),
+    };
+  }
+
+  yield { type: EventType.TEXT_MESSAGE_END, messageId, timestamp: Date.now() };
+
+  for (const call of toolCalls) {
+    yield {
+      type: EventType.TOOL_CALL_START,
+      toolCallId: call.id,
+      toolCallName: call.name,
+      timestamp: Date.now(),
+    };
+    yield {
+      type: EventType.TOOL_CALL_ARGS,
+      toolCallId: call.id,
+      delta: call.args,
+      timestamp: Date.now(),
+    };
+    yield {
+      type: EventType.TOOL_CALL_END,
+      toolCallId: call.id,
+      timestamp: Date.now(),
+    };
+  }
+}
+
+/**
  * Composable for LLM chat with map tool integration.
  *
  * Two code paths based on `supportsTools`:
@@ -354,6 +423,7 @@ export function useLlmChat(
   overlaysRef: Ref<readonly OverlayLayer[]>,
 ) {
   const { engine, status, selectedModel } = useLlmEngine();
+  const { isRemote, remoteTarget } = useLlmProvider();
 
   // Create client tools bound to the map ref and overlays
   const clientTools = createMapClientTools(
@@ -379,163 +449,166 @@ export function useLlmChat(
   // AG-UI thread id: one conversation per composable instance.
   const threadId = crypto.randomUUID();
 
-  const connection = stream(async function* (
-    messages,
-  ): AsyncGenerator<StreamChunk> {
-    const currentEngine = engine.value;
-    if (!currentEngine) {
-      throw new Error(
-        'LLM engine not initialized. Please wait for model to load.',
-      );
-    }
-
-    const runId = crypto.randomUUID();
-    const messageId = crypto.randomUUID();
-    const useTools = selectedModel.value.supportsTools;
-    const systemPrompt = useTools
-      ? SYSTEM_PROMPT_WITH_TOOLS
-      : SYSTEM_PROMPT_NO_TOOLS;
-
-    yield {
-      type: EventType.RUN_STARTED,
-      threadId,
-      runId,
-      timestamp: Date.now(),
-    };
-    yield {
-      type: EventType.TEXT_MESSAGE_START,
-      messageId,
-      role: 'assistant' as const,
-      timestamp: Date.now(),
-    };
-
-    // Accumulate text outside try so catch block can parse tool intents from it
-    let accumulatedText = '';
-
-    try {
-      // Convert UI/model messages → OpenAI-compatible format for WebLLM
-      const openaiMessages = toWebLlmMessages(
-        convertMessagesToModelMessages(messages),
-        systemPrompt,
-        useTools,
-      );
-
-      const response = await currentEngine.chat.completions.create({
-        messages: openaiMessages,
-        stream: true,
-        ...(useTools
-          ? { tools: [...WEBLLM_TOOLS, ...WEBLLM_SERVER_TOOLS] }
-          : {}),
-        temperature: 0.7,
-        max_tokens: 1024,
-      });
-
-      let pendingToolCalls: Array<{
-        id: string;
-        function: { name: string; arguments: string };
-      }> = [];
-
-      for await (const chunk of response) {
-        const choice = chunk.choices[0];
-        if (!choice) continue;
-
-        // Stream text content
-        const delta = choice.delta?.content;
-        if (delta) {
-          accumulatedText += delta;
-          yield {
-            type: EventType.TEXT_MESSAGE_CONTENT,
-            messageId,
-            delta,
-            timestamp: Date.now(),
-          };
+  const connection = stream(
+    async function* (messages): AsyncGenerator<StreamChunk> {
+      // --- Remote provider (bring your own key, or the server proxy) ---
+      if (isRemote.value) {
+        const target = remoteTarget.value;
+        if (!target) {
+          throw new Error(
+            'Set up the remote provider in the Map AI settings first.',
+          );
         }
+        const runId = crypto.randomUUID();
+        const messageId = crypto.randomUUID();
+        yield {
+          type: EventType.RUN_STARTED,
+          threadId,
+          runId,
+          timestamp: Date.now(),
+        };
+        yield {
+          type: EventType.TEXT_MESSAGE_START,
+          messageId,
+          role: 'assistant' as const,
+          timestamp: Date.now(),
+        };
+        yield* streamRemoteTurn(
+          target,
+          convertMessagesToModelMessages(messages),
+          messageId,
+        );
+        yield {
+          type: EventType.RUN_FINISHED,
+          threadId,
+          runId,
+          finishReason: 'stop',
+          timestamp: Date.now(),
+        };
+        return;
+      }
 
-        // Collect tool calls (WebLLM sends them on the last chunk only)
-        if (choice.delta?.tool_calls) {
-          for (const tc of choice.delta.tool_calls) {
-            if (tc.id && tc.function) {
-              pendingToolCalls.push({
-                id: tc.id,
-                function: {
-                  name: tc.function.name ?? '',
-                  arguments: tc.function.arguments ?? '',
-                },
-              });
+      const currentEngine = engine.value;
+      if (!currentEngine) {
+        throw new Error(
+          'LLM engine not initialized. Please wait for model to load.',
+        );
+      }
+
+      const runId = crypto.randomUUID();
+      const messageId = crypto.randomUUID();
+      const useTools = selectedModel.value.supportsTools;
+      const systemPrompt = useTools
+        ? SYSTEM_PROMPT_WITH_TOOLS
+        : SYSTEM_PROMPT_NO_TOOLS;
+
+      yield {
+        type: EventType.RUN_STARTED,
+        threadId,
+        runId,
+        timestamp: Date.now(),
+      };
+      yield {
+        type: EventType.TEXT_MESSAGE_START,
+        messageId,
+        role: 'assistant' as const,
+        timestamp: Date.now(),
+      };
+
+      // Accumulate text outside try so catch block can parse tool intents from it
+      let accumulatedText = '';
+
+      try {
+        // Convert UI/model messages → OpenAI-compatible format for WebLLM
+        const openaiMessages = toWebLlmMessages(
+          convertMessagesToModelMessages(messages),
+          systemPrompt,
+          useTools,
+        );
+
+        const response = await currentEngine.chat.completions.create({
+          messages: openaiMessages,
+          stream: true,
+          ...(useTools
+            ? { tools: [...WEBLLM_TOOLS, ...WEBLLM_SERVER_TOOLS] }
+            : {}),
+          temperature: 0.7,
+          max_tokens: 1024,
+        });
+
+        let pendingToolCalls: Array<{
+          id: string;
+          function: { name: string; arguments: string };
+        }> = [];
+
+        for await (const chunk of response) {
+          const choice = chunk.choices[0];
+          if (!choice) continue;
+
+          // Stream text content
+          const delta = choice.delta?.content;
+          if (delta) {
+            accumulatedText += delta;
+            yield {
+              type: EventType.TEXT_MESSAGE_CONTENT,
+              messageId,
+              delta,
+              timestamp: Date.now(),
+            };
+          }
+
+          // Collect tool calls (WebLLM sends them on the last chunk only)
+          if (choice.delta?.tool_calls) {
+            for (const tc of choice.delta.tool_calls) {
+              if (tc.id && tc.function) {
+                pendingToolCalls.push({
+                  id: tc.id,
+                  function: {
+                    name: tc.function.name ?? '',
+                    arguments: tc.function.arguments ?? '',
+                  },
+                });
+              }
             }
           }
         }
-      }
 
-      // --- Native tool calls (models with supportsTools: true) ---
-      if (pendingToolCalls.length > 0) {
-        // End text message, then emit tool call events
-        yield {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp: Date.now(),
-        };
-
-        for (const toolCall of pendingToolCalls) {
+        // --- Native tool calls (models with supportsTools: true) ---
+        if (pendingToolCalls.length > 0) {
+          // End text message, then emit tool call events
           yield {
-            type: EventType.TOOL_CALL_START,
-            toolCallId: toolCall.id,
-            toolCallName: toolCall.function.name,
-            timestamp: Date.now(),
-          };
-          yield {
-            type: EventType.TOOL_CALL_ARGS,
-            toolCallId: toolCall.id,
-            delta: toolCall.function.arguments,
-            timestamp: Date.now(),
-          };
-          yield {
-            type: EventType.TOOL_CALL_END,
-            toolCallId: toolCall.id,
-            timestamp: Date.now(),
-          };
-        }
-
-        // useChat will auto-execute matching client tools and re-invoke this adapter
-        pendingToolCalls = [];
-      } else if (!useTools && accumulatedText) {
-        // --- Text-based action parsing (Qwen / non-tool models) ---
-        const actions = parseMapActions(accumulatedText);
-        for (const action of actions) {
-          const resultText = executeFallbackAction(action, mapRef.value);
-          yield {
-            type: EventType.TEXT_MESSAGE_CONTENT,
+            type: EventType.TEXT_MESSAGE_END,
             messageId,
-            delta: `\n\n✅ ${resultText}`,
             timestamp: Date.now(),
           };
-        }
-        yield {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp: Date.now(),
-        };
-      } else {
-        yield {
-          type: EventType.TEXT_MESSAGE_END,
-          messageId,
-          timestamp: Date.now(),
-        };
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '';
-      const isToolParseError =
-        errorMessage.includes('parsing outputMessage for function calling') ||
-        errorMessage.includes('Got outputMessage:');
-      if (isToolParseError) {
-        // WebLLM tool-call parse failed — extract intents from accumulated text
-        console.warn(
-          '[LLM] Tool-calling parse failed, parsing intents from text',
-        );
-        const intents = parseToolIntentsFromText(accumulatedText);
-        if (intents.length > 0) {
-          for (const intent of intents) {
-            const resultText = executeFallbackAction(intent, mapRef.value);
+
+          for (const toolCall of pendingToolCalls) {
+            yield {
+              type: EventType.TOOL_CALL_START,
+              toolCallId: toolCall.id,
+              toolCallName: toolCall.function.name,
+              timestamp: Date.now(),
+            };
+            yield {
+              type: EventType.TOOL_CALL_ARGS,
+              toolCallId: toolCall.id,
+              delta: toolCall.function.arguments,
+              timestamp: Date.now(),
+            };
+            yield {
+              type: EventType.TOOL_CALL_END,
+              toolCallId: toolCall.id,
+              timestamp: Date.now(),
+            };
+          }
+
+          // useChat will auto-execute matching client tools and re-invoke this adapter
+          pendingToolCalls = [];
+        } else if (!useTools && accumulatedText) {
+          // --- Text-based action parsing (Qwen / non-tool models) ---
+          const actions = parseMapActions(accumulatedText);
+          for (const action of actions) {
+            const resultText = executeFallbackAction(action, mapRef.value);
             yield {
               type: EventType.TEXT_MESSAGE_CONTENT,
               messageId,
@@ -543,62 +616,96 @@ export function useLlmChat(
               timestamp: Date.now(),
             };
           }
+          yield {
+            type: EventType.TEXT_MESSAGE_END,
+            messageId,
+            timestamp: Date.now(),
+          };
         } else {
-          // No parseable intents — inject real map state as fallback
-          const map = mapRef.value;
-          if (map) {
-            const center = map.getCenter();
-            const zoom = Math.round(map.getZoom() * 100) / 100;
-            const bearing = Math.round(map.getBearing());
-            const pitch = Math.round(map.getPitch());
-            const layers =
-              map
-                .getStyle()
-                ?.layers?.filter(
-                  (l) => map.getLayoutProperty(l.id, 'visibility') !== 'none',
-                )
-                ?.map((l) => l.id)
-                ?.slice(0, 20) ?? [];
-            const stateBlock = [
-              '\n\n---',
-              '**Current map state:**',
-              `- Center: ${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`,
-              `- Zoom: ${zoom}`,
-              `- Bearing: ${bearing}°, Pitch: ${pitch}°`,
-              `- Visible layers (${layers.length}): ${layers.slice(0, 10).join(', ')}${layers.length > 10 ? '...' : ''}`,
-            ].join('\n');
-            yield {
-              type: EventType.TEXT_MESSAGE_CONTENT,
-              messageId,
-              delta: stateBlock,
-              timestamp: Date.now(),
-            };
-          }
+          yield {
+            type: EventType.TEXT_MESSAGE_END,
+            messageId,
+            timestamp: Date.now(),
+          };
         }
-      } else if (errorMessage) {
-        // Genuine error (engine not ready, network, etc.) — show a clean user message
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '';
+        const isToolParseError =
+          errorMessage.includes('parsing outputMessage for function calling') ||
+          errorMessage.includes('Got outputMessage:');
+        if (isToolParseError) {
+          // WebLLM tool-call parse failed — extract intents from accumulated text
+          console.warn(
+            '[LLM] Tool-calling parse failed, parsing intents from text',
+          );
+          const intents = parseToolIntentsFromText(accumulatedText);
+          if (intents.length > 0) {
+            for (const intent of intents) {
+              const resultText = executeFallbackAction(intent, mapRef.value);
+              yield {
+                type: EventType.TEXT_MESSAGE_CONTENT,
+                messageId,
+                delta: `\n\n✅ ${resultText}`,
+                timestamp: Date.now(),
+              };
+            }
+          } else {
+            // No parseable intents — inject real map state as fallback
+            const map = mapRef.value;
+            if (map) {
+              const center = map.getCenter();
+              const zoom = Math.round(map.getZoom() * 100) / 100;
+              const bearing = Math.round(map.getBearing());
+              const pitch = Math.round(map.getPitch());
+              const layers =
+                map
+                  .getStyle()
+                  ?.layers?.filter(
+                    (l) => map.getLayoutProperty(l.id, 'visibility') !== 'none',
+                  )
+                  ?.map((l) => l.id)
+                  ?.slice(0, 20) ?? [];
+              const stateBlock = [
+                '\n\n---',
+                '**Current map state:**',
+                `- Center: ${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`,
+                `- Zoom: ${zoom}`,
+                `- Bearing: ${bearing}°, Pitch: ${pitch}°`,
+                `- Visible layers (${layers.length}): ${layers.slice(0, 10).join(', ')}${layers.length > 10 ? '...' : ''}`,
+              ].join('\n');
+              yield {
+                type: EventType.TEXT_MESSAGE_CONTENT,
+                messageId,
+                delta: stateBlock,
+                timestamp: Date.now(),
+              };
+            }
+          }
+        } else if (errorMessage) {
+          // Genuine error (engine not ready, network, etc.) — show a clean user message
+          yield {
+            type: EventType.TEXT_MESSAGE_CONTENT,
+            messageId,
+            delta: '\n\nSomething went wrong. Please try again.',
+            timestamp: Date.now(),
+          };
+        }
         yield {
-          type: EventType.TEXT_MESSAGE_CONTENT,
+          type: EventType.TEXT_MESSAGE_END,
           messageId,
-          delta: '\n\nSomething went wrong. Please try again.',
           timestamp: Date.now(),
         };
       }
+
       yield {
-        type: EventType.TEXT_MESSAGE_END,
-        messageId,
+        type: EventType.RUN_FINISHED,
+        threadId,
+        runId,
+        finishReason: 'stop',
         timestamp: Date.now(),
       };
-    }
-
-    yield {
-      type: EventType.RUN_FINISHED,
-      threadId,
-      runId,
-      finishReason: 'stop',
-      timestamp: Date.now(),
-    };
-  });
+    },
+  );
 
   const chat = useChat({
     connection,
@@ -616,7 +723,11 @@ export function useLlmChat(
         if (part.type === 'text') {
           textContent += part.content;
         } else if (part.type === 'tool-call') {
-          toolCalls.push({ id: part.id, name: part.name, args: part.arguments });
+          toolCalls.push({
+            id: part.id,
+            name: part.name,
+            args: part.arguments,
+          });
         }
       }
       chatCollection.insert({
