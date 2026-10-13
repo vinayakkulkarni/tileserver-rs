@@ -13,7 +13,11 @@
 import { toolDefinition } from '@tanstack/ai';
 import { z } from 'zod';
 import type { Map as MaplibreMap, FilterSpecification } from 'maplibre-gl';
-import type { OverlayInfo } from '~/types/llm';
+import type {
+  OverlayInfo,
+  PaintPropertyName,
+  PaintPropertyValue,
+} from '~/types/llm';
 import type { OverlayLayer } from '~/types/file-upload';
 
 // =============================================================================
@@ -217,6 +221,56 @@ const getOverlaysDef = toolDefinition({
 
 const _highlightTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+/** Paint property prefixes that each MapLibre layer type accepts. */
+const PAINT_PREFIXES: Record<string, readonly string[]> = {
+  background: ['background-'],
+  fill: ['fill-'],
+  line: ['line-'],
+  symbol: ['icon-', 'text-'],
+  raster: ['raster-', 'resampling'],
+  circle: ['circle-'],
+  'fill-extrusion': ['fill-extrusion-'],
+  heatmap: ['heatmap-'],
+  hillshade: ['hillshade-', 'resampling'],
+  'color-relief': ['color-relief-', 'resampling'],
+};
+
+/**
+ * Whether `value` has the shape of a paint value: a scalar, an expression
+ * (array whose first element is the operator name), or a number array.
+ * MapLibre validates the value against the property when it is applied.
+ */
+function isPaintValue(value: unknown): value is PaintPropertyValue {
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return true;
+  }
+  if (!Array.isArray(value) || value.length === 0) return false;
+  return (
+    typeof value[0] === 'string' ||
+    value.every((item) => typeof item === 'number')
+  );
+}
+
+/**
+ * Whether `property` is a paint property of layer `layerId`'s type. The LLM
+ * sends free-form names; MapLibre still validates the value itself.
+ */
+function isPaintPropertyOf(
+  map: MaplibreMap,
+  layerId: string,
+  property: string,
+): property is PaintPropertyName {
+  const type = map.getLayer(layerId)?.type;
+  if (!type) return false;
+  return (PAINT_PREFIXES[type] ?? []).some((prefix) =>
+    property.startsWith(prefix),
+  );
+}
+
 /**
  * Create client tool implementations bound to a MapLibre map instance.
  * Returns an array of ClientTool objects to pass to `useChat({ tools })`.
@@ -318,6 +372,18 @@ export function createMapClientTools(
     ({ layerId, property, value }) => {
       const map = getMap();
       if (!map) return { success: false, message: 'Map not available' };
+      if (!isPaintPropertyOf(map, layerId, property)) {
+        return {
+          success: false,
+          message: `"${property}" is not a paint property of layer "${layerId}"`,
+        };
+      }
+      if (!isPaintValue(value)) {
+        return {
+          success: false,
+          message: `Invalid value for "${property}": ${JSON.stringify(value)}`,
+        };
+      }
       try {
         map.setPaintProperty(layerId, property, value);
         return {
@@ -435,8 +501,12 @@ export function createMapClientTools(
 
     let applied = 0;
     for (const change of changes) {
+      const { layerId, property, value } = change;
+      if (!isPaintPropertyOf(map, layerId, property) || !isPaintValue(value)) {
+        continue;
+      }
       try {
-        map.setPaintProperty(change.layerId, change.property, change.value);
+        map.setPaintProperty(layerId, property, value);
         applied++;
       } catch {
         // Skip layers that don't exist or invalid properties

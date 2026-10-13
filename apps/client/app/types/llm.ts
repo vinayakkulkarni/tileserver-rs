@@ -9,6 +9,7 @@
 // Re-export core types from TanStack AI Vue
 import type { UIMessage as TanStackUIMessage } from '@tanstack/ai-vue';
 import type { MessagePart as TanStackMessagePart } from '@tanstack/ai';
+import type { Map as MaplibreMap } from 'maplibre-gl';
 
 // Re-export message part types from TanStack AI
 export type {
@@ -227,3 +228,12 @@ export interface LlmInputEmits {
   (e: 'update:modelValue', value: string): void;
   (e: 'submit' | 'stop'): void;
 }
+
+/**
+ * A MapLibre paint property name (`fill-color`, `line-width`, ...), as
+ * accepted by `map.setPaintProperty`.
+ */
+export type PaintPropertyName = Parameters<MaplibreMap['setPaintProperty']>[1];
+
+/** A value accepted by `map.setPaintProperty` for some paint property. */
+export type PaintPropertyValue = Parameters<MaplibreMap['setPaintProperty']>[2];
