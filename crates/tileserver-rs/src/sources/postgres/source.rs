@@ -190,6 +190,11 @@ impl PostgresFunctionSource {
     ///
     /// Query parameters are passed as a JSON object to the function's 4th parameter.
     /// If the function doesn't support query params, they are ignored.
+    ///
+    /// A request without query parameters produces the same tile as
+    /// [`TileSource::get_tile`], so it takes that path and uses the tile cache.
+    /// Requests with parameters skip the cache, because the function output
+    /// can depend on them.
     pub async fn get_tile_with_query_params(
         &self,
         z: u8,
@@ -197,6 +202,10 @@ impl PostgresFunctionSource {
         y: u32,
         query_params: &serde_json::Value,
     ) -> Result<Option<TileData>> {
+        if !self.supports_query_params || is_empty_query(query_params) {
+            return self.get_tile(z, x, y).await;
+        }
+
         let max_tile = 1u32 << z;
         if x >= max_tile || y >= max_tile {
             return Err(TileServerError::InvalidCoordinates { z, x, y });
@@ -253,6 +262,15 @@ impl PostgresFunctionSource {
                 compression,
             }
         }))
+    }
+}
+
+/// `true` when the request carried no query parameters (`null` or `{}`).
+fn is_empty_query(query_params: &serde_json::Value) -> bool {
+    match query_params {
+        serde_json::Value::Null => true,
+        serde_json::Value::Object(map) => map.is_empty(),
+        _ => false,
     }
 }
 
@@ -406,5 +424,15 @@ mod tests {
         let center_lat = (bounds[1] + bounds[3]) / 2.0;
         assert_eq!(center_lon, 0.0);
         assert_eq!(center_lat, 0.0);
+    }
+
+    #[test]
+    fn empty_query_is_null_or_empty_object() {
+        assert!(is_empty_query(&serde_json::Value::Null));
+        assert!(is_empty_query(&serde_json::json!({})));
+        assert!(!is_empty_query(&serde_json::json!({ "category": "cafe" })));
+        // Non-object values still go to the function; they are not "empty".
+        assert!(!is_empty_query(&serde_json::json!([])));
+        assert!(!is_empty_query(&serde_json::json!("")));
     }
 }
