@@ -49,6 +49,8 @@ export interface PerformanceStat {
   label: string;
   detail: string;
   prefix?: string;
+  /** Digits after the decimal point; defaults to 0. */
+  decimals?: number;
 }
 
 export interface AiBenefit {

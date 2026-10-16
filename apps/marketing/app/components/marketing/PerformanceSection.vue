@@ -54,7 +54,11 @@
         <component :is="stat.icon" class="mx-auto mb-3 size-5 text-primary" />
         <p class="font-display text-4xl font-bold text-primary lg:text-5xl">
           <span v-if="stat.prefix">{{ stat.prefix }}</span>
-          <CountUp :to="stat.value" :duration="2.5" />
+          <CountUp
+            :to="stat.value"
+            :decimals="stat.decimals ?? 0"
+            :duration="2.5"
+          />
         </p>
         <p
           class="

@@ -95,7 +95,7 @@ export function useMarketingPage() {
       icon: Mountain,
       title: 'DEM Terrain Encoding',
       description:
-        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source: ~4–10× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
+        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source: about 2× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
       category: 'Rendering',
     },
     {
@@ -442,34 +442,35 @@ export function useMarketingPage() {
   const performanceStats: PerformanceStat[] = [
     {
       icon: Timer,
-      value: 3,
+      value: 5,
       label: 'ms to fill 4×4 viewport',
-      detail: '4× faster than tileserver-gl',
+      detail: '3× faster than tileserver-gl (PMTiles z14)',
     },
     {
       icon: Zap,
-      value: 358,
+      value: 192,
       label: 'Grids/sec at z14',
       detail: 'PMTiles 4×4 viewport load',
     },
     {
       icon: Database,
-      value: 12682,
+      value: 4914,
       label: 'PostGIS req/sec at z14',
-      detail: '7.45ms avg, 410 MB/s throughput',
+      detail: '19.8 ms avg, ahead of martin (4,497)',
     },
     {
       icon: Layers,
-      value: 89,
-      label: 'MB/s throughput',
+      value: 87,
+      label: 'MB/s PMTiles throughput',
       detail: 'Steady across the city zoom band',
       prefix: '~',
     },
     {
       icon: FileArchive,
-      value: 14,
-      label: '× faster brotli vs martin',
-      detail: 'Cached re-encode: 1,478 vs 107 req/s',
+      value: 3.5,
+      decimals: 1,
+      label: '× faster COG tiles vs titiler',
+      detail: 'World RGB COG: 337 vs 96 avg req/s',
     },
     {
       icon: RefreshCw,
@@ -480,10 +481,10 @@ export function useMarketingPage() {
     },
     {
       icon: Mountain,
-      value: 10,
+      value: 1.9,
+      decimals: 1,
       label: '× faster DEM terrain-RGB vs titiler',
-      detail: 'Live Terrarium encode: 130 vs 28 avg req/s',
-      prefix: 'up to ',
+      detail: 'Live Terrarium encode: 276 vs 146 avg req/s',
     },
   ];
 
