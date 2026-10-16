@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.39.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.39.0...v2.39.1) (2026-10-16)
+
+
+### Miscellaneous
+
+* **release:** keep Cargo.lock in step with the release version ([#1554](https://github.com/vinayakkulkarni/tileserver-rs/issues/1554)) ([bff0948](https://github.com/vinayakkulkarni/tileserver-rs/commit/bff09487b232fa25ecef9a427326e004caf4ad9b))
+
 ## [2.39.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.38.0...v2.39.0) (2026-10-16)
 
 
