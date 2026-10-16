@@ -22,6 +22,11 @@
           "jsonpath": "$.package.version"
         },
         {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(@.name.value==='tileserver-rs')].version"
+        },
+        {
           "type": "json",
           "path": "apps/client/package.json",
           "jsonpath": "$.version"
