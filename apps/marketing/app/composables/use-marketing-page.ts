@@ -491,9 +491,9 @@ export function useMarketingPage() {
   const aiBenefits: AiBenefit[] = [
     {
       icon: ShieldCheck,
-      title: 'Zero Data Leakage',
+      title: 'Local by Default',
       description:
-        'Every query stays in your browser. Map data, questions, and results never touch a third-party server.',
+        'With the built-in WebLLM model every query stays in your browser. Remote providers are opt-in, and the chat shows where prompts are sent.',
     },
     {
       icon: Cpu,

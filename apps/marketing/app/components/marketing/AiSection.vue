@@ -36,9 +36,10 @@
           lg:text-base
         "
       >
-        Your maps, your GPU, your data. The built-in AI assistant runs entirely
-        in your browser &mdash; no API keys, no cloud inference, no per-token
-        billing. Just open the chat and talk to your maps.
+        Your maps, your GPU, your data. By default the built-in AI assistant
+        runs entirely in your browser &mdash; no API keys, no cloud inference,
+        no per-token billing. Prefer a hosted model? Bring your own
+        OpenAI-compatible or Anthropic key, or let the server proxy one.
       </p>
     </div>
 
@@ -156,6 +157,12 @@
             <span class="size-1.5 bg-success"></span>
             <span class="text-foreground"
               >Chat history persisted locally in IndexedDB</span
+            >
+          </li>
+          <li class="flex items-center gap-3 text-sm">
+            <span class="size-1.5 bg-success"></span>
+            <span class="text-foreground"
+              >Optional remote models: your own key or a server proxy</span
             >
           </li>
         </ul>
