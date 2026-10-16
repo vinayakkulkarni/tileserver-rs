@@ -178,6 +178,7 @@ data/overture
 docs/superpowers
 .opencode
 .omo
+.cortexkit
 
 # git worktrees
 .worktrees/
