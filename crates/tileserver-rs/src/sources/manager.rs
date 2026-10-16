@@ -142,12 +142,17 @@ impl SourceManager {
     }
 
     /// Cache-key filter component for a source: its preset hash, or `0`.
+    #[cfg(feature = "cel")]
     #[must_use]
+    pub fn preset_hash(&self, id: &str) -> u64 {
+        self.filters.get(id).map_or(0, |filter| filter.hash())
+    }
+
+    /// Without the `cel` feature there are no presets: always `0`.
+    #[cfg(not(feature = "cel"))]
+    #[must_use]
+    #[allow(clippy::unused_self)]
     pub fn preset_hash(&self, _id: &str) -> u64 {
-        #[cfg(feature = "cel")]
-        if let Some(filter) = self.filters.get(_id) {
-            return filter.hash();
-        }
         0
     }
 
@@ -772,6 +777,31 @@ mod tests {
     fn test_source_manager_default_is_empty() {
         let mgr = SourceManager::default();
         assert!(mgr.is_empty());
+    }
+
+    #[test]
+    fn preset_hash_is_zero_without_a_preset() {
+        let mgr = SourceManager::new();
+        assert_eq!(mgr.preset_hash("nonexistent"), 0);
+    }
+
+    #[cfg(feature = "cel")]
+    #[test]
+    fn preset_hash_matches_the_registered_filter() {
+        let config = crate::config::CelFilterConfig {
+            expression: "kind == 'cafe'".to_string(),
+            applies_to_layers: None,
+        };
+        let filter =
+            Arc::new(crate::cel_filter::CelFilter::from_config(&config).expect("compiles"));
+        let expected = filter.hash();
+        let mut filters = HashMap::new();
+        filters.insert("pois".to_string(), filter);
+        let mgr = SourceManager::new().with_filters(filters);
+
+        assert_ne!(expected, 0);
+        assert_eq!(mgr.preset_hash("pois"), expected);
+        assert_eq!(mgr.preset_hash("other"), 0);
     }
 
     #[test]
