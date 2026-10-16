@@ -20,6 +20,16 @@ path = "./data/tiles/protomaps-sample.pmtiles"
 name = "PMTiles Sample"
 attribution = "© OpenStreetMap contributors"
 
+# The protomaps-light style references its vector source as `protomaps`
+# (url = "/data/protomaps.json"). Without this id every raster render fails
+# with "No host part in the URL" and the raster benchmark measures 500s.
+[[sources]]
+id = "protomaps"
+type = "pmtiles"
+path = "./data/tiles/protomaps-sample.pmtiles"
+name = "Protomaps (style source)"
+attribution = "© OpenStreetMap contributors"
+
 [[sources]]
 id = "mbtiles"
 type = "mbtiles"
@@ -101,8 +111,11 @@ path = "./data/raster/benchmark-rgb.cog.tif"
 name = "Benchmark RGB COG"
 attribution = "© tileserver-rs benchmarks"
 
+# Source id must match the source name used by data/styles/sentinel2/style.json
+# (`sentinel2`, url "/data/sentinel2.json"); a different id makes every
+# /styles/sentinel2-static render fail with "No host part in the URL".
 [[sources]]
-id = "sentinel2-static"
+id = "sentinel2"
 type = "stac"
 path = "https://earth-search.aws.element84.com/v1"
 name = "Sentinel-2 Static (benchmark)"

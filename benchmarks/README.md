@@ -18,6 +18,32 @@ docker compose -f benchmarks/docker-compose.yml --profile all up -d
 pnpm --filter @tileserver-rs/benchmarks run bench
 ```
 
+## Publishable runs (quiet host)
+
+The load client shares the machine with the servers, so any other busy
+process skews the numbers. For results that go into the docs, use the gated
+runner:
+
+```bash
+# Once: build the world COG fixture (needs GDAL on the host)
+benchmarks/scripts/make-benchmark-cog.sh
+
+# Every group starts only after a 15 s quiet window
+benchmarks/scripts/run-quiet.sh                       # all groups
+benchmarks/scripts/run-quiet.sh postgres postgres_function
+BENCH_ARGS="--mode grid" benchmarks/scripts/run-quiet.sh pmtiles mbtiles
+
+# Markdown tables from a run
+node benchmarks/scripts/summarize-run.mjs benchmarks/results/<timestamp>
+```
+
+`run-quiet.sh` waits until non-Docker processes use under `MAX_HOST_CPU`
+(default 120 % of one core in total), the benchmark containers are idle and at
+least `MIN_FREE_MEM` % memory is free. It gives up after `MAX_WAIT` seconds
+instead of measuring a busy host. Each run writes the per-group logs and a
+`stability.log` with the host load before and after every group to
+`benchmarks/results/<timestamp>/`.
+
 ## Benchmark types
 
 | `--type`             | Servers tested                                    | What it measures                          |
@@ -43,7 +69,7 @@ Features with full CRUD support. Run:
 
 ```bash
 docker compose -f benchmarks/docker-compose.yml --profile full up -d
-pnpm --filter @tileserver-rs/benchmarks run bench -- --type ogc
+pnpm --filter @tileserver-rs/benchmarks run bench --type ogc
 ```
 
 Endpoints exercised:
@@ -68,7 +94,7 @@ server. Both serve raster tiles over the Alps bbox `[6.0, 43.0, 10.0, 46.0]`.
 
 ```bash
 docker compose -f benchmarks/docker-compose.yml --profile all up -d
-pnpm --filter @tileserver-rs/benchmarks run bench -- --type stac
+pnpm --filter @tileserver-rs/benchmarks run bench --type stac
 ```
 
 Endpoints exercised:
@@ -100,7 +126,7 @@ silently and the "Actual" column flags the mismatch with `← fallback` in red.
 
 ```bash
 docker compose -f benchmarks/docker-compose.yml --profile all up -d
-pnpm --filter @tileserver-rs/benchmarks run bench -- --type compression
+pnpm --filter @tileserver-rs/benchmarks run bench --type compression
 ```
 
 ## Profiles

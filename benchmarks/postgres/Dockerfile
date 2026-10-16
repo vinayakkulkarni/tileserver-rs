@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
-RUN git clone --depth 1 --branch 3.4.4 https://github.com/postgis/postgis.git && \
+RUN git clone --depth 1 --branch 3.6.4 https://github.com/postgis/postgis.git && \
     cd postgis && \
     ./autogen.sh && \
     ./configure \
@@ -54,9 +54,9 @@ ARG POSTGRES_VERSION=16
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgdal32 \
+    libgdal39 \
     gdal-bin \
-    libgeos-c1v5 \
+    libgeos-c1t64 \
     libjson-c5 \
     libproj25 \
     libprotobuf-c1 \
