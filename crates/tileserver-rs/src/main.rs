@@ -28,7 +28,7 @@ mod logging;
 mod telemetry;
 
 use cli::Cli;
-#[cfg(feature = "mcp")]
+#[cfg(any(feature = "mcp", feature = "convert"))]
 use cli::Commands;
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
@@ -65,6 +65,11 @@ async fn main() -> anyhow::Result<()> {
     #[cfg(feature = "mcp")]
     if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
         return mcp::run_stdio_from_config(config.clone(), *verbose).await;
+    }
+
+    #[cfg(feature = "convert")]
+    if let Some(Commands::Convert(args)) = cli.command.as_ref() {
+        return tileserver_rs::convert::run_and_maybe_serve((**args).clone()).await;
     }
 
     let ui_enabled = cli.ui_enabled();
