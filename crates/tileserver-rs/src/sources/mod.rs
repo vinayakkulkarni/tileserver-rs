@@ -220,6 +220,32 @@ pub struct TileData {
     pub compression: TileCompression,
 }
 
+/// Convert a remote asset URL into a path GDAL can range-read.
+///
+/// A bare `https://…/TCI.tif` makes GDAL route through its curl→/vsimem
+/// full-download shim (whole file per open); the `/vsicurl/` VSI prefix
+/// switches it to HTTP range requests so only the COG header + requested
+/// overview bands are fetched. Non-HTTP paths pass through unchanged.
+///
+/// Idempotent: a path that already carries a VSI prefix (`/vsicurl/`,
+/// `/vsis3/`, `/vsigs/`, `/vsiaz/`, …) is returned unchanged, so a config
+/// author who wrote the prefix by hand does not end up double-prefixed.
+///
+/// Lives here (not in the feature-gated `stac` module) so `cog`/`dem`
+/// sources can normalise paths without pulling in the `stac` feature.
+#[must_use]
+pub fn to_gdal_cog_path(href: &str) -> String {
+    if href.starts_with("/vsi") {
+        href.to_string()
+    } else if href.starts_with("http://") || href.starts_with("https://") {
+        format!("/vsicurl/{href}")
+    } else if let Some(rest) = href.strip_prefix("s3://") {
+        format!("/vsis3/{rest}")
+    } else {
+        href.to_string()
+    }
+}
+
 /// Detect if raw tile data is in MLT (MapLibre Tile) format.
 ///
 /// MLT tiles start with a 7-bit varint size followed by tag byte `0x01`.

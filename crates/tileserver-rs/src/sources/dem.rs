@@ -268,7 +268,12 @@ impl DemSource {
             })?;
             return Ok(cog.dataset_handle());
         }
-        dataset_cache::global().get_or_open(&config.path).await
+        // Normalise remote paths to a GDAL VSI prefix (see `cog.rs`): a bare
+        // `https://…` URL would route through GDAL's curl→/vsimem full-download
+        // shim instead of `/vsicurl/` range reads. Idempotent, so an explicit
+        // `/vsicurl/` prefix in config passes through unchanged.
+        let path = crate::sources::to_gdal_cog_path(&config.path);
+        dataset_cache::global().get_or_open(&path).await
     }
 
     /// Render one tile, exposed directly so the manager can request a

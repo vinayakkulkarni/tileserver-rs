@@ -40,7 +40,14 @@ pub struct CogSource {
 
 impl CogSource {
     pub async fn from_file(config: &SourceConfig) -> Result<Self> {
-        let path = config.path.clone();
+        // Normalise remote paths to a GDAL VSI prefix so `/vsicurl/` range
+        // reads are used. A bare `https://…` URL makes GDAL fall back to its
+        // curl→/vsimem full-download shim: 4× full-file GETs, ~45 s open, and
+        // the whole COG (~500 MB) materialised in memory per handle. With
+        // `/vsicurl/` the open is a ~0.25 s range read and a small handle.
+        // `to_gdal_cog_path` is idempotent (already-prefixed paths pass through),
+        // so configs that spell out `/vsicurl/` manually keep working.
+        let path = crate::sources::to_gdal_cog_path(&config.path);
         let id = config.id.clone();
         let name = config.name.clone();
         let attribution = config.attribution.clone();
