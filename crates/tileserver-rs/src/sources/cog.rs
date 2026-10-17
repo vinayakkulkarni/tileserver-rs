@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use bytes::Bytes;
 use gdal::DatasetOptions;
-use gdal::raster::{Buffer, ResampleAlg};
+use gdal::raster::{Buffer, ColorInterpretation, ResampleAlg};
 use gdal::spatial_ref::SpatialRef;
 use gdal::{Dataset, DriverManager};
 use image::{ImageBuffer, RgbaImage};
@@ -346,6 +346,13 @@ fn get_wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
     Ok([min_lon, min_lat, max_lon, max_lat])
 }
 
+/// Render one WebMercator tile from `dataset` (any CRS) into a PNG.
+///
+/// Band-layout contract: 1 band + colormap → colormap LUT; ≥ 3 source
+/// bands → 4-band RGBA with warp-maintained alpha (`gdalwarp -dstalpha`
+/// semantics: 255 where the source contributed valid pixels, 0 outside
+/// the source footprint, blended at edges); 1-2 bands without colormap →
+/// legacy gray/RG layout forced fully opaque.
 #[allow(clippy::too_many_arguments)]
 fn render_tile_from_dataset(
     dataset: &Dataset,
@@ -365,11 +372,48 @@ fn render_tile_from_dataset(
         .map_err(|e| TileServerError::RasterError(format!("Failed to get MEM driver: {}", e)))?;
 
     let use_colormap = colormap.is_some() && band_count == 1;
-    let output_bands = if use_colormap { 1 } else { band_count.min(4) };
+    // Band layout of the MEM warp destination:
+    //   - 1 band + colormap → single f64 band (colormap lookup below)
+    //   - ≥ 3 source bands → 4-band RGBA: R, G, B plus a destination ALPHA
+    //     band maintained by the warp kernel (gdalwarp -dstalpha
+    //     semantics). A source alpha band (e.g. a 4-band RGBA COG) feeds
+    //     the source density; without one every valid source pixel is
+    //     dense. This keeps out-of-footprint areas transparent instead of
+    //     opaque black — matching rio-tiler/TiTiler behaviour.
+    //   - 1 or 2 source bands without colormap → legacy layout (gray or
+    //     R,G), forced fully opaque below.
+    let rgb_with_alpha = !use_colormap && band_count >= 3;
+    let output_bands = if use_colormap {
+        1
+    } else if rgb_with_alpha {
+        4
+    } else {
+        band_count.min(4)
+    };
 
-    let mut warped = mem_driver
-        .create_with_band_type::<f64, _>("", tile_size as usize, tile_size as usize, output_bands)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?;
+    // Byte-typed destination so the warp kernel writes byte-range alpha
+    // (for non-Byte alpha bands the kernel writes 0..1 densities, which a
+    // u8 read would collapse to 1). RGB band writes saturate-cast exactly
+    // as the previous f64→u8 read did.
+    let mut warped = if use_colormap {
+        mem_driver
+            .create_with_band_type::<f64, _>(
+                "",
+                tile_size as usize,
+                tile_size as usize,
+                output_bands,
+            )
+            .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?
+    } else {
+        mem_driver
+            .create_with_band_type::<u8, _>(
+                "",
+                tile_size as usize,
+                tile_size as usize,
+                output_bands,
+            )
+            .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?
+    };
 
     let pixel_size_x = (maxx - minx) / tile_size as f64;
     let pixel_size_y = (maxy - miny) / tile_size as f64;
@@ -381,6 +425,24 @@ fn render_tile_from_dataset(
     warped
         .set_spatial_ref(&web_mercator)
         .map_err(|e| TileServerError::RasterError(format!("Failed to set SRS: {}", e)))?;
+
+    if rgb_with_alpha {
+        // CRITICAL: mark the destination's last band as the alpha band
+        // BEFORE warping. GDALReprojectImage maps only
+        // min(src_bands, dst_bands) NON-ALPHA bands 1:1 (gdalwarper.cpp:
+        // source/destination bands whose color interpretation is
+        // GCI_AlphaBand are excluded from the count and handled by the
+        // warp kernel as density). Without this marker a 4-band RGBA
+        // source maps RGB only and the destination alpha stays at its
+        // MEM init value 0 — fully transparent tiles (the bug this
+        // fixes).
+        warped
+            .rasterband(output_bands)
+            .and_then(|mut band| band.set_color_interpretation(ColorInterpretation::AlphaBand))
+            .map_err(|e| {
+                TileServerError::RasterError(format!("Failed to mark dst alpha band: {}", e))
+            })?;
+    }
 
     gdal::raster::reproject(dataset, &warped)
         .map_err(|e| TileServerError::RasterError(format!("Failed to reproject/warp: {}", e)))?;
@@ -451,11 +513,15 @@ fn render_tile_from_dataset(
                     pixel[3] = 255;
                 }
             }
-            3 => {
+            // Legacy 2-band layout (R, G): no alpha band exists — force
+            // fully opaque so the tile is at least visible.
+            2 => {
                 for pixel in img.pixels_mut() {
                     pixel[3] = 255;
                 }
             }
+            // 4 bands: the destination alpha band was maintained by the
+            // warp kernel from source validity — do not touch it.
             _ => {}
         }
     }
@@ -535,5 +601,183 @@ mod tests {
         assert!((maxy - WEB_MERCATOR_EXTENT).abs() < 1e-6);
         assert!((maxx - 0.0).abs() < 1e-6);
         assert!((miny - 0.0).abs() < 1e-6);
+    }
+
+    // ---- RGBA/RGB tile rendering (warp-maintained destination alpha) ----
+
+    /// Write a small 64×64 GeoTIFF (EPSG:3857, uint8) with the given
+    /// per-band data and color interpretations at the given geotransform.
+    fn write_test_cog(
+        dir: &std::path::Path,
+        name: &str,
+        bands_data: &[Vec<u8>],
+        color_interps: impl IntoIterator<Item = ColorInterpretation>,
+        geo_transform: &[f64; 6],
+    ) -> Dataset {
+        let driver = DriverManager::get_driver_by_name("GTiff").unwrap();
+        let size = 64usize;
+        let mut ds = driver
+            .create_with_band_type::<u8, _>(dir.join(name), size, size, bands_data.len())
+            .unwrap();
+        ds.set_geo_transform(geo_transform).unwrap();
+        let srs = SpatialRef::from_epsg(3857).unwrap();
+        ds.set_spatial_ref(&srs).unwrap();
+        for (i, (data, ci)) in bands_data.iter().zip(color_interps).enumerate() {
+            let mut band = ds.rasterband(i + 1).unwrap();
+            let mut buffer = Buffer::new((size, size), data.clone());
+            band.write((0, 0), (size, size), &mut buffer).unwrap();
+            band.set_color_interpretation(ci).unwrap();
+        }
+        ds
+    }
+
+    const TEST_GT_FULL: [f64; 6] = [
+        -WEB_MERCATOR_EXTENT,
+        2.0 * WEB_MERCATOR_EXTENT / 64.0,
+        0.0,
+        WEB_MERCATOR_EXTENT,
+        0.0,
+        -2.0 * WEB_MERCATOR_EXTENT / 64.0,
+    ];
+
+    #[test]
+    fn render_rgba_cog_tile_keeps_source_alpha() {
+        let dir = tempfile::tempdir().unwrap();
+        let size = 64usize;
+        // Constant RGB; source alpha: 0 on the left half, 255 right half.
+        let r = vec![10u8; size * size];
+        let g = vec![20u8; size * size];
+        let b = vec![30u8; size * size];
+        let mut a = vec![0u8; size * size];
+        for y in 0..size {
+            for x in size / 2..size {
+                a[y * size + x] = 255;
+            }
+        }
+        let ds = write_test_cog(
+            dir.path(),
+            "rgba.tif",
+            &[r, g, b, a],
+            [
+                ColorInterpretation::RedBand,
+                ColorInterpretation::GreenBand,
+                ColorInterpretation::BlueBand,
+                ColorInterpretation::AlphaBand,
+            ],
+            &TEST_GT_FULL,
+        );
+        // Render the z0 world tile — the dataset covers it exactly.
+        let png = render_tile_from_dataset(
+            &ds,
+            -WEB_MERCATOR_EXTENT,
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            256,
+            4,
+            ResampleAlg::NearestNeighbour,
+            None,
+        )
+        .unwrap();
+        let img = image::load_from_memory(&png).unwrap().into_rgba8();
+        // Deep inside the alpha-0 half: fully transparent (NOT opaque black).
+        let left = img.get_pixel(32, 128);
+        assert_eq!(
+            (left[0], left[1], left[2], left[3]),
+            (0, 0, 0, 0),
+            "source alpha-0 pixels must render transparent"
+        );
+        // Deep inside the alpha-255 half: opaque with source RGB.
+        let right = img.get_pixel(224, 128);
+        assert_eq!(
+            (right[0], right[1], right[2], right[3]),
+            (10, 20, 30, 255),
+            "source alpha-255 pixels must render opaque RGB"
+        );
+    }
+
+    #[test]
+    fn render_rgb_cog_tile_is_opaque() {
+        let dir = tempfile::tempdir().unwrap();
+        let size = 64usize;
+        let r = vec![10u8; size * size];
+        let g = vec![20u8; size * size];
+        let b = vec![30u8; size * size];
+        let ds = write_test_cog(
+            dir.path(),
+            "rgb.tif",
+            &[r, g, b],
+            [
+                ColorInterpretation::RedBand,
+                ColorInterpretation::GreenBand,
+                ColorInterpretation::BlueBand,
+            ],
+            &TEST_GT_FULL,
+        );
+        let png = render_tile_from_dataset(
+            &ds,
+            -WEB_MERCATOR_EXTENT,
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            256,
+            3,
+            ResampleAlg::NearestNeighbour,
+            None,
+        )
+        .unwrap();
+        let img = image::load_from_memory(&png).unwrap().into_rgba8();
+        // No source alpha band: the warp-maintained destination alpha must
+        // be fully opaque where the source covers the tile.
+        let px = img.get_pixel(128, 128);
+        assert_eq!((px[0], px[1], px[2], px[3]), (10, 20, 30, 255));
+    }
+
+    #[test]
+    fn render_out_of_footprint_tile_is_transparent() {
+        let dir = tempfile::tempdir().unwrap();
+        let size = 64usize;
+        // Source covers ONLY the NW quadrant (z1 tile 0/0/0).
+        let gt_nw = [
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT / 64.0,
+            0.0,
+            WEB_MERCATOR_EXTENT,
+            0.0,
+            -WEB_MERCATOR_EXTENT / 64.0,
+        ];
+        let data = vec![200u8; size * size];
+        let ds = write_test_cog(
+            dir.path(),
+            "nw.tif",
+            &[data.clone(), data.clone(), data],
+            [
+                ColorInterpretation::RedBand,
+                ColorInterpretation::GreenBand,
+                ColorInterpretation::BlueBand,
+            ],
+            &gt_nw,
+        );
+        // Render the SE quadrant tile (z1 1/1) — zero source overlap.
+        let png = render_tile_from_dataset(
+            &ds,
+            0.0,
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            0.0,
+            256,
+            3,
+            ResampleAlg::NearestNeighbour,
+            None,
+        )
+        .unwrap();
+        let img = image::load_from_memory(&png).unwrap().into_rgba8();
+        for px in img.pixels() {
+            assert_eq!(
+                (px[0], px[1], px[2], px[3]),
+                (0, 0, 0, 0),
+                "out-of-footprint pixels must stay transparent, not opaque black"
+            );
+        }
     }
 }
