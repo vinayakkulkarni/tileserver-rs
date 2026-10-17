@@ -49,5 +49,8 @@ jobs:
           fail-on: error
           api-key: ${{ secrets.DOCTOR_API_KEY }}
           project: ${{ github.repository }}
-          pr-comment: true
+          # Fork PRs get a read-only GITHUB_TOKEN, so posting the review fails
+          # with "Resource not accessible by integration" and fails the gate.
+          # Post only for same-repo PRs; the audit itself still runs on forks.
+          pr-comment: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
           comment-mode: both
