@@ -286,8 +286,14 @@ jobs:
             --commit-ref "${{ github.event.pull_request.head.sha || github.sha }}" \
             --output crap-report.md || true
 
+      # Fork PRs run with a read-only GITHUB_TOKEN, so the comment step fails
+      # with "Resource not accessible by integration". Post the comment only
+      # for same-repo PRs; every run also writes the report to the job summary.
+      - name: Write CRAP report to job summary
+        run: cat crap-report.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Post CRAP report as PR comment
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: marocchino/sticky-pull-request-comment@v3.0.5
         with:
           header: cargo-crap

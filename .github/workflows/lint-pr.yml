@@ -37,7 +37,8 @@ jobs:
             starts with a lowercase letter, not uppercase.
 
       - uses: marocchino/sticky-pull-request-comment@v3.0.5
-        if: always() && (steps.lint_pr_title.outputs.error_message != null)
+        # Fork PRs get a read-only token; the title check itself still fails them.
+        if: always() && (steps.lint_pr_title.outputs.error_message != null) && github.event.pull_request.head.repo.full_name == github.repository
         with:
           header: pr-title-lint-error
           message: |
@@ -58,7 +59,7 @@ jobs:
             - `refactor!: drop Node.js 16 support`
 
       - uses: marocchino/sticky-pull-request-comment@v3.0.5
-        if: steps.lint_pr_title.outputs.error_message == null
+        if: steps.lint_pr_title.outputs.error_message == null && github.event.pull_request.head.repo.full_name == github.repository
         with:
           header: pr-title-lint-error
           delete: true
