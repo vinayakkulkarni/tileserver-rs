@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.39.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.39.0...v2.39.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **cog,dem:** normalise remote paths to /vsicurl/ so GDAL uses range reads ([#1557](https://github.com/vinayakkulkarni/tileserver-rs/issues/1557)) ([8f3155e](https://github.com/vinayakkulkarni/tileserver-rs/commit/8f3155ebbf03482f4e7d0034ad1707d8817bc3b4))
+* **cog:** warp-maintained destination alpha for RGB(A) sources ([#1556](https://github.com/vinayakkulkarni/tileserver-rs/issues/1556)) ([71f7306](https://github.com/vinayakkulkarni/tileserver-rs/commit/71f730666620f66e37faa5c51601a9510cde6c99))
+* **deps:** bump @tanstack/ai from 0.68.0 to 0.69.0 ([#1561](https://github.com/vinayakkulkarni/tileserver-rs/issues/1561)) ([817cac3](https://github.com/vinayakkulkarni/tileserver-rs/commit/817cac36577369320057968a9b8a1f542506deea))
+* **deps:** bump @tanstack/ai-vue from 0.26.3 to 0.26.4 ([#1563](https://github.com/vinayakkulkarni/tileserver-rs/issues/1563)) ([949f263](https://github.com/vinayakkulkarni/tileserver-rs/commit/949f263d1bc0e692ce614bf6a45c01339929782d))
+* **deps:** bump mlt-core from 0.20.3 to 0.20.4 ([#1567](https://github.com/vinayakkulkarni/tileserver-rs/issues/1567)) ([95f9b82](https://github.com/vinayakkulkarni/tileserver-rs/commit/95f9b829f7b457f0df27212c977c6942eaf66da1))
+* **deps:** bump oxlint from 1.87.0 to 1.88.0 ([#1562](https://github.com/vinayakkulkarni/tileserver-rs/issues/1562)) ([12b79d0](https://github.com/vinayakkulkarni/tileserver-rs/commit/12b79d0803c82d983837dfa3f66ccf09ced9152d))
+* **deps:** bump pmtiles from 0.24.1 to 0.25.0 ([#1566](https://github.com/vinayakkulkarni/tileserver-rs/issues/1566)) ([1eebe87](https://github.com/vinayakkulkarni/tileserver-rs/commit/1eebe872b09302d383fe0897bb6d6bf377c4d041))
+* **deps:** bump tokio from 1.53.2 to 1.53.3 ([#1565](https://github.com/vinayakkulkarni/tileserver-rs/issues/1565)) ([4955d6f](https://github.com/vinayakkulkarni/tileserver-rs/commit/4955d6fcf2910760760b016c11f5006d6a72a236))
+* **deps:** bump wrangler from 4.149.0 to 4.151.0 ([#1564](https://github.com/vinayakkulkarni/tileserver-rs/issues/1564)) ([0499d13](https://github.com/vinayakkulkarni/tileserver-rs/commit/0499d13b2996b20070254be632a7842e5a6afe83))
+
+
+### Miscellaneous
+
+* **release:** keep Cargo.lock in step with the release version ([#1554](https://github.com/vinayakkulkarni/tileserver-rs/issues/1554)) ([bff0948](https://github.com/vinayakkulkarni/tileserver-rs/commit/bff09487b232fa25ecef9a427326e004caf4ad9b))
+
 ## [2.39.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.38.0...v2.39.0) (2026-10-16)
 
 
