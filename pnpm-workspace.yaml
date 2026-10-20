@@ -84,7 +84,7 @@ catalogs:
     typescript: ^6.0.3
     vite: ^8.3.4
     vitest: ^5.0.4
-    vue: ^3.5.43
+    vue: ^3.5.44
     vue-tsc: ^3.3.13
   client:
     '@comark/nuxt': ^0.7.0
