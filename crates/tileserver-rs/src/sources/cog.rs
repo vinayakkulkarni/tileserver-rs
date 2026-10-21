@@ -2,7 +2,6 @@
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use gdal::DatasetOptions;
 use gdal::raster::{Buffer, ColorInterpretation, ResampleAlg};
 use gdal::spatial_ref::SpatialRef;
 use gdal::{Dataset, DriverManager};
@@ -135,6 +134,29 @@ impl CogSource {
         let path = self.path.clone();
         let dataset = self.dataset.clone();
 
+        // `overview_index` of 0 means "use the full-resolution base", which is
+        // already the cached dataset.  Any other value means "read from overview
+        // level `overview_index - 1`", which requires re-opening the source with
+        // GDAL's `OVERVIEW_LEVEL` open option.
+        //
+        // Overview-level-opened datasets are **cached per (path, level)** in the
+        // process-global `dataset_cache` (mirroring rio-tiler's per-level reader
+        // cache).  Each overview level opens the remote COG at most once per
+        // process; the cached handle is then reused for every tile that needs that
+        // level.  This avoids re-paying the ~11s `/vsicurl/` open cost per tile.
+        // The cache lookup itself is async and runs on the async runtime, before
+        // the blocking render is spawned.
+        let render_dataset: crate::sources::dataset_cache::CachedDataset = if overview_index == 0 {
+            dataset
+        } else {
+            let ovr_level = overview_index - 1;
+            let ovr_arg = format!("OVERVIEW_LEVEL={ovr_level}");
+            let key = format!("{path}#ovr{ovr_level}");
+            crate::sources::dataset_cache::global()
+                .get_or_open_with_options(&key, &path, &[&ovr_arg])
+                .await?
+        };
+
         let png_data = tokio::task::spawn_blocking(move || {
             let render_from = |dataset: &Dataset| {
                 render_tile_from_dataset(
@@ -150,37 +172,8 @@ impl CogSource {
                 )
             };
 
-            // `overview_index` of 0 means "use the full-resolution base", which is
-            // already the cached dataset.  Any other value means "read from overview
-            // level `overview_index - 1`", which requires re-opening the source with
-            // GDAL's `OVERVIEW_LEVEL` open option.
-            //
-            // We do NOT cache the overview-level-opened dataset — each tile request
-            // may pick a different overview level, so a cache keyed by (path, idx)
-            // would grow unboundedly per-zoom.  The cost is a single `Dataset::open_ex`
-            // per tile (~1-5ms on warm OS page cache), recovered many-times-over by
-            // not reading the full-res raster.
-            if overview_index == 0 {
-                let dataset = dataset.blocking_lock();
-                render_from(&dataset)
-            } else {
-                let ovr_level = overview_index - 1;
-                let ovr_arg = format!("OVERVIEW_LEVEL={ovr_level}");
-                let open_options: [&str; 1] = [&ovr_arg];
-                let dataset = Dataset::open_ex(
-                    &path,
-                    DatasetOptions {
-                        open_options: Some(&open_options),
-                        ..DatasetOptions::default()
-                    },
-                )
-                .map_err(|e| {
-                    TileServerError::RasterError(format!(
-                        "failed to open {path} with OVERVIEW_LEVEL={ovr_level}: {e}"
-                    ))
-                })?;
-                render_from(&dataset)
-            }
+            let dataset = render_dataset.blocking_lock();
+            render_from(&dataset)
         })
         .await
         .map_err(|e| TileServerError::RasterError(format!("task failed: {e}")))??;
