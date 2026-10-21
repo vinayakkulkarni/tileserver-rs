@@ -199,8 +199,8 @@ catalogs:
       specifier: ^1.4.5
       version: 1.4.5
     '@tanstack/vue-db':
-      specifier: ^0.3.8
-      version: 0.3.8
+      specifier: ^0.3.10
+      version: 0.3.10
     '@tanstack/vue-query':
       specifier: ^5.104.3
       version: 5.104.3
@@ -430,7 +430,7 @@ importers:
         version: 1.4.5(@tanstack/query-core@5.104.3)(typescript@6.0.3)
       '@tanstack/vue-db':
         specifier: catalog:client
-        version: 0.3.8(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))
+        version: 0.3.10(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))
       '@tanstack/vue-query':
         specifier: catalog:client
         version: 5.104.3(vue@3.5.44(typescript@6.0.3))
@@ -3176,18 +3176,8 @@ packages:
       '@opentelemetry/api':
         optional: true
 
-  '@tanstack/db-ivm@0.1.26':
-    resolution: {integrity: sha512-Td2HbR68RfpMPv4zyMNQk83z/5gTjGl/I1LA/07A26LXMEPGh+hTsNbfPSr5YPZhq6KXX9lDFjDzv3Qz3DjV5w==}
-    peerDependencies:
-      typescript: '>=4.7'
-
   '@tanstack/db-ivm@0.2.0':
     resolution: {integrity: sha512-AuMuGzVdWR5qzJPRYajmrUp95vMo0duvMZ0zBjMOvaI9rkh2GHZWCsJ/p7s81UN4Lep6HHJjahnYUF+XVL0+AQ==}
-    peerDependencies:
-      typescript: '>=4.7'
-
-  '@tanstack/db@0.13.0':
-    resolution: {integrity: sha512-Opp8m9K/5cw2N8WXK59W0WeV0yD+hV8zreqQv6U8GLSQAssnOPvrC5j0UwIyl8SfT6LslGFYNFGfnVN5V0oWmg==}
     peerDependencies:
       typescript: '>=4.7'
 
@@ -3232,8 +3222,8 @@ packages:
   '@tanstack/virtual-core@3.17.5':
     resolution: {integrity: sha512-AXfBC3sq6PuYSwyxYORqqgHCNjPGAvKJvZuBBJ1klhztWBB5cgqgwsq8+fNfaQJG7/K4xYBja9S90QFn2zmQAg==}
 
-  '@tanstack/vue-db@0.3.8':
-    resolution: {integrity: sha512-SDMI9wur9DWY+shvdUi4pOQYFwr4trHI68x5B0l5GCWVxZWyM529Hos4UoVppS3aBfzOLfZu/9yH0Q1bkQO+Tw==}
+  '@tanstack/vue-db@0.3.10':
+    resolution: {integrity: sha512-DTt6QfucYSQITV5UqpxlM+J0T2vZURQVvkp4xnMVjeXXFzWmKFyfshpG8qUT0nbamfdkWL02kZYeq7dsUwJzaw==}
     peerDependencies:
       vue: '>=3.3.0'
 
@@ -6934,9 +6924,6 @@ packages:
   socket.io-parser@4.2.7:
     resolution: {integrity: sha512-IH/iSeO9T6gz1KkFleGDWkG9N3dl4jXVYUtMhIqH10Md0ttMer8nUNWiP1DKuNrybD2xBrixLJdCC9J6ECoYkg==}
     engines: {node: '>=10.0.0'}
-
-  sorted-btree@1.8.1:
-    resolution: {integrity: sha512-395+XIP+wqNn3USkFSrNz7G3Ss/MXlZEqesxvzCRFwL14h6e8LukDHdLBePn5pwbm5OQ9vGu8mDyz2lLDIqamQ==}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
@@ -11338,22 +11325,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@tanstack/db-ivm@0.1.26(typescript@6.0.3)':
-    dependencies:
-      fractional-indexing: 3.4.0
-      sorted-btree: 1.8.1
-      typescript: 6.0.3
-
   '@tanstack/db-ivm@0.2.0(typescript@6.0.3)':
     dependencies:
       fractional-indexing: 3.4.0
-      typescript: 6.0.3
-
-  '@tanstack/db@0.13.0(typescript@6.0.3)':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@tanstack/db-ivm': 0.1.26(typescript@6.0.3)
-      '@tanstack/pacer-lite': 0.2.2
       typescript: 6.0.3
 
   '@tanstack/db@0.15.0(typescript@6.0.3)':
@@ -11384,9 +11358,9 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.5': {}
 
-  '@tanstack/vue-db@0.3.8(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))':
+  '@tanstack/vue-db@0.3.10(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))':
     dependencies:
-      '@tanstack/db': 0.13.0(typescript@6.0.3)
+      '@tanstack/db': 0.15.0(typescript@6.0.3)
       vue: 3.5.44(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
@@ -16422,8 +16396,6 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
-
-  sorted-btree@1.8.1: {}
 
   source-map-js@1.2.2: {}
 
