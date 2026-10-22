@@ -48,7 +48,7 @@ allowBuilds:
 # accepts both conventions.
 catalogs:
   default:
-    '@commitlint/cli': ^21.2.3
+    '@commitlint/cli': ^21.2.4
     '@commitlint/config-conventional': ^21.2.3
     '@iconify-json/simple-icons': ^1.2.100
     '@nuxt/eslint': ^1.17.0
