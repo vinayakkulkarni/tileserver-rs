@@ -3,6 +3,7 @@
 
   const { isDark, toggle } = useThemeToggle();
   const mobileOpen = ref(false);
+  const { trackCta, trackGithub } = useMarketingTracking();
 </script>
 
 <template>
@@ -41,6 +42,7 @@
               transition-colors
               hover:text-foreground
             "
+            @click="trackCta('nav', 'docs')"
           >
             Docs
           </NuxtLink>
@@ -52,6 +54,7 @@
               transition-colors
               hover:text-foreground
             "
+            @click="trackCta('nav', 'demo')"
           >
             Demo
           </NuxtLink>
@@ -106,6 +109,7 @@
           hover:text-foreground
           lg:flex
         "
+        @click="trackGithub('nav', 'repo')"
       >
         <Icon name="simple-icons:github" class="size-5" />
       </NuxtLink>
@@ -125,7 +129,7 @@
         to="https://docs.tileserver.app"
         external
         class="font-display text-2xl font-semibold tracking-150 uppercase"
-        @click="mobileOpen = false"
+        @click="mobileOpen = false; trackCta('mobile_nav', 'docs')"
       >
         Docs
       </NuxtLink>
@@ -133,7 +137,7 @@
         to="https://demo.tileserver.app"
         external
         class="font-display text-2xl font-semibold tracking-150 uppercase"
-        @click="mobileOpen = false"
+        @click="mobileOpen = false; trackCta('mobile_nav', 'demo')"
       >
         Demo
       </NuxtLink>
@@ -141,7 +145,7 @@
         to="https://github.com/vinayakkulkarni/tileserver-rs"
         external
         class="font-display text-2xl font-semibold tracking-150 uppercase"
-        @click="mobileOpen = false"
+        @click="mobileOpen = false; trackGithub('mobile_nav', 'repo')"
       >
         GitHub
       </NuxtLink>

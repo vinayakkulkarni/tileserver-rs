@@ -10,12 +10,14 @@ import type { Map, MapOptions } from 'maplibre-gl';
 import type { LayerColor } from '~/types/data';
 import { fetchDataSource } from '~/utils/api/data';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
+import { useMapInteractionTracking } from './use-map-interaction-tracking';
 
 export function useDataInspector(dataId: Ref<string>) {
   ensureMaplibreWorker();
   const layerColors = ref<LayerColor[]>([]);
   const panelOpen = ref(true);
   const mapRef = shallowRef<Map | null>(null);
+  const { watchMap } = useMapInteractionTracking('data');
 
   function navigateBack() {
     navigateTo({ path: '/', hash: '' }, { replace: true });
@@ -65,6 +67,7 @@ export function useDataInspector(dataId: Ref<string>) {
 
   async function onMapLoaded(map: Map) {
     mapRef.value = map;
+    watchMap(map);
 
     const [maplibregl, { default: MaplibreInspect }] = await Promise.all([
       import('maplibre-gl'),

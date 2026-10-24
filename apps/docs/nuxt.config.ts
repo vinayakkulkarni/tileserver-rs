@@ -1,5 +1,16 @@
 import tailwindcss from '@tailwindcss/vite';
 
+// Public tracker IDs for docs.tileserver.app (they ship in the HTML; not
+// secrets). Override any of them with the matching NUXT_PUBLIC_* env var.
+const analytics = {
+  gtagId: 'G-8VZZ8BVQXW',
+  plausibleApiHost: 'https://analytics.geoql.in',
+  plausibleScriptId: 'IebOlGOoJGQGm96mKPPYF',
+  openpanelClientId: '68c0368a-1260-42fc-a564-23d8b83aa8c8',
+  // Comma-separated hostnames that load trackers (preview deploys do not).
+  analyticsHosts: 'docs.tileserver.app',
+};
+
 export default defineNuxtConfig({
   modules: [
     '@nuxt/content',
@@ -10,14 +21,8 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     'motion-v/nuxt',
     'shadcn-nuxt',
-    [
-      '@nuxtjs/plausible',
-      {
-        domain: 'docs.tileserver.app',
-        apiHost: 'https://analytics.geoql.in',
-        autoOutboundTracking: true,
-      },
-    ],
+    '@nuxt/scripts',
+    '@openpanel/nuxt',
   ],
 
   devtools: { enabled: false },
@@ -96,6 +101,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'https://docs.tileserver.app',
+      ...analytics,
     },
   },
 
@@ -134,7 +140,6 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
     optimizeDeps: {
       include: [
-        '@plausible-analytics/tracker',
         '@lucide/vue',
         'ogl',
         'clsx',
@@ -176,6 +181,17 @@ export default defineNuxtConfig({
       { name: 'Source Serif 4', src: '/fonts/source-serif-4-latin.woff2', weight: [200, 900] },
       { name: 'Source Serif 4', src: '/fonts/source-serif-4-latin-italic.woff2', weight: [200, 900], style: 'italic' },
     ],
+  },
+
+  // Starts disabled; app/plugins/6.openpanel.client.ts enables it once the
+  // tracker gate passes (real browser on an allowed host).
+  openpanel: {
+    clientId: analytics.openpanelClientId,
+    apiUrl: 'https://events.geoql.in/api',
+    trackScreenViews: true,
+    trackOutgoingLinks: true,
+    trackAttributes: true,
+    disabled: true,
   },
 
   shadcn: {

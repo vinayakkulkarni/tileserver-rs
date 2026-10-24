@@ -1,5 +1,16 @@
 import tailwindcss from '@tailwindcss/vite';
 
+// Public tracker IDs for tileserver.app (they ship in the HTML; not secrets).
+// Override any of them with the matching NUXT_PUBLIC_* env var.
+const analytics = {
+  gtagId: 'G-8VZZ8BVQXW',
+  plausibleApiHost: 'https://analytics.geoql.in',
+  plausibleScriptId: 'd3NNFPPEyAv6oSbEaXOd-',
+  openpanelClientId: '68c0368a-1260-42fc-a564-23d8b83aa8c8',
+  // Comma-separated hostnames that load trackers (preview deploys do not).
+  analyticsHosts: 'tileserver.app',
+};
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -9,20 +20,26 @@ export default defineNuxtConfig({
     '@nuxt/icon',
     '@nuxtjs/color-mode',
     'motion-v/nuxt',
-    [
-      '@nuxtjs/plausible',
-      {
-        domain: 'tileserver.app',
-        apiHost: 'https://analytics.geoql.in',
-        autoOutboundTracking: true,
-      },
-    ],
+    '@nuxt/scripts',
+    '@openpanel/nuxt',
   ],
 
   runtimeConfig: {
     public: {
       baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'https://tileserver.app',
+      ...analytics,
     },
+  },
+
+  // Starts disabled; app/plugins/6.openpanel.client.ts enables it once the
+  // tracker gate passes (real browser on an allowed host).
+  openpanel: {
+    clientId: analytics.openpanelClientId,
+    apiUrl: 'https://events.geoql.in/api',
+    trackScreenViews: true,
+    trackOutgoingLinks: true,
+    trackAttributes: true,
+    disabled: true,
   },
 
   devtools: { enabled: false },

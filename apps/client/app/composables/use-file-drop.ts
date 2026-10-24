@@ -18,6 +18,7 @@ import {
 import { useUploadFileMutation } from '~/utils/api/upload/use-upload-file.mutation';
 import { useDeleteUploadMutation } from '~/utils/api/upload/use-delete-upload.mutation';
 import { fetchDataSource } from '~/utils/api/data';
+import { useAnalytics } from './use-analytics';
 
 /**
  * Composable for drag-and-drop geospatial file visualization.
@@ -39,6 +40,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
   // TanStack mutations must be called at setup scope (not inside async handlers)
   const uploadMutation = useUploadFileMutation();
   const deleteMutation = useDeleteUploadMutation();
+  const { track } = useAnalytics();
 
   const { isOverDropZone } = useDropZone(dropZoneRef, {
     onDrop: handleDrop,
@@ -417,6 +419,7 @@ export function useFileDrop(mapRef: ShallowRef<Map | null>) {
   ) {
     if (successTimer) clearTimeout(successTimer);
     lastSuccess.value = { fileName, featureCount, format };
+    track('demo_file_dropped', { format, featureCount });
     successTimer = setTimeout(() => {
       lastSuccess.value = null;
     }, 4000);

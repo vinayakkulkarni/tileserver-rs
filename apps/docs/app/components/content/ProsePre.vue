@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { Check, Copy } from '@lucide/vue';
 
-  defineProps<{
+  const props = defineProps<{
     code?: string;
     language?: string;
     filename?: string;
@@ -9,6 +9,13 @@
   }>();
 
   const { copy, copied } = useClipboard();
+  const { trackCodeCopied } = useDocsTracking();
+
+  async function copyCode() {
+    if (!props.code) return;
+    await copy(props.code);
+    trackCodeCopied(props.code, props.language);
+  }
 </script>
 
 <template>
@@ -26,7 +33,7 @@
       class="absolute top-3 right-3 z-10 flex size-8 items-center justify-center border border-border bg-background text-muted-foreground opacity-0 transition-all hover:text-foreground group-hover:opacity-100"
       :class="{ 'text-foreground opacity-100': copied }"
       aria-label="Copy code"
-      @click="copy(code)"
+      @click="copyCode()"
     >
       <Check
         v-if="copied"

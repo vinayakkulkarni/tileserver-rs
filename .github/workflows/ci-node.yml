@@ -84,6 +84,9 @@ jobs:
       - name: Lint marketing
         run: pnpm --filter @tileserver-rs/marketing run lint
 
+      - name: Test marketing
+        run: pnpm --filter @tileserver-rs/marketing run test
+
       - name: Build marketing
         run: |
           max_attempts=3

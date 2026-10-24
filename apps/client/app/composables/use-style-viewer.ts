@@ -6,10 +6,12 @@
 
 import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
+import { useMapInteractionTracking } from './use-map-interaction-tracking';
 
 export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
   ensureMaplibreWorker();
   const { style, isLoading } = useMapStyle(styleId, isRaster);
+  const { watchMap } = useMapInteractionTracking('style');
 
   // Map instance ref for LLM tool integration
   const mapRef = shallowRef<Map | null>(null);
@@ -34,6 +36,7 @@ export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
 
   function onMapLoaded(map: Map) {
     mapRef.value = map;
+    watchMap(map);
   }
 
   function navigateBack() {

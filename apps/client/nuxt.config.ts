@@ -5,6 +5,19 @@ const ADMIN_PORT = process.env.TILESERVER_ADMIN_PORT ?? '8081';
 const BACKEND = `http://localhost:${BACKEND_PORT}`;
 const ADMIN = `http://localhost:${ADMIN_PORT}`;
 
+// Public tracker IDs for demo.tileserver.app (they ship in the HTML; not
+// secrets). This SPA is embedded in every tileserver-rs binary and image, so
+// trackers load ONLY on the hosts in `analyticsHosts` — self-hosted instances
+// never phone home. Override any value with the matching NUXT_PUBLIC_* env
+// var at build time (the SPA is static).
+const analytics = {
+  gtagId: 'G-8VZZ8BVQXW',
+  plausibleApiHost: 'https://analytics.geoql.in',
+  plausibleScriptId: 'vjoY00yaj1X7HX67Sajx_',
+  openpanelClientId: '68c0368a-1260-42fc-a564-23d8b83aa8c8',
+  analyticsHosts: 'demo.tileserver.app',
+};
+
 export default defineNuxtConfig({
   modules: [
     'shadcn-nuxt',
@@ -14,7 +27,26 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode',
     'motion-v/nuxt',
     '@comark/nuxt',
+    '@nuxt/scripts',
+    '@openpanel/nuxt',
   ],
+
+  runtimeConfig: {
+    public: {
+      ...analytics,
+    },
+  },
+
+  // Starts disabled; app/plugins/6.openpanel.client.ts enables it once the
+  // tracker gate passes (real browser on an allowed host).
+  openpanel: {
+    clientId: analytics.openpanelClientId,
+    apiUrl: 'https://events.geoql.in/api',
+    trackScreenViews: true,
+    trackOutgoingLinks: true,
+    trackAttributes: true,
+    disabled: true,
+  },
 
   fonts: {
     providers: {

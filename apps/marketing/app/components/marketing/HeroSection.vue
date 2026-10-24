@@ -10,6 +10,7 @@
   } from '@lucide/vue';
 
   const { copied, installCommand, copyToClipboard } = useMarketingPage();
+  const { trackCta, trackGithub } = useMarketingTracking();
 </script>
 
 <template>
@@ -54,6 +55,7 @@
                 text-primary
                 hover:underline
               "
+              @click="trackGithub('hero', 'releases')"
             >
               GitHub Releases
             </a>
@@ -119,6 +121,7 @@
               hover:bg-primary/90
               sm:w-auto sm:px-8
             "
+            @click="trackCta('hero', 'quickstart')"
           >
             <Sparkles class="size-4" />
             Get Started
@@ -139,6 +142,7 @@
               hover:border-foreground/20 hover:bg-accent
               sm:w-auto
             "
+            @click="trackGithub('hero', 'repo')"
           >
             <Icon name="simple-icons:github" class="size-4" />
             View on GitHub
@@ -170,6 +174,7 @@
                 hover:bg-transparent
                 sm:w-auto
               "
+              @click="trackCta('hero', 'demo')"
             >
               <ExternalLink class="size-4" />
               Live Demo

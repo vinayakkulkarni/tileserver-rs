@@ -7,6 +7,7 @@
   } from '@lucide/vue';
 
   const { aiBenefits, aiChatExample } = useMarketingPage();
+  const { trackCta } = useMarketingTracking();
 </script>
 
 <template>
@@ -176,6 +177,7 @@
               text-background uppercase transition-colors
               hover:bg-transparent hover:text-foreground
             "
+            @click="trackCta('ai_section', 'demo')"
           >
             <ExternalLink class="size-3.5" />
             Try It Live
@@ -195,6 +197,7 @@
               transition-colors
               hover:border-foreground/20 hover:text-foreground
             "
+            @click="trackCta('ai_section', 'ai_docs')"
           >
             Learn More
           </NuxtLink>

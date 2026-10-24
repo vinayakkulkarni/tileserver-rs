@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Database, Palette } from '@lucide/vue';
-  import HomeToast from '~/components/ui/toast/Toast.vue';
+  import { Toast as HomeToast } from '~/components/ui/toast';
 
   const {
     isLoadingData,

@@ -16,13 +16,16 @@
     "postinstall": "nuxt prepare",
     "format": "oxfmt --write .",
     "lint": "oxlint && eslint .",
-    "lint:fix": "oxlint --fix && eslint . --fix"
+    "lint:fix": "oxlint --fix && eslint . --fix",
+    "test": "vitest run"
   },
   "dependencies": {
     "@lucide/vue": "catalog:default",
     "@nuxt/fonts": "catalog:default",
     "@nuxt/icon": "catalog:default",
+    "@nuxt/scripts": "catalog:default",
     "@nuxtjs/color-mode": "catalog:default",
+    "@openpanel/nuxt": "catalog:default",
     "@vueuse/core": "catalog:default",
     "@vueuse/nuxt": "catalog:default",
     "class-variance-authority": "catalog:default",
@@ -41,7 +44,6 @@
     "@iconify-json/simple-icons": "catalog:default",
     "@nuxt/eslint": "catalog:default",
     "@nuxt/eslint-config": "catalog:default",
-    "@nuxtjs/plausible": "catalog:marketing",
     "@tailwindcss/vite": "catalog:default",
     "@types/node": "catalog:default",
     "eslint": "catalog:default",
@@ -53,6 +55,7 @@
     "tailwindcss": "catalog:default",
     "typescript": "catalog:default",
     "vite": "catalog:default",
+    "vitest": "catalog:default",
     "vue-tsc": "catalog:default",
     "wrangler": "catalog:marketing"
   },
