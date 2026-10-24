@@ -46,13 +46,16 @@ import type {
   ApiEndpointGroup,
   PerformanceStat,
 } from '~/types/marketing';
+import { useAnalytics } from './use-analytics';
 
 export function useMarketingPage() {
   const installCommand = 'brew install vinayakkulkarni/tap/tileserver-rs';
   const { copied, copy } = useClipboard({ copiedDuring: 2000 });
+  const { track } = useAnalytics();
 
   async function copyToClipboard() {
     await copy(installCommand);
+    track('install_command_copied', { location: 'hero', method: 'homebrew' });
   }
 
   const features: Feature[] = [

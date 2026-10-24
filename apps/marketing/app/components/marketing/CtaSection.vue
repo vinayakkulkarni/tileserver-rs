@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import { ArrowRight } from '@lucide/vue';
+
+  const { trackCta, trackGithub } = useMarketingTracking();
 </script>
 
 <template>
@@ -40,6 +42,7 @@
             text-background uppercase transition-colors
             hover:bg-transparent hover:text-foreground
           "
+          @click="trackCta('cta_section', 'quickstart')"
         >
           Read the Docs
           <ArrowRight
@@ -58,6 +61,7 @@
             transition-colors
             hover:border-foreground/20 hover:text-foreground
           "
+          @click="trackGithub('cta_section', 'repo')"
         >
           <Icon name="simple-icons:github" class="size-3.5" />
           Star on GitHub

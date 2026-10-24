@@ -2,6 +2,7 @@
   import { ArrowRight } from '@lucide/vue';
 
   const { performanceStats } = useMarketingPage();
+  const { trackCta } = useMarketingTracking();
 </script>
 
 <template>
@@ -81,6 +82,7 @@
           text-muted-foreground uppercase transition-colors
           hover:text-foreground
         "
+        @click="trackCta('performance_section', 'benchmarks')"
       >
         View Full Benchmarks
         <ArrowRight

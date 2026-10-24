@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import { Globe } from '@lucide/vue';
+
+  const { trackCta, trackGithub } = useMarketingTracking();
 </script>
 
 <template>
@@ -21,6 +23,7 @@
               transition-colors
               hover:text-foreground
             "
+            @click="trackCta('footer', 'author')"
             >Vinayak Kulkarni</NuxtLink
           >
         </span>
@@ -35,6 +38,7 @@
             hover:text-foreground
             lg:text-xs
           "
+          @click="trackCta('footer', 'docs')"
         >
           Docs
         </NuxtLink>
@@ -47,6 +51,7 @@
             hover:text-foreground
             lg:text-xs
           "
+          @click="trackGithub('footer', 'repo')"
         >
           GitHub
         </NuxtLink>
@@ -59,6 +64,7 @@
             hover:text-foreground
             lg:text-xs
           "
+          @click="trackGithub('footer', 'license')"
         >
           MIT License
         </NuxtLink>

@@ -2,6 +2,7 @@
   import { FileJson2, ExternalLink } from '@lucide/vue';
 
   const { apiEndpoints } = useMarketingPage();
+  const { trackCta } = useMarketingTracking();
 </script>
 
 <template>
@@ -44,6 +45,7 @@
               tracking-wider text-primary uppercase transition-colors
               hover:text-primary/80
             "
+            @click="trackCta('api_section', 'openapi')"
           >
             Explore the API
             <ExternalLink
