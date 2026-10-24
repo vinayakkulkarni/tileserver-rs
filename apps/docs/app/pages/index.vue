@@ -152,6 +152,7 @@
     sectionEls.forEach((s) => observer.observe(s));
     onUnmounted(() => observer.disconnect());
   });
+  const { trackGithub, trackMarketing } = useDocsTracking();
 </script>
 
 <template>
@@ -191,6 +192,7 @@
               to="https://tileserver.app"
               external
               class="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+              @click="trackMarketing('header')"
             >
               Home
             </NuxtLink>
@@ -225,6 +227,7 @@
           to="https://github.com/vinayakkulkarni/tileserver-rs"
           external
           class="hidden items-center justify-center border-l border-border text-muted-foreground transition-colors hover:text-foreground lg:flex"
+          @click="trackGithub('header', 'repo')"
         >
           <Icon
             name="simple-icons:github"
@@ -303,6 +306,7 @@
               to="https://github.com/vinayakkulkarni/tileserver-rs"
               external
               class="inline-flex items-center gap-2 border border-border px-5 py-2.5 font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+              @click="trackGithub('hero', 'repo')"
             >
               <Icon
                 name="simple-icons:github"
@@ -422,6 +426,7 @@
               to="https://tileserver.app"
               external
               class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              @click="trackMarketing('home_footer')"
             >
               Home
             </NuxtLink>
@@ -429,6 +434,7 @@
               to="https://github.com/vinayakkulkarni/tileserver-rs"
               external
               class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              @click="trackGithub('home_footer', 'repo')"
             >
               GitHub
             </NuxtLink>
@@ -436,6 +442,7 @@
               to="https://github.com/vinayakkulkarni/tileserver-rs/blob/main/LICENSE"
               external
               class="font-mono text-10 uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground lg:text-xs"
+              @click="trackGithub('home_footer', 'license')"
             >
               MIT License
             </NuxtLink>

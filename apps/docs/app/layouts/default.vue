@@ -11,6 +11,7 @@
   } = useDocsNavigation();
 
   const { isDark, toggle: toggleTheme } = useThemeToggle();
+  const { trackGithub } = useDocsTracking();
 
   const route = useRoute();
 
@@ -143,6 +144,7 @@
           to="https://github.com/vinayakkulkarni/tileserver-rs"
           external
           class="hidden items-center justify-center border-l border-border text-muted-foreground transition-colors hover:text-foreground lg:flex"
+          @click="trackGithub('header', 'repo')"
         >
           <Icon
             name="simple-icons:github"
