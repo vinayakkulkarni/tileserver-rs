@@ -189,24 +189,28 @@ fn decompress_tile_data(tile: &TileData) -> Result<Vec<u8>> {
 /// `mlt_core::mvt::mvt_to_tile_layers` decodes the MVT directly into one
 /// row-oriented `TileLayer` per MVT layer, inferring each property column's
 /// type from its features (I64/U64 widen to I64, F32/F64 to F64, conflicts fall
-/// back to Str). Each layer is then encoded with `TileLayer::encode`, whose
-/// `EncoderConfig::default` enables FastPFOR, FSST, shared-dictionary, and the
-/// spatial-sort trials. This replaces the older GeoJSON `FeatureCollection`
-/// bridge and its hand-rolled column-type inference.
+/// back to Str). Each layer is then encoded with `TileLayer::encode` using
+/// `EncoderConfig::from_profile(Profile::Native(Network::Cellular4G))`, which
+/// enables FastPFOR, FSST and shared dictionaries. mlt-core 0.21 removed
+/// `EncoderConfig::default`; upstream maplibre-tile-spec#1940 names this
+/// profile as the replacement that encodes like the old default. This replaces
+/// the older GeoJSON `FeatureCollection` bridge and its hand-rolled column-type
+/// inference.
 ///
 /// Dropping the GeoJSON intermediate measured ~20-23% faster on real-data tiles
 /// (z4 -22.9%, z7 -20.4%, z13 -19.5%); trivial z0 overview tiles regress ~7% as
 /// the native reader's fixed setup cost dominates a near-empty payload. See
 /// `benches/mlt.rs` (`mvt_to_mlt_transcode` group).
 fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
-    use mlt_core::encoder::EncoderConfig;
+    use mlt_core::encoder::{EncoderConfig, Network, Profile};
 
     let tile_layers = mlt_core::mvt::mvt_to_tile_layers(mvt_bytes)
         .map_err(|e| TileServerError::MltEncodeError(format!("failed to parse MVT tile: {e}")))?;
 
+    let config = EncoderConfig::from_profile(Profile::Native(Network::Cellular4G));
     let mut output = Vec::with_capacity(mvt_bytes.len());
     for tile_layer in tile_layers {
-        let bytes = tile_layer.encode(EncoderConfig::default()).map_err(|e| {
+        let bytes = tile_layer.encode(config).map_err(|e| {
             TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
         })?;
         output.extend_from_slice(&bytes);
