@@ -210,13 +210,20 @@ fn mvt_to_mlt(mvt_bytes: &[u8]) -> Result<Bytes> {
     let config = EncoderConfig::from_profile(Profile::Native(Network::Cellular4G));
     let mut output = Vec::with_capacity(mvt_bytes.len());
     for tile_layer in tile_layers {
-        let bytes = tile_layer.encode(config).map_err(|e| {
-            TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
-        })?;
+        let bytes = tile_layer.encode(config).map_err(layer_encode_error)?;
         output.extend_from_slice(&bytes);
     }
 
     Ok(Bytes::from(output))
+}
+
+/// Map an mlt-core layer-encode failure to the server error type.
+///
+/// A named function rather than an inline closure so the mapping is unit
+/// tested directly: layers that `mvt_to_tile_layers` accepts do not make
+/// `TileLayer::encode` fail, so no MVT input reaches this path.
+fn layer_encode_error(e: mlt_core::MltError) -> TileServerError {
+    TileServerError::MltEncodeError(format!("failed to encode MLT layer: {e}"))
 }
 
 // ---------------------------------------------------------------------------
@@ -806,6 +813,19 @@ mod tests {
         );
         let mlt_bytes = result.unwrap();
         assert!(!mlt_bytes.is_empty());
+    }
+
+    #[test]
+    fn test_layer_encode_error_maps_to_mlt_encode_error() {
+        match layer_encode_error(mlt_core::MltError::MissingLayerName) {
+            TileServerError::MltEncodeError(msg) => {
+                assert!(
+                    msg.starts_with("failed to encode MLT layer: "),
+                    "unexpected message: {msg}"
+                );
+            }
+            other => panic!("expected MltEncodeError, got: {other:?}"),
+        }
     }
 
     #[test]
