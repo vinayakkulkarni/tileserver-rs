@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { useIntersectionObserver } from '@vueuse/core';
   import { motion } from 'motion-v';
+  import type { VariantType } from 'motion-v';
   import { cn } from '~/lib/utils';
 
   const props = withDefaults(
@@ -9,8 +10,8 @@
       by?: 'chars' | 'words';
       delay?: number;
       duration?: number;
-      from?: Record<string, unknown>;
-      to?: Record<string, unknown>;
+      from?: VariantType;
+      to?: VariantType;
       threshold?: number;
       class?: string;
     }>(),
@@ -60,8 +61,7 @@
       }>;
     }> = [];
     let globalIndex = 0;
-    for (let i = 0; i < tokens.length; i += 1) {
-      const token = tokens[i];
+    for (const [i, token] of tokens.entries()) {
       const chars = props.by === 'words' ? [token] : token.split('');
       result.push({
         id: `word-${i}`,

@@ -5,7 +5,7 @@
  * 1. Traditional TanStack Query hooks (useQuery, useMutation)
  * 2. TanStack DB Collections (via queryCollectionOptions)
  *
- * The QueryClient is exported via `setQueryClient()` for use by collections.
+ * Collections reach the QueryClient through `useQueryClient()`.
  */
 
 import type {
@@ -18,7 +18,6 @@ import {
   hydrate,
   dehydrate,
 } from '@tanstack/vue-query';
-import { setQueryClient } from '#shared/collections/query-client';
 
 export default defineNuxtPlugin({
   name: 'vue-query',
@@ -34,9 +33,6 @@ export default defineNuxtPlugin({
         },
       },
     });
-
-    // Export QueryClient for TanStack DB collections
-    setQueryClient(queryClient);
 
     // Client persister for maintaining state across navigation
     const clientPersister = import.meta.client

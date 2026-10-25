@@ -449,8 +449,17 @@ export function useLlmChat(
   // AG-UI thread id: one conversation per composable instance.
   const threadId = crypto.randomUUID();
 
+  // @tanstack/ai 1.0 passes the run's AG-UI RunAgentInput as the fourth
+  // argument. RUN_STARTED/RUN_FINISHED must carry its runId: the ChatClient
+  // ends the current run only when the terminal event's runId matches.
   const connection = stream(
-    async function* (messages): AsyncGenerator<StreamChunk> {
+    async function* (
+      messages,
+      data,
+      abortSignal,
+      input,
+    ): AsyncGenerator<StreamChunk> {
+      const runId = input.runId;
       // --- Remote provider (bring your own key, or the server proxy) ---
       if (isRemote.value) {
         const target = remoteTarget.value;
@@ -459,7 +468,6 @@ export function useLlmChat(
             'Set up the remote provider in the Map AI settings first.',
           );
         }
-        const runId = crypto.randomUUID();
         const messageId = crypto.randomUUID();
         yield {
           type: EventType.RUN_STARTED,
@@ -495,7 +503,6 @@ export function useLlmChat(
         );
       }
 
-      const runId = crypto.randomUUID();
       const messageId = crypto.randomUUID();
       const useTools = selectedModel.value.supportsTools;
       const systemPrompt = useTools
@@ -709,6 +716,9 @@ export function useLlmChat(
 
   const chat = useChat({
     connection,
+    // @tanstack/ai 1.0 requires the conversation id; reuse the one the
+    // adapter already stamps on every RUN_* event so they correlate.
+    threadId,
     // Pass client + server tools for auto-execution by useChat
     // When the adapter yields TOOL_CALL events, useChat matches them
     // to these client tools, executes them, and re-invokes the adapter.

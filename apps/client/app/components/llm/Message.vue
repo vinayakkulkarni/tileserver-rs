@@ -46,7 +46,7 @@
         {{ textContent }}
       </p>
 
-      <!-- Assistant: @comark/nuxt 0.7 registers <Markdown> (prop `value`) -->
+      <!-- Assistant: @comark/nuxt 0.8 registers <Markdown> (prop `value`) -->
       <ClientOnly v-else>
         <div class="ai-prose max-w-none overflow-hidden">
           <Suspense>
