@@ -35,6 +35,9 @@ jobs:
       - name: Lint client
         run: pnpm --filter @tileserver-rs/client run lint
 
+      - name: Typecheck client
+        run: pnpm --filter @tileserver-rs/client run typecheck
+
       - name: Format check client
         run: pnpm --filter @tileserver-rs/client run format:check
 
@@ -63,6 +66,9 @@ jobs:
       - name: Lint docs
         run: pnpm --filter @tileserver-rs/docs run lint
 
+      - name: Typecheck docs
+        run: pnpm --filter @tileserver-rs/docs run typecheck
+
       - name: Test docs
         run: pnpm --filter @tileserver-rs/docs run test
 
@@ -86,6 +92,9 @@ jobs:
       # --- Marketing ---
       - name: Lint marketing
         run: pnpm --filter @tileserver-rs/marketing run lint
+
+      - name: Typecheck marketing
+        run: pnpm --filter @tileserver-rs/marketing run typecheck
 
       - name: Test marketing
         run: pnpm --filter @tileserver-rs/marketing run test

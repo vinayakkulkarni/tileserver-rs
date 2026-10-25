@@ -12,6 +12,7 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "lint": "oxlint && eslint .",
+    "typecheck": "nuxt typecheck",
     "lint:fix": "oxlint --fix && eslint . --fix",
     "test": "vitest run",
     "postinstall": "nuxt prepare"
