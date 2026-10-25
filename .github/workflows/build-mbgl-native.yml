@@ -121,7 +121,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: ubuntu-latest
+          # x64 pinned to 24.04 like the arm64 runner: the archive is linked
+          # against the build host's ICU, and consumers (Docker, CI) are 24.04.
+          - runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             arch: x64
           - runner: ubuntu-24.04-arm

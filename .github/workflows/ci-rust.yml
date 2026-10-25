@@ -28,7 +28,11 @@ jobs:
 
   clippy:
     name: 'Clippy'
-    runs-on: ubuntu-latest
+    # Pinned to ubuntu-24.04, not ubuntu-latest: the prebuilt MapLibre Native
+    # archive (mbgl-sys) is built against Ubuntu 24.04's ICU 74, the Docker
+    # image and the arm64 runners are 24.04 too. ubuntu-latest moved to 26.04
+    # (ICU 76) in Oct 2026 and linking failed with undefined icu_74 symbols.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       RUST_LOG: 'debug'
@@ -132,7 +136,11 @@ jobs:
   # the wall-clock time to the longer of the two.
   ci:
     name: 'Test & Coverage'
-    runs-on: ubuntu-latest
+    # Pinned to ubuntu-24.04, not ubuntu-latest: the prebuilt MapLibre Native
+    # archive (mbgl-sys) is built against Ubuntu 24.04's ICU 74, the Docker
+    # image and the arm64 runners are 24.04 too. ubuntu-latest moved to 26.04
+    # (ICU 76) in Oct 2026 and linking failed with undefined icu_74 symbols.
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       RUST_LOG: 'debug'
