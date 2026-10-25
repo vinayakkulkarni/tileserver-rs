@@ -25,9 +25,7 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header
-      class="border-b border-border px-page-x py-5 sm:py-6"
-    >
+    <header class="border-b border-border px-page-x py-5 sm:py-6">
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground">
         Devices
@@ -214,9 +212,7 @@
                   {{ session.scope }}
                 </span>
               </td>
-              <td
-                class="px-4 py-panel font-mono text-11 text-muted-foreground"
-              >
+              <td class="px-4 py-panel font-mono text-11 text-muted-foreground">
                 {{ formatTimestamp(session.granted_at) }}
               </td>
               <td

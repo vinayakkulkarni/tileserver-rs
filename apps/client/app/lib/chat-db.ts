@@ -49,4 +49,3 @@ export const chatCollection = createCollection(
     schema: ChatMessageSchema,
   }),
 );
-

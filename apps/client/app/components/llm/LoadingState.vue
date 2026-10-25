@@ -36,10 +36,9 @@
         ></div>
       </div>
       <div class="mt-2.5 flex items-center justify-between">
-        <span
-          class="text-10 uppercase tracking-wider text-muted-foreground"
-          >{{ stageText }}</span
-        >
+        <span class="text-10 uppercase tracking-wider text-muted-foreground">{{
+          stageText
+        }}</span>
         <span class="text-10 font-semibold tabular-nums text-foreground">
           {{ Math.round(progress * 100) }}%
         </span>

@@ -18,9 +18,7 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header
-      class="border-b border-border px-page-x py-5 sm:py-6"
-    >
+    <header class="border-b border-border px-page-x py-5 sm:py-6">
       <AdminBreadcrumb :items="breadcrumbs" />
       <div class="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <h1 class="text-2xl font-semibold tracking-tight text-foreground">

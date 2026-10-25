@@ -15,7 +15,8 @@ export function adminConfigQueryOptions() {
 export function adminConfigSchemaQueryOptions() {
   return queryOptions({
     queryKey: ADMIN_CONFIG_QUERY_KEYS.schema(),
-    queryFn: () => $fetch<ConfigSchemaPayload>(apiUrl('/__admin/config/schema')),
+    queryFn: () =>
+      $fetch<ConfigSchemaPayload>(apiUrl('/__admin/config/schema')),
     staleTime: 1000 * 60 * 60,
   });
 }

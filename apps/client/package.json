@@ -17,6 +17,7 @@
     "lint": "oxlint && eslint .",
     "lint:fix": "oxlint --fix && eslint . --fix",
     "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
     "typecheck": "nuxt typecheck",
     "test": "vitest run"
   },

@@ -42,7 +42,9 @@ export function useHomeHero() {
   const sourceCount = computed(
     () => pingQuery.data.value?.loaded_sources ?? 'n/a',
   );
-  const styleCount = computed(() => pingQuery.data.value?.loaded_styles ?? 'n/a');
+  const styleCount = computed(
+    () => pingQuery.data.value?.loaded_styles ?? 'n/a',
+  );
 
   const compressionEnabled = computed(
     () => pingQuery.data.value?.compression_enabled ?? false,

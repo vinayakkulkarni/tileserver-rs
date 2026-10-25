@@ -14,13 +14,14 @@
 
   // Stable per-overlay ref so the inline style object is not recreated on
   // every render inside the v-for subtree.
-  const dotStyleMap = computed(() =>
-    new Map(
-      props.overlays.map((overlay) => [
-        overlay.id,
-        { backgroundColor: overlay.color },
-      ]),
-    ),
+  const dotStyleMap = computed(
+    () =>
+      new Map(
+        props.overlays.map((overlay) => [
+          overlay.id,
+          { backgroundColor: overlay.color },
+        ]),
+      ),
   );
 
   function formatCount(count: number): string {

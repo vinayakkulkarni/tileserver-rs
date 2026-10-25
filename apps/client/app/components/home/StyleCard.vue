@@ -56,9 +56,7 @@
       <div class="card-main min-w-0 flex-1">
         <div class="card-top flex items-start justify-between gap-2.5">
           <div class="min-w-0">
-            <h3
-              class="card-title text-15/1-3 font-bold tracking-n5"
-            >
+            <h3 class="card-title text-15/1-3 font-bold tracking-n5">
               {{ style.name }}
             </h3>
             <p class="mt-1.5">

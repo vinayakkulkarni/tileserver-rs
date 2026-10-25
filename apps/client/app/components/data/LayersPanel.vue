@@ -14,29 +14,32 @@
 
   // Stable per-layer refs so the inline class/style objects are not recreated
   // on every render inside the v-for subtree.
-  const rowClassMap = computed(() =>
-    new Map(
-      props.layerColors.map((layer) => [
-        layer.id,
-        { 'opacity-40': !layer.visible },
-      ]),
-    ),
+  const rowClassMap = computed(
+    () =>
+      new Map(
+        props.layerColors.map((layer) => [
+          layer.id,
+          { 'opacity-40': !layer.visible },
+        ]),
+      ),
   );
-  const dotStyleMap = computed(() =>
-    new Map(
-      props.layerColors.map((layer) => [
-        layer.id,
-        { backgroundColor: layer.color },
-      ]),
-    ),
+  const dotStyleMap = computed(
+    () =>
+      new Map(
+        props.layerColors.map((layer) => [
+          layer.id,
+          { backgroundColor: layer.color },
+        ]),
+      ),
   );
-  const labelClassMap = computed(() =>
-    new Map(
-      props.layerColors.map((layer) => [
-        layer.id,
-        { 'line-through': !layer.visible },
-      ]),
-    ),
+  const labelClassMap = computed(
+    () =>
+      new Map(
+        props.layerColors.map((layer) => [
+          layer.id,
+          { 'line-through': !layer.visible },
+        ]),
+      ),
   );
 </script>
 

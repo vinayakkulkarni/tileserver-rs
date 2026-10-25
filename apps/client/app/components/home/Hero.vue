@@ -130,8 +130,7 @@
                   >
                   <template v-else>
                     {{ cacheMb
-                    }}<span
-                      class="text-10 font-medium text-muted-foreground"
+                    }}<span class="text-10 font-medium text-muted-foreground"
                       >MB</span
                     >
                   </template>
@@ -195,10 +194,16 @@
           ></span>
           Live
         </span>
-        <span class="font-medium">· Renderer {{ rendererEnabled ? '✓' : '✗' }}</span>
-        <span class="font-medium">· Compression {{ compressionEnabled ? '✓' : '✗' }}</span>
+        <span class="font-medium"
+          >· Renderer {{ rendererEnabled ? '✓' : '✗' }}</span
+        >
+        <span class="font-medium"
+          >· Compression {{ compressionEnabled ? '✓' : '✗' }}</span
+        >
         <span class="font-medium">· OGC {{ ogcEnabled ? '✓' : '✗' }}</span>
-        <span v-if="versionLabel" class="font-semibold text-foreground">· {{ versionLabel }}</span>
+        <span v-if="versionLabel" class="font-semibold text-foreground"
+          >· {{ versionLabel }}</span
+        >
       </p>
 
       <span
@@ -212,19 +217,25 @@
       >
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Sources</dt>
-          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd
+            class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground"
+          >
             {{ sourceCount }}
           </dd>
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Styles</dt>
-          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd
+            class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground"
+          >
             {{ styleCount }}
           </dd>
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Cache</dt>
-          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd
+            class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground"
+          >
             <span v-if="!cacheEnabled" class="text-muted-foreground">—</span>
             <template v-else>
               {{ cacheMb
@@ -236,7 +247,9 @@
         </div>
         <div class="inline-flex items-baseline gap-1.5">
           <dt>Uptime</dt>
-          <dd class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground">
+          <dd
+            class="font-mono text-13 font-semibold leading-none tabular-nums tracking-normal text-foreground"
+          >
             {{ isLoading ? '—' : uptime }}
           </dd>
         </div>

@@ -29,9 +29,7 @@
           :is="getIconComponent(suggestion.icon)"
           class="size-4 text-muted-foreground transition-colors group-hover:text-primary"
         />
-        <span class="text-xs/snug font-medium">{{
-          suggestion.title
-        }}</span>
+        <span class="text-xs/snug font-medium">{{ suggestion.title }}</span>
       </button>
     </div>
   </div>

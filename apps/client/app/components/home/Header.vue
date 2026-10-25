@@ -22,9 +22,7 @@
           <Globe class="size-5" />
         </div>
         <div>
-          <div
-            class="brand-name text-15 font-bold tracking-tight leading-none"
-          >
+          <div class="brand-name text-15 font-bold tracking-tight leading-none">
             Tileserver RS
           </div>
           <div

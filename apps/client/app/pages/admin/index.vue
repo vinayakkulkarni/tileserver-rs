@@ -38,9 +38,7 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
-    <header
-      class="border-b border-border px-page-x py-5 sm:py-6"
-    >
+    <header class="border-b border-border px-page-x py-5 sm:py-6">
       <AdminBreadcrumb :items="breadcrumbs" />
       <h1
         class="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl"
@@ -216,9 +214,7 @@
               <p class="truncate text-sm font-semibold text-foreground">
                 {{ client.client_name ?? client.client_id }}
               </p>
-              <p
-                class="mt-1 truncate font-mono text-11 text-muted-foreground"
-              >
+              <p class="mt-1 truncate font-mono text-11 text-muted-foreground">
                 {{ client.client_id }}
               </p>
             </div>
