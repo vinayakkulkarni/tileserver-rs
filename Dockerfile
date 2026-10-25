@@ -23,18 +23,18 @@ RUN MBGL_VERSION=$(grep '^version' /tmp/mbgl-sys-cargo.toml | head -1 | sed 's/.
 # =============================================================================
 # Stage 2: Build Nuxt frontend (SPA) - skipped for headless builds
 # =============================================================================
-FROM node:24-slim AS node-builder
+FROM node:26-slim AS node-builder
 
 ARG FEATURES="frontend geoparquet"
 
 # ulimit -s unlimited increases POSIX thread stack size so V8 can handle the
 # deep CJS resolver recursion caused by @mlc-ai/web-llm in Vite builds.
-# pnpm is installed via corepack (ships with Node 24) to match the pinned
-# packageManager version in root package.json.
+# pnpm is installed with npm (never corepack) at the version pinned in
+# packageManager in root package.json.
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@12.11.2 --activate
+RUN npm install -g pnpm@12.15.0
 
 # Copy workspace files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
