@@ -26,7 +26,7 @@ axum             = { version = "0.8.9", features = ["multipart"] }
 tower-http       = { version = "0.7.1", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header", "normalize-path"] }
 
 # Async runtime
-tokio            = { version = "1.53.2", features = ["full"] }
+tokio            = { version = "1.54.1", features = ["full"] }
 futures          = "0.3.34"
 
 # Serialization
@@ -64,7 +64,7 @@ russh-sftp       = { version = "3.0.1", default-features = false }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.10"
 brotli           = "9.0.0"
-zstd             = "0.14.2"
+zstd             = "0.14.3"
 prost            = "0.14.4"
 # CEL (Common Expression Language) per-feature vector tile filtering. Default
 # features off: only `regex` (for `matches()`); chrono and encoders are not needed.
@@ -73,7 +73,7 @@ geo-types        = "0.7.20"
 
 # MLT support — unblocked May 8 2026 by cql2 0.5.6 (geo 0.31 → 0.33). 0.9.1
 # renamed `TileLayer01` → `TileLayer`; transcode.rs callsites updated.
-mlt-core         = { version = "0.21.0" }
+mlt-core         = { version = "0.22.0" }
 
 # MBTiles / SQLite
 #
@@ -85,7 +85,7 @@ mlt-core         = { version = "0.21.0" }
 # always present on macOS (/usr/lib/libsqlite3.dylib), Linux distros ship
 # libsqlite3-dev in default repos, and CI/Docker installs it explicitly.
 # Windows is handled separately via the `bundled-windows` feature.
-rusqlite         = { version = "0.40.2", features = ["bundled-windows"] }
+rusqlite         = { version = "0.41.0", features = ["bundled-windows"] }
 
 # HTTP client
 reqwest          = { version = "0.13.5", default-features = false, features = ["rustls", "json", "stream"] }
@@ -97,7 +97,7 @@ sha2             = "0.11.1"
 # `ConstantTimeEq` for bearer/PKCE comparisons without a sneaky version
 # drift between our direct use and rsa's transitive pin).
 subtle           = "2.6.1"
-uuid             = { version = "1.28.0", features = ["v4"] }
+uuid             = { version = "1.29.0", features = ["v4"] }
 
 # Binary formats / data
 bytes            = "1.12.1"
@@ -106,7 +106,7 @@ ndarray          = { version = "0.17.2", features = ["rayon"] }
 exmex            = "0.21.0"
 
 # Concurrency
-arc-swap         = "1.9.2"
+arc-swap         = "1.9.3"
 crossbeam-channel = "0.5.17"
 async-trait      = "0.1.92"
 
@@ -122,7 +122,7 @@ rust-embed       = { version = "8.13.0", features = ["axum"] }
 
 # OpenAPI / Scalar API Reference
 utoipa           = { version = "6.0.0", features = ["axum_extras"] }
-scalar_api_reference = { version = "0.2.14", features = ["axum"] }
+scalar_api_reference = { version = "0.2.17", features = ["axum"] }
 
 # OpenTelemetry — full 0.33 family, paired with `tracing-opentelemetry` 0.34
 # (the release line built against `opentelemetry ^0.33`).
@@ -172,16 +172,16 @@ arrow-cast       = "60.0.0"
 geo              = "0.33.1"
 
 # DuckDB (optional)
-duckdb           = { version = "1.10506.0", features = ["bundled"] }
+duckdb           = { version = "1.20000.0", features = ["bundled"] }
 
 # FFI
-libc             = "0.2.190"
-cc               = "1.8.0"
+libc             = "0.2.191"
+cc               = "1.10.0"
 cmake            = "0.1.58"
 pkg-config       = "0.3.34"
 
 # Prebuilt download (build-dependencies for mbgl-sys prebuilt feature)
-ureq             = { version = "3.4.2", default-features = false, features = ["rustls"] }
+ureq             = { version = "3.5.0", default-features = false, features = ["rustls"] }
 tar              = "0.4.46"
 
 # Dev / test dependencies
