@@ -1,4 +1,8 @@
 import tailwindcss from '@tailwindcss/vite';
+import { contentRoutes } from './config/content-routes';
+import { LEGACY_REDIRECTS, pageRoutes, prerenderOptions } from './config/seo';
+
+const routes = pageRoutes(contentRoutes());
 
 // Public tracker IDs for docs.tileserver.app (they ship in the HTML; not
 // secrets). Override any of them with the matching NUXT_PUBLIC_* env var.
@@ -99,19 +103,22 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Server-only: page list for server/routes/sitemap.xml.ts.
+    sitemapRoutes: routes,
     public: {
       baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'https://docs.tileserver.app',
       ...analytics,
     },
   },
 
-  routeRules: {
-    // Legacy URL — kept as a 301 redirect so external bookmarks
-    // and old search-engine indexes do not 404 after the dedup in v2.30.1.
-    '/getting-started/configuration': {
-      redirect: { to: '/getting-started/config', statusCode: 301 },
-    },
-  },
+  // Old URLs 301 to the page that now holds their content (see
+  // config/seo.ts), so bookmarks and search indexes do not 404.
+  routeRules: Object.fromEntries(
+    Object.entries(LEGACY_REDIRECTS).map(([from, to]) => [
+      from,
+      { redirect: { to, statusCode: 301 } },
+    ]),
+  ),
 
   future: {
     compatibilityVersion: 4,
@@ -124,6 +131,7 @@ export default defineNuxtConfig({
     cloudflare: {
       nodeCompat: true,
     },
+    prerender: prerenderOptions(routes),
     rollupConfig: {
       output: {
         generatedCode: {

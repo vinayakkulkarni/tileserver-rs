@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build": "nuxt build && node config/verify-dist.ts",
     "lint": "oxlint && eslint .",
     "typecheck": "nuxt typecheck",
     "lint:fix": "oxlint --fix && eslint . --fix",

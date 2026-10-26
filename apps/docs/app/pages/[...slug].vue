@@ -49,11 +49,10 @@
     return `https://github.com/vinayakkulkarni/tileserver-rs/issues/new?title=${encodeURIComponent(`[Docs]: ${title} - `)}`;
   });
 
-  useSeoMeta({
-    title: page.value?.title,
-    description: page.value?.description,
-    ogTitle: page.value?.title,
-    ogDescription: page.value?.description,
+  usePageSeo({
+    title: page.value.title,
+    description: page.value.description,
+    path: path.value,
   });
 </script>
 

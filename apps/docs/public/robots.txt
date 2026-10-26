@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /_nuxt/
+Disallow: /__nuxt_content/
+Disallow: /_plausible
+
+Sitemap: https://docs.tileserver.app/sitemap.xml
