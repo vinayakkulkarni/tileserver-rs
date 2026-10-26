@@ -1,10 +1,10 @@
 // Search-engine facts for docs.tileserver.app, shared by nuxt.config.ts,
 // the sitemap route and the tests. Pure: no file system access here.
 
-export const SITE_URL = 'https://docs.tileserver.app';
+const SITE_URL = 'https://docs.tileserver.app';
 
 // Pages that are not in content/ (Vue pages under app/pages).
-export const STATIC_PAGE_ROUTES = ['/', '/deploy/cost'] as const;
+const STATIC_PAGE_ROUTES = ['/', '/deploy/cost'] as const;
 
 // Old URLs that Google still crawls, mapped to the page that now holds the
 // content. Each target must be a live page, never another redirect.
