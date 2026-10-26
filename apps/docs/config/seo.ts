@@ -42,7 +42,9 @@ export function pageRoutes(contentRoutes: readonly string[]): string[] {
  */
 export function prerenderOptions(routes: readonly string[]) {
   return {
-    routes: [...routes, '/sitemap.xml'],
+    // 404.html: without it Cloudflare Pages answers unknown static paths
+    // (e.g. /_nuxt/missing.js) with index.html and status 200 (soft 404).
+    routes: [...routes, '/sitemap.xml', '/404.html'],
     // Legacy URLs are real 301s (_redirects), not meta-refresh HTML pages.
     ignore: Object.keys(LEGACY_REDIRECTS),
     crawlLinks: true,

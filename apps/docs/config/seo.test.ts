@@ -76,7 +76,7 @@ describe('nuxt.config.ts', async () => {
   it('prerenders every page and the sitemap', () => {
     const prerender = config.nitro?.prerender;
     expect(prerender?.autoSubfolderIndex).toBe(false);
-    for (const route of [...routes, '/sitemap.xml']) {
+    for (const route of [...routes, '/sitemap.xml', '/404.html']) {
       expect(prerender?.routes).toContain(route);
     }
   });

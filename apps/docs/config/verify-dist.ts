@@ -35,6 +35,12 @@ for (const loc of locs) {
   }
 }
 
+// Without 404.html, Cloudflare Pages serves index.html with status 200 for
+// unknown static paths (soft 404).
+if (!existsSync(`${dist}404.html`)) {
+  errors.push('dist/404.html missing (unknown assets would be soft 404s)');
+}
+
 const robotsPath = `${dist}robots.txt`;
 const robots = existsSync(robotsPath) ? readFileSync(robotsPath, 'utf8') : '';
 if (!robots.includes(`Sitemap: ${SITE_URL}/sitemap.xml`)) {
