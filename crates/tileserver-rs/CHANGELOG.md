@@ -1220,7 +1220,7 @@
 * **docs:** add trailing newlines ([f226add](https://github.com/vinayakkulkarni/tileserver-rs/commit/f226add3f5a571e576bf5341e2228af58a0561a4))
 * pin oxfmt to 0.36.0 to avoid reformatting template strings ([d0b79fe](https://github.com/vinayakkulkarni/tileserver-rs/commit/d0b79fe2416823249a50d49d42d3f2cd11ebb12a))
 * properly implement geometric design for docs and marketing ([bb8141f](https://github.com/vinayakkulkarni/tileserver-rs/commit/bb8141f75a1c3e9b7c5cee97150372c9f37b9f84))
-* remove FadeContent wrappers to match geolith ([9892043](https://github.com/vinayakkulkarni/tileserver-rs/commit/989204326d146655305b3601e0fe6815ea0cf039))
+* remove FadeContent wrappers from marketing sections ([9892043](https://github.com/vinayakkulkarni/tileserver-rs/commit/989204326d146655305b3601e0fe6815ea0cf039))
 * **render:** resolve static rendering failures on GPU-less servers ([2986d5d](https://github.com/vinayakkulkarni/tileserver-rs/commit/2986d5d891de2ebdf72f09193e2931a6e2a02601))
 
 

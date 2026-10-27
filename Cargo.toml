@@ -9,7 +9,7 @@ resolver = "2"
 # this on v2.26.0, v2.26.1, v2.26.2 (each required a manual revert commit
 # restoring mbgl-sys to its 0.1.x train). Virtual workspace at root +
 # subdirectory crates => each package strategy only touches its own
-# Cargo.toml. Reference: geolith repo uses the same layout successfully.
+# Cargo.toml.
 members = ["crates/tileserver-rs", "crates/mbgl-sys"]
 
 [workspace.package]

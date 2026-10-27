@@ -1,6 +1,5 @@
 # Native-arch PostgreSQL + PostGIS for benchmarks
 # Builds PostGIS from source to ensure native ARM64/AMD64 performance
-# Inspired by vinayakkulkarni/telemetry postgres setup
 
 ARG POSTGRES_VERSION=16
 
