@@ -10,6 +10,8 @@
 [![Deploy on Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/vinayakkulkarni/tileserver-rs)
 [![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/vinayakkulkarni/tileserver-rs/tree/main)
 
+**[Live demo](https://demo.tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs)** · [Website](https://tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) · [Docs](https://docs.tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) · [Docker image](https://github.com/vinayakkulkarni/tileserver-rs/pkgs/container/tileserver-rs)
+
 <img src="./.github/assets/tileserver-rs.png" width="512" height="512" align="center" alt="tileserver-rs logo" />
 
 High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
@@ -664,3 +666,13 @@ Authored and maintained by Vinayak Kulkarni with help from contributors ([list](
 - [MapLibre](https://maplibre.org/) - Open-source mapping library
 - [PMTiles](https://github.com/protomaps/PMTiles) - Cloud-optimized tile archive format
 - [PostGIS](https://postgis.net/) - Spatial database extension for PostgreSQL
+
+## More from the author
+
+- [v-maplibre](https://v-maplibre.geoql.in?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) — Vue 3 MapLibre GL components
+- [mapcn-vue](https://mapcn-vue.geoql.in?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) — shadcn-vue map components for MapLibre
+- [maplibre-gl-inspect](https://maplibre-gl-inspect.geoql.in?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) — inspect vector tile layers and features in MapLibre
+- [maplibre-gl-compare](https://maplibre-gl-compare.geoql.in?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) — swipe-compare two MapLibre maps
+- [the-doctor.report](https://the-doctor.report?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) — Vue/Nuxt code health auditor
+
+See every project at [vinayakkulkarni.dev/projects](https://vinayakkulkarni.dev/projects?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) and [geoql.in](https://geoql.in?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs).
