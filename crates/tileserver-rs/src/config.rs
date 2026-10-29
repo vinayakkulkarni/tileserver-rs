@@ -1100,6 +1100,24 @@ impl From<ResamplingMethod> for ResampleAlg {
 }
 
 #[cfg(feature = "raster")]
+impl ResamplingMethod {
+    /// The resampling a raster source uses when its config sets none.
+    ///
+    /// An explicit `resampling` always wins. Without one, a `discrete`
+    /// colormap gets `Nearest`: interpolating between class values creates
+    /// classes that do not exist in the source (issue #1599). Everything
+    /// else gets the `Bilinear` default.
+    #[must_use]
+    pub fn resolve(explicit: Option<Self>, colormap: Option<&ColorMapConfig>) -> Self {
+        match (explicit, colormap) {
+            (Some(method), _) => method,
+            (None, Some(cmap)) if cmap.map_type == ColorMapType::Discrete => Self::Nearest,
+            (None, _) => Self::default(),
+        }
+    }
+}
+
+#[cfg(feature = "raster")]
 #[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -1427,6 +1445,24 @@ pub struct PostgresOutDbRasterConfig {
     pub resampling: Option<ResamplingMethod>,
     #[serde(default)]
     pub colormap: Option<ColorMapConfig>,
+    /// Max number of open raster files this source keeps (LRU). `0` turns
+    /// the cache off, so every tile opens its files again.
+    #[serde(default = "default_outdb_dataset_cache_size")]
+    pub dataset_cache_size: u64,
+    /// Seconds an open raster file stays cached. A file that changes on
+    /// disk (modified time or size) is reopened before this runs out.
+    #[serde(default = "default_outdb_dataset_cache_ttl_secs")]
+    pub dataset_cache_ttl_secs: u64,
+}
+
+#[cfg(all(feature = "postgres", feature = "raster"))]
+fn default_outdb_dataset_cache_size() -> u64 {
+    100
+}
+
+#[cfg(all(feature = "postgres", feature = "raster"))]
+fn default_outdb_dataset_cache_ttl_secs() -> u64 {
+    600
 }
 
 /// Configuration for a map style
@@ -2891,6 +2927,60 @@ port = ${{TEST_ENV_SUB_PORT}}
             assert_eq!(outdb.id, "imagery");
             assert!(outdb.function.is_none());
             assert_eq!(outdb.function.as_ref().unwrap_or(&outdb.id), "imagery");
+            assert_eq!(outdb.dataset_cache_size, 100);
+            assert_eq!(outdb.dataset_cache_ttl_secs, 600);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_outdb_raster_dataset_cache_settings() {
+            let toml = r#"
+                [postgres]
+                connection_string = "postgresql://localhost/db"
+
+                [[postgres.outdb_rasters]]
+                id = "monthly"
+                dataset_cache_size = 16
+                dataset_cache_ttl_secs = 60
+            "#;
+
+            let config: Config = toml::from_str(toml).unwrap();
+            let outdb = &config.postgres.unwrap().outdb_rasters[0];
+            assert_eq!(outdb.dataset_cache_size, 16);
+            assert_eq!(outdb.dataset_cache_ttl_secs, 60);
+        }
+
+        #[cfg(feature = "raster")]
+        #[test]
+        fn test_resampling_resolve() {
+            let cmap = |map_type: ColorMapType| ColorMapConfig {
+                map_type,
+                rescale_mode: RescaleMode::None,
+                entries: Vec::new(),
+                nodata_color: None,
+            };
+            let discrete = cmap(ColorMapType::Discrete);
+            let continuous = cmap(ColorMapType::Continuous);
+
+            // An explicit setting always wins, also over a discrete colormap.
+            assert_eq!(
+                ResamplingMethod::resolve(Some(ResamplingMethod::Cubic), Some(&discrete)),
+                ResamplingMethod::Cubic
+            );
+            // Unset + discrete colormap: never interpolate class values.
+            assert_eq!(
+                ResamplingMethod::resolve(None, Some(&discrete)),
+                ResamplingMethod::Nearest
+            );
+            // Unset otherwise: the bilinear default.
+            assert_eq!(
+                ResamplingMethod::resolve(None, Some(&continuous)),
+                ResamplingMethod::Bilinear
+            );
+            assert_eq!(
+                ResamplingMethod::resolve(None, None),
+                ResamplingMethod::Bilinear
+            );
         }
 
         #[cfg(feature = "raster")]

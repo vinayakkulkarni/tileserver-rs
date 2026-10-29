@@ -9,9 +9,10 @@ use gdal::raster::Buffer;
 use gdal::spatial_ref::SpatialRef;
 use gdal::{Dataset, DriverManager};
 use image::{ImageBuffer, RgbaImage};
-use std::collections::HashMap;
+use moka::future::Cache;
 use std::io::Cursor;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 use tokio::sync::Mutex;
 use tokio_postgres::types::Type;
 
@@ -30,6 +31,89 @@ struct RasterPathResult {
 
 const WEB_MERCATOR_EXTENT: f64 = 20_037_508.342_789_244;
 
+/// Modified time and size of a raster file, used to spot a file that was
+/// rewritten at the same path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct FileStamp {
+    modified: SystemTime,
+    len: u64,
+}
+
+impl FileStamp {
+    /// Stamp of a local file. `None` for GDAL virtual paths (`/vsicurl/…`,
+    /// `/vsis3/…`) and for files that cannot be read; those rely on the TTL.
+    async fn of(path: &str) -> Option<Self> {
+        if path.starts_with("/vsi") {
+            return None;
+        }
+        let meta = tokio::fs::metadata(path).await.ok()?;
+        Some(Self {
+            modified: meta.modified().ok()?,
+            len: meta.len(),
+        })
+    }
+}
+
+/// An open raster file and the stamp it had when it was opened.
+struct CachedFile {
+    dataset: Arc<Mutex<Dataset>>,
+    stamp: Option<FileStamp>,
+}
+
+/// Bounded cache of open raster files for one out-db source (issue #1599).
+///
+/// - LRU with `capacity` entries and a `ttl`, so file handles and memory
+///   stay bounded.
+/// - Each hit re-reads the file's modified time and size. When either
+///   changed, the file is opened again, so a raster rebuilt at the same
+///   path is served without a restart. For a VRT only the VRT file itself
+///   is checked; a change to a source file it references shows up after
+///   the TTL.
+struct OutDbDatasetCache {
+    inner: Cache<String, Arc<CachedFile>>,
+}
+
+impl OutDbDatasetCache {
+    fn new(capacity: u64, ttl: Duration) -> Self {
+        Self {
+            inner: Cache::builder()
+                .max_capacity(capacity)
+                .time_to_live(ttl)
+                .build(),
+        }
+    }
+
+    async fn get_or_open(&self, filepath: &str) -> Result<Arc<Mutex<Dataset>>> {
+        let stamp = FileStamp::of(filepath).await;
+        if let Some(cached) = self.inner.get(filepath).await
+            && cached.stamp == stamp
+        {
+            return Ok(Arc::clone(&cached.dataset));
+        }
+
+        let path = filepath.to_string();
+        let dataset = tokio::task::spawn_blocking(move || {
+            Dataset::open(&path).map_err(|e| {
+                TileServerError::RasterError(format!("Failed to open raster file {}: {}", path, e))
+            })
+        })
+        .await
+        .map_err(|e| TileServerError::RasterError(format!("Task failed: {}", e)))??;
+
+        let dataset = Arc::new(Mutex::new(dataset));
+        self.inner
+            .insert(
+                filepath.to_string(),
+                Arc::new(CachedFile {
+                    dataset: Arc::clone(&dataset),
+                    stamp,
+                }),
+            )
+            .await;
+        Ok(dataset)
+    }
+}
+
 pub struct PostgresOutDbRasterSource {
     pool: Arc<PostgresPool>,
     metadata: TileMetadata,
@@ -38,7 +122,7 @@ pub struct PostgresOutDbRasterSource {
     sql_query: String,
     default_resampling: ResamplingMethod,
     colormap: Option<ColorMapConfig>,
-    dataset_cache: Arc<Mutex<HashMap<String, Arc<Mutex<Dataset>>>>>,
+    dataset_cache: OutDbDatasetCache,
 }
 
 impl std::fmt::Debug for PostgresOutDbRasterSource {
@@ -97,9 +181,15 @@ impl PostgresOutDbRasterSource {
             schema: config.schema.clone(),
             function: function_name.clone(),
             sql_query,
-            default_resampling: config.resampling.unwrap_or_default(),
+            default_resampling: ResamplingMethod::resolve(
+                config.resampling,
+                config.colormap.as_ref(),
+            ),
             colormap: config.colormap.clone(),
-            dataset_cache: Arc::new(Mutex::new(HashMap::new())),
+            dataset_cache: OutDbDatasetCache::new(
+                config.dataset_cache_size,
+                Duration::from_secs(config.dataset_cache_ttl_secs),
+            ),
         })
     }
 
@@ -154,28 +244,6 @@ impl PostgresOutDbRasterSource {
             "POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))",
             min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y, min_x, min_y
         )
-    }
-
-    async fn get_or_open_dataset(&self, filepath: &str) -> Result<Arc<Mutex<Dataset>>> {
-        let mut cache = self.dataset_cache.lock().await;
-
-        if let Some(dataset) = cache.get(filepath) {
-            return Ok(dataset.clone());
-        }
-
-        let path = filepath.to_string();
-        let dataset = tokio::task::spawn_blocking(move || {
-            Dataset::open(&path).map_err(|e| {
-                TileServerError::RasterError(format!("Failed to open raster file {}: {}", path, e))
-            })
-        })
-        .await
-        .map_err(|e| TileServerError::RasterError(format!("Task failed: {}", e)))??;
-
-        let dataset = Arc::new(Mutex::new(dataset));
-        cache.insert(filepath.to_string(), dataset.clone());
-
-        Ok(dataset)
     }
 
     pub async fn get_tile_with_params(
@@ -247,11 +315,13 @@ impl PostgresOutDbRasterSource {
             return Ok(None);
         }
 
-        let _resample = resampling.unwrap_or(self.default_resampling);
+        let resampling = resampling.unwrap_or(self.default_resampling);
         let colormap = self.colormap.clone();
 
         let tile_data = self
-            .render_tile_from_files(&results, min_x, min_y, max_x, max_y, tile_size, colormap)
+            .render_tile_from_files(
+                &results, min_x, min_y, max_x, max_y, tile_size, resampling, colormap,
+            )
             .await?;
 
         Ok(tile_data)
@@ -266,12 +336,13 @@ impl PostgresOutDbRasterSource {
         max_x: f64,
         max_y: f64,
         tile_size: u32,
+        resampling: ResamplingMethod,
         colormap: Option<ColorMapConfig>,
     ) -> Result<Option<TileData>> {
         let mut composite_image: Option<RgbaImage> = None;
 
         for result in results {
-            let dataset = self.get_or_open_dataset(&result.filepath).await?;
+            let dataset = self.dataset_cache.get_or_open(&result.filepath).await?;
             let dataset_guard = dataset.lock().await;
 
             let tile_image = Self::render_single_dataset(
@@ -281,6 +352,7 @@ impl PostgresOutDbRasterSource {
                 max_x,
                 max_y,
                 tile_size,
+                resampling,
                 colormap.as_ref(),
                 result.rescale_min,
                 result.rescale_max,
@@ -328,6 +400,7 @@ impl PostgresOutDbRasterSource {
         max_x: f64,
         max_y: f64,
         tile_size: u32,
+        resampling: ResamplingMethod,
         colormap: Option<&ColorMapConfig>,
         rescale_min: Option<f64>,
         rescale_max: Option<f64>,
@@ -369,7 +442,7 @@ impl PostgresOutDbRasterSource {
             .set_spatial_ref(&web_mercator)
             .map_err(|e| TileServerError::RasterError(format!("Failed to set SRS: {}", e)))?;
 
-        if let Err(e) = gdal::raster::reproject(dataset, &warped) {
+        if let Err(e) = crate::sources::warp::reproject(dataset, &warped, resampling) {
             tracing::debug!(
                 "Reproject failed (tile may be outside raster bounds): {}",
                 e
@@ -610,5 +683,190 @@ mod tests {
                 }
             }
         }
+    }
+
+    // ---- Issue #1599 ----
+
+    use crate::config::{ColorMapEntry, ColorMapType};
+    use std::collections::BTreeSet;
+
+    /// Extent of the test rasters and tiles, in EPSG:3857 metres.
+    const EXTENT: f64 = 1600.0;
+
+    /// Write a single-band Byte GeoTIFF over `[0, EXTENT]²` with `size`²
+    /// pixels: the left half `left`, the right half `right`. NoData is 0.
+    fn write_two_class_tiff(path: &std::path::Path, size: usize, left: u8, right: u8) {
+        let driver = DriverManager::get_driver_by_name("GTiff").unwrap();
+        let mut ds = driver
+            .create_with_band_type::<u8, _>(path, size, size, 1)
+            .unwrap();
+        let px = EXTENT / size as f64;
+        ds.set_geo_transform(&[0.0, px, 0.0, EXTENT, 0.0, -px])
+            .unwrap();
+        ds.set_spatial_ref(&SpatialRef::from_epsg(3857).unwrap())
+            .unwrap();
+        let data: Vec<u8> = (0..size * size)
+            .map(|i| if i % size < size / 2 { left } else { right })
+            .collect();
+        let mut band = ds.rasterband(1).unwrap();
+        band.set_no_data_value(Some(0.0)).unwrap();
+        band.write((0, 0), (size, size), &mut Buffer::new((size, size), data))
+            .unwrap();
+    }
+
+    /// The colormap from the issue: classes 1–4 coloured, 0 and 5 clear.
+    fn landcover_colormap() -> ColorMapConfig {
+        let entry = |value: f64, color: &str| ColorMapEntry {
+            value,
+            color: color.to_string(),
+        };
+        ColorMapConfig {
+            map_type: ColorMapType::Discrete,
+            rescale_mode: RescaleMode::None,
+            entries: vec![
+                entry(0.0, "#00000000"),
+                entry(1.0, "#FD080C"),
+                entry(2.0, "#1D90FF"),
+                entry(3.0, "#22FDD5"),
+                entry(4.0, "#FAD200"),
+                entry(5.0, "#00000000"),
+            ],
+            nodata_color: Some("#00000000".to_string()),
+        }
+    }
+
+    /// Render a 256² tile over the whole test raster and return the set of
+    /// output colours.
+    fn rendered_colours(method: ResamplingMethod) -> BTreeSet<[u8; 4]> {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("landcover.tif");
+        // 8 source pixels → 256 output pixels: a strong upsample, so any
+        // interpolation shows up along the 1↔5 boundary.
+        write_two_class_tiff(&path, 8, 1, 5);
+        let ds = Dataset::open(&path).unwrap();
+        let cmap = landcover_colormap();
+        let img = PostgresOutDbRasterSource::render_single_dataset(
+            &ds,
+            0.0,
+            0.0,
+            EXTENT,
+            EXTENT,
+            256,
+            method,
+            Some(&cmap),
+            None,
+            None,
+        )
+        .unwrap()
+        .expect("tile covers the raster");
+        img.pixels().map(|p| p.0).collect()
+    }
+
+    #[test]
+    fn nearest_renders_only_source_classes() {
+        // Source has only classes 1 and 5: class-1 red and clear.
+        assert_eq!(
+            rendered_colours(ResamplingMethod::Nearest),
+            BTreeSet::from([[0xFD, 0x08, 0x0C, 0xFF], [0, 0, 0, 0]])
+        );
+    }
+
+    #[test]
+    fn bilinear_is_applied_and_creates_in_between_classes() {
+        // Before the fix every method rendered like this. Now it only
+        // happens when bilinear is asked for.
+        let colours = rendered_colours(ResamplingMethod::Bilinear);
+        let in_between = [
+            [0x1D, 0x90, 0xFF, 0xFF],
+            [0x22, 0xFD, 0xD5, 0xFF],
+            [0xFA, 0xD2, 0x00, 0xFF],
+        ];
+        assert!(
+            in_between.iter().any(|c| colours.contains(c)),
+            "bilinear must interpolate between classes 1 and 5, got {colours:?}"
+        );
+    }
+
+    /// Read the pixel value at the left edge of a cached dataset.
+    async fn first_pixel(dataset: &Arc<Mutex<Dataset>>) -> u8 {
+        let guard = dataset.lock().await;
+        let buf: Buffer<u8> = guard
+            .rasterband(1)
+            .unwrap()
+            .read_as::<u8>((0, 0), (1, 1), (1, 1), None)
+            .unwrap();
+        buf.data()[0]
+    }
+
+    #[tokio::test]
+    async fn cache_reopens_a_file_rewritten_in_place() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("rebuilt.tif");
+        let p = path.to_string_lossy().to_string();
+        write_two_class_tiff(&path, 8, 1, 5);
+
+        let cache = OutDbDatasetCache::new(10, Duration::from_secs(600));
+        let first = cache.get_or_open(&p).await.unwrap();
+        assert_eq!(first_pixel(&first).await, 1);
+        let again = cache.get_or_open(&p).await.unwrap();
+        assert!(
+            Arc::ptr_eq(&first, &again),
+            "unchanged file is served from cache"
+        );
+
+        // Rebuild at the same path with new content. Set the modified time
+        // explicitly so the test does not depend on filesystem time
+        // resolution.
+        write_two_class_tiff(&path, 8, 3, 5);
+        let later = SystemTime::now() + Duration::from_secs(5);
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_modified(later)
+            .unwrap();
+
+        let rebuilt = cache.get_or_open(&p).await.unwrap();
+        assert!(
+            !Arc::ptr_eq(&first, &rebuilt),
+            "changed file must be reopened"
+        );
+        assert_eq!(first_pixel(&rebuilt).await, 3, "new content is served");
+    }
+
+    #[tokio::test]
+    async fn cache_stays_within_capacity() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = OutDbDatasetCache::new(3, Duration::from_secs(600));
+        for i in 0..10 {
+            let path = dir.path().join(format!("f{i}.tif"));
+            write_two_class_tiff(&path, 8, 1, 5);
+            cache.get_or_open(&path.to_string_lossy()).await.unwrap();
+        }
+        cache.inner.run_pending_tasks().await;
+        assert!(
+            cache.inner.entry_count() <= 3,
+            "cache holds {} files, limit is 3",
+            cache.inner.entry_count()
+        );
+    }
+
+    #[tokio::test]
+    async fn cache_with_zero_capacity_still_opens_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("nocache.tif");
+        write_two_class_tiff(&path, 8, 1, 5);
+        let cache = OutDbDatasetCache::new(0, Duration::from_secs(600));
+        let ds = cache.get_or_open(&path.to_string_lossy()).await.unwrap();
+        assert_eq!(first_pixel(&ds).await, 1);
+    }
+
+    #[tokio::test]
+    async fn virtual_paths_have_no_stamp() {
+        assert_eq!(
+            FileStamp::of("/vsicurl/https://example.com/a.tif").await,
+            None
+        );
+        assert_eq!(FileStamp::of("/nonexistent/file.tif").await, None);
     }
 }

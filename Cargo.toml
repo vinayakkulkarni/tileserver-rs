@@ -144,6 +144,10 @@ prometheus       = "0.14.0"
 
 # Raster / GDAL (optional)
 gdal             = { version = "0.19.0", features = ["bindgen"] }
+# Direct FFI for `GDALReprojectImage`: `gdal::raster::reproject` hard-codes
+# bilinear, so the configured resampling needs the raw call (issue #1599).
+# Same crate `gdal` already depends on; the `[patch]` below pins both.
+gdal-sys         = "0.12.0"
 stac             = { version = "0.17.6", default-features = false }
 
 # PostgreSQL (optional)

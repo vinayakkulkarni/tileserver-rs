@@ -23,6 +23,8 @@ pub mod postgres;
 pub mod stac;
 pub mod tar;
 pub mod tile_layout;
+#[cfg(feature = "raster")]
+pub mod warp;
 
 pub use manager::SourceManager;
 

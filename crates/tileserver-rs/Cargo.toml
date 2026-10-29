@@ -75,6 +75,7 @@ rusqlite         = { workspace = true }
 
 # Raster/COG support (optional, requires GDAL system library)
 gdal             = { workspace = true, optional = true }
+gdal-sys         = { workspace = true, optional = true }
 stac             = { workspace = true, optional = true }
 ndarray          = { workspace = true, optional = true }
 exmex            = { workspace = true, optional = true }
@@ -135,7 +136,7 @@ default = ["postgres", "raster", "mlt", "cloud", "stac", "dem", "cel"]
 frontend = ["rust-embed"]
 postgres = ["deadpool-postgres", "tokio-postgres", "postgres-types", "semver", "dep:ogcapi-types", "dep:geojson", "dep:cql2"]
 postgres-integration = ["postgres"]
-raster = ["gdal", "dep:ndarray", "dep:exmex"]
+raster = ["gdal", "dep:gdal-sys", "dep:ndarray", "dep:exmex"]
 cloud = ["object_store", "url"]
 sftp = ["dep:russh", "dep:russh-sftp"]
 mlt = ["mlt-core", "dep:prost", "geo-types"]

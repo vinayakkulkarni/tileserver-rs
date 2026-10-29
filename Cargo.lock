@@ -7057,6 +7057,7 @@ dependencies = [
  "flate2",
  "futures",
  "gdal",
+ "gdal-sys",
  "geo",
  "geo-types",
  "geojson 1.0.0",
