@@ -72,7 +72,7 @@ pub fn reproject(src: &Dataset, dst: &Dataset, method: ResamplingMethod) -> Resu
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use gdal::DriverManager;
     use gdal::raster::Buffer;
@@ -139,6 +139,36 @@ mod tests {
         assert!(
             values.iter().any(|v| *v > 1000 && *v < 5000),
             "bilinear must produce values between the two classes, got {values:?}"
+        );
+    }
+
+    /// A raster whose geotransform is all zeros: GDAL cannot invert it, so
+    /// no pixel/map transform exists and the warp must fail.
+    pub(crate) fn untransformable_source() -> Dataset {
+        let mem = DriverManager::get_driver_by_name("MEM").unwrap();
+        let mut ds = mem.create_with_band_type::<u8, _>("", 4, 4, 1).unwrap();
+        ds.set_geo_transform(&[0.0; 6]).unwrap();
+        ds.set_spatial_ref(&SpatialRef::from_epsg(3857).unwrap())
+            .unwrap();
+        ds
+    }
+
+    #[test]
+    fn failed_warp_returns_raster_error_with_gdal_message() {
+        let src = untransformable_source();
+        let mem = DriverManager::get_driver_by_name("MEM").unwrap();
+        let mut dst = mem.create_with_band_type::<f64, _>("", 16, 16, 1).unwrap();
+        dst.set_geo_transform(&[0.0, 25.0, 0.0, 400.0, 0.0, -25.0])
+            .unwrap();
+        dst.set_spatial_ref(&SpatialRef::from_epsg(3857).unwrap())
+            .unwrap();
+
+        let prefix = "GDALReprojectImage (nearest) failed: ";
+        let err = reproject(&src, &dst, ResamplingMethod::Nearest).unwrap_err();
+        assert!(
+            matches!(&err, TileServerError::RasterError(m)
+                if m.starts_with(prefix) && m.len() > prefix.len()),
+            "names the call and the method and includes GDAL's error text: {err:?}"
         );
     }
 

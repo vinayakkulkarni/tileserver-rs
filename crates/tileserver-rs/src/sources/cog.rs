@@ -786,4 +786,25 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn render_returns_error_when_warp_fails() {
+        let ds = crate::sources::warp::tests::untransformable_source();
+        let err = render_tile_from_dataset(
+            &ds,
+            -WEB_MERCATOR_EXTENT,
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            256,
+            1,
+            ResamplingMethod::Nearest,
+            None,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(&err, TileServerError::RasterError(m) if m.contains("GDALReprojectImage")),
+            "warp failure is surfaced, got {err:?}"
+        );
+    }
 }

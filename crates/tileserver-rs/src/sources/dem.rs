@@ -608,4 +608,25 @@ mod tests {
         assert!((maxx - WEB_MERCATOR_EXTENT).abs() < 1e-6);
         assert!((maxy - WEB_MERCATOR_EXTENT).abs() < 1e-6);
     }
+
+    #[test]
+    fn render_returns_error_when_warp_fails() {
+        let ds = crate::sources::warp::tests::untransformable_source();
+        let err = render_dem_tile(
+            &ds,
+            -WEB_MERCATOR_EXTENT,
+            -WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            WEB_MERCATOR_EXTENT,
+            256,
+            1,
+            ResamplingMethod::Bilinear,
+            &params(DemEncoding::Terrarium, None),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(&err, TileServerError::RasterError(m) if m.contains("GDALReprojectImage")),
+            "warp failure is surfaced, got {err:?}"
+        );
+    }
 }
