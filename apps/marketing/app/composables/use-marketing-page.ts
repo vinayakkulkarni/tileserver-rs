@@ -34,6 +34,9 @@ import {
   Package,
   Mountain,
   MountainSnow,
+  Activity,
+  KeyRound,
+  Gauge,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -246,6 +249,20 @@ export function useMarketingPage() {
       title: 'Configurable Caching',
       description:
         'Per-source cache control headers with configurable max-age, stale-while-revalidate, and CDN-friendly strategies for optimal tile delivery.',
+      category: 'Developer experience',
+    },
+    {
+      icon: Activity,
+      title: 'Prometheus & OpenTelemetry',
+      description:
+        'A /metrics endpoint for Prometheus scraping, plus OTLP traces and metrics for Grafana, Jaeger or any OpenTelemetry collector.',
+      category: 'Developer experience',
+    },
+    {
+      icon: KeyRound,
+      title: 'MCP Admin UI',
+      description:
+        'Web pages on the private admin listener to list and revoke the OAuth apps and device sessions connected to the MCP server.',
       category: 'Developer experience',
     },
     {
@@ -488,6 +505,12 @@ export function useMarketingPage() {
       decimals: 1,
       label: '× faster DEM terrain-RGB vs titiler',
       detail: 'Live Terrarium encode: 276 vs 146 avg req/s',
+    },
+    {
+      icon: Gauge,
+      value: 11342,
+      label: 'OGC API Features req/sec',
+      detail: 'GeoJSON item pages, 11 ms avg',
     },
   ];
 
