@@ -50,7 +50,7 @@ catalogs:
   default:
     '@commitlint/cli': ^21.2.4
     '@commitlint/config-conventional': ^21.2.4
-    '@iconify-json/simple-icons': ^1.2.100
+    '@iconify-json/simple-icons': ^1.2.101
     '@nuxt/eslint': ^1.17.0
     '@nuxt/eslint-config': ^1.17.0
     '@nuxt/fonts': ^1.2.0
