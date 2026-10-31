@@ -2,14 +2,12 @@
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use gdal::DatasetOptions;
 use gdal::raster::{Buffer, ColorInterpretation, ResampleAlg};
 use gdal::spatial_ref::SpatialRef;
 use gdal::{Dataset, DriverManager};
 use image::{ImageBuffer, RgbaImage};
 use std::io::Cursor;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::config::{ColorMapConfig, ResamplingMethod, SourceConfig};
 use crate::error::{Result, TileServerError};
@@ -19,14 +17,19 @@ use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSo
 const WEB_MERCATOR_EXTENT: f64 = 20037508.342789244;
 
 pub struct CogSource {
-    dataset: Arc<Mutex<Dataset>>,
     metadata: TileMetadata,
     default_resampling: ResamplingMethod,
     band_count: usize,
     colormap: Option<ColorMapConfig>,
-    /// COG source path — kept so we can re-open the dataset with an
+    /// COG source path. It is the `dataset_cache` key of the base pool, and
+    /// the path the overview pools (`{path}#ovr{n}`) re-open with an
     /// `OVERVIEW_LEVEL=N` open option when a low-zoom tile is smaller
-    /// than the full-resolution source.  This is the titiler/rio-tiler
+    /// than the full-resolution source.
+    ///
+    /// The source holds the path, not an `Arc<Pool>`: every render looks the
+    /// pool up in the cache (a moka hit). A held `Arc` would keep a pool alive
+    /// after reclaim or the TTL removed it from the cache, where reclaim can
+    /// never reach its idle handles again.  This is the titiler/rio-tiler
     /// `get_overview_level` optimisation; without it a z0 world tile
     /// forces GDAL to read the entire source raster.
     path: String,
@@ -58,23 +61,40 @@ impl CogSource {
         // has been opened before. This saves the 10-50ms HTTP+IFD parse
         // cost that would otherwise be paid on every STAC-mosaic asset
         // render.  See `dataset_cache` for eviction policy.
-        let dataset = dataset_cache::global().get_or_open(&path).await?;
-
-        let dataset_for_inspect = Arc::clone(&dataset);
-        let (band_count, bounds, overview_resolutions) = tokio::task::spawn_blocking(move || {
-            let guard = dataset_for_inspect.blocking_lock();
-            let band_count = guard.raster_count();
-            if band_count == 0 {
-                return Err(TileServerError::RasterError(
-                    "COG file has no raster bands".to_string(),
-                ));
-            }
-            let bounds = get_wgs84_bounds(&guard)?;
-            let overview_resolutions = compute_overview_resolutions(&guard)?;
-            Ok::<_, TileServerError>((band_count, bounds, overview_resolutions))
-        })
-        .await
-        .map_err(|e| TileServerError::RasterError(format!("task failed: {e}")))??;
+        //
+        // The cache stores a *pool* per key, and a render borrows one handle
+        // from it (base and overview alike). We borrow one handle now only to
+        // read the metadata (band count / bounds / overview resolutions) and
+        // return it to the pool at once. The source keeps the path, not the
+        // pool; see the `path` field.
+        let pool = dataset_cache::global().get_or_open(&path).await?;
+        let band_count;
+        let bounds;
+        let overview_resolutions;
+        {
+            // Construction-time metadata read (once per source load, not per
+            // tile). Use the reclaiming wrapper so a source can still be built
+            // when the budget is momentarily saturated — a tile must never fail
+            // (and a source must never fail to load) for budget reasons.
+            let base_handle = dataset_cache::global().acquire_with_reclaim(&pool).await?;
+            let (bc, b, ovr) = tokio::task::spawn_blocking(move || {
+                let guard = base_handle.dataset();
+                let band_count = guard.raster_count();
+                if band_count == 0 {
+                    return Err(TileServerError::RasterError(
+                        "COG file has no raster bands".to_string(),
+                    ));
+                }
+                let bounds = get_wgs84_bounds(guard)?;
+                let overview_resolutions = compute_overview_resolutions(guard)?;
+                Ok::<_, TileServerError>((band_count, bounds, overview_resolutions))
+            })
+            .await
+            .map_err(|e| TileServerError::RasterError(format!("task failed: {e}")))??;
+            band_count = bc;
+            bounds = b;
+            overview_resolutions = ovr;
+        } // `base_handle` returned to the pool here.
 
         let metadata = TileMetadata {
             id,
@@ -94,7 +114,6 @@ impl CogSource {
         };
 
         Ok(Self {
-            dataset,
             metadata,
             default_resampling: resampling,
             band_count,
@@ -109,12 +128,13 @@ impl CogSource {
         self.default_resampling
     }
 
-    /// Share this source's cached GDAL dataset handle so a wrapping source
-    /// (e.g. a DEM source whose `input_source` points here) can read the
-    /// same float bands without re-opening the file.
+    /// The source path, which is also the `dataset_cache` key of the base
+    /// pool. A wrapping source (e.g. a DEM source whose `input_source` points
+    /// here) looks up the same pool with it, so it shares the cached handles
+    /// without a second open.
     #[must_use]
-    pub fn dataset_handle(&self) -> Arc<Mutex<Dataset>> {
-        Arc::clone(&self.dataset)
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
     pub async fn get_tile_with_resampling(
@@ -133,54 +153,58 @@ impl CogSource {
         let band_count = self.band_count;
         let colormap = self.colormap.clone();
         let path = self.path.clone();
-        let dataset = self.dataset.clone();
+
+        // `overview_index` of 0 means "read the full-resolution base". Any
+        // other value means "read from overview level `overview_index - 1`",
+        // which requires re-opening the source with GDAL's `OVERVIEW_LEVEL`
+        // open option.
+        //
+        // Both base and overview datasets are **cached per key** in the
+        // process-global `dataset_cache` (mirroring rio-tiler's per-level
+        // reader cache): the base under `{path}`, each overview under
+        // `{path}#ovr{n}`. Each key keeps a *pool* of handles, not one shared
+        // handle, and a handle is **borrowed per render** and returned to the
+        // pool on drop. This means concurrent tiles at the same level each
+        // borrow a different handle and render in parallel (a single
+        // `Arc<Mutex<Dataset>>` serialised them) without detaching handles
+        // from the pool (detaching leaf the pool empty after `limit` sources
+        // and defeated the cache).
+        // The overview-pool cache lookup is async and runs on the async
+        // runtime, before the blocking render is spawned.
+        let render_pool: Arc<dataset_cache::Pool> = if overview_index == 0 {
+            dataset_cache::global().get_or_open(&path).await?
+        } else {
+            let ovr_level = overview_index - 1;
+            let ovr_arg = format!("OVERVIEW_LEVEL={ovr_level}");
+            let key = format!("{path}#ovr{ovr_level}");
+            dataset_cache::global()
+                .get_or_open_with_options(&key, &path, &[&ovr_arg])
+                .await?
+        };
+
+        // Acquire the handle HERE, on the async thread, so a budget refusal can
+        // be answered by evicting idle pools and retrying. `acquire_blocking`
+        // alone cannot do that: reclamation awaits moka's maintenance, which a
+        // blocking task must not drive. A `PooledHandle` is `Send`, so the
+        // acquired handle moves into the blocking render unchanged.
+        let handle = dataset_cache::global()
+            .acquire_with_reclaim(&render_pool)
+            .await?;
 
         let png_data = tokio::task::spawn_blocking(move || {
-            let render_from = |dataset: &Dataset| {
-                render_tile_from_dataset(
-                    dataset,
-                    minx,
-                    miny,
-                    maxx,
-                    maxy,
-                    tile_size,
-                    band_count,
-                    resampling,
-                    colormap.as_ref(),
-                )
-            };
-
-            // `overview_index` of 0 means "use the full-resolution base", which is
-            // already the cached dataset.  Any other value means "read from overview
-            // level `overview_index - 1`", which requires re-opening the source with
-            // GDAL's `OVERVIEW_LEVEL` open option.
-            //
-            // We do NOT cache the overview-level-opened dataset — each tile request
-            // may pick a different overview level, so a cache keyed by (path, idx)
-            // would grow unboundedly per-zoom.  The cost is a single `Dataset::open_ex`
-            // per tile (~1-5ms on warm OS page cache), recovered many-times-over by
-            // not reading the full-res raster.
-            if overview_index == 0 {
-                let dataset = dataset.blocking_lock();
-                render_from(&dataset)
-            } else {
-                let ovr_level = overview_index - 1;
-                let ovr_arg = format!("OVERVIEW_LEVEL={ovr_level}");
-                let open_options: [&str; 1] = [&ovr_arg];
-                let dataset = Dataset::open_ex(
-                    &path,
-                    DatasetOptions {
-                        open_options: Some(&open_options),
-                        ..DatasetOptions::default()
-                    },
-                )
-                .map_err(|e| {
-                    TileServerError::RasterError(format!(
-                        "failed to open {path} with OVERVIEW_LEVEL={ovr_level}: {e}"
-                    ))
-                })?;
-                render_from(&dataset)
-            }
+            // Render from the handle borrowed above, then return it to the
+            // pool on drop.
+            render_tile_from_dataset(
+                handle.dataset(),
+                minx,
+                miny,
+                maxx,
+                maxy,
+                tile_size,
+                band_count,
+                resampling,
+                colormap.as_ref(),
+            )
         })
         .await
         .map_err(|e| TileServerError::RasterError(format!("task failed: {e}")))??;
@@ -785,6 +809,132 @@ mod tests {
                 "out-of-footprint pixels must stay transparent, not opaque black"
             );
         }
+    }
+
+    // ---- Overview-path get_tile (the `{path}#ovr{n}` cache branch) ----
+
+    /// Write a real on-disk RGB GeoTIFF (EPSG:3857, uint8) that has **built
+    /// overviews**, so `compute_overview_resolutions` reports more than one
+    /// level and a low-zoom tile actually selects the `{path}#ovr{n}` path.
+    ///
+    /// Returns the file path. The dataset is closed when it drops (before the
+    /// caller re-opens it by path, which it must — GDAL overview levels are
+    /// only reachable by re-opening with `OVERVIEW_LEVEL=N`, and in-memory
+    /// datasets can't be re-opened).
+    fn write_overviewed_cog(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
+        let driver = DriverManager::get_driver_by_name("GTiff").unwrap();
+        // 512×512 so a 4×/16× overview chain is legal (GDAL won't build a
+        // level below ~2 pixels).
+        let size = 512usize;
+        let path = dir.join(name);
+        {
+            let mut ds = driver
+                .create_with_band_type::<u8, _>(&path, size, size, 3)
+                .unwrap();
+            // Full-world EPSG:3857 geotransform, like TEST_GT_FULL.
+            let px = 2.0 * WEB_MERCATOR_EXTENT / size as f64;
+            ds.set_geo_transform(&[-WEB_MERCATOR_EXTENT, px, 0.0, WEB_MERCATOR_EXTENT, 0.0, -px])
+                .unwrap();
+            let srs = SpatialRef::from_epsg(3857).unwrap();
+            ds.set_spatial_ref(&srs).unwrap();
+            for band in 1..=3u8 {
+                let mut b = ds.rasterband(band as usize).unwrap();
+                let data = vec![128u8; size * size];
+                let mut buffer = Buffer::new((size, size), data);
+                b.write((0, 0), (size, size), &mut buffer).unwrap();
+            }
+            // Build internal overviews so `OVERVIEW_LEVEL` opens are legal.
+            // `build_overviews` is on `Dataset` (`&mut self`): GDAL builds the
+            // pyramid for the given bands at the given decimation factors.
+            ds.build_overviews("NEAREST", &[2, 4, 8, 16, 32, 64, 128, 256], &[1, 2, 3])
+                .unwrap();
+        } // dataset dropped -> file flushed and closed
+        path
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    #[serial_test::serial]
+    async fn get_tile_at_overview_level_uses_the_overview_pool() {
+        // End-to-end regression for the overview branch of
+        // `get_tile_with_resampling`: a real COG with overviews, rendered at a
+        // low zoom, must route through the `{path}#ovr{n}` pool rather than the
+        // base handle. The pool internals are covered separately; this guards
+        // the *plumbing* from `CogSource` down through the cache key. It is
+        // `#[serial]` because it asserts against the process-global cache.
+        let dir = tempfile::tempdir().unwrap();
+        let path = write_overviewed_cog(dir.path(), "overviewed.tif");
+        let p = path.to_string_lossy().to_string();
+        let config = SourceConfig {
+            id: "ovr".to_string(),
+            source_type: crate::config::SourceType::Cog,
+            path: p.clone(),
+            name: None,
+            attribution: None,
+            description: None,
+            resampling: None,
+            layer_name: None,
+            geometry_column: None,
+            query: None,
+            minzoom: None,
+            maxzoom: None,
+            serve_as: None,
+            colormap: None,
+            options: None,
+            collection: None,
+            asset_role: "data".to_string(),
+            dynamic: false,
+            max_items: 500,
+            stac_bbox: None,
+            pixel_selection: crate::config::PixelSelectionMethod::First,
+            tile_path_template: None,
+            tms: false,
+            #[cfg(feature = "dem")]
+            input_source: None,
+            #[cfg(feature = "dem")]
+            dem_encoding: crate::config::DemEncoding::Terrarium,
+            #[cfg(feature = "dem")]
+            dem_scale: None,
+            #[cfg(feature = "dem")]
+            dem_offset: None,
+            #[cfg(feature = "dem")]
+            dem_band: 1,
+            #[cfg(feature = "dem")]
+            dem_nodata_color: None,
+            filter: None,
+        };
+
+        let cog = CogSource::from_file(&config)
+            .await
+            .expect("open overviewed COG");
+        assert!(
+            cog.overview_resolutions.len() > 1,
+            "fixture must actually have overviews: got {:?}",
+            cog.overview_resolutions
+        );
+
+        // z0 world tile: the target resolution (~156543 m/px) is far coarser
+        // than the 512px base (~783 m/px), so `select_overview_level` must
+        // pick a level > 0 and the render must borrow from `{path}#ovr{n}`.
+        let tile = cog
+            .get_tile(0, 0, 0)
+            .await
+            .expect("render z0 tile")
+            .expect("tile in footprint");
+        assert!(!tile.data.is_empty(), "render must produce a PNG");
+        let img = image::load_from_memory(&tile.data).unwrap().into_rgba8();
+        assert_eq!(img.width(), 256);
+        assert_eq!(img.height(), 256);
+
+        // The overview branch must have populated a `{path}#ovr{n}` pool.
+        let cache = dataset_cache::global();
+        let ovr_key_present = (0..8).any(|level| {
+            let key = format!("{p}#ovr{level}");
+            cache.contains_key(&key)
+        });
+        assert!(
+            ovr_key_present,
+            "z0 render must go through the `{{path}}#ovr{{n}}` pool, but no overview key was cached"
+        );
     }
 
     #[test]

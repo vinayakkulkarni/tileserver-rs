@@ -38,7 +38,6 @@ use gdal::spatial_ref::SpatialRef;
 use image::{ImageBuffer, RgbaImage};
 use std::io::Cursor;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use crate::config::{DemEncoding, ResamplingMethod, SourceConfig};
 use crate::error::{Result, TileServerError};
@@ -181,7 +180,12 @@ pub fn encode_pixels(values: &[f64], params: &EncodeParams) -> Vec<u8> {
 
 /// A DEM tile source: float elevation in, Terrarium/Mapbox-RGB PNG out.
 pub struct DemSource {
-    dataset: Arc<Mutex<Dataset>>,
+    /// GDAL path of the source raster, which is also the `dataset_cache` key
+    /// of its base pool. Each render looks the pool up and borrows a handle,
+    /// in line with `CogSource`. The source holds the path, not an
+    /// `Arc<Pool>`, so a pool that reclaim or the TTL removes from the cache
+    /// is not kept alive outside it.
+    path: String,
     metadata: TileMetadata,
     resampling: ResamplingMethod,
     band: usize,
@@ -196,17 +200,22 @@ impl DemSource {
         config: &SourceConfig,
         loaded: &std::collections::HashMap<String, Arc<dyn TileSource>>,
     ) -> Result<Self> {
-        let dataset = Self::resolve_dataset(config, loaded).await?;
+        let path = Self::resolve_path(config, loaded)?;
+        let pool = dataset_cache::global().get_or_open(&path).await?;
 
-        let dataset_for_inspect = Arc::clone(&dataset);
+        // Construction-time metadata read (once per source load, not per tile).
+        // Use the reclaiming wrapper so a source can still be built when the
+        // budget is momentarily saturated — a tile must never fail (and a
+        // source must never fail to load) for budget reasons.
+        let handle = dataset_cache::global().acquire_with_reclaim(&pool).await?;
         let bounds = tokio::task::spawn_blocking(move || {
-            let guard = dataset_for_inspect.blocking_lock();
+            let guard = handle.dataset();
             if guard.raster_count() == 0 {
                 return Err(TileServerError::RasterError(
                     "DEM source has no raster bands".to_string(),
                 ));
             }
-            crate::sources::cog::wgs84_bounds(&guard)
+            crate::sources::cog::wgs84_bounds(guard)
         })
         .await
         .map_err(|e| TileServerError::RasterError(format!("task failed: {e}")))??;
@@ -241,7 +250,7 @@ impl DemSource {
         };
 
         Ok(Self {
-            dataset,
+            path,
             metadata,
             resampling: config.resampling.unwrap_or(ResamplingMethod::Bilinear),
             band: config.dem_band,
@@ -249,10 +258,13 @@ impl DemSource {
         })
     }
 
-    async fn resolve_dataset(
+    /// Resolve the GDAL path to read: the path of the `input_source` COG when
+    /// one is set (so both sources share one cached pool), otherwise this
+    /// source's own `path`.
+    fn resolve_path(
         config: &SourceConfig,
         loaded: &std::collections::HashMap<String, Arc<dyn TileSource>>,
-    ) -> Result<Arc<Mutex<Dataset>>> {
+    ) -> Result<String> {
         if let Some(ref input_id) = config.input_source {
             let source = loaded.get(input_id).ok_or_else(|| {
                 TileServerError::ConfigError(format!(
@@ -266,14 +278,13 @@ impl DemSource {
                     config.id
                 ))
             })?;
-            return Ok(cog.dataset_handle());
+            return Ok(cog.path().to_string());
         }
         // Normalise remote paths to a GDAL VSI prefix (see `cog.rs`): a bare
         // `https://…` URL would route through GDAL's curl→/vsimem full-download
         // shim instead of `/vsicurl/` range reads. Idempotent, so an explicit
         // `/vsicurl/` prefix in config passes through unchanged.
-        let path = crate::sources::to_gdal_cog_path(&config.path);
-        dataset_cache::global().get_or_open(&path).await
+        Ok(crate::sources::to_gdal_cog_path(&config.path))
     }
 
     /// Render one tile, exposed directly so the manager can request a
@@ -286,15 +297,26 @@ impl DemSource {
         tile_size: u32,
     ) -> Result<Option<TileData>> {
         let (minx, miny, maxx, maxy) = tile_to_web_mercator_bbox(z, x, y);
-        let dataset = self.dataset.clone();
+        let pool = dataset_cache::global().get_or_open(&self.path).await?;
         let band = self.band;
         let resampling = self.resampling;
         let params = self.params;
 
+        // Acquire on the async thread so a budget refusal can reclaim idle
+        // pools and retry; see `DatasetCache::acquire_with_reclaim`.
+        let handle = dataset_cache::global().acquire_with_reclaim(&pool).await?;
+
         let png = tokio::task::spawn_blocking(move || {
-            let guard = dataset.blocking_lock();
             render_dem_tile(
-                &guard, minx, miny, maxx, maxy, tile_size, band, resampling, &params,
+                handle.dataset(),
+                minx,
+                miny,
+                maxx,
+                maxy,
+                tile_size,
+                band,
+                resampling,
+                &params,
             )
         })
         .await
