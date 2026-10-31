@@ -94,14 +94,14 @@ export function useMarketingPage() {
       icon: MapIcon,
       title: 'Cloud Optimized GeoTIFF',
       description:
-        'Serve raster tiles from COG files with on-the-fly reprojection and colormap support.',
+        'Serve raster tiles from local or remote COG files with on-the-fly reprojection, colormaps, and the resampling you choose. Remote files use HTTP range reads, and pooled handles render tiles in parallel.',
       category: 'Data formats',
     },
     {
       icon: Mountain,
       title: 'DEM Terrain Encoding',
       description:
-        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source: about 2× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
+        'On-the-fly Terrarium & Mapbox-RGB encoding from any GDAL elevation source: about 8× faster than titiler, ready for MapLibre hillshade & 3D terrain.',
       category: 'Rendering',
     },
     {
@@ -115,7 +115,7 @@ export function useMarketingPage() {
       icon: HardDrive,
       title: 'PostgreSQL Out-DB Rasters',
       description:
-        'Dynamic VRT/COG tile serving via PostGIS functions with query-based filtering.',
+        'Dynamic VRT/COG tile serving via PostGIS functions with query-based filtering. Rebuilt files are picked up without a restart.',
       category: 'Data formats',
     },
     {
@@ -487,10 +487,10 @@ export function useMarketingPage() {
     },
     {
       icon: FileArchive,
-      value: 3.5,
+      value: 11.2,
       decimals: 1,
       label: '× faster COG tiles vs titiler',
-      detail: 'World RGB COG: 337 vs 96 avg req/s',
+      detail: 'World RGB COG: 864 vs 77 avg req/s',
     },
     {
       icon: RefreshCw,
@@ -501,10 +501,10 @@ export function useMarketingPage() {
     },
     {
       icon: Mountain,
-      value: 1.9,
+      value: 8.4,
       decimals: 1,
       label: '× faster DEM terrain-RGB vs titiler',
-      detail: 'Live Terrarium encode: 276 vs 146 avg req/s',
+      detail: 'Live Terrarium encode: 1,142 vs 136 avg req/s',
     },
     {
       icon: Gauge,
