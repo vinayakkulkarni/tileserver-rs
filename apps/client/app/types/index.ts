@@ -16,6 +16,22 @@ export type {
   AdminNavGroup,
   AdminNavItem,
 } from './admin-mcp';
+export type {
+  AdminStatsPayload,
+  StatsBar,
+  StatsCache,
+  StatsFigure,
+  StatsHeatPoint,
+  StatsLatencyBucket,
+  StatsMinutePoint,
+  StatsOutcome,
+  StatsPercentiles,
+  StatsRecentRequest,
+  StatsSource,
+  StatsTopTile,
+  StatsTotals,
+  StatsZoomCount,
+} from './admin-stats';
 export type { Data, VectorLayer } from './data';
 export type { FilterCategory, FilterChip } from './home-filters';
 export type { OfetchLikeError } from './fetch';

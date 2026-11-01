@@ -95,6 +95,7 @@ pub fn admin_router(state: SharedState) -> Router {
         .route("/__admin/cache/flush", post(admin_cache_flush))
         .route("/__admin/config", get(admin_config))
         .route("/__admin/config/schema", get(admin_config_schema))
+        .route("/__admin/stats", get(admin_stats))
         .with_state(state)
 }
 
@@ -158,6 +159,24 @@ async fn admin_config(
         config_hash: meta.config_hash.clone(),
         loaded_at_unix: meta.loaded_at_unix,
     }))
+}
+
+/// Analytics dashboard snapshot: request totals, latency percentiles,
+/// per-source and per-zoom counts, a request heatmap, the most requested
+/// tiles, recent requests and the global tile cache state.
+async fn admin_stats(
+    State(shared): State<SharedState>,
+) -> Json<crate::metrics::dashboard::DashboardSnapshot> {
+    let state = shared.load();
+    let cache = state
+        .sources
+        .cache()
+        .map(|cache| crate::metrics::dashboard::CacheSnapshot {
+            entries: cache.entry_count(),
+            size_bytes: cache.weighted_size(),
+            capacity_bytes: cache.capacity_bytes(),
+        });
+    Json(crate::metrics::dashboard::snapshot(cache))
 }
 
 async fn admin_cache_flush(State(shared): State<SharedState>) -> Json<CacheFlushResponse> {
@@ -548,6 +567,35 @@ enabled = true
         let status = response.status();
         let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
         (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    #[tokio::test]
+    async fn admin_stats_returns_dashboard_snapshot() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        config_file
+            .write_all(config_with_style(None).as_bytes())
+            .unwrap();
+        let shared = build_shared_state(config_file.path()).await;
+
+        let (status, payload) = admin_json(shared, "GET", "/__admin/stats").await;
+        assert_eq!(status, StatusCode::OK);
+        for key in [
+            "enabled",
+            "totals",
+            "latency",
+            "latency_buckets",
+            "per_minute",
+            "sources",
+            "zooms",
+            "heatmap",
+            "top_tiles",
+            "recent",
+        ] {
+            assert!(payload.get(key).is_some(), "missing {key}");
+        }
+        assert_eq!(payload["per_minute"].as_array().map(Vec::len), Some(60));
+        // The test config has no `[cache]`, so there is no cache block.
+        assert!(payload["cache"].is_null());
     }
 
     #[tokio::test]
