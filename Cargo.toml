@@ -22,7 +22,7 @@ repository = "https://github.com/vinayakkulkarni/tileserver-rs"
 mbgl-sys = { path = "crates/mbgl-sys", version = "0.1.6" }
 
 # Web framework
-axum             = { version = "0.8.9", features = ["multipart"] }
+axum             = { version = "0.8.9", features = ["multipart", "ws"] }
 tower-http       = { version = "0.7.1", features = ["fs", "cors", "compression-gzip", "compression-br", "trace", "set-header", "normalize-path"] }
 
 # Async runtime

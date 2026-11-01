@@ -6,6 +6,7 @@
 
 import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
+import { useLiveUpdates } from './use-live-updates';
 import { useMapInteractionTracking } from './use-map-interaction-tracking';
 
 export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
@@ -15,6 +16,7 @@ export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
 
   // Map instance ref for LLM tool integration
   const mapRef = shallowRef<Map | null>(null);
+  useLiveUpdates(mapRef);
 
   // Generate unique container ID for each instance
   const containerId = `map-${Math.random().toString(36).substring(2, 11)}`;
