@@ -1,4 +1,10 @@
-import { FileText, LayoutDashboard, Plug, Smartphone } from '@lucide/vue';
+import {
+  ChartColumn,
+  FileText,
+  LayoutDashboard,
+  Plug,
+  Smartphone,
+} from '@lucide/vue';
 import type { AdminNavGroup } from '~/types';
 import { useThemeToggle } from '../use-theme-toggle';
 
@@ -7,6 +13,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     heading: null,
     items: [
       { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
+      { label: 'Analytics', to: '/admin/analytics', icon: ChartColumn },
       { label: 'Configuration', to: '/admin/config', icon: FileText },
     ],
   },
