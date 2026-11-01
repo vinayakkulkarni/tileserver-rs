@@ -16,6 +16,7 @@ pub mod config_schema;
 pub mod cors_origin;
 pub mod embed;
 pub mod error;
+pub mod inspect;
 #[cfg(feature = "mcp")]
 pub mod mcp;
 pub mod metrics;

@@ -28,7 +28,6 @@ mod logging;
 mod telemetry;
 
 use cli::Cli;
-#[cfg(feature = "mcp")]
 use cli::Commands;
 use tileserver_rs::admin;
 use tileserver_rs::autodetect;
@@ -56,11 +55,35 @@ use tileserver_rs::startup;
 #[folder = "../../apps/client/.output/public"]
 struct Assets;
 
+/// `tileserver-rs inspect`: print the archive report and exit.
+async fn run_inspect(
+    target: &str,
+    tile: Option<&str>,
+    verbose: bool,
+    json: bool,
+) -> anyhow::Result<()> {
+    print!(
+        "{}",
+        tileserver_rs::inspect::run(target, tile, verbose, json).await?
+    );
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
 
     let cli = Cli::parse_args();
+
+    if let Some(Commands::Inspect {
+        target,
+        tile,
+        verbose,
+        json,
+    }) = cli.command.as_ref()
+    {
+        return run_inspect(target, tile.as_deref(), *verbose, *json).await;
+    }
 
     #[cfg(feature = "mcp")]
     if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
