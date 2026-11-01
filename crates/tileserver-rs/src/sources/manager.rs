@@ -193,6 +193,8 @@ impl SourceManager {
                     source: id,
                     format,
                     z,
+                    x,
+                    y,
                     bytes: cached.data.len(),
                     duration: started.elapsed(),
                     outcome: crate::metrics::TileOutcome::Hit,
@@ -211,6 +213,8 @@ impl SourceManager {
                 source: id,
                 format,
                 z,
+                x,
+                y,
                 bytes,
                 duration: started.elapsed(),
                 outcome,
@@ -232,6 +236,8 @@ impl SourceManager {
                 source: id,
                 format,
                 z,
+                x,
+                y,
                 bytes,
                 duration: started.elapsed(),
                 outcome,
@@ -617,34 +623,37 @@ impl SourceManager {
             .get(id)
             .ok_or_else(|| TileServerError::SourceNotFound(id.to_string()))?;
 
-        if let Some(cog) = source.as_ref().as_any().downcast_ref::<CogSource>() {
+        let started = std::time::Instant::now();
+        let format = source.format();
+        let any = source.as_ref().as_any();
+
+        if let Some(cog) = any.downcast_ref::<CogSource>() {
             let resample = resampling.unwrap_or(cog.resampling());
-            cog.get_tile_with_resampling(z, x, y, tile_size, resample)
-                .await
-        } else {
-            #[cfg(feature = "dem")]
-            if let Some(dem) = source
-                .as_ref()
-                .as_any()
-                .downcast_ref::<crate::sources::dem::DemSource>()
-            {
-                return dem.get_tile_sized(z, x, y, tile_size).await;
-            }
-            #[cfg(feature = "postgres")]
-            if let Some(outdb) = source
-                .as_ref()
-                .as_any()
-                .downcast_ref::<PostgresOutDbRasterSource>()
-            {
-                return outdb
-                    .get_tile_with_params(z, x, y, tile_size, resampling, query_params)
-                    .await;
-            }
-            #[cfg(not(feature = "postgres"))]
-            let _ = query_params;
-            let tile = source.get_tile(z, x, y).await?;
-            self.apply_preset(id, tile)
+            let result = cog
+                .get_tile_with_resampling(z, x, y, tile_size, resample)
+                .await;
+            record_uncached(id, format, z, x, y, started, &result);
+            return result;
         }
+        #[cfg(feature = "dem")]
+        if let Some(dem) = any.downcast_ref::<crate::sources::dem::DemSource>() {
+            let result = dem.get_tile_sized(z, x, y, tile_size).await;
+            record_uncached(id, format, z, x, y, started, &result);
+            return result;
+        }
+        #[cfg(feature = "postgres")]
+        if let Some(outdb) = any.downcast_ref::<PostgresOutDbRasterSource>() {
+            let result = outdb
+                .get_tile_with_params(z, x, y, tile_size, resampling, query_params)
+                .await;
+            record_uncached(id, format, z, x, y, started, &result);
+            return result;
+        }
+        #[cfg(not(feature = "postgres"))]
+        let _ = query_params;
+        // Any other source: the standard path, which uses the global tile
+        // cache and records the request.
+        self.get_tile(id, z, x, y).await
     }
 
     #[cfg(all(feature = "postgres", feature = "raster"))]
@@ -680,13 +689,14 @@ impl SourceManager {
             .as_any()
             .downcast_ref::<PostgresFunctionSource>()
         {
-            let tile = pg_func
+            let started = std::time::Instant::now();
+            let result = pg_func
                 .get_tile_with_query_params(z, x, y, query_params)
-                .await?;
-            self.apply_preset(id, tile)
+                .await;
+            record_uncached(id, source.format(), z, x, y, started, &result);
+            self.apply_preset(id, result?)
         } else {
-            let tile = source.get_tile(z, x, y).await?;
-            self.apply_preset(id, tile)
+            self.get_tile(id, z, x, y).await
         }
     }
 
@@ -709,6 +719,36 @@ impl Default for SourceManager {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Record a tile request served outside [`SourceManager::get_tile`] (raster
+/// renders and parameterised PostGIS function tiles, which bypass the tile
+/// cache).
+#[cfg(any(feature = "raster", feature = "postgres"))]
+fn record_uncached(
+    id: &str,
+    format: crate::sources::TileFormat,
+    z: u8,
+    x: u32,
+    y: u32,
+    started: std::time::Instant,
+    result: &crate::error::Result<Option<crate::sources::TileData>>,
+) {
+    let (outcome, bytes) = match result {
+        Ok(Some(tile)) => (crate::metrics::TileOutcome::Miss, tile.data.len()),
+        Ok(None) => (crate::metrics::TileOutcome::NotFound, 0),
+        Err(_) => (crate::metrics::TileOutcome::Error, 0),
+    };
+    crate::metrics::tile_request_recorded(crate::metrics::TileEvent {
+        source: id,
+        format,
+        z,
+        x,
+        y,
+        bytes,
+        duration: started.elapsed(),
+        outcome,
+    });
 }
 
 #[cfg(test)]
@@ -1067,6 +1107,75 @@ mod tests {
 
         let second = mgr.get_tile("hit", 5, 1, 1).await.unwrap().unwrap();
         assert_eq!(second.data.as_ref(), b"mock-tile-data");
+    }
+
+    /// Counts `get_tile` calls so tests can tell cache hits from source reads.
+    struct CountingSource {
+        inner: MockSource,
+        calls: Arc<std::sync::atomic::AtomicUsize>,
+    }
+
+    #[async_trait]
+    impl TileSource for CountingSource {
+        async fn get_tile(&self, z: u8, x: u32, y: u32) -> crate::error::Result<Option<TileData>> {
+            self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.inner.get_tile(z, x, y).await
+        }
+
+        fn metadata(&self) -> &TileMetadata {
+            self.inner.metadata()
+        }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    }
+
+    fn counting_manager() -> (SourceManager, Arc<std::sync::atomic::AtomicUsize>) {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let mut map = HashMap::new();
+        map.insert(
+            "vec".to_string(),
+            Arc::new(CountingSource {
+                inner: MockSource::new("vec"),
+                calls: Arc::clone(&calls),
+            }) as Arc<dyn TileSource>,
+        );
+        let cache = Arc::new(crate::cache::TileCache::new(4, 3600));
+        (SourceManager::from_sources(map).with_cache(cache), calls)
+    }
+
+    /// With the `raster` feature the tile route calls
+    /// `get_raster_tile_with_params` for every source. A vector source must
+    /// still go through the tile cache there (it used to read the source on
+    /// every request).
+    #[cfg(feature = "raster")]
+    #[tokio::test]
+    async fn raster_entry_point_uses_the_cache_for_vector_sources() {
+        let (mgr, calls) = counting_manager();
+        for _ in 0..3 {
+            let tile = mgr
+                .get_raster_tile_with_params("vec", 5, 1, 1, 256, None, None)
+                .await
+                .unwrap()
+                .unwrap();
+            assert_eq!(tile.data.as_ref(), b"mock-tile-data");
+        }
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[cfg(feature = "postgres")]
+    #[tokio::test]
+    async fn query_param_entry_point_uses_the_cache_for_other_sources() {
+        let (mgr, calls) = counting_manager();
+        let params = serde_json::json!({});
+        for _ in 0..3 {
+            mgr.get_vector_tile_with_query_params("vec", 5, 1, 1, &params)
+                .await
+                .unwrap()
+                .unwrap();
+        }
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     struct NoneSource(TileMetadata);

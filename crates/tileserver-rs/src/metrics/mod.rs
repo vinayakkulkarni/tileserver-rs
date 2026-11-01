@@ -11,6 +11,7 @@
 //! See `docs/superpowers/specs/2026-05-04-prometheus-metrics-design.md`
 //! for the full design rationale.
 
+pub mod dashboard;
 mod http_middleware;
 mod instruments;
 mod labels;

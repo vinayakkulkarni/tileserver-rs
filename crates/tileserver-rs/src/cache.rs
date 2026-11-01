@@ -86,6 +86,12 @@ impl TileCache {
     pub fn weighted_size(&self) -> u64 {
         self.cache.weighted_size()
     }
+
+    /// Configured capacity in bytes (`max_size_mb` × 1 MiB).
+    #[must_use]
+    pub fn capacity_bytes(&self) -> u64 {
+        self.cache.policy().max_capacity().unwrap_or(0)
+    }
 }
 
 impl std::fmt::Debug for TileCache {

@@ -715,6 +715,37 @@ pub struct TelemetryConfig {
     ///   left enabled in production.
     #[serde(default)]
     pub metrics_label_cardinality: MetricsLabelCardinality,
+    /// Collect per-request statistics for the admin analytics dashboard
+    /// (`GET /__admin/stats`, `/admin/analytics`). Off by default; when on,
+    /// each tile request updates an in-memory, bounded store.
+    #[serde(default)]
+    pub dashboard: bool,
+    /// Requests kept in the dashboard's "recent requests" list.
+    #[serde(default = "default_dashboard_recent_requests")]
+    pub dashboard_recent_requests: usize,
+    /// Zoom level the dashboard heatmap aggregates requests to (0-16).
+    #[serde(default = "default_dashboard_heatmap_zoom")]
+    pub dashboard_heatmap_zoom: u8,
+}
+
+impl TelemetryConfig {
+    /// Dashboard collection settings derived from this section.
+    #[must_use]
+    pub fn dashboard_settings(&self) -> crate::metrics::dashboard::DashboardSettings {
+        crate::metrics::dashboard::DashboardSettings {
+            enabled: self.dashboard,
+            recent_requests: self.dashboard_recent_requests,
+            heatmap_zoom: self.dashboard_heatmap_zoom,
+        }
+    }
+}
+
+fn default_dashboard_recent_requests() -> usize {
+    200
+}
+
+fn default_dashboard_heatmap_zoom() -> u8 {
+    10
 }
 
 /// Cardinality strategy for metric labels emitted via the
@@ -770,6 +801,9 @@ impl Default for TelemetryConfig {
             prometheus_bind: None,
             prometheus_path: default_prometheus_path(),
             metrics_label_cardinality: MetricsLabelCardinality::Strict,
+            dashboard: false,
+            dashboard_recent_requests: default_dashboard_recent_requests(),
+            dashboard_heatmap_zoom: default_dashboard_heatmap_zoom(),
         }
     }
 }
@@ -1561,6 +1595,18 @@ impl Config {
                     "`[mcp.oauth].signing_key_path` is required when oauth.enabled = true"
                 );
             }
+        }
+        if self.telemetry.dashboard_heatmap_zoom > 16 {
+            anyhow::bail!(
+                "`[telemetry].dashboard_heatmap_zoom` must be 0-16 (got {})",
+                self.telemetry.dashboard_heatmap_zoom
+            );
+        }
+        if self.telemetry.dashboard_recent_requests > 10_000 {
+            anyhow::bail!(
+                "`[telemetry].dashboard_recent_requests` must be at most 10000 (got {})",
+                self.telemetry.dashboard_recent_requests
+            );
         }
         #[cfg(feature = "cel")]
         self.validate_filters()?;

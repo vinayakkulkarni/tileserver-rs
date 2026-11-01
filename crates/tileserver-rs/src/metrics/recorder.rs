@@ -101,6 +101,8 @@ pub struct TileEvent<'a> {
     pub source: &'a str,
     pub format: TileFormat,
     pub z: u8,
+    pub x: u32,
+    pub y: u32,
     pub bytes: usize,
     pub duration: Duration,
     pub outcome: TileOutcome,
@@ -139,6 +141,15 @@ pub fn tile_request_recorded(event: TileEvent<'_>) {
     if event.bytes > 0 {
         TILE_REQUEST_BYTES.record(event.bytes as u64, &bytes_labels);
     }
+    super::dashboard::record_tile(&super::dashboard::TileSample {
+        source: event.source,
+        z: event.z,
+        x: event.x,
+        y: event.y,
+        bytes: event.bytes,
+        duration: event.duration,
+        outcome: event.outcome,
+    });
 }
 
 pub fn cache_hit_recorded(source: &str) {
@@ -290,6 +301,8 @@ mod tests {
                 source: "noop-test",
                 format: TileFormat::Pbf,
                 z: 14,
+                x: 0,
+                y: 0,
                 bytes: 1024,
                 duration: Duration::from_millis(5),
                 outcome,
@@ -304,6 +317,8 @@ mod tests {
             source: "zero-bytes",
             format: TileFormat::Pbf,
             z: 0,
+            x: 0,
+            y: 0,
             bytes: 0,
             duration: Duration::from_millis(1),
             outcome: TileOutcome::NotFound,

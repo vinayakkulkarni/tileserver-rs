@@ -220,6 +220,8 @@ pub async fn build_app_state(
     config: &Config,
     runtime: &RuntimeSettings,
 ) -> anyhow::Result<AppState> {
+    crate::metrics::dashboard::configure(config.telemetry.dashboard_settings());
+
     // Load tile sources
     #[cfg(feature = "postgres")]
     let raw_sources =
