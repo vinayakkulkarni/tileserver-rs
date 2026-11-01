@@ -77,6 +77,27 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 #[non_exhaustive]
 pub enum Commands {
+    /// Show metadata, tile counts and layers of a PMTiles or MBTiles archive
+    /// without starting the server. Accepts a local path or an http(s)
+    /// PMTiles URL.
+    Inspect {
+        /// `.pmtiles` / `.mbtiles` file, or an `http(s)://` PMTiles URL.
+        #[arg(value_name = "FILE_OR_URL")]
+        target: String,
+
+        /// Decode one tile (`z/x/y`, XYZ order) and list its layers.
+        #[arg(long, value_name = "Z/X/Y")]
+        tile: Option<String>,
+
+        /// Count tiles per zoom level (MBTiles).
+        #[arg(short, long)]
+        verbose: bool,
+
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Run the MCP server over stdio (for Claude Desktop and other local
     /// MCP clients). Reads the same config as the HTTP server but ignores
     /// `[server]` host/port — stdin/stdout becomes the transport.
@@ -126,6 +147,34 @@ mod tests {
         assert!(cli.ui);
         assert!(!cli.no_ui);
         assert!(!cli.verbose);
+    }
+
+    #[test]
+    fn test_cli_inspect_subcommand() {
+        let cli = parse(&[
+            "tileserver-rs",
+            "inspect",
+            "a.pmtiles",
+            "--tile",
+            "1/0/1",
+            "-v",
+            "--json",
+        ]);
+        match cli.command {
+            Some(Commands::Inspect {
+                target,
+                tile,
+                verbose,
+                json,
+            }) => {
+                assert_eq!(target, "a.pmtiles");
+                assert_eq!(tile.as_deref(), Some("1/0/1"));
+                assert!(verbose);
+                assert!(json);
+            }
+            other => panic!("expected inspect, got {other:?}"),
+        }
+        assert!(Cli::try_parse_from(["tileserver-rs", "inspect"]).is_err());
     }
 
     #[test]
