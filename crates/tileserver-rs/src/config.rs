@@ -45,6 +45,9 @@ pub struct Config {
     /// Server-side LLM proxy for the Map AI chat panel (`[llm]`).
     #[serde(default)]
     pub llm: LlmConfig,
+    /// Live source updates over WebSocket (`[live]`).
+    #[serde(default)]
+    pub live: LiveConfig,
     /// Model Context Protocol (MCP) server configuration.
     ///
     /// Only present when the binary is compiled with `--features mcp`.
@@ -61,6 +64,48 @@ pub struct Config {
     #[serde(default)]
     #[cfg(feature = "sftp")]
     pub sftp: Option<SftpConfig>,
+}
+
+/// Live source updates over WebSocket (`[live]`, issue #596).
+///
+/// With `enabled = true` the server mounts `GET /ws` and sends a `reload`
+/// message for each source whose data changes. Sources listed in `watch`
+/// (or `["*"]` for all) are polled every `interval_secs`: local files by
+/// modification time and size, `http(s)` sources by `ETag` /
+/// `Last-Modified`. A change reloads the server's sources and is then
+/// broadcast.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LiveConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Source ids to poll for changes; `["*"]` polls every source.
+    #[serde(default)]
+    pub watch: Vec<String>,
+    /// Seconds between polls (minimum 1).
+    #[serde(default = "default_live_interval_secs")]
+    pub interval_secs: u64,
+    /// Maximum concurrent WebSocket clients; more get `503`.
+    #[serde(default = "default_live_max_clients")]
+    pub max_clients: usize,
+}
+
+impl Default for LiveConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            watch: Vec::new(),
+            interval_secs: default_live_interval_secs(),
+            max_clients: default_live_max_clients(),
+        }
+    }
+}
+
+fn default_live_interval_secs() -> u64 {
+    5
+}
+
+fn default_live_max_clients() -> usize {
+    1000
 }
 
 /// Global defaults for SFTP PMTiles sources.
@@ -1607,6 +1652,14 @@ impl Config {
                 "`[telemetry].dashboard_recent_requests` must be at most 10000 (got {})",
                 self.telemetry.dashboard_recent_requests
             );
+        }
+        if self.live.interval_secs == 0 {
+            anyhow::bail!("`[live].interval_secs` must be at least 1");
+        }
+        for id in &self.live.watch {
+            if id != "*" && !self.sources.iter().any(|s| &s.id == id) {
+                anyhow::bail!("`[live].watch` names unknown source `{id}`");
+            }
         }
         #[cfg(feature = "cel")]
         self.validate_filters()?;

@@ -370,6 +370,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
+    tokio::spawn(tileserver_rs::live::run_watcher(shared.clone()));
 
     if let Some(registry) = telemetry_output.prometheus_registry
         && let Some(bind_str) = config.telemetry.prometheus_bind.as_ref()

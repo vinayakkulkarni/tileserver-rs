@@ -85,6 +85,21 @@ impl SharedState {
         self.controller.reload(flush).await
     }
 
+    /// Rebuild the server state because the data of `sources` changed
+    /// (config unchanged), then broadcast a `reload` for each of them.
+    pub async fn reload_sources(&self, sources: &[String]) -> anyhow::Result<()> {
+        self.controller
+            .reload_inner(true, sources)
+            .await
+            .map(|_| ())
+    }
+
+    /// Live-update broadcast hub (`GET /ws`).
+    #[must_use]
+    pub fn live(&self) -> &crate::live::LiveHub {
+        &self.controller.live
+    }
+
     /// Access the upload registry (for upload/delete handlers)
     #[must_use]
     pub fn uploads(&self) -> &UploadRegistry {
@@ -138,6 +153,7 @@ pub struct ReloadController {
     config_path: Option<PathBuf>,
     runtime: RuntimeSettings,
     reload_mutex: Mutex<()>,
+    live: crate::live::LiveHub,
 }
 
 impl ReloadController {
@@ -156,10 +172,22 @@ impl ReloadController {
             config_path,
             runtime,
             reload_mutex: Mutex::new(()),
+            live: crate::live::LiveHub::new(),
         }
     }
 
     async fn reload(&self, flush: bool) -> anyhow::Result<ReloadResult> {
+        self.reload_inner(flush, &[]).await
+    }
+
+    /// Reload, then broadcast a live `reload` for every source whose config
+    /// entry changed plus `data_changed` (sources whose files changed).
+    /// A forced reload (`flush`) with no named sources reloads every source.
+    async fn reload_inner(
+        &self,
+        flush: bool,
+        data_changed: &[String],
+    ) -> anyhow::Result<ReloadResult> {
         let _guard = self.reload_mutex.lock().await;
 
         let load = Config::load_with_metadata(self.config_path.clone())?;
@@ -199,9 +227,20 @@ impl ReloadController {
             prometheus_listener_active: new_meta.prometheus_listener_active,
         };
 
+        let old_config = self.config.load_full();
+        let mut changed: std::collections::BTreeSet<String> =
+            crate::live::changed_sources(&old_config, &load.config)
+                .into_iter()
+                .collect();
+        changed.extend(data_changed.iter().cloned());
+        if flush && data_changed.is_empty() {
+            changed.extend(load.config.sources.iter().map(|s| s.id.clone()));
+        }
+
         self.app.store(Arc::new(new_state));
         self.meta.store(Arc::new(new_meta));
         self.config.store(Arc::new(load.config));
+        self.live.publish_reloads(changed);
 
         Ok(result)
     }

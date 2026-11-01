@@ -56,11 +56,24 @@ struct IndexQueryParams {
     key: Option<String>,
 }
 
+/// `GET /ws`: live source updates (404 unless `[live] enabled = true`).
+async fn live_ws(
+    state: axum::extract::State<SharedState>,
+    upgrade: axum::extract::ws::WebSocketUpgrade,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    if !state.config().live.enabled {
+        return axum::http::StatusCode::NOT_FOUND.into_response();
+    }
+    crate::live::ws_handler(state, upgrade).await
+}
+
 pub fn api_router(state: SharedState) -> Router {
     let config = state.config();
     let mut router = Router::new()
         .route("/health", get(health_check))
         .route("/ping", get(admin::ping_check))
+        .route("/ws", get(live_ws))
         .route("/index.json", get(get_index_json))
         // Style endpoints
         .route("/styles.json", get(styles::get_all_styles))
