@@ -62,22 +62,10 @@ async fn run_inspect(
     verbose: bool,
     json: bool,
 ) -> anyhow::Result<()> {
-    use tileserver_rs::inspect;
-
-    let tile = tile.map(inspect::parse_tile_address).transpose()?;
-    let report = inspect::inspect(
-        target,
-        inspect::InspectOptions {
-            per_zoom: verbose,
-            tile,
-        },
-    )
-    .await?;
-    if json {
-        println!("{}", serde_json::to_string_pretty(&report)?);
-    } else {
-        print!("{}", inspect::render_text(&report));
-    }
+    print!(
+        "{}",
+        tileserver_rs::inspect::run(target, tile, verbose, json).await?
+    );
     Ok(())
 }
 

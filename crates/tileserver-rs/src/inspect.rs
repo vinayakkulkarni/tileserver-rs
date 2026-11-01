@@ -325,16 +325,7 @@ fn inspect_mbtiles(target: &str, size: u64, options: InspectOptions) -> Result<I
         .get("json")
         .and_then(|text| serde_json::from_str(text).ok())
         .unwrap_or(serde_json::Value::Null);
-    let format = meta.get("format").map(|f| f.to_ascii_lowercase());
-    let tile_type = match format.as_deref() {
-        Some("pbf" | "mvt") => "mvt",
-        Some("mlt") => "mlt",
-        Some("png") => "png",
-        Some("jpg" | "jpeg") => "jpeg",
-        Some("webp") => "webp",
-        Some("avif") => "avif",
-        _ => "unknown",
-    };
+    let tile_type = mbtiles_tile_type(meta.get("format").map(String::as_str));
 
     // MBTiles stores tiles in TMS order: row = 2^z - 1 - y.
     let sample: Option<Vec<u8>> = match options.tile {
@@ -393,6 +384,19 @@ fn inspect_mbtiles(target: &str, size: u64, options: InspectOptions) -> Result<I
         zoom_counts,
         tile,
     })
+}
+
+/// Tile type name for an MBTiles `format` metadata value.
+fn mbtiles_tile_type(format: Option<&str>) -> &'static str {
+    match format.map(str::to_ascii_lowercase).as_deref() {
+        Some("pbf" | "mvt") => "mvt",
+        Some("mlt") => "mlt",
+        Some("png") => "png",
+        Some("jpg" | "jpeg") => "jpeg",
+        Some("webp") => "webp",
+        Some("avif") => "avif",
+        _ => "unknown",
+    }
 }
 
 /// Decode one stored tile. Vector tiles get per-layer statistics; other
@@ -520,6 +524,27 @@ const fn compression_name(compression: TileCompression) -> &'static str {
         TileCompression::Gzip => "gzip",
         TileCompression::Brotli => "brotli",
         TileCompression::Zstd => "zstd",
+    }
+}
+
+/// Run `inspect` and render the report: plain text, or pretty JSON when
+/// `json` is set. `tile` is a `z/x/y` address; `per_zoom` counts tiles per
+/// zoom level (MBTiles).
+///
+/// # Errors
+///
+/// Returns an error for a malformed tile address, an unreadable target, or
+/// a report that cannot be serialized.
+pub async fn run(target: &str, tile: Option<&str>, per_zoom: bool, json: bool) -> Result<String> {
+    let tile = tile.map(parse_tile_address).transpose()?;
+    let report = inspect(target, InspectOptions { per_zoom, tile }).await?;
+    if json {
+        let mut out = serde_json::to_string_pretty(&report)
+            .map_err(|e| TileServerError::Internal(e.into()))?;
+        out.push('\n');
+        Ok(out)
+    } else {
+        Ok(render_text(&report))
     }
 }
 
@@ -670,6 +695,60 @@ mod tests {
         for bad in ["", "1/2", "1/2/3/4", "a/b/c", "-1/0/0", "31/0/0"] {
             assert!(parse_tile_address(bad).is_err(), "{bad} should not parse");
         }
+    }
+
+    #[test]
+    fn type_and_compression_names() {
+        for (format, name) in [
+            (Some("pbf"), "mvt"),
+            (Some("MVT"), "mvt"),
+            (Some("mlt"), "mlt"),
+            (Some("png"), "png"),
+            (Some("jpg"), "jpeg"),
+            (Some("jpeg"), "jpeg"),
+            (Some("webp"), "webp"),
+            (Some("avif"), "avif"),
+            (Some("tiff"), "unknown"),
+            (None, "unknown"),
+        ] {
+            assert_eq!(mbtiles_tile_type(format), name, "{format:?}");
+        }
+        for (tile_type, name) in [
+            (TileType::Mvt, "mvt"),
+            (TileType::Mlt, "mlt"),
+            (TileType::Png, "png"),
+            (TileType::Jpeg, "jpeg"),
+            (TileType::Webp, "webp"),
+            (TileType::Avif, "avif"),
+            (TileType::Unknown, "unknown"),
+        ] {
+            assert_eq!(tile_type_name(tile_type), name);
+        }
+        for (pm, name) in [
+            (pmtiles::Compression::None, "none"),
+            (pmtiles::Compression::Unknown, "none"),
+            (pmtiles::Compression::Gzip, "gzip"),
+            (pmtiles::Compression::Brotli, "brotli"),
+            (pmtiles::Compression::Zstd, "zstd"),
+        ] {
+            assert_eq!(compression_name(compression_from_pmtiles(pm)), name);
+        }
+        assert_eq!(sniff_compression(&[0x1f, 0x8b, 0]), TileCompression::Gzip);
+        assert_eq!(sniff_compression(&[0x1a]), TileCompression::None);
+    }
+
+    #[test]
+    fn non_vector_tiles_report_sizes_only() {
+        let png = Bytes::from_static(&[0x89, b'P', b'N', b'G', 0, 0]);
+        let report = tile_report(
+            TileAddress { z: 0, x: 0, y: 0 },
+            Some(png),
+            TileCompression::None,
+        )
+        .unwrap();
+        assert!(report.found);
+        assert_eq!(report.stored_bytes, 6);
+        assert!(report.layers.is_empty());
     }
 
     #[test]
@@ -837,6 +916,112 @@ mod tests {
         let tile = report.tile.unwrap();
         assert!(tile.found, "tile {z}/{x}/{y} should exist");
         assert!(!tile.layers.is_empty());
+    }
+
+    #[tokio::test]
+    async fn text_report_lists_header_layers_and_tile() {
+        let out = run(
+            &fixture("protomaps-sample.pmtiles"),
+            Some("0/0/0"),
+            false,
+            false,
+        )
+        .await
+        .unwrap();
+        for needle in [
+            "Format:       PMTiles v3",
+            "Tile type:    mvt",
+            "Compression:  gzip",
+            "Unique tiles:",
+            "Zoom:         0-15",
+            "Bounds:",
+            "Center:",
+            "Name:         Protomaps Basemap",
+            "Layers (13):",
+            "  NAME                     FIELDS  ZOOM",
+            "Tile 0/0/0:",
+            "  LAYER                    FEATURES  GEOMETRY",
+            "polygon:",
+        ] {
+            assert!(out.contains(needle), "missing {needle:?} in:\n{out}");
+        }
+    }
+
+    #[tokio::test]
+    async fn text_report_shows_zoom_counts_and_missing_tile() {
+        let out = run(
+            &fixture("zurich_switzerland.mbtiles"),
+            Some("14/0/0"),
+            true,
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(out.contains("Format:       MBTiles"));
+        assert!(out.contains("Tiles per zoom:"));
+        assert!(out.contains("  z0   1"));
+        assert!(out.contains("Tile 14/0/0: not in the archive"));
+    }
+
+    #[tokio::test]
+    async fn json_report_round_trips() {
+        let out = run(&fixture("zurich_switzerland.mbtiles"), None, false, true)
+            .await
+            .unwrap();
+        let value: serde_json::Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(value["container"], "mbtiles");
+        assert_eq!(value["tile_type"], "mvt");
+        assert!(value["tile_count"].as_u64().unwrap() > 0);
+        assert!(value["zoom_counts"].is_null());
+        assert!(matches!(
+            run(
+                &fixture("zurich_switzerland.mbtiles"),
+                Some("9/x/1"),
+                false,
+                true
+            )
+            .await,
+            Err(TileServerError::InvalidTileRequest)
+        ));
+    }
+
+    /// Serve the PMTiles fixture over HTTP (with Range support) and inspect
+    /// it by URL, the same path a remote archive takes.
+    #[tokio::test]
+    async fn inspects_remote_pmtiles_over_http() {
+        let dir = format!("{}/../../data/tiles", env!("CARGO_MANIFEST_DIR"));
+        let app = axum::Router::new().fallback_service(tower_http::services::ServeDir::new(dir));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let url = format!("http://{addr}/protomaps-sample.pmtiles");
+        let report = inspect(
+            &url,
+            InspectOptions {
+                per_zoom: false,
+                tile: Some(TileAddress { z: 0, x: 0, y: 0 }),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(report.target, url);
+        assert_eq!(report.container, Container::Pmtiles);
+        assert_eq!(
+            report.size_bytes,
+            Some(
+                std::fs::metadata(fixture("protomaps-sample.pmtiles"))
+                    .unwrap()
+                    .len()
+            )
+        );
+        assert!(report.tile.unwrap().found);
+
+        let missing = format!("http://{addr}/nope.pmtiles");
+        assert!(matches!(
+            inspect(&missing, InspectOptions::default()).await,
+            Err(TileServerError::NotFound(_))
+        ));
     }
 
     #[tokio::test]
