@@ -859,30 +859,6 @@ mod tests {
         assert!(meta.center.is_none());
     }
 
-    #[test]
-    fn test_gzip_detection_in_tile_data() {
-        let gzip_bytes: Vec<u8> = vec![0x1f, 0x8b, 0x08, 0x00, 0x00];
-        let compression = if gzip_bytes.len() >= 2 && gzip_bytes[0] == 0x1f && gzip_bytes[1] == 0x8b
-        {
-            TileCompression::Gzip
-        } else {
-            TileCompression::None
-        };
-        assert_eq!(compression, TileCompression::Gzip);
-    }
-
-    #[test]
-    fn test_non_gzip_detection_in_tile_data() {
-        let plain_bytes: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03];
-        let compression =
-            if plain_bytes.len() >= 2 && plain_bytes[0] == 0x1f && plain_bytes[1] == 0x8b {
-                TileCompression::Gzip
-            } else {
-                TileCompression::None
-            };
-        assert_eq!(compression, TileCompression::None);
-    }
-
     fn fixture_config() -> SourceConfig {
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
         let fixture_path = std::path::PathBuf::from(manifest_dir)
@@ -1016,9 +992,9 @@ mod tests {
 
         let z = metadata.maxzoom.min(20);
         let max = 1u32 << z;
+        // The far south-east tile is outside the fixture's extent.
         let result = source.get_tile(z, max - 1, max - 1).await.unwrap();
-
-        let _ = result;
+        assert!(result.is_none());
     }
 
     #[tokio::test]

@@ -347,16 +347,6 @@ mod tests {
     }
 
     #[test]
-    fn test_source_type_label_mbtiles() {
-        assert_eq!(source_type_label(&SourceType::MBTiles), "mbtiles");
-    }
-
-    #[test]
-    fn test_source_type_label_pmtiles() {
-        assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
-    }
-
-    #[test]
     fn test_source_type_label_all_variants() {
         assert_eq!(source_type_label(&SourceType::MBTiles), "mbtiles");
         assert_eq!(source_type_label(&SourceType::PMTiles), "pmtiles");
@@ -390,12 +380,6 @@ mod tests {
     fn test_detect_source_type_parquet() {
         let st = detect_source_type("buildings.parquet").unwrap();
         assert!(matches!(st, SourceType::GeoParquet));
-    }
-
-    #[test]
-    #[cfg(feature = "stac")]
-    fn test_source_type_label_stac() {
-        assert_eq!(source_type_label(&SourceType::Stac), "stac");
     }
 
     use crate::reload::{

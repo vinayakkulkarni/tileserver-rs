@@ -59,15 +59,6 @@ fn images_match(img1_path: &Path, img2_path: &Path, tolerance: f64) -> bool {
     diff_ratio <= tolerance
 }
 
-/// Save an image and return the path
-#[allow(dead_code)]
-fn save_test_image(name: &str, data: &[u8]) -> PathBuf {
-    let path = PathBuf::from(SNAPSHOTS_DIR).join(format!("{}.png", name));
-    fs::create_dir_all(SNAPSHOTS_DIR).expect("Should create snapshots dir");
-    fs::write(&path, data).expect("Should write image");
-    path
-}
-
 // ============================================================
 // Overlay Rendering Tests
 // ============================================================

@@ -829,17 +829,6 @@ mod tests {
     }
 
     #[test]
-    fn test_mvt_to_mlt_internal_empty_input() {
-        // Empty protobuf encodes as zero bytes
-        let result = mvt_to_mlt(&[]);
-        // Should either succeed (empty tile) or give a clean error
-        if let Ok(mlt_bytes) = result {
-            // Empty tile might produce empty output
-            let _ = mlt_bytes;
-        }
-    }
-
-    #[test]
     fn test_decompress_tile_data_none() {
         let tile = TileData {
             data: Bytes::from_static(b"raw bytes"),

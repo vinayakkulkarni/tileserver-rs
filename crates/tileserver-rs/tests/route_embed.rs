@@ -156,22 +156,6 @@ async fn embed_style_id_xss_payload_does_not_execute() {
 }
 
 #[tokio::test]
-async fn embed_disabled_render_still_serves_html() {
-    let mut config = Config::default();
-    config.server.disable_render = true;
-    // A populated style manager is needed for the lookup to succeed. Build a
-    // server that has the style but render disabled.
-    let shared = shared_state_populated();
-    // disable_render only affects render_router; /embed lives in the base
-    // router, so it must still serve HTML. Rebuild the router with the
-    // disable_render config applied.
-    let _ = config;
-    let server = axum_test::TestServer::new(api_router(shared));
-    let res = server.get("/embed/protomaps-light").await;
-    res.assert_status_ok();
-}
-
-#[tokio::test]
 async fn embed_route_present_when_render_disabled_by_config() {
     let mut config = Config::default();
     config.server.disable_render = true;

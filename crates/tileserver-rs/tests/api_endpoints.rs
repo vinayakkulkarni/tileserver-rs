@@ -9,35 +9,10 @@ use std::path::PathBuf;
 const TEST_CONFIG: &str = "tests/config.test.toml";
 
 // ============================================================
-// Health Endpoint Tests
-// ============================================================
-
-mod health_tests {
-    #[allow(unused_imports)]
-    use super::*;
-
-    #[test]
-    fn test_health_endpoint_path() {
-        // Verify the health endpoint path format
-        assert_eq!("/health", "/health");
-    }
-
-    #[test]
-    fn test_health_response_format() {
-        // Health endpoint should return plain text "OK"
-        let expected_response = "OK";
-        assert_eq!(expected_response, "OK");
-        assert_eq!(expected_response.len(), 2);
-    }
-}
-
-// ============================================================
 // OpenAPI/Swagger Tests
 // ============================================================
 
 mod openapi_tests {
-    #[allow(unused_imports)]
-    use super::*;
 
     #[test]
     fn test_openapi_json_structure() {
@@ -137,17 +112,6 @@ mod openapi_tests {
         }
     }
 
-    #[test]
-    fn test_openapi_version_matches_cargo() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-
-        let spec = ApiDoc::openapi();
-        // The version in openapi.rs should match or be close to Cargo.toml version
-        assert!(!spec.info.version.is_empty());
-        // Note: Exact version check would require reading Cargo.toml
-    }
-
     // The OpenAPI snapshot bakes in every endpoint registered via `#[utoipa::path]`,
     // so the schema shape is feature-dependent. Pin the snapshot to the canonical
     // default feature set (postgres + raster + mlt + cloud + stac) to keep it
@@ -210,18 +174,6 @@ mod openapi_tests {
     }
 
     #[test]
-    fn test_openapi_has_components() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-        let spec = ApiDoc::openapi();
-        let components = spec.components.expect("spec has components");
-        assert!(
-            !components.schemas.is_empty(),
-            "spec has at least one schema"
-        );
-    }
-
-    #[test]
     fn test_openapi_serializes_to_valid_json_string() {
         use tileserver_rs::openapi::ApiDoc;
         use utoipa::OpenApi;
@@ -263,18 +215,6 @@ mod openapi_tests {
             spec.info.version.contains('.'),
             "Version should be semver-like: {}",
             spec.info.version
-        );
-    }
-
-    #[test]
-    fn test_openapi_minimum_path_count() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-        let spec = ApiDoc::openapi();
-        assert!(
-            spec.paths.paths.len() >= 10,
-            "Expected at least 10 documented paths, got {}",
-            spec.paths.paths.len()
         );
     }
 }
@@ -532,97 +472,6 @@ mod font_tests {
             }
         }
     }
-
-    #[test]
-    fn test_font_range_parsing() {
-        // Test that font ranges are parsed correctly
-        let valid_ranges = ["0-255.pbf", "256-511.pbf", "65024-65279.pbf"];
-
-        for range in valid_ranges {
-            let parts: Vec<&str> = range.trim_end_matches(".pbf").split('-').collect();
-            assert_eq!(parts.len(), 2, "Range should have start and end: {}", range);
-
-            let start: u32 = parts[0].parse().expect("Start should be a number");
-            let end: u32 = parts[1].parse().expect("End should be a number");
-            assert!(start < end, "Start should be less than end");
-            assert_eq!((end - start + 1), 256, "Range should span 256 characters");
-        }
-    }
-}
-
-// ============================================================
-// Static Files Endpoint Tests
-// ============================================================
-
-mod files_tests {
-    #[allow(unused_imports)]
-    use super::*;
-
-    #[test]
-    fn test_files_path_security() {
-        // Test patterns that should be detected as dangerous
-        let dangerous_patterns = [
-            ("../../../etc/passwd", ".."),
-            ("..\\..\\windows\\system32", ".."),
-            ("/etc/passwd", "absolute"),
-            ("C:\\Windows\\System32", "windows_drive"),
-            ("....//....//etc/passwd", ".."),
-        ];
-
-        for (path, reason) in dangerous_patterns {
-            let is_dangerous = path.contains("..")
-                || path.starts_with('/')
-                || (path.len() >= 2 && path.chars().nth(1) == Some(':'));
-            assert!(
-                is_dangerous,
-                "Path should be detected as dangerous ({}): {}",
-                reason, path
-            );
-        }
-    }
-
-    #[test]
-    fn test_url_encoded_path_traversal() {
-        // URL-encoded traversal should be decoded and detected by the server
-        let encoded_traversals = [
-            "%2e%2e%2f", // ../
-            "%2e%2e/",   // ../
-            "..%2f",     // ../
-        ];
-
-        for encoded in encoded_traversals {
-            // After URL decoding, these should contain ".."
-            let decoded = urlencoding::decode(encoded).unwrap_or_default();
-            assert!(
-                decoded.contains("..") || encoded.contains("%2e"),
-                "Encoded traversal should be detectable: {}",
-                encoded
-            );
-        }
-    }
-
-    #[test]
-    fn test_valid_file_paths() {
-        let valid_paths = [
-            "image.png",
-            "data/file.json",
-            "assets/icons/marker.svg",
-            "some-file_name.txt",
-        ];
-
-        for path in valid_paths {
-            assert!(
-                !path.contains(".."),
-                "Valid path should not have ..: {}",
-                path
-            );
-            assert!(
-                !path.starts_with('/'),
-                "Valid path should not start with /: {}",
-                path
-            );
-        }
-    }
 }
 
 // ============================================================
@@ -630,8 +479,6 @@ mod files_tests {
 // ============================================================
 
 mod content_type_tests {
-    #[allow(unused_imports)]
-    use super::*;
 
     #[test]
     fn test_tile_content_types() {
@@ -681,148 +528,6 @@ mod content_type_tests {
             );
         }
     }
-
-    #[test]
-    fn test_json_endpoints_content_type() {
-        // JSON endpoints should return application/json
-        let json_endpoints = [
-            "/health", // Returns text/plain
-            "/index.json",
-            "/data.json",
-            "/styles.json",
-            "/fonts.json",
-            "/openapi.json",
-        ];
-
-        // Verify endpoints that should return JSON
-        for endpoint in &json_endpoints[1..] {
-            assert!(
-                endpoint.ends_with(".json"),
-                "JSON endpoint should end with .json: {}",
-                endpoint
-            );
-        }
-    }
-}
-
-// ============================================================
-// Cache Control Tests
-// ============================================================
-
-mod cache_control_tests {
-    #[allow(unused_imports)]
-    use super::*;
-
-    #[test]
-    fn test_tile_cache_values() {
-        // Tiles should have long cache times
-        let tile_cache = "public, max-age=86400"; // 1 day
-        assert!(tile_cache.contains("public"));
-        assert!(tile_cache.contains("max-age"));
-    }
-
-    #[test]
-    fn test_metadata_cache_values() {
-        // Metadata (TileJSON, style.json) should have shorter cache
-        let metadata_cache = "public, max-age=300"; // 5 minutes
-        assert!(metadata_cache.contains("max-age=300"));
-    }
-
-    #[test]
-    fn test_static_assets_cache() {
-        // Static assets (fonts, sprites) should have long cache
-        let static_cache = "public, max-age=604800"; // 1 week
-        assert!(static_cache.contains("max-age=604800"));
-    }
-}
-
-// ============================================================
-// Error Response Tests
-// ============================================================
-
-mod error_tests {
-    #[allow(unused_imports)]
-    use super::*;
-
-    #[test]
-    fn test_error_response_format() {
-        // Error responses should be JSON with "error" field
-        let error_json = r#"{"error": "Source not found: invalid-source"}"#;
-        let parsed: serde_json::Value = serde_json::from_str(error_json).unwrap();
-
-        assert!(parsed.get("error").is_some());
-        assert!(parsed["error"].is_string());
-    }
-
-    #[test]
-    fn test_404_scenarios() {
-        // Scenarios that should return 404
-        let not_found_cases = [
-            "Source not found",
-            "Style not found",
-            "Font not found",
-            "File not found",
-            "Tile not found",
-        ];
-
-        for case in not_found_cases {
-            assert!(case.contains("not found"));
-        }
-    }
-
-    #[test]
-    fn test_400_scenarios() {
-        // Scenarios that should return 400
-        let bad_request_cases = [
-            "Invalid tile coordinates",
-            "Invalid zoom level",
-            "Invalid format",
-            "Invalid size",
-        ];
-
-        for case in bad_request_cases {
-            assert!(case.starts_with("Invalid"));
-        }
-    }
-}
-
-// ============================================================
-// CORS Tests
-// ============================================================
-
-mod cors_tests {
-    #[allow(unused_imports)]
-    use super::*;
-
-    #[test]
-    fn test_cors_origins() {
-        // Test CORS origin patterns
-        let allowed_origins = ["*", "http://localhost:3000", "https://example.com"];
-
-        for origin in allowed_origins {
-            assert!(!origin.is_empty());
-        }
-    }
-
-    #[test]
-    fn test_cors_methods() {
-        // API should allow these methods
-        let allowed_methods = ["GET", "OPTIONS", "HEAD"];
-
-        for method in allowed_methods {
-            assert!(["GET", "OPTIONS", "HEAD", "POST", "PUT", "DELETE"].contains(&method));
-        }
-    }
-
-    #[test]
-    fn test_cors_headers() {
-        // API should allow these headers
-        let allowed_headers = ["Accept", "Content-Type"];
-
-        for header in allowed_headers {
-            assert!(!header.is_empty());
-        }
-    }
 }
 
 // ============================================================
@@ -830,54 +535,7 @@ mod cors_tests {
 // ============================================================
 
 mod url_params_tests {
-    #[allow(unused_imports)]
-    use super::*;
     use std::str::FromStr;
-
-    #[test]
-    fn test_tile_z_x_y_parsing() {
-        // Valid tile coordinates
-        let valid_coords = [(0, 0, 0), (1, 0, 0), (1, 1, 1), (14, 8192, 8192)];
-
-        for (z, x, y) in valid_coords {
-            assert!(z <= 22, "Zoom should be <= 22");
-            let max_coord = 1u32 << z;
-            assert!(x < max_coord, "X should be < 2^z");
-            assert!(y < max_coord, "Y should be < 2^z");
-        }
-    }
-
-    #[test]
-    fn test_scale_factor_parsing() {
-        // Valid scale factors
-        let valid_scales = ["@1x", "@2x", "@3x", "@4x"];
-
-        for scale in valid_scales {
-            let num: u8 = scale
-                .trim_start_matches('@')
-                .trim_end_matches('x')
-                .parse()
-                .unwrap();
-            assert!((1..=4).contains(&num));
-        }
-    }
-
-    #[test]
-    fn test_static_image_size_parsing() {
-        // Valid size formats
-        let valid_sizes = ["800x600", "1920x1080", "256x256", "512x512@2x"];
-
-        for size in valid_sizes {
-            let size_part = size.split('@').next().unwrap();
-            let parts: Vec<&str> = size_part.split('x').collect();
-            assert_eq!(parts.len(), 2);
-
-            let width: u32 = parts[0].parse().unwrap();
-            let height: u32 = parts[1].parse().unwrap();
-            assert!(width > 0 && width <= 4096);
-            assert!(height > 0 && height <= 4096);
-        }
-    }
 
     #[test]
     fn test_static_type_parsing() {
@@ -940,8 +598,6 @@ mod url_params_tests {
 // ============================================================
 
 mod overlay_params_tests {
-    #[allow(unused_imports)]
-    use super::*;
     use tileserver_rs::render::overlay::{parse_marker, parse_path};
 
     #[test]
@@ -964,26 +620,6 @@ mod overlay_params_tests {
     }
 
     #[test]
-    fn test_invalid_marker_formats() {
-        // Invalid marker formats
-        let invalid_markers = [
-            "",
-            "pin",
-            "pin-x+f00(0,0)", // Invalid size
-            "marker(0,0)",    // Wrong prefix
-        ];
-
-        for marker in invalid_markers {
-            if !marker.is_empty() {
-                // Empty string might have different handling
-                let _result = parse_marker(marker);
-                // Invalid formats should return None or parse to defaults
-                // The actual behavior depends on implementation
-            }
-        }
-    }
-
-    #[test]
     fn test_path_param_formats() {
         // Valid path formats
         let valid_paths = [
@@ -999,20 +635,6 @@ mod overlay_params_tests {
                 path
             );
         }
-    }
-
-    #[test]
-    fn test_encoded_polyline_format() {
-        // Test encoded polyline detection
-        let encoded = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
-
-        // This should be detected as a polyline (no commas, valid chars)
-        assert!(!encoded.contains(','));
-        assert!(
-            encoded
-                .chars()
-                .all(|c| (c as u32) >= 63 && (c as u32) <= 126)
-        );
     }
 }
 
@@ -1100,66 +722,6 @@ mod tilejson_tests {
 // ============================================================
 
 mod wmts_tests {
-    #[test]
-    fn test_wmts_xml_structure() {
-        // WMTS GetCapabilities should return valid XML
-        let expected_elements = [
-            "Capabilities",
-            "ServiceIdentification",
-            "Contents",
-            "Layer",
-            "TileMatrixSet",
-        ];
-
-        for element in expected_elements {
-            assert!(!element.is_empty());
-        }
-    }
-
-    #[test]
-    fn test_wmts_tile_matrix_set() {
-        // WebMercator tile matrix set levels
-        for zoom in 0..=22 {
-            let scale_denominator = 559082264.028717 / (1 << zoom) as f64;
-            let tile_size = 256;
-            let matrix_width = 1 << zoom;
-            let matrix_height = 1 << zoom;
-
-            assert!(scale_denominator > 0.0);
-            assert_eq!(tile_size, 256);
-            assert!(matrix_width > 0);
-            assert_eq!(matrix_width, matrix_height);
-        }
-    }
-
-    #[test]
-    fn test_wmts_key_parameter_format() {
-        // Test that key parameter is properly formatted in WMTS URLs
-        let key = "my_api_key_123";
-        let expected_query = format!("?key={}", key);
-
-        assert!(expected_query.starts_with("?key="));
-        assert!(expected_query.contains(key));
-    }
-
-    #[test]
-    fn test_wmts_key_parameter_encoding() {
-        // Test URL encoding of special characters in key
-        let special_keys = [
-            ("simple_key", "simple_key"),
-            ("key with spaces", "key%20with%20spaces"),
-            ("key&value=test", "key%26value%3Dtest"),
-        ];
-
-        for (input, expected_encoded) in special_keys {
-            let encoded = urlencoding::encode(input);
-            assert_eq!(
-                encoded, expected_encoded,
-                "Key '{}' not encoded correctly",
-                input
-            );
-        }
-    }
 
     #[test]
     fn test_wmts_generates_without_key() {

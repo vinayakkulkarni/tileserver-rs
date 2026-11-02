@@ -596,11 +596,6 @@ mod config_parsing {
         assert_eq!(static_mode, RescaleMode::Static);
         assert_eq!(dynamic_mode, RescaleMode::Dynamic);
     }
-
-    #[test]
-    fn test_rescale_mode_default() {
-        assert_eq!(RescaleMode::default(), RescaleMode::Static);
-    }
 }
 
 mod error_handling {

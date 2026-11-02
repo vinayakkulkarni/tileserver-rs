@@ -85,7 +85,7 @@ impl CogSource {
                         "COG file has no raster bands".to_string(),
                     ));
                 }
-                let bounds = get_wgs84_bounds(guard)?;
+                let bounds = wgs84_bounds(guard)?;
                 let overview_resolutions = compute_overview_resolutions(guard)?;
                 Ok::<_, TileServerError>((band_count, bounds, overview_resolutions))
             })
@@ -330,11 +330,8 @@ fn tile_to_web_mercator_bbox(z: u8, x: u32, y: u32) -> (f64, f64, f64, f64) {
     (minx, miny, maxx, maxy)
 }
 
+/// The dataset's extent as `[west, south, east, north]` in WGS84 degrees.
 pub(crate) fn wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
-    get_wgs84_bounds(dataset)
-}
-
-fn get_wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
     let transform = dataset
         .geo_transform()
         .map_err(|e| TileServerError::RasterError(format!("Failed to get geotransform: {}", e)))?;
