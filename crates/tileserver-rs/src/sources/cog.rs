@@ -630,6 +630,32 @@ mod tests {
         assert!((miny - 0.0).abs() < 1e-6);
     }
 
+    #[tokio::test]
+    async fn from_file_rejects_a_raster_without_spatial_reference() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("no-srs.tif");
+        {
+            let driver = DriverManager::get_driver_by_name("GTiff").unwrap();
+            let mut ds = driver
+                .create_with_band_type::<u8, _>(&path, 8, 8, 1)
+                .unwrap();
+            ds.set_geo_transform(&TEST_GT_FULL).unwrap();
+        }
+        let config: SourceConfig = toml::from_str(&format!(
+            "id = \"no-srs\"\ntype = \"cog\"\npath = \"{}\"",
+            path.display()
+        ))
+        .unwrap();
+        let err = CogSource::from_file(&config)
+            .await
+            .err()
+            .expect("a raster without a CRS has no WGS84 bounds");
+        assert!(
+            err.to_string().to_lowercase().contains("spatial reference"),
+            "{err}"
+        );
+    }
+
     // ---- RGBA/RGB tile rendering (warp-maintained destination alpha) ----
 
     /// Write a small 64×64 GeoTIFF (EPSG:3857, uint8) with the given

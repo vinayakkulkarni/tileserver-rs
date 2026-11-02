@@ -342,20 +342,11 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "mcp")]
         let admin_oauth_store = mcp_oauth_store.clone();
         tokio::spawn(async move {
-            let admin_app = admin::admin_router(admin_shared);
-            #[cfg(feature = "mcp")]
-            let admin_app = {
-                // Always mount the admin OAuth routes so the UI can render its
-                // connected-apps / device-sessions pages. When OAuth is disabled
-                // (or a static bearer token is used) there is no backing store —
-                // fall back to an empty in-memory store so the routes answer
-                // with empty lists instead of 404. The admin UI shows honest
-                // empty states, and the pages stay functional.
-                let store = admin_oauth_store
-                    .unwrap_or_else(|| std::sync::Arc::new(mcp::auth_store::InMemoryStore::new()));
-                tracing::info!("MCP admin OAuth routes mounted at /__admin/oauth/*");
-                admin_app.merge(mcp::admin_routes::admin_router(store))
-            };
+            let admin_app = admin::admin_app(
+                admin_shared,
+                #[cfg(feature = "mcp")]
+                admin_oauth_store,
+            );
             tracing::info!("Admin server listening on http://{}", admin_addr);
             match TcpListener::bind(admin_addr).await {
                 Ok(admin_listener) => {
