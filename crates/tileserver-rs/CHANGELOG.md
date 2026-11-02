@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.41.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.40.0...v2.41.0) (2026-11-02)
+
+
+### Features
+
+* **cli:** add an inspect subcommand for PMTiles and MBTiles archives ([#1615](https://github.com/vinayakkulkarni/tileserver-rs/issues/1615)) ([6e58043](https://github.com/vinayakkulkarni/tileserver-rs/commit/6e58043e8602fb7efac60820b9ddde2e816aa5fc))
+* **metrics:** analytics dashboard with request statistics ([#1616](https://github.com/vinayakkulkarni/tileserver-rs/issues/1616)) ([9769292](https://github.com/vinayakkulkarni/tileserver-rs/commit/9769292af7fd7f31d1e81f746860f87101122a19))
+
+
+### Bug Fixes
+
+* **deps:** bump @tanstack/ai from 1.0.0 to 1.0.1 ([#1622](https://github.com/vinayakkulkarni/tileserver-rs/issues/1622)) ([7bd6887](https://github.com/vinayakkulkarni/tileserver-rs/commit/7bd68870b89770d0ba48695e2e415d57b45b006e))
+* **deps:** bump duckdb from 1.20000.0 to 1.20000.1 ([#1623](https://github.com/vinayakkulkarni/tileserver-rs/issues/1623)) ([743ecae](https://github.com/vinayakkulkarni/tileserver-rs/commit/743ecae805aa8dd6b75cbfa0985b3e4fa41d00e3))
+* **deps:** bump mlt-core from 0.22.0 to 0.22.1 ([#1624](https://github.com/vinayakkulkarni/tileserver-rs/issues/1624)) ([2021ff5](https://github.com/vinayakkulkarni/tileserver-rs/commit/2021ff5461b7d1991f3e77ce5906be4a86ba0679))
+* **deps:** bump nuxt from 4.6.2 to 4.6.3 ([#1620](https://github.com/vinayakkulkarni/tileserver-rs/issues/1620)) ([6aaab25](https://github.com/vinayakkulkarni/tileserver-rs/commit/6aaab25c0d6fd406b91296422d62867b2d10a36f))
+* **deps:** bump pageant from 0.2.4 to 0.2.5 ([#1613](https://github.com/vinayakkulkarni/tileserver-rs/issues/1613)) ([e8c7419](https://github.com/vinayakkulkarni/tileserver-rs/commit/e8c74193a9ec8589d5c81d8ea295f62d6b268785))
+* **deps:** bump pmtiles from 0.25.0 to 0.26.0 ([#1626](https://github.com/vinayakkulkarni/tileserver-rs/issues/1626)) ([040561b](https://github.com/vinayakkulkarni/tileserver-rs/commit/040561b499b6862b6f3de3eabcfc88b0f3cb6d20))
+* **deps:** bump the arrow group with 3 updates ([#1621](https://github.com/vinayakkulkarni/tileserver-rs/issues/1621)) ([8309cff](https://github.com/vinayakkulkarni/tileserver-rs/commit/8309cff840a372b08e453961fd90fbb33ffa063c))
+* **deps:** bump wrangler from 4.153.0 to 4.156.0 ([#1618](https://github.com/vinayakkulkarni/tileserver-rs/issues/1618)) ([44de75c](https://github.com/vinayakkulkarni/tileserver-rs/commit/44de75c115ab9fc60e00364c016277958954a660))
+
 ## [2.40.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.39.0...v2.40.0) (2026-10-31)
 
 

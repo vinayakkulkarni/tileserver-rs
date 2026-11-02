@@ -7032,7 +7032,7 @@ dependencies = [
 
 [[package]]
 name = "tileserver-rs"
-version = "2.40.0"
+version = "2.41.0"
 dependencies = [
  "anyhow",
  "arc-swap",
