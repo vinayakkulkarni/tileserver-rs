@@ -63,7 +63,7 @@ const CQL2_QUERY_DEFAULT_LIMIT: i64 = 50;
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct EmptyArgs {}
 
-/// Input parameters for [`McpHandler::tileserver_get_source_tilejson`].
+/// Input parameters for `McpHandler::tileserver_get_source_tilejson`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct GetSourceTilejsonArgs {
     /// Source id as registered in `[[sources]]` configuration. Must match
@@ -71,7 +71,7 @@ pub struct GetSourceTilejsonArgs {
     pub source_id: String,
 }
 
-/// Input parameters for [`McpHandler::tileserver_get_style`].
+/// Input parameters for `McpHandler::tileserver_get_style`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct GetStyleArgs {
     /// Style id as registered in `[[styles]]` configuration. Must match
@@ -79,14 +79,14 @@ pub struct GetStyleArgs {
     pub style_id: String,
 }
 
-/// Input parameters for [`McpHandler::tileserver_get_tile_metadata`].
+/// Input parameters for `McpHandler::tileserver_get_tile_metadata`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct GetTileMetadataArgs {
     /// Source id whose `TileMetadata` (bounds, zoom range, format) to return.
     pub source_id: String,
 }
 
-/// Input parameters for [`McpHandler::tileserver_render_static_map`].
+/// Input parameters for `McpHandler::tileserver_render_static_map`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct RenderStaticMapArgs {
     /// Style id used to render the map (must exist in `[[styles]]`).
@@ -109,7 +109,7 @@ pub struct RenderStaticMapArgs {
     pub pitch: Option<f64>,
 }
 
-/// Input parameters for [`McpHandler::tileserver_get_tile`].
+/// Input parameters for `McpHandler::tileserver_get_tile`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct GetTileArgs {
     /// Source id whose tile to fetch.
@@ -122,7 +122,7 @@ pub struct GetTileArgs {
     pub y: u32,
 }
 
-/// Input parameters for [`McpHandler::tileserver_query_features_at_point`].
+/// Input parameters for `McpHandler::tileserver_query_features_at_point`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct QueryFeaturesAtPointArgs {
     /// Source id (must be a PostgreSQL table source in v1).
@@ -140,7 +140,7 @@ pub struct QueryFeaturesAtPointArgs {
     pub limit: Option<i64>,
 }
 
-/// Input parameters for [`McpHandler::tileserver_query_features_cql2`].
+/// Input parameters for `McpHandler::tileserver_query_features_cql2`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct QueryFeaturesCql2Args {
     /// PostgreSQL table source id.
@@ -155,7 +155,7 @@ pub struct QueryFeaturesCql2Args {
     pub limit: Option<i64>,
 }
 
-/// Input parameters for [`McpHandler::tileserver_search_stac_items`].
+/// Input parameters for `McpHandler::tileserver_search_stac_items`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct SearchStacItemsArgs {
     /// STAC source id (must be a `type = "stac"` source).

@@ -94,11 +94,11 @@ impl OutDbDatasetCache {
         let path = filepath.to_string();
         let dataset = tokio::task::spawn_blocking(move || {
             Dataset::open(&path).map_err(|e| {
-                TileServerError::RasterError(format!("Failed to open raster file {}: {}", path, e))
+                TileServerError::RasterError(format!("failed to open raster file {}: {}", path, e))
             })
         })
         .await
-        .map_err(|e| TileServerError::RasterError(format!("Task failed: {}", e)))??;
+        .map_err(|e| TileServerError::RasterError(format!("task failed: {}", e)))??;
 
         let dataset = Arc::new(Mutex::new(dataset));
         self.inner
@@ -136,6 +136,10 @@ impl std::fmt::Debug for PostgresOutDbRasterSource {
 }
 
 impl PostgresOutDbRasterSource {
+    /// # Errors
+    ///
+    /// Returns an error when the pool has no connection or the function is
+    /// missing or has the wrong signature.
     pub async fn new(pool: Arc<PostgresPool>, config: &PostgresOutDbRasterConfig) -> Result<Self> {
         let conn = pool.get().await?;
 
@@ -215,11 +219,11 @@ impl PostgresOutDbRasterSource {
         conn.query_opt(query, &[&schema, &function])
             .await
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to query function info: {}", e))
+                TileServerError::PostgresError(format!("failed to query function info: {}", e))
             })?
             .ok_or_else(|| {
                 TileServerError::PostgresError(format!(
-                    "Function {}.{} not found",
+                    "function {}.{} not found",
                     schema, function
                 ))
             })?;
@@ -246,6 +250,10 @@ impl PostgresOutDbRasterSource {
         )
     }
 
+    /// # Errors
+    ///
+    /// [`TileServerError::InvalidCoordinates`] for an out-of-range tile, and
+    /// [`TileServerError::PostgresError`] when the query fails.
     pub async fn get_tile_with_params(
         &self,
         z: u8,
@@ -277,7 +285,7 @@ impl PostgresOutDbRasterSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to prepare query for {}.{}: {}",
+                    "failed to prepare query for {}.{}: {}",
                     self.schema, self.function, e
                 ))
             })?;
@@ -290,7 +298,7 @@ impl PostgresOutDbRasterSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to execute query for {}.{} at z={}, x={}, y={}: {}",
+                    "failed to execute query for {}.{} at z={}, x={}, y={}: {}",
                     self.schema, self.function, z, x, y, e
                 ))
             })?;
@@ -379,7 +387,7 @@ impl PostgresOutDbRasterSource {
                 let mut png_data = Cursor::new(Vec::new());
                 img.write_to(&mut png_data, image::ImageFormat::Png)
                     .map_err(|e| {
-                        TileServerError::RasterError(format!("Failed to encode PNG: {}", e))
+                        TileServerError::RasterError(format!("failed to encode PNG: {}", e))
                     })?;
 
                 Ok(Some(TileData {
@@ -412,11 +420,11 @@ impl PostgresOutDbRasterSource {
         }
 
         let web_mercator = SpatialRef::from_epsg(3857).map_err(|e| {
-            TileServerError::RasterError(format!("Failed to create EPSG:3857: {}", e))
+            TileServerError::RasterError(format!("failed to create EPSG:3857: {}", e))
         })?;
 
         let mem_driver = DriverManager::get_driver_by_name("MEM").map_err(|e| {
-            TileServerError::RasterError(format!("Failed to get MEM driver: {}", e))
+            TileServerError::RasterError(format!("failed to get MEM driver: {}", e))
         })?;
 
         let use_colormap = colormap.is_some() && band_count == 1;
@@ -429,18 +437,18 @@ impl PostgresOutDbRasterSource {
                 tile_size as usize,
                 output_bands,
             )
-            .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?;
+            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?;
 
         let pixel_size_x = (max_x - min_x) / tile_size as f64;
         let pixel_size_y = (max_y - min_y) / tile_size as f64;
         let geo_transform = [min_x, pixel_size_x, 0.0, max_y, 0.0, -pixel_size_y];
 
         warped.set_geo_transform(&geo_transform).map_err(|e| {
-            TileServerError::RasterError(format!("Failed to set geotransform: {}", e))
+            TileServerError::RasterError(format!("failed to set geotransform: {}", e))
         })?;
         warped
             .set_spatial_ref(&web_mercator)
-            .map_err(|e| TileServerError::RasterError(format!("Failed to set SRS: {}", e)))?;
+            .map_err(|e| TileServerError::RasterError(format!("failed to set SRS: {}", e)))?;
 
         if let Err(e) = crate::sources::warp::reproject(dataset, &warped, resampling) {
             tracing::debug!(
@@ -456,7 +464,7 @@ impl PostgresOutDbRasterSource {
             let cmap = colormap.expect("colormap verified by use_colormap flag");
             let band = warped
                 .rasterband(1)
-                .map_err(|e| TileServerError::RasterError(format!("Failed to get band: {}", e)))?;
+                .map_err(|e| TileServerError::RasterError(format!("failed to get band: {}", e)))?;
 
             let buffer: Buffer<f64> = band
                 .read_as::<f64>(
@@ -465,7 +473,7 @@ impl PostgresOutDbRasterSource {
                     (tile_size as usize, tile_size as usize),
                     None,
                 )
-                .map_err(|e| TileServerError::RasterError(format!("Failed to read band: {}", e)))?;
+                .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
 
             let nodata = band.no_data_value();
 
@@ -514,7 +522,7 @@ impl PostgresOutDbRasterSource {
 
             for i in 1..=bands_to_read {
                 let band = warped.rasterband(i).map_err(|e| {
-                    TileServerError::RasterError(format!("Failed to get band {}: {}", i, e))
+                    TileServerError::RasterError(format!("failed to get band {}: {}", i, e))
                 })?;
 
                 let buffer: Buffer<f64> = band
@@ -525,7 +533,7 @@ impl PostgresOutDbRasterSource {
                         None,
                     )
                     .map_err(|e| {
-                        TileServerError::RasterError(format!("Failed to read band {}: {}", i, e))
+                        TileServerError::RasterError(format!("failed to read band {}: {}", i, e))
                     })?;
 
                 band_data.push(buffer);

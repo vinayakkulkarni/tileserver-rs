@@ -235,7 +235,9 @@ async fn main() -> anyhow::Result<()> {
     // OpenAPI JSON endpoint (must be before SPA fallback)
     let mut openapi_spec = openapi::ApiDoc::openapi();
     openapi_spec.info.version = env!("CARGO_PKG_VERSION").to_string();
-    let openapi_json = openapi_spec.to_pretty_json().unwrap();
+    let openapi_json = openapi_spec
+        .to_pretty_json()
+        .map_err(|e| anyhow::anyhow!("failed to serialize the OpenAPI spec: {e}"))?;
     router = router.route(
         "/openapi.json",
         axum::routing::get(move || async move {

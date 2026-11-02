@@ -12,9 +12,9 @@ use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSo
 /// MBTiles tile source
 ///
 /// Implements the MBTiles 1.3 specification for serving tiles from SQLite databases.
-/// See: https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md
+/// See: <https://github.com/mapbox/mbtiles-spec/blob/master/1.3/spec.md>
 pub struct MbTilesSource {
-    /// SQLite connection (wrapped in Arc<Mutex> for thread-safety)
+    /// SQLite connection (wrapped in `Arc<Mutex>` for thread-safety)
     conn: Arc<Mutex<Connection>>,
     /// Cached metadata
     metadata: TileMetadata,
@@ -24,6 +24,12 @@ pub struct MbTilesSource {
 
 impl MbTilesSource {
     /// Create a new MBTiles source from a local file
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::FileError`] when the file is missing, and
+    /// [`TileServerError::MbTilesError`] when it is not a readable MBTiles
+    /// database.
     pub async fn from_file(config: &SourceConfig) -> Result<Self> {
         let path = Path::new(&config.path);
 
@@ -212,7 +218,7 @@ impl TileSource for MbTilesSource {
         // Run the SQLite query in a blocking task to avoid blocking the async runtime
         let result = tokio::task::spawn_blocking(move || {
             let conn = conn.lock().map_err(|e| {
-                TileServerError::MbTilesError(format!("Failed to acquire connection lock: {}", e))
+                TileServerError::MbTilesError(format!("failed to acquire connection lock: {}", e))
             })?;
 
             let mut stmt = conn
@@ -239,7 +245,7 @@ impl TileSource for MbTilesSource {
             }))
         })
         .await
-        .map_err(|e| TileServerError::MbTilesError(format!("Task join error: {}", e)))??;
+        .map_err(|e| TileServerError::MbTilesError(format!("task join error: {}", e)))??;
 
         Ok(result)
     }

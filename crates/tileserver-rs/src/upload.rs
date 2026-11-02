@@ -83,6 +83,12 @@ fn source_type_label(st: &SourceType) -> &'static str {
 }
 
 /// POST /api/upload — Upload a geospatial file (streamed to disk)
+///
+/// # Errors
+///
+/// [`TileServerError::UploadError`] for a bad request or a file that is
+/// not a supported source, and [`TileServerError::UploadTooLarge`] above
+/// the size limit.
 pub async fn upload_file(
     State(shared): State<SharedState>,
     mut multipart: Multipart,
@@ -202,10 +208,12 @@ pub async fn upload_file(
         )));
     }
 
-    let new_source = temp_manager.get(&source_id).cloned().ok_or_else(|| {
-        let _ = std::fs::remove_file(&file_path);
-        TileServerError::UploadError("source failed to register".into())
-    })?;
+    let Some(new_source) = temp_manager.get(&source_id).cloned() else {
+        let _ = tokio::fs::remove_file(&file_path).await;
+        return Err(TileServerError::UploadError(
+            "source failed to register".into(),
+        ));
+    };
 
     // Swap into the live state: clone sources, add new one, rebuild AppState
     let mut sources_map = state.sources.clone_sources();
@@ -258,6 +266,10 @@ pub async fn list_uploads(State(shared): State<SharedState>) -> Json<Vec<UploadI
 }
 
 /// DELETE /api/upload/{id} — Remove an uploaded source and delete the file
+///
+/// # Errors
+///
+/// [`TileServerError::SourceNotFound`] when `id` is not an uploaded source.
 pub async fn delete_upload(
     State(shared): State<SharedState>,
     Path(upload_id): Path<String>,

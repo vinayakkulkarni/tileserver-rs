@@ -1,14 +1,14 @@
 //! Pure logic for the embeddable iframe map endpoint (`GET /embed/{style}`).
 //!
-//! This module owns everything the [`crate::routes::embed`] handler needs:
-//! typed query-parameter parsing ([`parse_embed_query`]), HTML escaping
-//! ([`html_escape`]), and self-contained HTML page generation
-//! ([`build_embed_html`]).
+//! This module owns everything the `crate::routes::embed` handler needs:
+//! typed query-parameter parsing (`parse_embed_query`), HTML escaping
+//! (`html_escape`), and self-contained HTML page generation
+//! (`build_embed_html`).
 //!
 //! Security posture: every query parameter is parsed into a typed value at the
 //! boundary (`f64`, `u8`, `bool`, whitelisted enums). The two remaining string
 //! values injected into the page — the style id and theme — are additionally
-//! HTML-escaped via [`html_escape`]. Numeric values are serialised as JSON
+//! HTML-escaped via `html_escape`. Numeric values are serialised as JSON
 //! number literals, so they can never carry markup. This is belt-and-braces:
 //! typed parsing alone would suffice, but the escape provides defence in depth
 //! for the most security-sensitive endpoint in the server.

@@ -2,7 +2,7 @@
 //!
 //! - `GET /api/llm/config` tells the client whether the proxy is enabled,
 //!   which provider family and model it uses, and the upstream host (for the
-//!   "prompts are sent to <host>" notice). It never returns the API key.
+//!   "prompts are sent to `<host>`" notice). It never returns the API key.
 //! - `POST /api/llm/chat` forwards an OpenAI Chat Completions or Anthropic
 //!   Messages request body to the configured upstream and streams the
 //!   response back unchanged. The server sets the model and the auth headers;

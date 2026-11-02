@@ -334,7 +334,7 @@ pub fn build_search_url(api_url: &str) -> String {
 ///
 /// Deserialises the body as a [`stac::ItemCollection`] (community-maintained
 /// spec types from the `stac` crate), then walks each [`stac::Item`] and
-/// picks the best COG [`stac::Asset`] — first by matching [`asset_role`],
+/// picks the best COG [`stac::Asset`] — first by matching `asset_role`,
 /// falling back to the first asset whose `type` is a COG/GeoTIFF MIME type.
 ///
 /// The crate deserialiser is intentionally lenient (unknown top-level
@@ -665,7 +665,7 @@ async fn composite_mosaic(
     x: u32,
     y: u32,
 ) -> Result<Option<TileData>> {
-    use crate::raster::{decode, encode, mosaic};
+    use crate::raster::mosaic;
 
     let ordered_assets = order_assets_for_method(assets, template.pixel_selection);
 
@@ -674,36 +674,54 @@ async fn composite_mosaic(
         .map(|asset| render_single_asset(asset, template, z, x, y));
     let render_results = futures::future::join_all(render_futures).await;
 
-    let mut method = mosaic::build(template.pixel_selection);
-    let mut fed_any = false;
+    let mut rendered = Vec::with_capacity(render_results.len());
     for (asset, render_result) in ordered_assets.iter().zip(render_results) {
-        let Some(tile) = render_result? else { continue };
-        let raster = match decode::from_bytes(&tile.data) {
-            Ok(r) => r,
-            Err(e) => {
-                tracing::warn!(asset_id = %asset.id, error = %e, "mosaic: failed to decode");
-                continue;
-            }
-        };
-        method.feed(raster);
-        fed_any = true;
-        if method.is_done() {
-            break;
+        if let Some(tile) = render_result? {
+            rendered.push((asset.id.clone(), tile.data));
         }
     }
-    if !fed_any {
-        return Ok(None);
-    }
-    let finalised = method.finalize();
 
-    let png = encode::to_png(&finalised)
-        .map_err(|e| TileServerError::StacError(format!("mosaic png encode failed: {e}")))?;
+    // Decode, composite and encode are CPU work: keep them off the runtime.
+    let method = mosaic::build(template.pixel_selection);
+    let png = tokio::task::spawn_blocking(move || composite_rendered(method, rendered))
+        .await
+        .map_err(|e| TileServerError::StacError(format!("mosaic task failed: {e}")))??;
+    let Some(png) = png else {
+        return Ok(None);
+    };
 
     Ok(Some(TileData {
         data: png.into(),
         format: TileFormat::Png,
         compression: crate::sources::TileCompression::None,
     }))
+}
+
+/// Feed rendered asset tiles (priority order) into `method` and encode the
+/// result as PNG. `None` when no tile decoded.
+fn composite_rendered(
+    mut method: Box<dyn crate::raster::mosaic::MosaicMethod>,
+    rendered: Vec<(String, bytes::Bytes)>,
+) -> Result<Option<Vec<u8>>> {
+    for (asset_id, data) in rendered {
+        let raster = match crate::raster::decode::from_bytes(&data) {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(asset_id = %asset_id, error = %e, "mosaic: failed to decode");
+                continue;
+            }
+        };
+        method.feed(raster);
+        if method.is_done() {
+            break;
+        }
+    }
+    let Some(finalised) = method.finalize() else {
+        return Ok(None);
+    };
+    let png = crate::raster::encode::to_png(&finalised)
+        .map_err(|e| TileServerError::StacError(format!("mosaic png encode failed: {e}")))?;
+    Ok(Some(png))
 }
 
 /// Reorder assets to give the chosen [`PixelSelectionMethod`] its

@@ -25,12 +25,12 @@ pub(crate) async fn get_static_file(
     let files_dir = state
         .files_dir
         .as_ref()
-        .ok_or_else(|| TileServerError::NotFound("Files directory not configured".to_string()))?;
+        .ok_or_else(|| TileServerError::NotFound("files directory not configured".to_string()))?;
 
     // Sanitize the filepath to prevent directory traversal attacks
     let filepath = filepath.trim_start_matches('/');
     if filepath.contains("..") || filepath.starts_with('/') {
-        return Err(TileServerError::NotFound("Invalid file path".to_string()));
+        return Err(TileServerError::NotFound("invalid file path".to_string()));
     }
 
     let file_path = files_dir.join(filepath);
@@ -38,19 +38,19 @@ pub(crate) async fn get_static_file(
     // Ensure the resolved path is still within the files directory
     let canonical_files_dir = files_dir
         .canonicalize()
-        .map_err(|_| TileServerError::NotFound("Files directory not accessible".to_string()))?;
+        .map_err(|_| TileServerError::NotFound("files directory not accessible".to_string()))?;
     let canonical_file_path = file_path
         .canonicalize()
-        .map_err(|_| TileServerError::NotFound(format!("File not found: {}", filepath)))?;
+        .map_err(|_| TileServerError::NotFound(format!("file not found: {}", filepath)))?;
 
     if !canonical_file_path.starts_with(&canonical_files_dir) {
-        return Err(TileServerError::NotFound("Invalid file path".to_string()));
+        return Err(TileServerError::NotFound("invalid file path".to_string()));
     }
 
     // Read the file
     let data = tokio::fs::read(&canonical_file_path)
         .await
-        .map_err(|_| TileServerError::NotFound(format!("File not found: {}", filepath)))?;
+        .map_err(|_| TileServerError::NotFound(format!("file not found: {}", filepath)))?;
 
     // Determine content type from extension
     let content_type = mime_guess::from_path(&canonical_file_path)

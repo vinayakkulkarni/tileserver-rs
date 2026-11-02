@@ -152,10 +152,19 @@ impl LabelBank {
             format,
             z_bucket,
         };
-        if let Some(existing) = self.inner.read().expect("poisoned").tile_full.get(&key) {
+        if let Some(existing) = self
+            .inner
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .tile_full
+            .get(&key)
+        {
             return Self::with_outcome(existing.as_ref(), outcome);
         }
-        let mut guard = self.inner.write().expect("poisoned");
+        let mut guard = self
+            .inner
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let arc = guard
             .tile_full
             .entry(key)
@@ -175,10 +184,19 @@ impl LabelBank {
             source: source.to_string(),
             format,
         };
-        if let Some(existing) = self.inner.read().expect("poisoned").tile_no_z.get(&key) {
+        if let Some(existing) = self
+            .inner
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .tile_no_z
+            .get(&key)
+        {
             return Arc::clone(existing);
         }
-        let mut guard = self.inner.write().expect("poisoned");
+        let mut guard = self
+            .inner
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         guard
             .tile_no_z
             .entry(key)
@@ -195,10 +213,19 @@ impl LabelBank {
         let key = CacheKey {
             source: source.to_string(),
         };
-        if let Some(existing) = self.inner.read().expect("poisoned").cache.get(&key) {
+        if let Some(existing) = self
+            .inner
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .cache
+            .get(&key)
+        {
             return Arc::clone(existing);
         }
-        let mut guard = self.inner.write().expect("poisoned");
+        let mut guard = self
+            .inner
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         guard
             .cache
             .entry(key)
@@ -211,10 +238,19 @@ impl LabelBank {
             style: style.to_string(),
             format,
         };
-        if let Some(existing) = self.inner.read().expect("poisoned").render.get(&key) {
+        if let Some(existing) = self
+            .inner
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .render
+            .get(&key)
+        {
             return Arc::clone(existing);
         }
-        let mut guard = self.inner.write().expect("poisoned");
+        let mut guard = self
+            .inner
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         guard
             .render
             .entry(key)
@@ -232,10 +268,19 @@ impl LabelBank {
             style: style.to_string(),
             reason: reason.to_string(),
         };
-        if let Some(existing) = self.inner.read().expect("poisoned").render_error.get(&key) {
+        if let Some(existing) = self
+            .inner
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .render_error
+            .get(&key)
+        {
             return Arc::clone(existing);
         }
-        let mut guard = self.inner.write().expect("poisoned");
+        let mut guard = self
+            .inner
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         guard
             .render_error
             .entry(key)

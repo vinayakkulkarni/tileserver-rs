@@ -194,9 +194,19 @@ fn collect_parquet_files(dir: &PathBuf, files: &mut Vec<PathBuf>) -> Result<()> 
 }
 
 impl GeoParquetSource {
+    /// # Errors
+    ///
+    /// [`TileServerError::GeoParquetError`] when no Parquet file is found or
+    /// the first file has no usable geometry column.
     pub async fn from_config(config: &SourceConfig) -> Result<Self> {
         let path = PathBuf::from(&config.path);
-        let file_paths = discover_parquet_files(&path)?;
+        // A directory walk can be large: keep it off the runtime.
+        let walk_path = path.clone();
+        let file_paths = tokio::task::spawn_blocking(move || discover_parquet_files(&walk_path))
+            .await
+            .map_err(|e| {
+                TileServerError::GeoParquetError(format!("discovery task failed: {e}"))
+            })??;
         let first_file = file_paths[0].clone();
         let file_count = file_paths.len();
 

@@ -253,6 +253,9 @@ pub struct RenderPoolConfig {
     /// Render timeout in seconds — requests exceeding this are dropped (default: 30)
     #[serde(default = "default_render_timeout_secs")]
     pub render_timeout_secs: u64,
+    /// Render requests that may wait for a free worker; more get `503` (default: 256)
+    #[serde(default = "default_render_queue_size")]
+    pub queue_size: usize,
 }
 
 fn default_render_pool_size() -> usize {
@@ -263,11 +266,16 @@ fn default_render_timeout_secs() -> u64 {
     30
 }
 
+fn default_render_queue_size() -> usize {
+    256
+}
+
 impl Default for RenderPoolConfig {
     fn default() -> Self {
         Self {
             pool_size: default_render_pool_size(),
             render_timeout_secs: default_render_timeout_secs(),
+            queue_size: default_render_queue_size(),
         }
     }
 }
@@ -352,6 +360,10 @@ impl Default for CompressionConfig {
 
 impl CompressionConfig {
     /// Validate the compression knobs against their accepted ranges.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::ConfigError`](crate::error::TileServerError::ConfigError) for an out-of-range setting.
     pub fn validate(&self) -> crate::error::Result<()> {
         if self.br_quality > 11 {
             return Err(crate::error::TileServerError::ConfigError(format!(
@@ -1696,6 +1708,11 @@ impl Config {
     }
 
     /// Load configuration and return metadata including the content hash.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a config file exists but cannot be read or
+    /// parsed, or fails validation.
     pub fn load_with_metadata(config_path: Option<PathBuf>) -> anyhow::Result<ConfigLoadMetadata> {
         if let Some(path) = config_path
             && path.exists()
@@ -1727,6 +1744,10 @@ impl Config {
     }
 
     /// Load configuration from environment or file.
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`Config::load_with_metadata`].
     pub fn load(config_path: Option<PathBuf>) -> anyhow::Result<Self> {
         Ok(Self::load_with_metadata(config_path)?.config)
     }
@@ -1748,6 +1769,11 @@ impl Config {
     /// Create the scratch directory (if missing) and verify it is writable
     /// by round-tripping a probe file. Subsystem subdirs are created lazily
     /// by their owners, not here.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the directory cannot be created or a probe
+    /// file cannot be written and removed.
     pub fn ensure_cache_dir_writable(cache_dir: &std::path::Path) -> anyhow::Result<()> {
         std::fs::create_dir_all(cache_dir).map_err(|e| {
             anyhow::anyhow!(
@@ -2424,6 +2450,7 @@ server:
         let render = RenderPoolConfig::default();
         assert_eq!(render.pool_size, 4);
         assert_eq!(render.render_timeout_secs, 30);
+        assert_eq!(render.queue_size, 256);
     }
 
     #[test]

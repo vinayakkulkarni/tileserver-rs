@@ -147,7 +147,7 @@ pub(crate) async fn get_tile(
     #[cfg(feature = "cel")]
     let request_filter = query
         .get("filter")
-        .map(|expr| crate::cel_filter::CelFilter::compile(expr))
+        .map(|expr| crate::cel_filter::CelFilter::compile(expr).map(std::sync::Arc::new))
         .transpose()?;
 
     if let Some(members) = resolve_composite_members(&shared, &params.source) {
@@ -310,7 +310,7 @@ pub(crate) async fn get_tile(
         let active: Vec<&crate::cel_filter::CelFilter> = preset
             .map(AsRef::as_ref)
             .into_iter()
-            .chain(request_filter.as_ref())
+            .chain(request_filter.as_deref())
             .collect();
         crate::cel_filter::combined_hash(&active)
     };
@@ -349,7 +349,7 @@ pub(crate) async fn get_tile(
         let requested_format = format.parse::<crate::sources::TileFormat>().ok();
         if let Some(target) = requested_format {
             if tile.format != target && tile.format.is_vector() && target.is_vector() {
-                match crate::transcode::transcode_tile(&tile, target) {
+                match crate::transcode::transcode_tile_blocking(tile.clone(), target).await {
                     Ok(transcoded) => transcoded,
                     Err(e) => {
                         // Fall back to serving the original tile on any transcode
@@ -430,7 +430,7 @@ async fn filter_request_tile(
     sources: &sources::SourceManager,
     id: TileId<'_>,
     tile: sources::TileData,
-    filter: &crate::cel_filter::CelFilter,
+    filter: &std::sync::Arc<crate::cel_filter::CelFilter>,
 ) -> Result<sources::TileData, TileServerError> {
     let key = sources.cache().map(|_| crate::cache::TileCacheKey {
         source_id: id.source.into(),
@@ -445,7 +445,8 @@ async fn filter_request_tile(
     {
         return Ok(hit);
     }
-    let filtered = crate::cel_filter::apply(tile, &[filter])?;
+    let filtered =
+        crate::cel_filter::apply_blocking(tile, vec![std::sync::Arc::clone(filter)]).await?;
     if let (Some(cache), Some(key)) = (sources.cache(), key) {
         cache.insert(key, filtered.clone()).await;
     }
@@ -456,7 +457,7 @@ async fn filter_request_tile(
 #[cfg(feature = "cel")]
 async fn filter_composite_response(
     response: Response,
-    filter: &crate::cel_filter::CelFilter,
+    filter: &std::sync::Arc<crate::cel_filter::CelFilter>,
 ) -> Result<Response, TileServerError> {
     let (parts, body) = response.into_parts();
     let bytes = axum::body::to_bytes(body, usize::MAX)
@@ -467,7 +468,8 @@ async fn filter_composite_response(
         format: sources::TileFormat::Pbf,
         compression: sources::TileCompression::None,
     };
-    let filtered = crate::cel_filter::apply(tile, &[filter])?;
+    let filtered =
+        crate::cel_filter::apply_blocking(tile, vec![std::sync::Arc::clone(filter)]).await?;
     if filtered.data.is_empty() {
         return Ok(axum::http::StatusCode::NO_CONTENT.into_response());
     }
@@ -555,7 +557,7 @@ async fn get_composite_tile(
     let fetches = members.iter().map(|id| state.sources.get_tile(id, z, x, y));
     let results = futures::future::join_all(fetches).await;
 
-    let mut all_layers = Vec::new();
+    let mut tiles = Vec::with_capacity(results.len());
     for tile in results {
         let Some(tile) = tile? else {
             continue;
@@ -563,16 +565,13 @@ async fn get_composite_tile(
         if !tile.format.is_vector() {
             return Err(TileServerError::InvalidTileRequest);
         }
-        let mvt = to_mvt_bytes(tile)?;
-        let raw = match &mvt.1 {
-            sources::TileCompression::Gzip => composite::decompress_gzip(&mvt.0)?,
-            _ => mvt.0,
-        };
-        all_layers.extend(composite::decode_mvt_layers(&raw)?);
+        tiles.push(tile);
     }
 
-    let merged = composite::merge_mvt_layers(all_layers);
-    let bytes = composite::encode_mvt_pbf(&merged);
+    // Decode, transcode, merge and encode are CPU work: keep them off the runtime.
+    let bytes = tokio::task::spawn_blocking(move || merge_composite_tiles(tiles))
+        .await
+        .map_err(|e| TileServerError::Internal(anyhow::anyhow!("composite task failed: {e}")))??;
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -581,6 +580,24 @@ async fn get_composite_tile(
     );
     headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
     Ok((headers, bytes).into_response())
+}
+
+/// Decode every member tile and merge them into one MVT PBF.
+fn merge_composite_tiles(tiles: Vec<sources::TileData>) -> Result<bytes::Bytes, TileServerError> {
+    use crate::composite;
+
+    let mut all_layers = Vec::new();
+    for tile in tiles {
+        let (data, compression) = to_mvt_bytes(tile)?;
+        let raw = match compression {
+            sources::TileCompression::Gzip => composite::decompress_gzip(&data)?,
+            _ => data,
+        };
+        all_layers.extend(composite::decode_mvt_layers(&raw)?);
+    }
+    Ok(composite::encode_mvt_pbf(&composite::merge_mvt_layers(
+        all_layers,
+    )))
 }
 
 /// Reduce a composite member tile to raw MVT bytes + its compression marker,
@@ -634,14 +651,14 @@ async fn get_tile_as_geojson(
             let mut decoder = GzDecoder::new(&tile.data[..]);
             let mut decompressed = Vec::with_capacity(tile.data.len() * 4);
             decoder.read_to_end(&mut decompressed).map_err(|e| {
-                TileServerError::RenderError(format!("Failed to decompress tile: {}", e))
+                TileServerError::RenderError(format!("failed to decompress tile: {}", e))
             })?;
             decompressed
         }
         TileCompression::None => tile.data.to_vec(),
         _ => {
             return Err(TileServerError::RenderError(format!(
-                "Unsupported compression: {:?}",
+                "unsupported compression: {:?}",
                 tile.compression
             )));
         }
@@ -649,7 +666,7 @@ async fn get_tile_as_geojson(
 
     // Parse MVT tile using prost
     let mvt_tile = Tile::decode(raw_data.as_slice())
-        .map_err(|e| TileServerError::RenderError(format!("Failed to decode MVT tile: {}", e)))?;
+        .map_err(|e| TileServerError::RenderError(format!("failed to decode MVT tile: {}", e)))?;
 
     // Convert each layer to GeoJSON and combine into a FeatureCollection
     let mut all_features: Vec<serde_json::Value> = Vec::with_capacity(mvt_tile.layers.len() * 64);

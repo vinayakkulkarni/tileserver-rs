@@ -153,7 +153,7 @@ pub(crate) async fn get_og(
     let renderer = state
         .renderer
         .as_ref()
-        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+        .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
 
     let rewritten_style = styles::rewrite_style_for_native(
         &loaded.style_json,

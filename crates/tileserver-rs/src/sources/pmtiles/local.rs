@@ -28,6 +28,11 @@ pub struct LocalPmTilesSource {
 
 impl LocalPmTilesSource {
     /// Create a new PMTiles source from a local file path
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::ConfigError`] when the file is missing, and
+    /// [`TileServerError::MetadataError`] when it cannot be opened or read.
     pub async fn from_file(config: &SourceConfig) -> Result<Self> {
         let path = &config.path;
 
@@ -43,7 +48,7 @@ impl LocalPmTilesSource {
 
         // Create memory-mapped backend
         let backend = MmapBackend::try_from(Path::new(path)).await.map_err(|e| {
-            TileServerError::MetadataError(format!("Failed to open PMTiles file: {}", e))
+            TileServerError::MetadataError(format!("failed to open PMTiles file: {}", e))
         })?;
 
         // Create async reader
@@ -51,7 +56,7 @@ impl LocalPmTilesSource {
             AsyncPmTilesReader::try_from_source(backend)
                 .await
                 .map_err(|e| {
-                    TileServerError::MetadataError(format!("Failed to read PMTiles header: {}", e))
+                    TileServerError::MetadataError(format!("failed to read PMTiles header: {}", e))
                 })?;
 
         let header = reader.get_header();

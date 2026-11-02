@@ -30,20 +30,41 @@ pub fn tile_to_bbox(z: u8, x: u32, y: u32) -> [f64; 4] {
     [lon_min, lat_min, lon_max, lat_max]
 }
 
+/// Fill the `{z}`, `{x}`, `{y}`, `{bbox}` and `{bbox_xmin}`…`{bbox_ymax}`
+/// placeholders in `query` in one pass. Other `{…}` text is copied as is.
 #[must_use]
 pub fn substitute_template(query: &str, z: u8, x: u32, y: u32, bbox: &[f64; 4]) -> String {
-    query
-        .replace("{z}", &z.to_string())
-        .replace("{x}", &x.to_string())
-        .replace("{y}", &y.to_string())
-        .replace(
-            "{bbox}",
-            &format!("{}, {}, {}, {}", bbox[0], bbox[1], bbox[2], bbox[3]),
-        )
-        .replace("{bbox_xmin}", &bbox[0].to_string())
-        .replace("{bbox_ymin}", &bbox[1].to_string())
-        .replace("{bbox_xmax}", &bbox[2].to_string())
-        .replace("{bbox_ymax}", &bbox[3].to_string())
+    use std::fmt::Write as _;
+
+    let mut out = String::with_capacity(query.len() + 64);
+    let mut rest = query;
+    while let Some(open) = rest.find('{') {
+        out.push_str(&rest[..open]);
+        let tail = &rest[open..];
+        let Some(close) = tail.find('}') else {
+            rest = tail;
+            break;
+        };
+        // Writing to a String never fails.
+        let _ = match &tail[1..close] {
+            "z" => write!(out, "{z}"),
+            "x" => write!(out, "{x}"),
+            "y" => write!(out, "{y}"),
+            "bbox" => write!(out, "{}, {}, {}, {}", bbox[0], bbox[1], bbox[2], bbox[3]),
+            "bbox_xmin" => write!(out, "{}", bbox[0]),
+            "bbox_ymin" => write!(out, "{}", bbox[1]),
+            "bbox_xmax" => write!(out, "{}", bbox[2]),
+            "bbox_ymax" => write!(out, "{}", bbox[3]),
+            _ => {
+                out.push('{');
+                rest = &tail[1..];
+                continue;
+            }
+        };
+        rest = &tail[close + 1..];
+    }
+    out.push_str(rest);
+    out
 }
 
 #[inline]
@@ -502,6 +523,10 @@ pub struct DuckDbSource {
 }
 
 impl DuckDbSource {
+    /// # Errors
+    ///
+    /// [`TileServerError::DuckDbError`] when `query` is missing or the
+    /// database cannot be opened.
     pub async fn from_config(config: &SourceConfig) -> Result<Self> {
         let query = config.query.clone().ok_or_else(|| {
             TileServerError::DuckDbError(
@@ -713,6 +738,13 @@ mod tests {
             result,
             "SELECT * FROM t WHERE z = 14 AND x = 8192 AND y = 5461"
         );
+    }
+
+    #[test]
+    fn test_substitute_template_keeps_other_braces() {
+        let query = "SELECT '{\"a\": {z}}' WHERE x = {x} AND {other} {";
+        let result = substitute_template(query, 3, 4, 5, &[0.0, 0.0, 1.0, 1.0]);
+        assert_eq!(result, "SELECT '{\"a\": 3}' WHERE x = 4 AND {other} {");
     }
 
     #[test]

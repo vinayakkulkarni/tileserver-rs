@@ -5,10 +5,10 @@
 //!
 //! | Syntax              | Variant          | Examples                                  |
 //! | ------------------- | ---------------- | ----------------------------------------- |
-//! | `"*"`               | [`Self::Any`]    | (wildcard catch-all)                      |
-//! | `"https://x"`       | [`Self::Exact`]  | exact origin (current behaviour)          |
-//! | `"*.x.com"`         | [`Self::Glob`]   | one or more `*` wildcards in the host     |
-//! | `"/^https:.+/"`     | [`Self::Regex`]  | enclosed in `/.../`, matches full Origin  |
+//! | `"*"`               | `Self::Any`    | (wildcard catch-all)                      |
+//! | `"https://x"`       | `Self::Exact`  | exact origin (current behaviour)          |
+//! | `"*.x.com"`         | `Self::Glob`   | one or more `*` wildcards in the host     |
+//! | `"/^https:.+/"`     | `Self::Regex`  | enclosed in `/.../`, matches full Origin  |
 //!
 //! Internally `Glob` is compiled to a `Regex` (via `regex::escape` + `\* → .*`)
 //! and `Regex` is parsed by stripping the leading + trailing `/`. Both
@@ -98,6 +98,11 @@ impl fmt::Display for CorsOriginPattern {
 ///
 /// Invalid entries (empty, broken regex) produce a startup error with
 /// the offending string in the message — no silent skips.
+///
+/// # Errors
+///
+/// Returns an error for an empty entry or a regex or glob that does not
+/// compile.
 pub fn build_allow_origin(origins: &[String]) -> anyhow::Result<AllowOrigin> {
     if origins.is_empty() || origins.iter().any(|o| o == "*") {
         if !origins.is_empty() {

@@ -30,7 +30,7 @@ pub fn init() -> Result<()> {
         let code = unsafe { mln_init() };
         if code != MLNErrorCode::MLN_OK {
             result = Err(TileServerError::RenderError(format!(
-                "Failed to initialize MapLibre Native: {:?}",
+                "failed to initialize MapLibre Native: {:?}",
                 get_last_error()
             )));
         }
@@ -241,7 +241,7 @@ impl RenderedImage {
 
         let img: ImageBuffer<Rgb<u8>, _> = ImageBuffer::from_raw(self.width, self.height, rgb_data)
             .ok_or_else(|| {
-                TileServerError::RenderError("Failed to create image buffer".to_string())
+                TileServerError::RenderError("failed to create image buffer".to_string())
             })?;
 
         // Encode to JPEG
@@ -362,7 +362,7 @@ impl NativeMap {
     /// Load a style JSON
     pub fn load_style(&mut self, style_json: &str) -> Result<()> {
         let c_style = CString::new(style_json).map_err(|_| {
-            TileServerError::RenderError("Style JSON contains null bytes".to_string())
+            TileServerError::RenderError("style JSON contains null bytes".to_string())
         })?;
 
         // SAFETY: self.ptr is a valid non-null map pointer, c_style.as_ptr() is a valid C string

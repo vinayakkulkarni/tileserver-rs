@@ -48,6 +48,9 @@ pub enum TileServerError {
     #[error("render error: {0}")]
     RenderError(String),
 
+    #[error("renderer is busy: render queue is full, retry later")]
+    RenderBusy,
+
     #[error("MBTiles error: {0}")]
     MbTilesError(String),
 
@@ -187,6 +190,7 @@ impl IntoResponse for TileServerError {
             TileServerError::RenderError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
+            TileServerError::RenderBusy => (StatusCode::SERVICE_UNAVAILABLE, self.to_string()),
             TileServerError::MbTilesError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
             }
@@ -384,6 +388,12 @@ mod tests {
         let err = TileServerError::UploadError("bad file".to_string());
         let response = err.into_response();
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_render_busy_is_503() {
+        let response = TileServerError::RenderBusy.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 
     #[test]
