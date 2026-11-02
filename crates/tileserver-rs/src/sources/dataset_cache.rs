@@ -273,6 +273,8 @@ impl Drop for PooledHandle {
                 self.pool
                     .live_bytes
                     .fetch_sub(self.pool.cost_bytes, Ordering::AcqRel);
+                // `live` fell: a waiter may now open a handle itself.
+                self.pool.returned.notify_one();
             }
         }
     }
@@ -421,6 +423,12 @@ impl Pool {
         state.live -= taken;
         drop(state);
         drop(handles);
+        if taken > 0 {
+            // `live` fell without a handle being returned. A waiter parked on
+            // "live > 0" must re-check, or it can sleep forever once `live`
+            // reaches 0 and no handle of this pool will ever come back.
+            self.returned.notify_all();
+        }
         taken
     }
 
@@ -560,6 +568,10 @@ impl Pool {
                 // and their `Drop` takes their own state lock. Holding ours
                 // across that is a lock-order hazard for no benefit.
                 drop(state);
+                // Other waiters on this pool face the same `live == 0`: wake
+                // them so they return too instead of waiting for a handle
+                // that can never be returned.
+                self.returned.notify_all();
                 return Err(TileServerError::BudgetExhausted {
                     path: self.path.clone(),
                     cost_bytes: self.cost_bytes,
@@ -1777,6 +1789,53 @@ mod tests {
             b_bytes,
             "a's handles are refunded on drop"
         );
+    }
+
+    /// Waiters parked on a pool must wake when reclaim closes the pool's
+    /// idle handles: `live` drops without any handle being returned, and
+    /// before the fix nothing woke them, so they slept forever.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn waiters_wake_when_reclaim_closes_idle_handles() {
+        let (Some((_a, path_a)), Some((_b, path_b))) =
+            (gtiff_with_overview("wa.tif"), gtiff_with_overview("wb.tif"))
+        else {
+            return;
+        };
+        let cache = DatasetCache::with_max_bytes(0, Duration::from_secs(60), 2 * BASE_COST_BYTES);
+        let pool_a = cache.get_or_open(&path_a).await.expect("pool a");
+        let pool_b = cache.get_or_open(&path_b).await.expect("pool b");
+        let mut held_a = pool_a.acquire_arc().await.expect("a");
+        let _held_b = pool_b.acquire_arc().await.expect("b");
+
+        // Two waiters park on A: no idle handle, and the budget is full.
+        let waiters: Vec<_> = (0..2)
+            .map(|_| {
+                let pool = Arc::clone(&pool_a);
+                tokio::spawn(async move { pool.acquire_arc().await.map(drop) })
+            })
+            .collect();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        // Park A's handle as idle without a wake-up, then reclaim it: `live`
+        // falls to 0 and only the reclaim itself can wake the waiters.
+        let dataset = held_a.dataset.take().expect("borrowed dataset");
+        drop(held_a);
+        pool_a
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .idle
+            .push(dataset);
+        assert_eq!(cache.reclaim_idle().await, BASE_COST_BYTES);
+
+        for waiter in waiters {
+            let result = tokio::time::timeout(Duration::from_secs(5), waiter)
+                .await
+                .expect("a parked waiter must wake, not hang")
+                .expect("task joins");
+            // A's bytes are free again, so each waiter opens a handle.
+            assert!(result.is_ok(), "{result:?}");
+        }
     }
 
     /// Many concurrent renders over three pools with a one-handle budget:
