@@ -751,6 +751,40 @@ fn order_assets_for_method(
 mod tests {
     use super::*;
 
+    fn png_2x2(rgba: [u8; 4]) -> bytes::Bytes {
+        let img = image::RgbaImage::from_pixel(2, 2, image::Rgba(rgba));
+        let mut out = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut out, image::ImageFormat::Png).unwrap();
+        bytes::Bytes::from(out.into_inner())
+    }
+
+    #[test]
+    fn composite_rendered_skips_undecodable_assets_and_encodes_png() {
+        let method = crate::raster::mosaic::build(crate::config::PixelSelectionMethod::First);
+        let rendered = vec![
+            (
+                "broken".to_string(),
+                bytes::Bytes::from_static(b"not an image"),
+            ),
+            ("ok".to_string(), png_2x2([10, 20, 30, 255])),
+        ];
+        let png = composite_rendered(method, rendered)
+            .unwrap()
+            .expect("the decodable asset is composited");
+        let img = image::load_from_memory(&png).unwrap().to_rgba8();
+        assert_eq!(img.dimensions(), (2, 2));
+        assert_eq!(img.get_pixel(0, 0).0, [10, 20, 30, 255]);
+    }
+
+    #[test]
+    fn composite_rendered_returns_none_when_nothing_decodes() {
+        let method = crate::raster::mosaic::build(crate::config::PixelSelectionMethod::First);
+        let rendered = vec![("broken".to_string(), bytes::Bytes::from_static(b"nope"))];
+        assert!(composite_rendered(method, rendered).unwrap().is_none());
+        let method = crate::raster::mosaic::build(crate::config::PixelSelectionMethod::First);
+        assert!(composite_rendered(method, Vec::new()).unwrap().is_none());
+    }
+
     fn sample_item_json(item_id: &str, role: &str, mime: &str) -> serde_json::Value {
         serde_json::json!({
             "id": item_id,

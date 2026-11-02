@@ -1041,6 +1041,18 @@ impl TileSource for GeoParquetSource {
 mod tests {
     use super::*;
 
+    #[tokio::test]
+    async fn from_config_reports_an_empty_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let config: SourceConfig = toml::from_str(&format!(
+            "id = \"gp\"\ntype = \"geoparquet\"\npath = \"{}\"",
+            dir.path().display()
+        ))
+        .unwrap();
+        let err = GeoParquetSource::from_config(&config).await.err().unwrap();
+        assert!(err.to_string().contains("no .parquet files found"), "{err}");
+    }
+
     #[test]
     fn test_tile_to_bbox_zoom_0() {
         let bbox = tile_to_bbox(0, 0, 0);

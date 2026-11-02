@@ -63,6 +63,11 @@ impl Renderer {
         // Get PNG from pool
         let png_data = self.pool.render_tile(style_json, z, x, y, scale).await?;
 
+        Self::encode_tile(png_data, format).await
+    }
+
+    /// Re-encode a rendered PNG tile to `format` off the async runtime.
+    async fn encode_tile(png_data: Vec<u8>, format: ImageFormat) -> Result<Vec<u8>> {
         if format == ImageFormat::Png {
             return Ok(png_data);
         }
@@ -107,6 +112,15 @@ impl Renderer {
             .render_static(&options.style_json, native_options)
             .await?;
 
+        Self::finish_static(rendered_image, options).await
+    }
+
+    /// Draw overlays on a rendered static image and encode it, off the
+    /// async runtime.
+    async fn finish_static(
+        rendered_image: super::native::RenderedImage,
+        options: RenderOptions,
+    ) -> Result<Vec<u8>> {
         // Overlay drawing and encoding are CPU work: keep them off the runtime.
         run_blocking(move || {
             let final_image = Self::apply_overlays(rendered_image, &options)?;
@@ -259,5 +273,93 @@ mod tests {
     async fn test_renderer_creation() {
         let renderer = Renderer::new();
         assert!(renderer.is_ok());
+    }
+
+    fn png_4x4() -> Vec<u8> {
+        let img = image::RgbaImage::from_pixel(4, 4, image::Rgba([200, 30, 30, 255]));
+        let mut out = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut out, image::ImageFormat::Png).unwrap();
+        out.into_inner()
+    }
+
+    fn static_options(format: ImageFormat, marker: Option<&str>) -> RenderOptions {
+        RenderOptions {
+            style_id: "s".to_string(),
+            style_json: "{}".to_string(),
+            width: 64,
+            height: 64,
+            scale: 1,
+            lon: 0.0,
+            lat: 0.0,
+            zoom: 2.0,
+            bearing: 0.0,
+            pitch: 0.0,
+            format,
+            path: None,
+            marker: marker.map(str::to_string),
+            geojson: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn encode_tile_keeps_png_and_converts_jpeg_and_webp() {
+        let png = png_4x4();
+        assert_eq!(
+            Renderer::encode_tile(png.clone(), ImageFormat::Png)
+                .await
+                .unwrap(),
+            png
+        );
+        let jpeg = Renderer::encode_tile(png.clone(), ImageFormat::Jpeg)
+            .await
+            .unwrap();
+        assert_eq!(&jpeg[..3], &[0xFF, 0xD8, 0xFF], "JPEG magic");
+        let webp = Renderer::encode_tile(png, ImageFormat::Webp).await.unwrap();
+        assert_eq!(&webp[..4], b"RIFF");
+        assert_eq!(&webp[8..12], b"WEBP");
+    }
+
+    #[tokio::test]
+    async fn encode_tile_rejects_bytes_that_are_not_an_image() {
+        for format in [ImageFormat::Jpeg, ImageFormat::Webp] {
+            let err = Renderer::encode_tile(b"not a png".to_vec(), format)
+                .await
+                .unwrap_err();
+            assert!(matches!(err, TileServerError::RenderError(_)), "{err}");
+        }
+    }
+
+    #[tokio::test]
+    async fn finish_static_draws_a_marker_and_encodes_each_format() {
+        let blank =
+            || super::super::native::RenderedImage::from_rgba(64, 64, vec![255u8; 64 * 64 * 4]);
+        let plain = Renderer::finish_static(blank(), static_options(ImageFormat::Png, None))
+            .await
+            .unwrap();
+        let marked = Renderer::finish_static(
+            blank(),
+            static_options(ImageFormat::Png, Some("pin-s+f00(0,0)")),
+        )
+        .await
+        .unwrap();
+        assert_ne!(plain, marked, "the marker changes the pixels");
+
+        let jpeg = Renderer::finish_static(blank(), static_options(ImageFormat::Jpeg, None))
+            .await
+            .unwrap();
+        assert_eq!(&jpeg[..3], &[0xFF, 0xD8, 0xFF]);
+        let webp = Renderer::finish_static(blank(), static_options(ImageFormat::Webp, None))
+            .await
+            .unwrap();
+        assert_eq!(&webp[8..12], b"WEBP");
+    }
+
+    #[tokio::test]
+    async fn finish_static_rejects_a_buffer_that_does_not_match_the_size() {
+        let short = super::super::native::RenderedImage::from_rgba(64, 64, vec![0u8; 16]);
+        let err = Renderer::finish_static(short, static_options(ImageFormat::Png, Some("0,0")))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, TileServerError::RenderError(_)), "{err}");
     }
 }
