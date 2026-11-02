@@ -1,5 +1,6 @@
 ---
 source: crates/tileserver-rs/tests/api_endpoints.rs
+assertion_line: 168
 expression: value
 ---
 {
@@ -506,7 +507,7 @@ expression: value
           "Data"
         ],
         "summary": "Get a tile from any data source",
-        "description": "Returns a tile from the specified source. The response format depends on the source type:\n\n**Vector sources** (PMTiles, MBTiles, PostgreSQL functions):\n- Formats: `pbf`, `mvt`, `geojson`\n- Returns Mapbox Vector Tiles or GeoJSON\n\n**Raster/COG sources** (Cloud Optimized GeoTIFF):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query param `resampling`: nearest, bilinear, cubic, lanczos, average, etc.\n\n**PostgreSQL Out-of-Database raster sources** (VRT/COG via PostGIS):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query params are passed to the PostgreSQL function for dynamic filtering\n- See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters",
+        "description": "Returns a tile from the specified source. The response format depends on the source type:\n\n**Vector sources** (PMTiles, MBTiles, PostgreSQL functions):\n- Formats: `pbf`, `mvt`, `geojson`\n- Returns Mapbox Vector Tiles or GeoJSON\n\n**Raster/COG sources** (Cloud Optimized GeoTIFF):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query param `resampling`: nearest, bilinear, cubic, lanczos, average, etc.\n\n**PostgreSQL Out-of-Database raster sources** (VRT/COG via PostGIS):\n- Formats: `png`, `jpg`, `jpeg`, `webp`\n- Query params are passed to the PostgreSQL function for dynamic filtering\n- See: <https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters>",
         "operationId": "get_tile",
         "parameters": [
           {

@@ -208,7 +208,7 @@ pub struct OAuthState {
     pub encoding_key: Arc<EncodingKey>,
     /// RS256 verification key extracted from the same PEM.
     pub decoding_key: Arc<DecodingKey>,
-    /// Access-token lifetime (clamped to [`MAX_TOKEN_TTL_SECS`]).
+    /// Access-token lifetime (clamped to `MAX_TOKEN_TTL_SECS`).
     pub token_ttl: Duration,
     /// Pluggable backing store for clients, auth codes, and refresh
     /// tokens. Defaults to [`InMemoryStore`]; operators opt into a

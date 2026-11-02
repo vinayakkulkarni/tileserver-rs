@@ -6,7 +6,7 @@
 //! lon/lat (`OGC:CRS84` and `EPSG:4326`) so downstream SQL always sees a
 //! single canonical SRID (4326).
 //!
-//! Reference: https://docs.ogc.org/is/18-058/18-058.html
+//! Reference: <https://docs.ogc.org/is/18-058/18-058.html>
 
 use crate::error::TileServerError;
 

@@ -97,6 +97,25 @@ pub mod MvtProto {
 // Public API
 // ---------------------------------------------------------------------------
 
+/// [`transcode_tile`] on the blocking thread pool, so the MVT/MLT decode
+/// and encode do not stall the async runtime.
+///
+/// # Errors
+///
+/// The errors of [`transcode_tile`], or [`TileServerError::Internal`] when
+/// the blocking task panics.
+pub async fn transcode_tile_blocking(
+    tile: TileData,
+    target_format: TileFormat,
+) -> Result<TileData> {
+    if tile.format == target_format {
+        return Ok(tile);
+    }
+    tokio::task::spawn_blocking(move || transcode_tile(&tile, target_format))
+        .await
+        .map_err(|e| TileServerError::Internal(anyhow::anyhow!("transcode task failed: {e}")))?
+}
+
 /// Transcode a tile from its current format to a target format.
 ///
 /// Handles decompression of source data if needed (gzip).

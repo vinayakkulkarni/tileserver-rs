@@ -44,6 +44,10 @@ impl std::fmt::Debug for PostgresFunctionSource {
 }
 
 impl PostgresFunctionSource {
+    /// # Errors
+    ///
+    /// Returns an error when the pool has no connection or the function is
+    /// missing.
     pub async fn new(
         pool: Arc<PostgresPool>,
         config: &PostgresFunctionConfig,
@@ -145,11 +149,11 @@ impl PostgresFunctionSource {
             .query_opt(query, &[&schema, &function])
             .await
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to query function info: {}", e))
+                TileServerError::PostgresError(format!("failed to query function info: {}", e))
             })?
             .ok_or_else(|| {
                 TileServerError::PostgresError(format!(
-                    "Function {}.{} not found or does not return bytea",
+                    "function {}.{} not found or does not return bytea",
                     schema, function
                 ))
             })?;
@@ -193,6 +197,11 @@ impl PostgresFunctionSource {
     /// [`TileSource::get_tile`], so it takes that path and uses the tile cache.
     /// Requests with parameters skip the cache, because the function output
     /// can depend on them.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::InvalidCoordinates`] for an out-of-range tile, and
+    /// [`TileServerError::PostgresError`] when the query fails.
     pub async fn get_tile_with_query_params(
         &self,
         z: u8,
@@ -226,7 +235,7 @@ impl PostgresFunctionSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to prepare query for {}.{}: {}",
+                    "failed to prepare query for {}.{}: {}",
                     self.schema, self.function, e
                 ))
             })?;
@@ -241,7 +250,7 @@ impl PostgresFunctionSource {
         }
         .map_err(|e| {
             TileServerError::PostgresError(format!(
-                "Failed to execute query for {}.{} at z={}, x={}, y={}: {}",
+                "failed to execute query for {}.{} at z={}, x={}, y={}: {}",
                 self.schema, self.function, z, x, y, e
             ))
         })?
@@ -317,7 +326,7 @@ impl TileSource for PostgresFunctionSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to prepare query for {}.{}: {}",
+                    "failed to prepare query for {}.{}: {}",
                     self.schema, self.function, e
                 ))
             })?;
@@ -333,7 +342,7 @@ impl TileSource for PostgresFunctionSource {
         }
         .map_err(|e| {
             TileServerError::PostgresError(format!(
-                "Failed to execute query for {}.{} at z={}, x={}, y={}: {}",
+                "failed to execute query for {}.{} at z={}, x={}, y={}: {}",
                 self.schema, self.function, z, x, y, e
             ))
         })?

@@ -160,6 +160,10 @@ impl std::fmt::Debug for PostgresTableSource {
 }
 
 impl PostgresTableSource {
+    /// # Errors
+    ///
+    /// Returns an error when the pool has no connection or the table has no
+    /// geometry column.
     pub async fn new(
         pool: Arc<PostgresPool>,
         config: &PostgresTableConfig,
@@ -330,7 +334,7 @@ impl PostgresTableSource {
     /// - `output_srid` — EPSG code the caller wants back (spec `crs`). The
     ///   identity transform is elided when it matches the storage SRID.
     /// - `filter_sql` — pre-validated PostgreSQL `WHERE` fragment produced by
-    ///   [`crate::routes::ogc_filter::translate_filter_to_sql`]. Spliced in as
+    ///   `crate::routes::ogc_filter::translate_filter_to_sql`. Spliced in as
     ///   raw SQL; upstream safety relies on a **property allow-list** (bare
     ///   identifiers are only emitted for columns in `info.properties`) plus
     ///   a round-trip canonicalisation gate that rejects trailing tokens.
@@ -813,12 +817,12 @@ impl PostgresTableSource {
         conn.query_opt(query, &[&schema, &table])
             .await
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to find geometry column: {}", e))
+                TileServerError::PostgresError(format!("failed to find geometry column: {}", e))
             })?
             .map(|row| row.get(0))
             .ok_or_else(|| {
                 TileServerError::PostgresError(format!(
-                    "No geometry column found in {}.{}",
+                    "no geometry column found in {}.{}",
                     schema, table
                 ))
             })
@@ -841,12 +845,12 @@ impl PostgresTableSource {
         conn.query_opt(query, &[&schema, &table, &geometry_column])
             .await
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to get geometry info: {}", e))
+                TileServerError::PostgresError(format!("failed to get geometry info: {}", e))
             })?
             .map(|row| (row.get::<_, i32>(0), row.get::<_, String>(1)))
             .ok_or_else(|| {
                 TileServerError::PostgresError(format!(
-                    "Geometry column '{}' not found in {}.{}",
+                    "geometry column '{}' not found in {}.{}",
                     geometry_column, schema, table
                 ))
             })
@@ -877,7 +881,7 @@ impl PostgresTableSource {
             .query(query, &[&schema, &table, &geometry_column])
             .await
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to discover properties: {}", e))
+                TileServerError::PostgresError(format!("failed to discover properties: {}", e))
             })?;
 
         Ok(rows.iter().map(|row| row.get(0)).collect())
@@ -911,7 +915,7 @@ impl PostgresTableSource {
             .await
             .map(|row| row.get(0))
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to check spatial index: {}", e))
+                TileServerError::PostgresError(format!("failed to check spatial index: {}", e))
             })
     }
 
@@ -959,7 +963,7 @@ impl PostgresTableSource {
                 ]
             })
             .map_err(|e| {
-                TileServerError::PostgresError(format!("Failed to estimate bounds: {}", e))
+                TileServerError::PostgresError(format!("failed to estimate bounds: {}", e))
             })
     }
 
@@ -1112,7 +1116,7 @@ impl TileSource for PostgresTableSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to prepare tile query for {}.{}: {}",
+                    "failed to prepare tile query for {}.{}: {}",
                     self.table_info.schema, self.table_info.table, e
                 ))
             })?;
@@ -1122,7 +1126,7 @@ impl TileSource for PostgresTableSource {
             .await
             .map_err(|e| {
                 TileServerError::PostgresError(format!(
-                    "Failed to execute tile query for {}.{} at z={}, x={}, y={}: {}",
+                    "failed to execute tile query for {}.{} at z={}, x={}, y={}: {}",
                     self.table_info.schema, self.table_info.table, z, x, y, e
                 ))
             })?

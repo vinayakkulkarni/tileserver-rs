@@ -38,6 +38,11 @@ pub fn is_composite_id(id: &str) -> bool {
 }
 
 /// Validate that every id resolves through `exists`. Empty input is an error.
+///
+/// # Errors
+///
+/// [`TileServerError::RenderError`] when `ids` is empty, and
+/// [`TileServerError::SourceNotFound`] for an id with no source.
 pub fn validate_composite_source_ids<F>(ids: &[String], exists: F) -> Result<()>
 where
     F: Fn(&str) -> bool,
@@ -56,6 +61,10 @@ where
 }
 
 /// Decompress gzip-encoded tile data. Non-gzip input errors.
+///
+/// # Errors
+///
+/// [`TileServerError::MltDecodeError`] when `data` is not valid gzip.
 pub fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>> {
     use flate2::read::GzDecoder;
     use std::io::Read;
@@ -69,6 +78,10 @@ pub fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Decode an MVT PBF into its layers.
+///
+/// # Errors
+///
+/// [`TileServerError::MltDecodeError`] when `raw` is not a valid MVT.
 pub fn decode_mvt_layers(raw: &[u8]) -> Result<Vec<tile::Layer>> {
     let tile = Tile::decode(raw)
         .map_err(|e| TileServerError::MltDecodeError(format!("composite MVT decode: {e}")))?;
@@ -84,21 +97,15 @@ pub fn merge_mvt_layers(layers: Vec<tile::Layer>) -> Tile {
     let mut order: Vec<String> = Vec::new();
 
     for layer in layers {
-        if !grouped.contains_key(&layer.name) {
-            order.push(layer.name.clone());
-            grouped.insert(
-                layer.name.clone(),
-                tile::Layer {
-                    version: layer.version,
-                    name: layer.name.clone(),
-                    features: Vec::new(),
-                    keys: layer.keys.clone(),
-                    values: layer.values.clone(),
-                    extent: layer.extent,
-                },
-            );
+        match grouped.get_mut(&layer.name) {
+            Some(merged) => append_layer_features(merged, layer),
+            None => {
+                // The first layer of a name is kept as is: its tags already
+                // index into its own keys and values.
+                order.push(layer.name.clone());
+                grouped.insert(layer.name.clone(), layer);
+            }
         }
-        append_layer_features(grouped.get_mut(&layer.name).expect("seeded"), &layer);
     }
 
     Tile {
@@ -111,11 +118,12 @@ pub fn merge_mvt_layers(layers: Vec<tile::Layer>) -> Tile {
 
 /// Append `src`'s features into `merged`, remapping each feature's key/value
 /// tag indices into `merged`'s dictionary (deduping shared keys and values).
-fn append_layer_features(merged: &mut tile::Layer, src: &tile::Layer) {
-    let key_remap = remap_keys(merged, src);
-    let value_remap = remap_values(merged, src);
+fn append_layer_features(merged: &mut tile::Layer, src: tile::Layer) {
+    let key_remap = remap_keys(merged, &src);
+    let value_remap = remap_values(merged, &src);
 
-    for feature in &src.features {
+    merged.features.reserve(src.features.len());
+    for feature in src.features {
         let mut new_tags = Vec::with_capacity(feature.tags.len());
         for pair in feature.tags.as_chunks::<2>().0 {
             let (k, v) = (pair[0] as usize, pair[1] as usize);
@@ -126,7 +134,7 @@ fn append_layer_features(merged: &mut tile::Layer, src: &tile::Layer) {
             id: feature.id,
             tags: new_tags,
             r#type: feature.r#type,
-            geometry: feature.geometry.clone(),
+            geometry: feature.geometry,
         });
     }
 }

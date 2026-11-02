@@ -20,7 +20,7 @@
 //!   [`FirstMethod`]).  The mosaic loop polls this after each feed
 //!   and stops early when true.
 //! - [`MosaicMethod::finalize`] consumes the method and returns the
-//!   final [`RasterImage`] ready for encoding.
+//!   final [`RasterImage`](crate::raster::RasterImage) ready for encoding.
 //!
 //! # Alpha handling
 //!

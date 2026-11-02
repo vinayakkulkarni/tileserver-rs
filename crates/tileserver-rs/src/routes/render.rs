@@ -65,7 +65,7 @@ pub(crate) async fn get_raster_tile(
     let renderer = state
         .renderer
         .as_ref()
-        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+        .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
 
     // Parse parameters
     let (y, scale, format) = params.parse().ok_or(TileServerError::InvalidTileRequest)?;
@@ -377,7 +377,7 @@ pub(crate) async fn get_raster_tile_with_size(
     // Validate tile size (only 256 and 512 are supported)
     if params.tile_size != 256 && params.tile_size != 512 {
         return Err(TileServerError::RenderError(format!(
-            "Invalid tile size: {}. Only 256 and 512 are supported.",
+            "invalid tile size: {}. Only 256 and 512 are supported.",
             params.tile_size
         )));
     }
@@ -386,7 +386,7 @@ pub(crate) async fn get_raster_tile_with_size(
     let renderer = state
         .renderer
         .as_ref()
-        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+        .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
 
     // Parse parameters
     let (y, additional_scale, format) =
@@ -512,11 +512,11 @@ pub(crate) async fn get_static_image(
     let renderer = state
         .renderer
         .as_ref()
-        .ok_or_else(|| TileServerError::RenderError("Rendering not available".to_string()))?;
+        .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
 
     // Parse parameters
     let (width, height, scale, format) = params.parse().ok_or_else(|| {
-        TileServerError::RenderError(format!("Invalid size format: {}", params.size_fmt))
+        TileServerError::RenderError(format!("invalid size format: {}", params.size_fmt))
     })?;
 
     // Parse static type

@@ -22,6 +22,8 @@ pub struct PoolConfig {
     pub tile_size: u32,
     pub pool_size: usize,
     pub render_timeout: Duration,
+    /// Requests that may wait for a free worker before `dispatch` rejects.
+    pub queue_size: usize,
 }
 
 impl Default for PoolConfig {
@@ -30,6 +32,7 @@ impl Default for PoolConfig {
             tile_size: 512,
             pool_size: 4,
             render_timeout: Duration::from_secs(30),
+            queue_size: 256,
         }
     }
 }
@@ -67,12 +70,21 @@ pub struct RendererPool {
 }
 
 impl RendererPool {
+    /// Start `pool_size` renderer worker threads.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when MapLibre Native fails to
+    /// initialise or a worker thread cannot be spawned.
     pub fn new(config: PoolConfig, max_scale: u8) -> Result<Self> {
         super::native::init()?;
 
         let pool_size = config.pool_size.max(1);
         let tile_size = config.tile_size;
-        let (sender, receiver) = crossbeam_channel::unbounded::<RenderRequest>();
+        // Bounded: under a request storm, excess requests get 503 instead of
+        // queueing without limit (each holds its style JSON in memory).
+        let (sender, receiver) =
+            crossbeam_channel::bounded::<RenderRequest>(config.queue_size.max(1));
         let mut handles = Vec::with_capacity(pool_size);
 
         for i in 0..pool_size {
@@ -129,6 +141,11 @@ impl RendererPool {
     }
 
     /// Render a raster tile via a worker thread
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderBusy`] when the render queue is full, and
+    /// [`TileServerError::RenderError`] when the render fails or times out.
     pub async fn render_tile(
         &self,
         style_json: &str,
@@ -188,6 +205,11 @@ impl RendererPool {
     }
 
     /// Render a static map image via a worker thread
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderBusy`] when the render queue is full, and
+    /// [`TileServerError::RenderError`] when the render fails or times out.
     pub async fn render_static(
         &self,
         style_json: &str,
@@ -250,9 +272,12 @@ impl RendererPool {
         self.sender
             .as_ref()
             .ok_or_else(|| TileServerError::RenderError("renderer pool is shut down".to_string()))?
-            .send(request)
-            .map_err(|_| {
-                TileServerError::RenderError("all renderer workers have stopped".to_string())
+            .try_send(request)
+            .map_err(|e| match e {
+                crossbeam_channel::TrySendError::Full(_) => TileServerError::RenderBusy,
+                crossbeam_channel::TrySendError::Disconnected(_) => {
+                    TileServerError::RenderError("all renderer workers have stopped".to_string())
+                }
             })
     }
 }

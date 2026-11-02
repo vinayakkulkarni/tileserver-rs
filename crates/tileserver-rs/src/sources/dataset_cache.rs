@@ -42,12 +42,12 @@
 //! client visits or how many handles each pool grows to.
 //!
 //! The budget governs what the cache **retains and reuses**, never whether a
-//! tile renders. [`Pool::acquire`] declines to open a new *cached* handle once
+//! tile renders. `Pool::acquire` declines to open a new *cached* handle once
 //! the process-wide live byte total would exceed the budget (see
-//! [`Pool::reserve_budget`]), so the retained total stays bounded. But a
+//! `Pool::reserve_budget`), so the retained total stays bounded. But a
 //! renderable tile must always succeed: when the cache cannot hand out a
 //! counted handle, `acquire_with_reclaim` falls back to an uncounted one-shot
-//! open ([`Pool::open_uncached`]) — the pre-cache baseline — after a short
+//! open (`Pool::open_uncached`) — the pre-cache baseline — after a short
 //! bounded wait, bounded cache-wide by a semaphore. The cache is therefore
 //! never observably worse than no cache at all; it only ever speeds things up
 //! while the budget allows.
@@ -315,7 +315,7 @@ impl Drop for Pool {
 /// - **Memory**: a new handle is only opened while the process-wide live byte
 ///   total stays within the cache's byte budget. When the budget is full the
 ///   pool reuses existing handles instead of opening new ones.
-/// - **Idle retention**: at most [`IDLE_CAP`] free handles are kept idle. A
+/// - **Idle retention**: at most `IDLE_CAP` free handles are kept idle. A
 ///   pool that stops rendering closes the excess on return (refunding its
 ///   bytes) rather than pinning the whole budget; a later acquire reopens.
 ///
@@ -711,7 +711,7 @@ impl DatasetCache {
     ///
     /// The budget bounds retention, not liveness: once it is full, further
     /// renders fall back to uncounted one-shot opens
-    /// ([`Pool::open_uncached`]) rather than failing, so a smaller budget only
+    /// (`Pool::open_uncached`) rather than failing, so a smaller budget only
     /// costs reopen latency — it never refuses a tile.
     ///
     /// Note moka has a **single** `max_capacity`. With a weigher installed it
@@ -806,7 +806,7 @@ impl DatasetCache {
     /// budget is exhausted, and **never failing a renderable tile** for budget
     /// reasons.
     ///
-    /// [`Pool::acquire_blocking`] is synchronous and cannot reclaim on its own
+    /// `Pool::acquire_blocking` is synchronous and cannot reclaim on its own
     /// (reclamation awaits moka's maintenance). This wrapper is the async-side
     /// escalator:
     ///
@@ -815,11 +815,11 @@ impl DatasetCache {
     ///    pools (fully and partially) and try once more. That is the common
     ///    case in the field: one STAC mosaic fills the budget with pools it is
     ///    no longer rendering from.
-    /// 3. Still exhausted: wait a short bounded time ([`ONE_SHOT_WAIT_MS`]) for
+    /// 3. Still exhausted: wait a short bounded time (`ONE_SHOT_WAIT_MS`) for
     ///    a handle to be *returned* (the common transient case) and try once
     ///    more.
     /// 4. Still nothing: open an **uncounted one-shot** handle
-    ///    ([`Pool::open_uncached`]), bounded by the cache-wide one-shot
+    ///    (`Pool::open_uncached`), bounded by the cache-wide one-shot
     ///    semaphore. The tile renders; the cache degrades to the pre-cache
     ///    baseline rather than erroring.
     ///
@@ -989,7 +989,7 @@ static GLOBAL: OnceLock<DatasetCache> = OnceLock::new();
 /// Access the process-global [`DatasetCache`].
 ///
 /// Lazily initialises with a 10-minute TTL and a retained-byte budget of
-/// [`DEFAULT_MAX_BYTES`]. The budget bounds what the cache *holds*, not what it
+/// `DEFAULT_MAX_BYTES`. The budget bounds what the cache *holds*, not what it
 /// serves: once it is full, new renders fall back to uncached opens instead of
 /// failing, so the budget keeps a remote-COG source (which opens one dataset
 /// per overview level) from pinning gigabytes without ever gating a tile.

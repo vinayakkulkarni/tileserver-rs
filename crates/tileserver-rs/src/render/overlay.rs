@@ -39,7 +39,7 @@ pub struct MarkerOverlay {
 /// Decode a Google Encoded Polyline string into a vector of GeoPoints
 ///
 /// The Google Polyline Algorithm encodes coordinates as a series of ASCII characters.
-/// See: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+/// See: <https://developers.google.com/maps/documentation/utilities/polylinealgorithm>
 ///
 /// Note: Google's format is (lat, lon) but we return GeoPoint with (lon, lat) for GeoJSON compatibility.
 #[must_use]

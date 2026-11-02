@@ -83,6 +83,10 @@ pub fn is_cloud_url(path: &str) -> bool {
 }
 
 impl CloudPmTilesSource {
+    /// # Errors
+    ///
+    /// [`TileServerError::ConfigError`] for an invalid URL or store setup, and
+    /// [`TileServerError::MetadataError`] when the header cannot be read.
     pub async fn from_url(config: &SourceConfig) -> Result<Self> {
         let url_str = &config.path;
 

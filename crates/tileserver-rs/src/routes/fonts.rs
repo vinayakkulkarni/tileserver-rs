@@ -82,7 +82,7 @@ pub(crate) async fn get_font_glyphs(
 ) -> Result<Response, TileServerError> {
     let state = shared.load();
     let fonts_dir = state.fonts_dir.as_ref().ok_or_else(|| {
-        TileServerError::FontNotFound("Fonts directory not configured".to_string())
+        TileServerError::FontNotFound("fonts directory not configured".to_string())
     })?;
 
     // Parse the range to ensure it's valid (e.g., "0-255.pbf")
@@ -103,7 +103,7 @@ pub(crate) async fn get_font_glyphs(
     // Security: Canonicalize fonts directory for path validation
     let canonical_fonts_dir = fonts_dir
         .canonicalize()
-        .map_err(|_| TileServerError::FontNotFound("Fonts directory not accessible".to_string()))?;
+        .map_err(|_| TileServerError::FontNotFound("fonts directory not accessible".to_string()))?;
 
     for font_name in &fonts {
         // Security: Reject font names with path traversal sequences

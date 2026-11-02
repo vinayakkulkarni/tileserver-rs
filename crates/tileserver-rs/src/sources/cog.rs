@@ -42,6 +42,10 @@ pub struct CogSource {
 }
 
 impl CogSource {
+    /// # Errors
+    ///
+    /// [`TileServerError::RasterError`] when the file cannot be opened, has
+    /// no raster bands, or has no usable georeferencing.
     pub async fn from_file(config: &SourceConfig) -> Result<Self> {
         // Normalise remote paths to a GDAL VSI prefix so `/vsicurl/` range
         // reads are used. A bare `https://…` URL makes GDAL fall back to its
@@ -137,6 +141,10 @@ impl CogSource {
         &self.path
     }
 
+    /// # Errors
+    ///
+    /// [`TileServerError::RasterError`] when the tile cannot be warped or
+    /// encoded.
     pub async fn get_tile_with_resampling(
         &self,
         z: u8,
@@ -334,21 +342,21 @@ fn tile_to_web_mercator_bbox(z: u8, x: u32, y: u32) -> (f64, f64, f64, f64) {
 pub(crate) fn wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
     let transform = dataset
         .geo_transform()
-        .map_err(|e| TileServerError::RasterError(format!("Failed to get geotransform: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to get geotransform: {}", e)))?;
 
     let (width, height) = dataset.raster_size();
 
     let src_srs = dataset.spatial_ref().map_err(|e| {
-        TileServerError::RasterError(format!("Failed to get spatial reference: {}", e))
+        TileServerError::RasterError(format!("failed to get spatial reference: {}", e))
     })?;
 
     let mut dst_srs = SpatialRef::from_epsg(4326)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to create WGS84 SRS: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to create WGS84 SRS: {}", e)))?;
     dst_srs.set_axis_mapping_strategy(gdal::spatial_ref::AxisMappingStrategy::TraditionalGisOrder);
 
     let coord_transform =
         gdal::spatial_ref::CoordTransform::new(&src_srs, &dst_srs).map_err(|e| {
-            TileServerError::RasterError(format!("Failed to create coordinate transform: {}", e))
+            TileServerError::RasterError(format!("failed to create coordinate transform: {}", e))
         })?;
 
     let ulx = transform[0];
@@ -363,7 +371,7 @@ pub(crate) fn wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
     coord_transform
         .transform_coords(&mut xs, &mut ys, &mut zs)
         .map_err(|e| {
-            TileServerError::RasterError(format!("Failed to transform coordinates: {}", e))
+            TileServerError::RasterError(format!("failed to transform coordinates: {}", e))
         })?;
 
     let min_lon = xs.iter().cloned().fold(f64::INFINITY, f64::min);
@@ -394,10 +402,10 @@ fn render_tile_from_dataset(
     colormap: Option<&ColorMapConfig>,
 ) -> Result<Vec<u8>> {
     let web_mercator = SpatialRef::from_epsg(3857)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to create EPSG:3857: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to create EPSG:3857: {}", e)))?;
 
     let mem_driver = DriverManager::get_driver_by_name("MEM")
-        .map_err(|e| TileServerError::RasterError(format!("Failed to get MEM driver: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to get MEM driver: {}", e)))?;
 
     let use_colormap = colormap.is_some() && band_count == 1;
     // Band layout of the MEM warp destination:
@@ -431,7 +439,7 @@ fn render_tile_from_dataset(
                 tile_size as usize,
                 output_bands,
             )
-            .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?
+            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?
     } else {
         mem_driver
             .create_with_band_type::<u8, _>(
@@ -440,7 +448,7 @@ fn render_tile_from_dataset(
                 tile_size as usize,
                 output_bands,
             )
-            .map_err(|e| TileServerError::RasterError(format!("Failed to create output: {}", e)))?
+            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?
     };
 
     let pixel_size_x = (maxx - minx) / tile_size as f64;
@@ -449,10 +457,10 @@ fn render_tile_from_dataset(
 
     warped
         .set_geo_transform(&geo_transform)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to set geotransform: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to set geotransform: {}", e)))?;
     warped
         .set_spatial_ref(&web_mercator)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to set SRS: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to set SRS: {}", e)))?;
 
     if rgb_with_alpha {
         // CRITICAL: mark the destination's last band as the alpha band
@@ -468,7 +476,7 @@ fn render_tile_from_dataset(
             .rasterband(output_bands)
             .and_then(|mut band| band.set_color_interpretation(ColorInterpretation::AlphaBand))
             .map_err(|e| {
-                TileServerError::RasterError(format!("Failed to mark dst alpha band: {}", e))
+                TileServerError::RasterError(format!("failed to mark dst alpha band: {}", e))
             })?;
     }
 
@@ -480,7 +488,7 @@ fn render_tile_from_dataset(
         let cmap = colormap.expect("colormap verified by use_colormap flag");
         let band = warped
             .rasterband(1)
-            .map_err(|e| TileServerError::RasterError(format!("Failed to get band: {}", e)))?;
+            .map_err(|e| TileServerError::RasterError(format!("failed to get band: {}", e)))?;
 
         let buffer: Buffer<f64> = band
             .read_as::<f64>(
@@ -489,7 +497,7 @@ fn render_tile_from_dataset(
                 (tile_size as usize, tile_size as usize),
                 Some(ResampleAlg::from(resampling)),
             )
-            .map_err(|e| TileServerError::RasterError(format!("Failed to read band: {}", e)))?;
+            .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
 
         let data = buffer.data();
 
@@ -502,7 +510,7 @@ fn render_tile_from_dataset(
     } else {
         for band_idx in 1..=output_bands {
             let band = warped.rasterband(band_idx).map_err(|e| {
-                TileServerError::RasterError(format!("Failed to get band {}: {}", band_idx, e))
+                TileServerError::RasterError(format!("failed to get band {}: {}", band_idx, e))
             })?;
 
             let buffer: Buffer<u8> = band
@@ -512,7 +520,7 @@ fn render_tile_from_dataset(
                     (tile_size as usize, tile_size as usize),
                     Some(ResampleAlg::from(resampling)),
                 )
-                .map_err(|e| TileServerError::RasterError(format!("Failed to read band: {}", e)))?;
+                .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
 
             let data = buffer.data();
 
@@ -556,7 +564,7 @@ fn render_tile_from_dataset(
     let mut png_data = Vec::new();
     let mut cursor = Cursor::new(&mut png_data);
     img.write_to(&mut cursor, image::ImageFormat::Png)
-        .map_err(|e| TileServerError::RasterError(format!("Failed to encode PNG: {}", e)))?;
+        .map_err(|e| TileServerError::RasterError(format!("failed to encode PNG: {}", e)))?;
 
     Ok(png_data)
 }

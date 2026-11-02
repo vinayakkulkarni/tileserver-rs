@@ -494,14 +494,20 @@ fn check_host_key(
     received_key: &[u8],
     strict: bool,
 ) -> HostKeyCheckOutcome {
-    if let Some(entry) = entries.iter().find(|e| host_matches(e, host, port)) {
-        return if entry.public_key == received_key {
-            HostKeyCheckOutcome::Match
-        } else {
-            HostKeyCheckOutcome::Mismatch {
-                expected: entry.public_key.clone(),
-                got: received_key.to_vec(),
-            }
+    // A host can have one known_hosts line per key type (ed25519, rsa, …).
+    // The server presents one key; accept it when any line for the host
+    // holds that key, as OpenSSH does.
+    let mut first_known: Option<&[u8]> = None;
+    for entry in entries.iter().filter(|e| host_matches(e, host, port)) {
+        if entry.public_key == received_key {
+            return HostKeyCheckOutcome::Match;
+        }
+        first_known.get_or_insert(&entry.public_key);
+    }
+    if let Some(expected) = first_known {
+        return HostKeyCheckOutcome::Mismatch {
+            expected: expected.to_vec(),
+            got: received_key.to_vec(),
         };
     }
     if strict {
@@ -675,10 +681,13 @@ impl SftpBackend {
     async fn establish(&self) -> Result<SftpConnection> {
         self.connect_attempts.fetch_add(1, Ordering::SeqCst);
 
-        let entries = load_known_hosts_entries(resolved_known_hosts_path(
-            &self.loc,
-            self.home_dir.as_deref(),
-        ));
+        // known_hosts is a file read: keep it off the runtime on each reconnect.
+        let known_hosts = resolved_known_hosts_path(&self.loc, self.home_dir.as_deref());
+        let entries = tokio::task::spawn_blocking(move || load_known_hosts_entries(known_hosts))
+            .await
+            .map_err(|e| {
+                TileServerError::SftpConnectionError(format!("known_hosts read task failed: {e}"))
+            })?;
 
         let verification_error = Arc::new(Mutex::new(None));
         let handler = SftpHandler {
@@ -1032,7 +1041,12 @@ async fn build_backend(config: &SourceConfig) -> Result<SftpBackend> {
         home_dir: home_dir.clone(),
         ssh_auth_sock: std::env::var("SSH_AUTH_SOCK").ok(),
     };
-    let identity = resolve_identity(&auth_opts)?;
+    // Identity resolution opens and stats key files: keep it off the runtime.
+    let identity = tokio::task::spawn_blocking(move || resolve_identity(&auth_opts))
+        .await
+        .map_err(|e| {
+            TileServerError::SftpAuthError(format!("identity lookup task failed: {e}"))
+        })??;
 
     SftpBackend::connect(loc, identity, home_dir).await
 }
@@ -1051,6 +1065,12 @@ async fn open_reader(backend: SftpBackend, url_str: &str) -> Result<SftpReader> 
 impl SftpPmTilesSource {
     /// Open a PMTiles archive over SFTP, resolving auth + host-key policy
     /// eagerly so failures surface at source-load time.
+    ///
+    /// # Errors
+    ///
+    /// SFTP errors for an invalid URL, a missing identity, a host-key
+    /// mismatch or a failed connection, and
+    /// [`TileServerError::MetadataError`] when the header cannot be read.
     pub async fn from_url(config: &SourceConfig) -> Result<Self> {
         let url_str = &config.path;
         info!("Opening SFTP PMTiles source: {url_str}");
@@ -1592,6 +1612,25 @@ mod tests {
             }
             other => panic!("expected Mismatch, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_host_key_check_matches_any_key_type_for_host() {
+        let entries = vec![
+            entry_for("example.com", b"ED25519KEY"),
+            entry_for("example.com", b"RSAKEY"),
+        ];
+        assert_eq!(
+            check_host_key(&entries, "example.com", 22, b"RSAKEY", true),
+            HostKeyCheckOutcome::Match
+        );
+        assert_eq!(
+            check_host_key(&entries, "example.com", 22, b"OTHER", true),
+            HostKeyCheckOutcome::Mismatch {
+                expected: b"ED25519KEY".to_vec(),
+                got: b"OTHER".to_vec(),
+            }
+        );
     }
 
     #[test]

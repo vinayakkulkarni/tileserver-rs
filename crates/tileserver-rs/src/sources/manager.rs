@@ -113,14 +113,18 @@ impl SourceManager {
     ///
     /// Fails when the tile cannot be decoded or is not a vector tile.
     #[cfg(feature = "cel")]
-    pub fn apply_preset(
+    pub async fn apply_preset(
         &self,
         id: &str,
         tile: Option<crate::sources::TileData>,
     ) -> Result<Option<crate::sources::TileData>> {
         match (self.filters.get(id), tile) {
             (Some(filter), Some(tile)) => {
-                Ok(Some(crate::cel_filter::apply(tile, &[filter.as_ref()])?))
+                let filter = Arc::clone(filter);
+                // Decode, filter and re-encode is CPU work: keep it off the runtime.
+                crate::cel_filter::apply_blocking(tile, vec![filter])
+                    .await
+                    .map(Some)
             }
             (_, tile) => Ok(tile),
         }
@@ -133,7 +137,7 @@ impl SourceManager {
     /// Never fails.
     #[cfg(not(feature = "cel"))]
     #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-    pub fn apply_preset(
+    pub async fn apply_preset(
         &self,
         _id: &str,
         tile: Option<crate::sources::TileData>,
@@ -163,6 +167,11 @@ impl SourceManager {
     }
 
     /// Get a vector tile, checking the global cache first when enabled.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::SourceNotFound`] for an unknown `id`, and the
+    /// errors of the source and of its CEL preset.
     pub async fn get_tile(
         &self,
         id: &str,
@@ -220,7 +229,7 @@ impl SourceManager {
                 outcome,
             });
 
-            let result = self.apply_preset(id, fetch_result?)?;
+            let result = self.apply_preset(id, fetch_result?).await?;
             if let Some(ref tile) = result {
                 cache.insert(key, tile.clone()).await;
             }
@@ -242,7 +251,7 @@ impl SourceManager {
                 duration: started.elapsed(),
                 outcome,
             });
-            self.apply_preset(id, fetch_result?)
+            self.apply_preset(id, fetch_result?).await
         }
     }
 
@@ -252,6 +261,10 @@ impl SourceManager {
     /// reference another `[[sources]]` entry via `input_source`; deferring
     /// them guarantees the referenced source already exists in the map
     /// regardless of declaration order in the config file.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first source load error, or an invalid CEL preset.
     pub async fn from_configs(configs: &[SourceConfig]) -> Result<Self> {
         let mut manager = Self::new();
 
@@ -283,6 +296,10 @@ impl SourceManager {
     }
 
     /// Load sources from configuration including PostgreSQL sources
+    ///
+    /// # Errors
+    ///
+    /// Returns the first source or PostgreSQL load error.
     #[cfg(feature = "postgres")]
     pub async fn from_configs_with_postgres(
         configs: &[SourceConfig],
@@ -297,6 +314,10 @@ impl SourceManager {
         Ok(manager)
     }
 
+    /// # Errors
+    ///
+    /// Returns an error when the pool cannot connect or a table, function or
+    /// out-db source fails to load.
     #[cfg(feature = "postgres")]
     pub async fn load_postgres_sources(&mut self, config: &PostgresConfig) -> Result<()> {
         let pool_settings = PoolSettings {
@@ -461,6 +482,11 @@ impl SourceManager {
     }
 
     /// Load a single source from config
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::ConfigError`] for an unsupported source, and the
+    /// errors of the source constructor.
     pub async fn load_source(&mut self, config: &SourceConfig) -> Result<()> {
         let source: Arc<dyn TileSource> = match config.source_type {
             SourceType::PMTiles => {
@@ -592,6 +618,11 @@ impl SourceManager {
         self.sources.remove(id).is_some()
     }
 
+    /// Get a raster tile with default parameters.
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`SourceManager::get_raster_tile_with_params`].
     #[cfg(feature = "raster")]
     pub async fn get_raster_tile(
         &self,
@@ -606,6 +637,10 @@ impl SourceManager {
             .await
     }
 
+    /// # Errors
+    ///
+    /// [`TileServerError::SourceNotFound`] for an unknown or non-raster
+    /// `id`, and the errors of the source.
     #[cfg(feature = "raster")]
     #[allow(clippy::too_many_arguments)]
     pub async fn get_raster_tile_with_params(
@@ -670,6 +705,10 @@ impl SourceManager {
             .unwrap_or(false)
     }
 
+    /// # Errors
+    ///
+    /// [`TileServerError::SourceNotFound`] for an unknown `id`, and the
+    /// errors of the source.
     #[cfg(feature = "postgres")]
     pub async fn get_vector_tile_with_query_params(
         &self,
@@ -694,7 +733,7 @@ impl SourceManager {
                 .get_tile_with_query_params(z, x, y, query_params)
                 .await;
             record_uncached(id, source.format(), z, x, y, started, &result);
-            self.apply_preset(id, result?)
+            self.apply_preset(id, result?).await
         } else {
             self.get_tile(id, z, x, y).await
         }

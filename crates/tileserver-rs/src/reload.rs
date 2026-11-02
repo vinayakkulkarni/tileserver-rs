@@ -81,12 +81,23 @@ impl SharedState {
         self.controller.config_path.as_deref()
     }
 
+    /// Reload the configuration and rebuild the server state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the config cannot be loaded or the new sources
+    /// or styles fail to load; the running state is kept.
     pub async fn reload(&self, flush: bool) -> anyhow::Result<ReloadResult> {
         self.controller.reload(flush).await
     }
 
     /// Rebuild the server state because the data of `sources` changed
     /// (config unchanged), then broadcast a `reload` for each of them.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the sources or styles fail to load; the
+    /// running state is kept.
     pub async fn reload_sources(&self, sources: &[String]) -> anyhow::Result<()> {
         self.controller
             .reload_inner(true, sources)
@@ -255,6 +266,10 @@ pub fn now_unix_seconds() -> u64 {
 }
 
 /// Build an [`AppState`] from a [`Config`] and [`RuntimeSettings`].
+///
+/// # Errors
+///
+/// Returns an error when a source or style fails to load.
 pub async fn build_app_state(
     config: &Config,
     runtime: &RuntimeSettings,
@@ -295,6 +310,7 @@ pub async fn build_app_state(
             tile_size: 512,
             pool_size: config.render.pool_size,
             render_timeout: std::time::Duration::from_secs(config.render.render_timeout_secs),
+            queue_size: config.render.queue_size,
         };
         match Renderer::with_config(pool_config, 3) {
             Ok(r) => {
@@ -352,7 +368,7 @@ pub async fn build_app_state(
     };
 
     if let Some(ref dir) = upload_dir {
-        if let Err(e) = std::fs::create_dir_all(dir) {
+        if let Err(e) = tokio::fs::create_dir_all(dir).await {
             tracing::warn!("Failed to create upload directory {}: {}", dir.display(), e);
         } else {
             tracing::info!("Upload directory: {}", dir.display());

@@ -196,6 +196,11 @@ impl DemSource {
     /// Build a DEM source from config, resolving `input_source` (the id of
     /// another already-loaded raster source) against `loaded` when present,
     /// otherwise opening the source's own `path`.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RasterError`] when the DEM cannot be opened or has
+    /// no raster bands.
     pub async fn from_config(
         config: &SourceConfig,
         loaded: &std::collections::HashMap<String, Arc<dyn TileSource>>,
@@ -289,6 +294,11 @@ impl DemSource {
 
     /// Render one tile, exposed directly so the manager can request a
     /// non-default tile size without a second async hop.
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RasterError`] when the tile cannot be warped or
+    /// encoded.
     pub async fn get_tile_sized(
         &self,
         z: u8,

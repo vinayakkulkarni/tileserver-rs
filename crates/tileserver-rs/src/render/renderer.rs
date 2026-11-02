@@ -15,10 +15,20 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    /// Create a renderer with the default pool configuration.
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`RendererPool::new`].
     pub fn new() -> Result<Self> {
         Self::with_config(PoolConfig::default(), 3)
     }
 
+    /// Create a renderer with `config` and the maximum scale factor.
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`RendererPool::new`].
     pub fn with_config(config: PoolConfig, max_scale: u8) -> Result<Self> {
         let pool = RendererPool::new(config, max_scale)?;
         Ok(Self {
@@ -27,6 +37,11 @@ impl Renderer {
     }
 
     /// Render a map tile
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`RendererPool::render_tile`], and
+    /// [`TileServerError::RenderError`] when the image cannot be re-encoded.
     pub async fn render_tile(
         &self,
         style_json: &str,
@@ -48,15 +63,30 @@ impl Renderer {
         // Get PNG from pool
         let png_data = self.pool.render_tile(style_json, z, x, y, scale).await?;
 
-        // Convert to requested format if needed
-        match format {
-            ImageFormat::Png => Ok(png_data),
-            ImageFormat::Jpeg => self.convert_png_to_jpeg(&png_data, 90),
-            ImageFormat::Webp => self.convert_png_to_webp(&png_data, 90),
+        Self::encode_tile(png_data, format).await
+    }
+
+    /// Re-encode a rendered PNG tile to `format` off the async runtime.
+    async fn encode_tile(png_data: Vec<u8>, format: ImageFormat) -> Result<Vec<u8>> {
+        if format == ImageFormat::Png {
+            return Ok(png_data);
         }
+        // Decode and re-encode are CPU work: keep them off the runtime.
+        run_blocking(move || match format {
+            ImageFormat::Jpeg => Self::convert_png_to_jpeg(&png_data, 90),
+            ImageFormat::Webp => Self::convert_png_to_webp(&png_data, 90),
+            ImageFormat::Png => Ok(png_data),
+        })
+        .await
     }
 
     /// Render a static map image
+    ///
+    /// # Errors
+    ///
+    /// The errors of [`RendererPool::render_static`], and
+    /// [`TileServerError::RenderError`] when the overlays cannot be drawn or
+    /// the image cannot be encoded.
     pub async fn render_static(&self, options: RenderOptions) -> Result<Vec<u8>> {
         tracing::debug!(
             "Rendering static image: {}x{} @ {}x, zoom={}, center=[{}, {}]",
@@ -82,20 +112,29 @@ impl Renderer {
             .render_static(&options.style_json, native_options)
             .await?;
 
-        // Apply overlays if specified
-        let final_image = self.apply_overlays(rendered_image, &options)?;
+        Self::finish_static(rendered_image, options).await
+    }
 
-        // Convert to requested format
-        match options.format {
-            ImageFormat::Png => final_image.to_png(),
-            ImageFormat::Jpeg => final_image.to_jpeg(90),
-            ImageFormat::Webp => final_image.to_webp(90),
-        }
+    /// Draw overlays on a rendered static image and encode it, off the
+    /// async runtime.
+    async fn finish_static(
+        rendered_image: super::native::RenderedImage,
+        options: RenderOptions,
+    ) -> Result<Vec<u8>> {
+        // Overlay drawing and encoding are CPU work: keep them off the runtime.
+        run_blocking(move || {
+            let final_image = Self::apply_overlays(rendered_image, &options)?;
+            match options.format {
+                ImageFormat::Png => final_image.to_png(),
+                ImageFormat::Jpeg => final_image.to_jpeg(90),
+                ImageFormat::Webp => final_image.to_webp(90),
+            }
+        })
+        .await
     }
 
     /// Apply path and marker overlays to a rendered image
     fn apply_overlays(
-        &self,
         mut image: super::native::RenderedImage,
         options: &RenderOptions,
     ) -> Result<super::native::RenderedImage> {
@@ -134,7 +173,7 @@ impl Renderer {
 
         let mut rgba_image =
             image::RgbaImage::from_raw(actual_width, actual_height, image.take_data()).ok_or_else(
-                || TileServerError::RenderError("Failed to create image buffer".to_string()),
+                || TileServerError::RenderError("failed to create image buffer".to_string()),
             )?;
 
         // Draw overlays
@@ -157,15 +196,15 @@ impl Renderer {
     }
 
     /// Convert PNG data to JPEG
-    fn convert_png_to_jpeg(&self, png_data: &[u8], quality: u8) -> Result<Vec<u8>> {
+    fn convert_png_to_jpeg(png_data: &[u8], quality: u8) -> Result<Vec<u8>> {
         use image::ImageReader;
         use std::io::Cursor;
 
         let img = ImageReader::new(Cursor::new(png_data))
             .with_guessed_format()
-            .map_err(|e| TileServerError::RenderError(format!("Failed to read PNG: {}", e)))?
+            .map_err(|e| TileServerError::RenderError(format!("failed to read PNG: {}", e)))?
             .decode()
-            .map_err(|e| TileServerError::RenderError(format!("Failed to decode PNG: {}", e)))?;
+            .map_err(|e| TileServerError::RenderError(format!("failed to decode PNG: {}", e)))?;
 
         let rgb = img.to_rgb8();
 
@@ -190,15 +229,15 @@ impl Renderer {
     }
 
     /// Convert PNG data to WebP
-    fn convert_png_to_webp(&self, png_data: &[u8], _quality: u8) -> Result<Vec<u8>> {
+    fn convert_png_to_webp(png_data: &[u8], _quality: u8) -> Result<Vec<u8>> {
         use image::ImageReader;
         use std::io::Cursor;
 
         let img = ImageReader::new(Cursor::new(png_data))
             .with_guessed_format()
-            .map_err(|e| TileServerError::RenderError(format!("Failed to read PNG: {}", e)))?
+            .map_err(|e| TileServerError::RenderError(format!("failed to read PNG: {}", e)))?
             .decode()
-            .map_err(|e| TileServerError::RenderError(format!("Failed to decode PNG: {}", e)))?;
+            .map_err(|e| TileServerError::RenderError(format!("failed to decode PNG: {}", e)))?;
 
         // Use DynamicImage to write WebP
         let estimated = (img.width() * img.height()) as usize;
@@ -216,6 +255,16 @@ impl Renderer {
     }
 }
 
+/// Run CPU-bound render post-processing on the blocking thread pool.
+async fn run_blocking<F>(f: F) -> Result<Vec<u8>>
+where
+    F: FnOnce() -> Result<Vec<u8>> + Send + 'static,
+{
+    tokio::task::spawn_blocking(f)
+        .await
+        .map_err(|e| TileServerError::RenderError(format!("render task failed: {e}")))?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,5 +273,93 @@ mod tests {
     async fn test_renderer_creation() {
         let renderer = Renderer::new();
         assert!(renderer.is_ok());
+    }
+
+    fn png_4x4() -> Vec<u8> {
+        let img = image::RgbaImage::from_pixel(4, 4, image::Rgba([200, 30, 30, 255]));
+        let mut out = std::io::Cursor::new(Vec::new());
+        img.write_to(&mut out, image::ImageFormat::Png).unwrap();
+        out.into_inner()
+    }
+
+    fn static_options(format: ImageFormat, marker: Option<&str>) -> RenderOptions {
+        RenderOptions {
+            style_id: "s".to_string(),
+            style_json: "{}".to_string(),
+            width: 64,
+            height: 64,
+            scale: 1,
+            lon: 0.0,
+            lat: 0.0,
+            zoom: 2.0,
+            bearing: 0.0,
+            pitch: 0.0,
+            format,
+            path: None,
+            marker: marker.map(str::to_string),
+            geojson: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn encode_tile_keeps_png_and_converts_jpeg_and_webp() {
+        let png = png_4x4();
+        assert_eq!(
+            Renderer::encode_tile(png.clone(), ImageFormat::Png)
+                .await
+                .unwrap(),
+            png
+        );
+        let jpeg = Renderer::encode_tile(png.clone(), ImageFormat::Jpeg)
+            .await
+            .unwrap();
+        assert_eq!(&jpeg[..3], &[0xFF, 0xD8, 0xFF], "JPEG magic");
+        let webp = Renderer::encode_tile(png, ImageFormat::Webp).await.unwrap();
+        assert_eq!(&webp[..4], b"RIFF");
+        assert_eq!(&webp[8..12], b"WEBP");
+    }
+
+    #[tokio::test]
+    async fn encode_tile_rejects_bytes_that_are_not_an_image() {
+        for format in [ImageFormat::Jpeg, ImageFormat::Webp] {
+            let err = Renderer::encode_tile(b"not a png".to_vec(), format)
+                .await
+                .unwrap_err();
+            assert!(matches!(err, TileServerError::RenderError(_)), "{err}");
+        }
+    }
+
+    #[tokio::test]
+    async fn finish_static_draws_a_marker_and_encodes_each_format() {
+        let blank =
+            || super::super::native::RenderedImage::from_rgba(64, 64, vec![255u8; 64 * 64 * 4]);
+        let plain = Renderer::finish_static(blank(), static_options(ImageFormat::Png, None))
+            .await
+            .unwrap();
+        let marked = Renderer::finish_static(
+            blank(),
+            static_options(ImageFormat::Png, Some("pin-s+f00(0,0)")),
+        )
+        .await
+        .unwrap();
+        assert_ne!(plain, marked, "the marker changes the pixels");
+
+        let jpeg = Renderer::finish_static(blank(), static_options(ImageFormat::Jpeg, None))
+            .await
+            .unwrap();
+        assert_eq!(&jpeg[..3], &[0xFF, 0xD8, 0xFF]);
+        let webp = Renderer::finish_static(blank(), static_options(ImageFormat::Webp, None))
+            .await
+            .unwrap();
+        assert_eq!(&webp[8..12], b"WEBP");
+    }
+
+    #[tokio::test]
+    async fn finish_static_rejects_a_buffer_that_does_not_match_the_size() {
+        let short = super::super::native::RenderedImage::from_rgba(64, 64, vec![0u8; 16]);
+        let err = Renderer::finish_static(short, static_options(ImageFormat::Png, Some("0,0")))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, TileServerError::RenderError(_)), "{err}");
     }
 }

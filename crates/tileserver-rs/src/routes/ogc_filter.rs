@@ -18,7 +18,7 @@
 //!    to CQL2-text and require it to round-trip, which rejects any input
 //!    that loses characters during parsing.
 //!
-//! Reference: https://docs.ogc.org/is/19-079r2/19-079r2.html
+//! Reference: <https://docs.ogc.org/is/19-079r2/19-079r2.html>
 
 use cql2::{Expr, ToSqlAst};
 

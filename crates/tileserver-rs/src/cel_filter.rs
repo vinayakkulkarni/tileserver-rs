@@ -210,6 +210,25 @@ pub fn apply(tile: TileData, filters: &[&CelFilter]) -> Result<TileData> {
     })
 }
 
+/// [`apply`] on the blocking thread pool, so the MVT decode, filter and
+/// re-encode do not stall the async runtime.
+///
+/// # Errors
+///
+/// The errors of [`apply`], or [`TileServerError::Internal`] when the
+/// blocking task panics.
+pub async fn apply_blocking(tile: TileData, filters: Vec<Arc<CelFilter>>) -> Result<TileData> {
+    if filters.is_empty() {
+        return Ok(tile);
+    }
+    tokio::task::spawn_blocking(move || {
+        let refs: Vec<&CelFilter> = filters.iter().map(AsRef::as_ref).collect();
+        apply(tile, &refs)
+    })
+    .await
+    .map_err(|e| TileServerError::Internal(anyhow::anyhow!("cel filter task failed: {e}")))?
+}
+
 #[cfg(feature = "mlt")]
 fn to_pbf(tile: TileData) -> Result<TileData> {
     if tile.format == TileFormat::Mlt {

@@ -194,9 +194,19 @@ fn collect_parquet_files(dir: &PathBuf, files: &mut Vec<PathBuf>) -> Result<()> 
 }
 
 impl GeoParquetSource {
+    /// # Errors
+    ///
+    /// [`TileServerError::GeoParquetError`] when no Parquet file is found or
+    /// the first file has no usable geometry column.
     pub async fn from_config(config: &SourceConfig) -> Result<Self> {
         let path = PathBuf::from(&config.path);
-        let file_paths = discover_parquet_files(&path)?;
+        // A directory walk can be large: keep it off the runtime.
+        let walk_path = path.clone();
+        let file_paths = tokio::task::spawn_blocking(move || discover_parquet_files(&walk_path))
+            .await
+            .map_err(|e| {
+                TileServerError::GeoParquetError(format!("discovery task failed: {e}"))
+            })??;
         let first_file = file_paths[0].clone();
         let file_count = file_paths.len();
 
@@ -1030,6 +1040,18 @@ impl TileSource for GeoParquetSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn from_config_reports_an_empty_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let config: SourceConfig = toml::from_str(&format!(
+            "id = \"gp\"\ntype = \"geoparquet\"\npath = \"{}\"",
+            dir.path().display()
+        ))
+        .unwrap();
+        let err = GeoParquetSource::from_config(&config).await.err().unwrap();
+        assert!(err.to_string().contains("no .parquet files found"), "{err}");
+    }
 
     #[test]
     fn test_tile_to_bbox_zoom_0() {

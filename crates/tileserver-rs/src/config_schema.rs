@@ -4,11 +4,11 @@
 //! lands in one Rust file plus this file in the same PR — and so the same
 //! catalog drives the operator UI at `/admin/config` without a separate
 //! TypeScript catalog drifting out of sync. Served by
-//! [`crate::admin::config_schema_handler`] at `GET /__admin/config/schema`.
+//! `crate::admin::config_schema_handler` at `GET /__admin/config/schema`.
 //!
 //! # Drift detection
 //!
-//! [`tests::schema_covers_default_config`] (in this module's `#[cfg(test)]`
+//! `tests::schema_covers_default_config` (in this module's `#[cfg(test)]`
 //! block) round-trips `Config::default()` through serde JSON, walks every
 //! key, and asserts a matching `ConfigFieldSchema` exists in
 //! [`CONFIG_SCHEMA`]. Adding a field to `config.rs` without adding it here
@@ -275,6 +275,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 field_type: "u64",
                 default: Some("30"),
                 description: "Per-request render timeout. Requests exceeding this are dropped.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "queue_size",
+                field_type: "usize",
+                default: Some("256"),
+                description: "Render requests that may wait for a free worker. More are rejected with 503.",
                 optional: false,
                 enum_values: None,
             },

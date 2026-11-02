@@ -24,12 +24,8 @@ pub trait MosaicMethod: Send {
     /// input (e.g., mean, median, stdev) always return false.
     fn is_done(&self) -> bool;
 
-    /// Returns the final composited image.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called before any [`Self::feed`] — a programmer error.
-    fn finalize(self: Box<Self>) -> RasterImage;
+    /// Returns the final composited image, or `None` when no layer was fed.
+    fn finalize(self: Box<Self>) -> Option<RasterImage>;
 }
 
 /// Construct a [`MosaicMethod`] trait object for the given config variant.
@@ -74,8 +70,8 @@ impl MosaicMethod for FirstMethod {
             .is_some_and(RasterImage::is_fully_opaque)
     }
 
-    fn finalize(self: Box<Self>) -> RasterImage {
-        self.canvas.expect("finalize called before feed")
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
+        self.canvas
     }
 }
 
@@ -96,8 +92,8 @@ impl MosaicMethod for HighestMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
-        self.canvas.expect("finalize called before feed")
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
+        self.canvas
     }
 }
 
@@ -120,8 +116,8 @@ impl MosaicMethod for LowestMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
-        self.canvas.expect("finalize called before feed")
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
+        self.canvas
     }
 }
 
@@ -148,7 +144,7 @@ impl MosaicMethod for MeanMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
         self.stack.finalize_mean()
     }
 }
@@ -167,7 +163,7 @@ impl MosaicMethod for StdevMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
         self.stack.finalize_stdev()
     }
 }
@@ -189,9 +185,11 @@ impl MosaicMethod for MedianMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
         let mut layers = self.layers;
-        assert!(!layers.is_empty(), "finalize called before feed");
+        if layers.is_empty() {
+            return None;
+        }
         let first = layers.remove(0);
         let (bands, height, width) = first.data().dim();
         let mut samples: Vec<f32> = Vec::with_capacity(layers.len() + 1);
@@ -219,7 +217,7 @@ impl MosaicMethod for MedianMethod {
                 }
             }
         }
-        RasterImage::new(out, mask_out, first.nodata())
+        Some(RasterImage::new(out, mask_out, first.nodata()))
     }
 }
 
@@ -263,11 +261,10 @@ impl MosaicMethod for CountMethod {
     fn is_done(&self) -> bool {
         false
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
-        let counts = self.counts.expect("finalize called before feed");
-        let data = counts.insert_axis(ndarray::Axis(0));
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
+        let data = self.counts?.insert_axis(ndarray::Axis(0));
         let mask = Array2::from_elem((self.height, self.width), false);
-        RasterImage::new(data, mask, self.nodata)
+        Some(RasterImage::new(data, mask, self.nodata))
     }
 }
 
@@ -295,7 +292,7 @@ impl MosaicMethod for LowestCloudCoverMethod {
     fn is_done(&self) -> bool {
         self.inner.is_done()
     }
-    fn finalize(self: Box<Self>) -> RasterImage {
+    fn finalize(self: Box<Self>) -> Option<RasterImage> {
         Box::new(self.inner).finalize()
     }
 }
@@ -423,9 +420,9 @@ impl StatsAccumulator {
         }
     }
 
-    fn finalize_mean(self) -> RasterImage {
-        let sum = self.sum.expect("finalize_mean called before push");
-        let counts = self.counts.expect("finalize_mean called before push");
+    fn finalize_mean(self) -> Option<RasterImage> {
+        let sum = self.sum?;
+        let counts = self.counts?;
         let (b, h, w) = sum.dim();
         let mut data = Array3::<f32>::zeros((b, h, w));
         let mut mask = Array2::from_elem((h, w), true);
@@ -442,13 +439,13 @@ impl StatsAccumulator {
                 }
             }
         }
-        RasterImage::new(data, mask, self.nodata)
+        Some(RasterImage::new(data, mask, self.nodata))
     }
 
-    fn finalize_stdev(self) -> RasterImage {
-        let sum = self.sum.expect("finalize_stdev called before push");
-        let sum_sq = self.sum_sq.expect("finalize_stdev called before push");
-        let counts = self.counts.expect("finalize_stdev called before push");
+    fn finalize_stdev(self) -> Option<RasterImage> {
+        let sum = self.sum?;
+        let sum_sq = self.sum_sq?;
+        let counts = self.counts?;
         let (b, h, w) = sum.dim();
         let mut data = Array3::<f32>::zeros((b, h, w));
         let mut mask = Array2::from_elem((h, w), true);
@@ -467,7 +464,7 @@ impl StatsAccumulator {
                 }
             }
         }
-        RasterImage::new(data, mask, self.nodata)
+        Some(RasterImage::new(data, mask, self.nodata))
     }
 }
 
@@ -513,7 +510,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(FirstMethod::default());
         m.feed(img);
         assert!(m.is_done(), "fully-opaque single layer short-circuits");
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 1.0).abs() < f32::EPSILON);
     }
 
@@ -527,7 +524,7 @@ mod tests {
         assert!(!m.is_done(), "not done while canvas has masked pixels");
         m.feed(low);
         assert!(m.is_done(), "done after fill");
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!(
             (out.data()[[0, 0, 0]] - 10.0).abs() < f32::EPSILON,
             "top wins where unmasked"
@@ -545,7 +542,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(HighestMethod::default());
         m.feed(a);
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 3.0).abs() < f32::EPSILON);
         assert!((out.data()[[0, 0, 1]] - 5.0).abs() < f32::EPSILON);
     }
@@ -557,7 +554,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(LowestMethod::default());
         m.feed(a);
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 1.0).abs() < f32::EPSILON);
         assert!((out.data()[[0, 0, 1]] - 2.0).abs() < f32::EPSILON);
     }
@@ -569,7 +566,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(MeanMethod::default());
         m.feed(a);
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 20.0).abs() < 0.01);
         assert!((out.data()[[0, 0, 1]] - 30.0).abs() < 0.01);
     }
@@ -582,7 +579,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(MeanMethod::default());
         m.feed(layer(a_data, a_mask));
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!(
             (out.data()[[0, 0, 0]] - 20.0).abs() < 0.01,
             "avg of two valid"
@@ -602,7 +599,7 @@ mod tests {
         m.feed(a);
         m.feed(b);
         m.feed(c);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 3.0).abs() < f32::EPSILON);
     }
 
@@ -613,7 +610,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(StdevMethod::default());
         m.feed(a);
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!(out.data()[[0, 0, 0]].abs() < 0.001);
     }
 
@@ -625,7 +622,7 @@ mod tests {
         let mut m: Box<dyn MosaicMethod> = Box::new(CountMethod::default());
         m.feed(layer(a_data, a_mask));
         m.feed(b);
-        let out = m.finalize();
+        let out = m.finalize().expect("a layer was fed");
         assert!((out.data()[[0, 0, 0]] - 2.0).abs() < f32::EPSILON);
         assert!((out.data()[[0, 0, 1]] - 1.0).abs() < f32::EPSILON);
     }
@@ -642,11 +639,23 @@ mod tests {
             PixelSelectionMethod::Count,
             PixelSelectionMethod::LowestCloudCover,
         ] {
-            let m = build(variant);
-            let img = RasterImage::from_opaque(array![[[1.0_f32]]], None);
-            let mut boxed = m;
-            boxed.feed(img);
-            let _out = boxed.finalize();
+            let mut m = build(variant);
+            assert!(
+                build(variant).finalize().is_none(),
+                "{variant:?}: nothing fed yields None"
+            );
+            m.feed(RasterImage::from_opaque(array![[[2.0_f32]]], None));
+            let out = m.finalize().expect("a layer was fed");
+            let expected = match variant {
+                PixelSelectionMethod::Stdev => 0.0,
+                PixelSelectionMethod::Count => 1.0,
+                _ => 2.0,
+            };
+            assert!(
+                (out.data()[[0, 0, 0]] - expected).abs() < f32::EPSILON,
+                "{variant:?}: got {}",
+                out.data()[[0, 0, 0]]
+            );
         }
     }
 }

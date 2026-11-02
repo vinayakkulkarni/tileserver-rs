@@ -6,6 +6,7 @@
 //! [`recompress`] to produce the bytes; the moka cache keys on the chosen
 //! encoding so re-encode cost is paid once per `(tile, encoding)` pair.
 
+use std::borrow::Cow;
 use std::io::{Read, Write};
 
 use bytes::Bytes;
@@ -139,29 +140,40 @@ pub fn negotiate(
 }
 
 /// Decompress `data` from `from` to raw identity bytes.
-pub fn decode(data: &[u8], from: TileCompression) -> Result<Vec<u8>> {
+///
+/// Uncompressed input is borrowed, not copied.
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] when `data` is not valid for `from`.
+pub fn decode(data: &[u8], from: TileCompression) -> Result<Cow<'_, [u8]>> {
     match from {
-        TileCompression::None => Ok(data.to_vec()),
+        TileCompression::None => Ok(Cow::Borrowed(data)),
         TileCompression::Gzip => {
             let mut out = Vec::new();
             flate2::read::GzDecoder::new(data)
                 .read_to_end(&mut out)
                 .map_err(|e| TileServerError::CompressionError(format!("gzip decode: {e}")))?;
-            Ok(out)
+            Ok(Cow::Owned(out))
         }
         TileCompression::Zstd => zstd::decode_all(data)
+            .map(Cow::Owned)
             .map_err(|e| TileServerError::CompressionError(format!("zstd decode: {e}"))),
         TileCompression::Brotli => {
             let mut out = Vec::new();
             brotli::Decompressor::new(data, 4096)
                 .read_to_end(&mut out)
                 .map_err(|e| TileServerError::CompressionError(format!("brotli decode: {e}")))?;
-            Ok(out)
+            Ok(Cow::Owned(out))
         }
     }
 }
 
 /// Compress raw identity `data` to `to` using the configured quality/level.
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] when the encoder fails.
 pub fn encode(data: &[u8], to: TileCompression, cfg: &CompressionConfig) -> Result<Vec<u8>> {
     match to {
         TileCompression::None => Ok(data.to_vec()),
@@ -187,6 +199,11 @@ pub fn encode(data: &[u8], to: TileCompression, cfg: &CompressionConfig) -> Resu
 
 /// Convert `data` from encoding `from` to encoding `to`. Identity-fast-path when
 /// the encodings already match (no decode/encode round-trip).
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] when `data` cannot be decoded
+/// from `from` or encoded to `to`.
 pub fn recompress(
     data: &[u8],
     from: TileCompression,
@@ -204,6 +221,11 @@ pub fn recompress(
 /// `compression` field carry `target`. The caller is responsible for having
 /// chosen `target` via [`negotiate`]; this is the pure byte-transform step that
 /// the cached and uncached re-encode paths share.
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] when the tile cannot be
+/// decoded or re-encoded.
 pub fn recode(
     tile: &TileData,
     target: TileCompression,
@@ -331,7 +353,7 @@ mod tests {
         let raw = b"the quick brown fox jumps over the lazy dog".repeat(20);
         let enc = encode(&raw, TileCompression::Gzip, &cfg).unwrap();
         let dec = decode(&enc, TileCompression::Gzip).unwrap();
-        assert_eq!(dec, raw);
+        assert_eq!(dec.as_ref(), raw.as_slice());
     }
 
     #[test]
@@ -340,7 +362,7 @@ mod tests {
         let raw = b"the quick brown fox jumps over the lazy dog".repeat(20);
         let enc = encode(&raw, TileCompression::Zstd, &cfg).unwrap();
         let dec = decode(&enc, TileCompression::Zstd).unwrap();
-        assert_eq!(dec, raw);
+        assert_eq!(dec.as_ref(), raw.as_slice());
     }
 
     #[test]
@@ -349,7 +371,7 @@ mod tests {
         let raw = b"the quick brown fox jumps over the lazy dog".repeat(20);
         let enc = encode(&raw, TileCompression::Brotli, &cfg).unwrap();
         let dec = decode(&enc, TileCompression::Brotli).unwrap();
-        assert_eq!(dec, raw);
+        assert_eq!(dec.as_ref(), raw.as_slice());
     }
 
     #[test]
@@ -358,7 +380,10 @@ mod tests {
         let raw = b"vector tile payload bytes".repeat(50);
         let gz = encode(&raw, TileCompression::Gzip, &cfg).unwrap();
         let br = recompress(&gz, TileCompression::Gzip, TileCompression::Brotli, &cfg).unwrap();
-        assert_eq!(decode(&br, TileCompression::Brotli).unwrap(), raw);
+        assert_eq!(
+            decode(&br, TileCompression::Brotli).unwrap().as_ref(),
+            raw.as_slice()
+        );
     }
 
     #[test]
@@ -374,7 +399,10 @@ mod tests {
         let cfg = CompressionConfig::default();
         let raw = b"raw".to_vec();
         assert_eq!(encode(&raw, TileCompression::None, &cfg).unwrap(), raw);
-        assert_eq!(decode(&raw, TileCompression::None).unwrap(), raw);
+        assert_eq!(
+            decode(&raw, TileCompression::None).unwrap().as_ref(),
+            raw.as_slice()
+        );
     }
 
     /// Pseudo-random-ish payload that stays well above `MIN_COMPRESS_BYTES`
@@ -407,7 +435,10 @@ mod tests {
         let out = recode(&tile, TileCompression::Brotli, &cfg).unwrap();
         assert_eq!(out.compression, TileCompression::Brotli);
         assert_eq!(out.format, crate::sources::TileFormat::Pbf);
-        assert_eq!(decode(&out.data, TileCompression::Brotli).unwrap(), raw);
+        assert_eq!(
+            decode(&out.data, TileCompression::Brotli).unwrap().as_ref(),
+            raw.as_slice()
+        );
     }
 
     #[test]
@@ -497,7 +528,10 @@ mod tests {
         let target = negotiate(Some("br"), tile.compression, tile.data.len(), &cfg);
         assert_eq!(target, TileCompression::Brotli);
         let out = recode(&tile, target, &cfg).unwrap();
-        assert_eq!(decode(&out.data, TileCompression::Brotli).unwrap(), raw);
+        assert_eq!(
+            decode(&out.data, TileCompression::Brotli).unwrap().as_ref(),
+            raw.as_slice()
+        );
     }
 
     #[test]

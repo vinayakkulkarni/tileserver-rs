@@ -145,10 +145,13 @@ pub async fn inspect(target: &str, options: InspectOptions) -> Result<InspectRep
     }
 
     let path = Path::new(target);
-    if !path.exists() {
-        return Err(TileServerError::NotFound(target.to_owned()));
-    }
-    let size = std::fs::metadata(path)?.len();
+    let size = match tokio::fs::metadata(path).await {
+        Ok(meta) => meta.len(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(TileServerError::NotFound(target.to_owned()));
+        }
+        Err(e) => return Err(e.into()),
+    };
     match extension(path).as_deref() {
         Some("pmtiles") => {
             let backend = MmapBackend::try_from(path)
@@ -416,7 +419,7 @@ fn tile_report(
         });
     };
     let raw = compression::decode(&data, compression)?;
-    let layers = match Tile::decode(raw.as_slice()) {
+    let layers = match Tile::decode(raw.as_ref()) {
         Ok(tile) if !tile.layers.is_empty() => tile.layers.iter().map(layer_report).collect(),
         // Not an MVT payload (raster, MLT, or an empty tile).
         _ => Vec::new(),

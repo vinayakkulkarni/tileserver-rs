@@ -26,6 +26,11 @@ pub struct HttpPmTilesSource {
 
 impl HttpPmTilesSource {
     /// Create a new PMTiles source from an HTTP URL
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::MetadataError`] when the HTTP client cannot be built
+    /// or the header cannot be read.
     pub async fn from_url(config: &SourceConfig, _client: reqwest::Client) -> Result<Self> {
         let url = &config.path;
 
@@ -40,14 +45,14 @@ impl HttpPmTilesSource {
             .use_rustls_tls()
             .build()
             .map_err(|e| {
-                TileServerError::MetadataError(format!("Failed to create HTTP client: {}", e))
+                TileServerError::MetadataError(format!("failed to create HTTP client: {}", e))
             })?;
 
         // Create async reader with cached URL
         let reader: HttpReader = AsyncPmTilesReader::new_with_cached_url(cache, client, url)
             .await
             .map_err(|e| {
-                TileServerError::MetadataError(format!("Failed to read PMTiles header: {}", e))
+                TileServerError::MetadataError(format!("failed to read PMTiles header: {}", e))
             })?;
 
         let header = reader.get_header();

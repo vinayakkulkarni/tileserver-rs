@@ -44,7 +44,7 @@ impl FromStr for ImageFormat {
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum StaticType {
-    /// Center-based: lon,lat,zoom[@bearing[,pitch]]
+    /// Center-based: `lon,lat,zoom[@bearing[,pitch]]`
     Center {
         lon: f64,
         lat: f64,
@@ -213,6 +213,11 @@ impl RenderOptions {
     }
 
     /// Create options for a static image
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for a zero width or height, a size above the
+    /// maximum, or a scale outside the allowed range.
     #[allow(clippy::too_many_arguments)]
     pub fn for_static(
         style_id: String,

@@ -6,9 +6,6 @@
 //! The structs and functions in this module are used solely for documentation
 //! generation and are not called directly at runtime.
 
-// All structs/functions here are used solely by utoipa derive macros for OpenAPI doc generation
-#![allow(dead_code)]
-
 use utoipa::OpenApi;
 
 /// OpenAPI documentation for tileserver-rs
@@ -592,7 +589,7 @@ pub async fn get_data_source() {}
 /// **PostgreSQL Out-of-Database raster sources** (VRT/COG via PostGIS):
 /// - Formats: `png`, `jpg`, `jpeg`, `webp`
 /// - Query params are passed to the PostgreSQL function for dynamic filtering
-/// - See: https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters
+/// - See: <https://postgis.net/docs/using_raster_dataman.html#RT_Cloud_Rasters>
 #[utoipa::path(
     get,
     path = "/data/{source}/{z}/{x}/{y}.{format}",
