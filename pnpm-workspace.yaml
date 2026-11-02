@@ -110,7 +110,7 @@ catalogs:
     zod: ^4.6.7
   marketing:
     ogl: ^1.0.11
-    wrangler: ^4.153.0
+    wrangler: ^4.156.0
   docs:
     '@nuxt/content': ^3.16.2
     better-sqlite3: ^13.0.3
