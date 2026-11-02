@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.41.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.0...v2.41.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* apply the rust-skills audit findings ([#1632](https://github.com/vinayakkulkarni/tileserver-rs/issues/1632)) ([3aad9a7](https://github.com/vinayakkulkarni/tileserver-rs/commit/3aad9a7508bde1155f75f862c13be0ac4d9cf33e))
+* **dataset_cache:** wake parked renders when reclaim closes idle handles ([#1631](https://github.com/vinayakkulkarni/tileserver-rs/issues/1631)) ([9ecc767](https://github.com/vinayakkulkarni/tileserver-rs/commit/9ecc767df4b274ddc015e748c7f424d17d0703ae))
+* **pmtiles:** take u64 offsets in custom backends for pmtiles 0.26 ([#1628](https://github.com/vinayakkulkarni/tileserver-rs/issues/1628)) ([d499260](https://github.com/vinayakkulkarni/tileserver-rs/commit/d499260f2e144f97cabc7cdc24f4bae1518806b3))
+
 ## [2.41.0](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.40.0...v2.41.0) (2026-11-02)
 
 
