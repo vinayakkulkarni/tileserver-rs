@@ -173,7 +173,7 @@ mcp-persistence = ["mcp"]
 
 [dev-dependencies]
 tower            = { workspace = true }
-axum-test        = { workspace = true }
+axum-test        = { workspace = true, features = ["ws"] }
 tempfile         = { workspace = true }
 insta            = { workspace = true }
 criterion        = { workspace = true }

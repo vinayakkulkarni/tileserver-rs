@@ -33,6 +33,11 @@ export type {
   StatsZoomCount,
 } from './admin-stats';
 export type { Data, VectorLayer } from './data';
+export type {
+  LiveClientMessage,
+  LiveServerMessage,
+  LiveStyleSource,
+} from './live';
 export type { FilterCategory, FilterChip } from './home-filters';
 export type { OfetchLikeError } from './fetch';
 export type { VMapOptions } from './map';

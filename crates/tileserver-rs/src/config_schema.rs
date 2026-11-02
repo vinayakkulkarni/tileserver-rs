@@ -357,6 +357,46 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
         ],
     },
     ConfigSectionSchema {
+        header: "[live]",
+        blurb: "Live source updates over WebSocket (GET /ws). Clients get a `reload` message when a source's data or config changes.",
+        feature_gate: None,
+        is_array: false,
+        fields: &[
+            ConfigFieldSchema {
+                key: "enabled",
+                field_type: "bool",
+                default: Some("false"),
+                description: "Mount GET /ws and broadcast source reloads.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "watch",
+                field_type: "string[]",
+                default: Some("[]"),
+                description: "Source ids to poll for data changes (file mtime/size, or HTTP ETag/Last-Modified). [\"*\"] polls every source.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "interval_secs",
+                field_type: "u64",
+                default: Some("5"),
+                description: "Seconds between polls of the watched sources (minimum 1).",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "max_clients",
+                field_type: "usize",
+                default: Some("1000"),
+                description: "Maximum concurrent WebSocket clients; further clients get 503.",
+                optional: false,
+                enum_values: None,
+            },
+        ],
+    },
+    ConfigSectionSchema {
         header: "[llm]",
         blurb: "Server-side LLM proxy for the Map AI chat panel (POST /api/llm/chat). \
             The API key is read from an environment variable and never reaches the browser.",

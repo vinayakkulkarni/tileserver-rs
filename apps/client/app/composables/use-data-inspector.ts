@@ -10,6 +10,7 @@ import type { Map, MapOptions } from 'maplibre-gl';
 import type { LayerColor } from '~/types/data';
 import { fetchDataSource } from '~/utils/api/data';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
+import { useLiveUpdates } from './use-live-updates';
 import { useMapInteractionTracking } from './use-map-interaction-tracking';
 
 export function useDataInspector(dataId: Ref<string>) {
@@ -17,6 +18,7 @@ export function useDataInspector(dataId: Ref<string>) {
   const layerColors = ref<LayerColor[]>([]);
   const panelOpen = ref(true);
   const mapRef = shallowRef<Map | null>(null);
+  useLiveUpdates(mapRef);
   const { watchMap } = useMapInteractionTracking('data');
 
   function navigateBack() {

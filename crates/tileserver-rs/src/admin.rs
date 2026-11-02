@@ -40,6 +40,8 @@ pub struct PingResponse {
     compression_zstd_level: i32,
     cors_origins: Vec<String>,
     cache_dir: String,
+    /// `GET /ws` is mounted (`[live] enabled = true`).
+    live_enabled: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -132,6 +134,7 @@ pub async fn ping_check(State(shared): State<SharedState>) -> Json<PingResponse>
         compression_enabled: !config.compression.minimal_recompression,
         compression_br_quality: config.compression.br_quality,
         compression_zstd_level: config.compression.zstd_level,
+        live_enabled: config.live.enabled,
         cors_origins: config.server.cors_origins.clone(),
         cache_dir: config.resolve_cache_dir(None).display().to_string(),
     })
@@ -475,8 +478,10 @@ path = "{}"
             compression_zstd_level: 3,
             cors_origins: vec!["*".to_string()],
             cache_dir: "/tmp/tileserver-rs".to_string(),
+            live_enabled: true,
         };
         let json = serde_json::to_value(&resp).expect("PingResponse serializes");
+        assert_eq!(json["live_enabled"], true);
         assert_eq!(json["status"], "ok");
         assert_eq!(json["loaded_sources"], 3);
         assert_eq!(json["loaded_styles"], 2);

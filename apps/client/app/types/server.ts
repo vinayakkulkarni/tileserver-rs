@@ -23,4 +23,6 @@ export interface PingResponse {
   compression_zstd_level: number;
   cors_origins: string[];
   cache_dir: string;
+  /** `GET /ws` live updates are on (`[live] enabled = true`). */
+  live_enabled: boolean;
 }
