@@ -37,6 +37,9 @@ import {
   Activity,
   KeyRound,
   Gauge,
+  Radio,
+  ScanSearch,
+  ChartLine,
 } from '@lucide/vue';
 import type {
   Feature,
@@ -151,6 +154,27 @@ export function useMarketingPage() {
       title: 'Hot-Reload',
       description:
         'Reload configuration without downtime via SIGHUP or admin API. Zero-request-drop with ArcSwap.',
+      category: 'Developer experience',
+    },
+    {
+      icon: Radio,
+      title: 'Live Tile Updates',
+      description:
+        "A WebSocket at /ws tells every open map when a source changes: a rewritten file, a new ETag on a remote archive, or a config reload. The viewer re-fetches only that source's tiles, with no page reload.",
+      category: 'Developer experience',
+    },
+    {
+      icon: ChartLine,
+      title: 'Analytics Dashboard',
+      description:
+        'Requests per minute, cache hit rate, p50/p95/p99 latency, per-source tables, a request heatmap and the most requested tiles, in the admin UI. In-memory and bounded; off by default.',
+      category: 'Developer experience',
+    },
+    {
+      icon: ScanSearch,
+      title: 'inspect CLI',
+      description:
+        'tileserver-rs inspect prints the layers, zoom range, bounds and tile counts of a PMTiles or MBTiles file, or a remote PMTiles URL, and can decode one tile. Plain text or JSON.',
       category: 'Developer experience',
     },
     {
@@ -449,6 +473,16 @@ export function useMarketingPage() {
     },
     {
       feature: 'Drag-and-drop file serving',
+      values: {
+        'tileserver-rs': '✓',
+        martin: '✗',
+        'tileserver-gl': '✗',
+        pg_tileserv: '✗',
+        titiler: '✗',
+      },
+    },
+    {
+      feature: 'Live tile updates (WebSocket)',
       values: {
         'tileserver-rs': '✓',
         martin: '✗',

@@ -32,6 +32,9 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 - **Style Auto-Generation** - Instant MapLibre style for any vector source at `/styles/{source}/style.json`
 - **Zero-Config Auto-Detect** - Point at a directory or file and start serving instantly
 - **Hot Reload** - Reload configuration via `SIGHUP` signal or admin API without downtime
+- **Live Updates** - `GET /ws` WebSocket tells maps to re-fetch a source's tiles when its file, URL or config changes
+- **Analytics Dashboard** - Requests, cache hit rate, latency percentiles, a request heatmap and top tiles at `/admin/analytics`
+- **`inspect` CLI** - Print the metadata, layers and tile counts of a PMTiles/MBTiles file or URL, or decode one tile
 - **High Performance** - ~100ms per tile (warm cache), ~800ms cold cache
 - **TileJSON 3.0** - Full TileJSON metadata API
 - **MapLibre GL JS** - Built-in map viewer and data inspector
@@ -353,6 +356,8 @@ See [data/configs/example.toml](./data/configs/example.toml) for a complete exam
 | `GET /metrics` | Prometheus metrics exposition (separate listener — see [Observability](#observability-metrics--tracing)) |
 | `POST /__admin/reload` | Hot-reload configuration (admin server only) |
 | `POST /__admin/reload?flush=true` | Force reload even if config unchanged |
+| `GET /__admin/stats` | Request statistics for the analytics dashboard (admin server only; `[telemetry] dashboard = true`) |
+| `GET /ws` | WebSocket live updates: `reload` messages when a source changes (`[live] enabled = true`) |
 
 ### Data Endpoints (Vector Tiles)
 
