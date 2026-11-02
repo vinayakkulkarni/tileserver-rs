@@ -4863,13 +4863,14 @@ dependencies = [
 
 [[package]]
 name = "pmtiles"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52804dc8c357bba7e67a4cc9cc9b2eade025817ac43a92642fe0522d508b1197"
+checksum = "7f05bc08aeb67c0080be8414535e761981a98bc1bee46a4bed7db63e212565c4"
 dependencies = [
  "async-compression",
  "bytes",
  "fast_hilbert",
+ "integer-encoding",
  "memmap2",
  "reqwest",
  "serde",
@@ -4877,7 +4878,6 @@ dependencies = [
  "thiserror 2.0.21",
  "tilejson",
  "tokio",
- "varint-rs",
 ]
 
 [[package]]
@@ -7795,12 +7795,6 @@ name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
-
-[[package]]
-name = "varint-rs"
-version = "2.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa6c38708f6257f1ec2ca7e5a11f9bbf58a27d7060078b6b333624968183d96"
 
 [[package]]
 name = "vcpkg"
