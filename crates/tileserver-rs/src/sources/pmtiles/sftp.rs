@@ -1748,6 +1748,58 @@ mod tests {
         assert_eq!(third, INITIAL_BACKOFF);
     }
 
+    /// `AsyncBackend::read` against a real SSH server whose host key is not
+    /// in known_hosts: the host-key error is not a connection error, so
+    /// `read` returns it at once instead of retrying.
+    #[tokio::test]
+    async fn read_returns_host_key_error_without_retry() {
+        struct AcceptAll;
+        impl russh::server::Handler for AcceptAll {
+            type Error = russh::Error;
+        }
+
+        let key_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/sftp/fixtures/ssh_host_ed25519_key"
+        );
+        let config = Arc::new(russh::server::Config {
+            keys: vec![load_secret_key(key_path, None).unwrap()],
+            ..Default::default()
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            while let Ok((stream, _)) = listener.accept().await {
+                let config = Arc::clone(&config);
+                tokio::spawn(async move {
+                    if let Ok(session) = russh::server::run_stream(config, stream, AcceptAll).await
+                    {
+                        let _ = session.await;
+                    }
+                });
+            }
+        });
+
+        let backend = SftpBackend {
+            loc: SftpLocation::parse(
+                &format!("sftp://u@127.0.0.1:{port}/tiles.pmtiles"),
+                &HashMap::new(),
+            )
+            .unwrap(),
+            identity: ResolvedIdentity::Agent("unused".to_string()),
+            home_dir: None,
+            session: Mutex::new(None),
+            connect_attempts: AtomicU64::new(0),
+            next_backoff: Mutex::new(INITIAL_BACKOFF),
+        };
+        let err = tokio::time::timeout(Duration::from_secs(10), backend.read(1 << 33, 16))
+            .await
+            .expect("no reconnect loop")
+            .expect_err("unknown host key must fail");
+        assert!(err.to_string().contains("no known_hosts entry"), "{err}");
+        assert_eq!(backend.connect_attempts.load(Ordering::SeqCst), 1);
+    }
+
     // Base64 encoder used only by the hashed-known_hosts test above.
     fn encode_base64(input: &[u8]) -> String {
         const TABLE: &[u8; 64] =

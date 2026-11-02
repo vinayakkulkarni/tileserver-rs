@@ -1110,11 +1110,13 @@ mod tests {
     }
 
     /// Counts `get_tile` calls so tests can tell cache hits from source reads.
+    #[cfg(any(feature = "raster", feature = "postgres"))]
     struct CountingSource {
         inner: MockSource,
         calls: Arc<std::sync::atomic::AtomicUsize>,
     }
 
+    #[cfg(any(feature = "raster", feature = "postgres"))]
     #[async_trait]
     impl TileSource for CountingSource {
         async fn get_tile(&self, z: u8, x: u32, y: u32) -> crate::error::Result<Option<TileData>> {
@@ -1131,6 +1133,7 @@ mod tests {
         }
     }
 
+    #[cfg(any(feature = "raster", feature = "postgres"))]
     fn counting_manager() -> (SourceManager, Arc<std::sync::atomic::AtomicUsize>) {
         let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let mut map = HashMap::new();
