@@ -821,7 +821,7 @@ impl SftpBackend {
         *self.next_backoff.lock().await = INITIAL_BACKOFF;
     }
 
-    async fn read_once(&self, offset: usize, length: usize) -> Result<Bytes> {
+    async fn read_once(&self, offset: u64, length: usize) -> Result<Bytes> {
         let mut file = self.open_remote_file().await?;
         seek_to(&mut file, offset).await?;
         read_range_into_buf(&mut file, length).await
@@ -848,11 +848,11 @@ impl SftpBackend {
 
 /// Seek `file` to `offset` from the start, mapping any IO failure to a
 /// connection error so the reconnect path can retry.
-async fn seek_to<S>(file: &mut S, offset: usize) -> Result<()>
+async fn seek_to<S>(file: &mut S, offset: u64) -> Result<()>
 where
     S: AsyncSeekExt + Unpin,
 {
-    file.seek(std::io::SeekFrom::Start(offset as u64))
+    file.seek(std::io::SeekFrom::Start(offset))
         .await
         .map(|_| ())
         .map_err(|e| TileServerError::SftpConnectionError(format!("seek to {offset} failed: {e}")))
@@ -882,7 +882,7 @@ where
 
 impl AsyncBackend for SftpBackend {
     #[instrument(skip(self), fields(host = %self.loc.host, path = %self.loc.path))]
-    async fn read(&self, offset: usize, length: usize) -> PmtResult<BackendResponse> {
+    async fn read(&self, offset: u64, length: usize) -> PmtResult<BackendResponse> {
         loop {
             match self.read_once(offset, length).await {
                 Ok(bytes) => {
