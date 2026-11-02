@@ -53,14 +53,6 @@ impl Crs {
         self.srid
     }
 
-    /// URI to emit in links, collection metadata, and the `Content-Crs`
-    /// response header.
-    #[must_use]
-    #[allow(dead_code)] // Public API surface consumed by Part 3 filter-crs and tests.
-    pub(crate) fn uri(&self) -> &str {
-        &self.uri
-    }
-
     /// Returns the value for the OGC `Content-Crs` response header, which
     /// the spec requires be wrapped in angle brackets.
     #[must_use]
@@ -175,14 +167,14 @@ mod tests {
     fn default_is_crs84_with_srid_4326() {
         let crs = Crs::crs84();
         assert_eq!(crs.srid(), 4326);
-        assert_eq!(crs.uri(), CRS84_URI);
+        assert_eq!(crs.uri.as_str(), CRS84_URI);
     }
 
     #[test]
     fn parses_http_epsg_uri() {
         let crs = parse_crs("http://www.opengis.net/def/crs/EPSG/0/25832").unwrap();
         assert_eq!(crs.srid(), 25832);
-        assert!(crs.uri().ends_with("/25832"));
+        assert!(crs.uri.as_str().ends_with("/25832"));
     }
 
     #[test]

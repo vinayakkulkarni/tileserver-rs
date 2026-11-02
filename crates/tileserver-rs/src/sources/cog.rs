@@ -85,7 +85,7 @@ impl CogSource {
                         "COG file has no raster bands".to_string(),
                     ));
                 }
-                let bounds = get_wgs84_bounds(guard)?;
+                let bounds = wgs84_bounds(guard)?;
                 let overview_resolutions = compute_overview_resolutions(guard)?;
                 Ok::<_, TileServerError>((band_count, bounds, overview_resolutions))
             })
@@ -330,11 +330,8 @@ fn tile_to_web_mercator_bbox(z: u8, x: u32, y: u32) -> (f64, f64, f64, f64) {
     (minx, miny, maxx, maxy)
 }
 
+/// The dataset's extent as `[west, south, east, north]` in WGS84 degrees.
 pub(crate) fn wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
-    get_wgs84_bounds(dataset)
-}
-
-fn get_wgs84_bounds(dataset: &Dataset) -> Result<[f64; 4]> {
     let transform = dataset
         .geo_transform()
         .map_err(|e| TileServerError::RasterError(format!("Failed to get geotransform: {}", e)))?;
@@ -631,6 +628,32 @@ mod tests {
         assert!((maxy - WEB_MERCATOR_EXTENT).abs() < 1e-6);
         assert!((maxx - 0.0).abs() < 1e-6);
         assert!((miny - 0.0).abs() < 1e-6);
+    }
+
+    #[tokio::test]
+    async fn from_file_rejects_a_raster_without_spatial_reference() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("no-srs.tif");
+        {
+            let driver = DriverManager::get_driver_by_name("GTiff").unwrap();
+            let mut ds = driver
+                .create_with_band_type::<u8, _>(&path, 8, 8, 1)
+                .unwrap();
+            ds.set_geo_transform(&TEST_GT_FULL).unwrap();
+        }
+        let config: SourceConfig = toml::from_str(&format!(
+            "id = \"no-srs\"\ntype = \"cog\"\npath = \"{}\"",
+            path.display()
+        ))
+        .unwrap();
+        let err = CogSource::from_file(&config)
+            .await
+            .err()
+            .expect("a raster without a CRS has no WGS84 bounds");
+        assert!(
+            err.to_string().to_lowercase().contains("spatial reference"),
+            "{err}"
+        );
     }
 
     // ---- RGBA/RGB tile rendering (warp-maintained destination alpha) ----

@@ -107,7 +107,6 @@ impl PostgresFunctionSource {
         &self.sql_query
     }
 
-    #[allow(dead_code)] // Public API for prepared-statement type hints; not yet used by route handlers
     #[must_use]
     pub fn query_param_types(&self) -> Vec<tokio_postgres::types::Type> {
         use tokio_postgres::types::Type;
@@ -180,7 +179,6 @@ impl PostgresFunctionSource {
         }
     }
 
-    #[allow(dead_code)] // Public accessor; complements get_tile_with_query_params
     #[must_use]
     pub fn supports_query_params(&self) -> bool {
         self.supports_query_params

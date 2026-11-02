@@ -91,6 +91,30 @@ struct ConfigSchemaResponse {
     sections: &'static [ConfigSectionSchema],
 }
 
+/// The admin listener's router: [`admin_router`] plus, with the `mcp`
+/// feature, the OAuth admin routes at `/__admin/oauth/*`.
+///
+/// The OAuth routes are always mounted so the admin UI can render its
+/// connected-apps and device-sessions pages. Without a backing store (OAuth
+/// off, or a static bearer token) an empty in-memory store answers with
+/// empty lists instead of `404`.
+pub fn admin_app(
+    state: SharedState,
+    #[cfg(feature = "mcp")] oauth_store: Option<
+        std::sync::Arc<dyn crate::mcp::auth_store::OAuthBackend>,
+    >,
+) -> Router {
+    let app = admin_router(state);
+    #[cfg(feature = "mcp")]
+    let app = {
+        let store = oauth_store
+            .unwrap_or_else(|| std::sync::Arc::new(crate::mcp::auth_store::InMemoryStore::new()));
+        tracing::info!("MCP admin OAuth routes mounted at /__admin/oauth/*");
+        app.merge(crate::mcp::admin_routes::admin_router(store))
+    };
+    app
+}
+
 pub fn admin_router(state: SharedState) -> Router {
     Router::new()
         .route("/__admin/reload", post(admin_reload))
@@ -625,6 +649,42 @@ enabled = true
                 .as_str()
                 .is_some_and(|s| !s.is_empty())
         );
+    }
+
+    #[tokio::test]
+    async fn admin_app_serves_admin_routes_and_oauth_routes_with_mcp() {
+        let mut config_file = NamedTempFile::new().unwrap();
+        config_file
+            .write_all(config_with_style(None).as_bytes())
+            .unwrap();
+        let shared = build_shared_state(config_file.path()).await;
+        let app = admin_app(
+            shared,
+            #[cfg(feature = "mcp")]
+            None,
+        );
+
+        let config = app
+            .clone()
+            .oneshot(Request::get("/__admin/config").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(config.status(), StatusCode::OK);
+
+        let clients = app
+            .oneshot(
+                Request::get("/__admin/oauth/clients")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let expected = if cfg!(feature = "mcp") {
+            StatusCode::OK
+        } else {
+            StatusCode::NOT_FOUND
+        };
+        assert_eq!(clients.status(), expected);
     }
 
     #[tokio::test]

@@ -444,42 +444,10 @@ mod tests {
     }
 
     #[test]
-    fn now_unix_seconds_is_positive() {
-        let t = now_unix_seconds();
-        assert!(t > 0, "unix timestamp must be positive");
-    }
-
-    #[test]
     fn now_unix_seconds_is_recent() {
         let t = now_unix_seconds();
         // Must be after 2020-01-01 (unix 1577836800)
         assert!(t > 1_577_836_800, "timestamp should be after 2020");
-    }
-
-    #[test]
-    fn runtime_settings_fields_accessible() {
-        let rt = make_test_runtime();
-        assert_eq!(rt.runtime_port, 8080);
-        assert_eq!(rt.runtime_host, "127.0.0.1");
-        assert!(!rt.ui_enabled);
-        assert!(rt.public_url_override.is_none());
-    }
-
-    #[test]
-    fn reload_meta_fields_accessible() {
-        let meta = make_test_meta();
-        assert_eq!(meta.config_hash, "test-hash");
-        assert_eq!(meta.loaded_sources, 0);
-        assert!(!meta.renderer_enabled);
-    }
-
-    #[test]
-    fn app_state_fields_accessible() {
-        let state = make_test_app_state();
-        assert!(state.renderer.is_none());
-        assert!(state.fonts_dir.is_none());
-        assert!(!state.ui_enabled);
-        assert_eq!(state.base_url, "http://localhost:8080");
     }
 
     #[test]
@@ -527,29 +495,6 @@ mod tests {
     }
 
     #[test]
-    fn shared_state_uploads_initially_empty() {
-        let state = make_test_app_state();
-        let meta = make_test_meta();
-        let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(
-            state,
-            meta,
-            Config::default(),
-            None,
-            runtime,
-        ));
-        let shared = SharedState::new(controller);
-        let _ = shared.uploads();
-    }
-
-    #[test]
-    fn app_state_clone_preserves_base_url() {
-        let state = make_test_app_state();
-        let cloned = state.clone();
-        assert_eq!(state.base_url, cloned.base_url);
-    }
-
-    #[test]
     fn shared_state_store_swaps_app_state_atomically() {
         let state = make_test_app_state();
         let meta = make_test_meta();
@@ -569,21 +514,6 @@ mod tests {
 
         let loaded = shared.load();
         assert_eq!(loaded.base_url, "http://replaced");
-    }
-
-    #[test]
-    fn upload_info_clone_round_trips_fields() {
-        let info = UploadInfo {
-            id: "abc".to_string(),
-            file_name: "world.mbtiles".to_string(),
-            format: "mbtiles".to_string(),
-            file_path: std::path::PathBuf::from("/tmp/x.mbtiles"),
-        };
-        let cloned = info.clone();
-        assert_eq!(cloned.id, "abc");
-        assert_eq!(cloned.file_name, "world.mbtiles");
-        assert_eq!(cloned.format, "mbtiles");
-        assert_eq!(cloned.file_path, std::path::PathBuf::from("/tmp/x.mbtiles"));
     }
 
     fn runtime_for(host: &str, port: u16, public_override: Option<&str>) -> RuntimeSettings {

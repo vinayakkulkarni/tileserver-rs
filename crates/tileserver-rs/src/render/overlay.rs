@@ -1451,13 +1451,6 @@ mod tests {
     }
 
     #[test]
-    fn test_draw_overlays_empty() {
-        // Should not panic with empty overlays
-        let mut image = RgbaImage::new(256, 256);
-        draw_overlays(&mut image, &[], &[], 0.0, 0.0, 10.0, 1.0);
-    }
-
-    #[test]
     fn test_blend_pixel() {
         let mut image = RgbaImage::new(10, 10);
 

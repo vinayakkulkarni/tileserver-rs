@@ -825,12 +825,6 @@ mod tests {
             "y_str '12.34' is not a valid u32 → rejected"
         );
     }
-
-    #[test]
-    fn data_source_query_params_default_has_no_key() {
-        let q = DataSourceQueryParams::default();
-        assert!(q.key.is_none());
-    }
 }
 
 #[cfg(all(test, feature = "raster"))]

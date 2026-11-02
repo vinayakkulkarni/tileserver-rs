@@ -451,18 +451,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "stac")]
-    fn test_source_type_suffix_stac() {
-        assert_eq!(source_type_suffix(&SourceType::Stac), "stac");
-    }
-
-    #[test]
-    fn test_source_type_suffix_known_types() {
-        assert_eq!(source_type_suffix(&SourceType::PMTiles), "pmtiles");
-        assert_eq!(source_type_suffix(&SourceType::MBTiles), "mbtiles");
-    }
-
-    #[test]
     fn test_source_type_suffix_all_variants() {
         assert_eq!(source_type_suffix(&SourceType::PMTiles), "pmtiles");
         assert_eq!(source_type_suffix(&SourceType::MBTiles), "mbtiles");

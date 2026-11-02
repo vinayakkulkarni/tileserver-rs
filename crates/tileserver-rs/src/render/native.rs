@@ -6,23 +6,19 @@
 use std::ffi::{CStr, CString};
 use std::ptr;
 use std::sync::Once;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use image::ImageEncoder;
 
 use mbgl_sys::{
     MLNCameraOptions, MLNErrorCode, MLNHeadlessFrontend, MLNImageData, MLNMap, MLNMapMode,
-    MLNRenderOptions, MLNResourceCallback, MLNSize, mln_cleanup, mln_get_last_error,
-    mln_headless_frontend_create, mln_headless_frontend_destroy, mln_headless_frontend_set_size,
-    mln_image_free, mln_init, mln_map_create, mln_map_create_with_loader, mln_map_destroy,
-    mln_map_is_fully_loaded, mln_map_load_style, mln_map_render_still, mln_map_set_camera,
-    mln_map_set_size,
+    MLNRenderOptions, MLNSize, mln_get_last_error, mln_headless_frontend_create,
+    mln_headless_frontend_destroy, mln_image_free, mln_init, mln_map_create, mln_map_destroy,
+    mln_map_load_style, mln_map_render_still, mln_map_set_size,
 };
 
 use crate::error::{Result, TileServerError};
 
 static INIT: Once = Once::new();
-static INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// Initialize the MapLibre Native library.
 /// This is called automatically when needed but can be called explicitly.
@@ -37,25 +33,10 @@ pub fn init() -> Result<()> {
                 "Failed to initialize MapLibre Native: {:?}",
                 get_last_error()
             )));
-        } else {
-            INITIALIZED.store(true, Ordering::Release);
         }
     });
 
     result
-}
-
-/// Cleanup the MapLibre Native library.
-/// Should be called when shutting down the application.
-#[allow(dead_code)] // Called at application shutdown; not yet wired into graceful-shutdown path
-pub fn cleanup() {
-    if INITIALIZED.load(Ordering::Acquire) {
-        // SAFETY: mln_cleanup() is safe to call once after mln_init() succeeded
-        unsafe {
-            mln_cleanup();
-        }
-        INITIALIZED.store(false, Ordering::Release);
-    }
 }
 
 /// Get the last error message from MapLibre Native.
@@ -332,15 +313,6 @@ impl HeadlessFrontend {
         Ok(Self { ptr })
     }
 
-    /// Set the size of the render target
-    #[allow(dead_code)] // Public API reserved for future dynamic resize support
-    pub fn set_size(&mut self, size: Size) {
-        // SAFETY: self.ptr is a valid non-null pointer created in HeadlessFrontend::new()
-        unsafe {
-            mln_headless_frontend_set_size(self.ptr, size.into());
-        }
-    }
-
     /// Get the raw pointer (for internal use)
     pub(crate) fn as_ptr(&self) -> *mut MLNHeadlessFrontend {
         self.ptr
@@ -387,40 +359,6 @@ impl NativeMap {
         })
     }
 
-    /// Create a new map instance with a custom resource loader callback
-    #[allow(dead_code)] // Public API for custom resource loading; not yet used by any route handler
-    pub fn with_resource_loader(
-        size: Size,
-        pixel_ratio: f32,
-        mode: MapMode,
-        callback: MLNResourceCallback,
-        user_data: *mut std::ffi::c_void,
-    ) -> Result<Self> {
-        let frontend = HeadlessFrontend::new(size, pixel_ratio)?;
-
-        // SAFETY: frontend.as_ptr() is a valid non-null pointer, callback and user_data are valid FFI parameters
-        let ptr = unsafe {
-            mln_map_create_with_loader(
-                frontend.as_ptr(),
-                pixel_ratio,
-                mode.into(),
-                callback,
-                user_data,
-            )
-        };
-
-        if ptr.is_null() {
-            return Err(TileServerError::RenderError(
-                get_last_error().unwrap_or_else(|| "Failed to create map with loader".to_string()),
-            ));
-        }
-
-        Ok(Self {
-            ptr,
-            _frontend: frontend,
-        })
-    }
-
     /// Load a style JSON
     pub fn load_style(&mut self, style_json: &str) -> Result<()> {
         let c_style = CString::new(style_json).map_err(|_| {
@@ -437,22 +375,6 @@ impl NativeMap {
         }
 
         Ok(())
-    }
-
-    /// Check if the map is fully loaded
-    #[allow(dead_code)] // Public API for polling map readiness; used in future async render path
-    pub fn is_fully_loaded(&self) -> bool {
-        // SAFETY: self.ptr is a valid non-null map pointer created in NativeMap::new()
-        unsafe { mln_map_is_fully_loaded(self.ptr) }
-    }
-
-    #[allow(dead_code)] // Public API for explicit camera control; render() accepts camera via RenderOptions
-    pub fn set_camera(&mut self, camera: CameraOptions) {
-        let c_camera: MLNCameraOptions = camera.into();
-        // SAFETY: self.ptr is a valid non-null map pointer, c_camera is a valid stack reference
-        unsafe {
-            mln_map_set_camera(self.ptr, &c_camera);
-        }
     }
 
     pub fn set_size(&mut self, size: Size) {

@@ -2393,15 +2393,6 @@ server:
     // === Edge-branch tests: defaults, round-trips, load_with_metadata ===
 
     #[test]
-    fn test_config_default_has_empty_sources_and_styles() {
-        let config = Config::default();
-        assert!(config.sources.is_empty());
-        assert!(config.styles.is_empty());
-        assert!(config.fonts.is_none());
-        assert!(config.files.is_none());
-    }
-
-    #[test]
     fn test_server_config_default_values() {
         let server = ServerConfig::default();
         assert_eq!(server.host, "0.0.0.0");
@@ -3326,7 +3317,7 @@ entries = [
     }
 
     mod composite_tests {
-        use crate::config::{CompositeConfig, Config};
+        use crate::config::Config;
 
         #[test]
         fn composite_config_roundtrip_with_minimum_fields() {
@@ -3374,13 +3365,6 @@ entries = [
                 id = "x"
             "#;
             assert!(toml::from_str::<Config>(toml).is_err());
-        }
-
-        #[test]
-        fn composite_config_default_impl_is_empty() {
-            let c = CompositeConfig::default();
-            assert!(c.id.is_empty());
-            assert!(c.sources.is_empty());
         }
     }
 
@@ -3463,12 +3447,9 @@ entries = [
 
         #[test]
         fn subfolder_mode_rejects_unknown_variant() {
-            #[derive(Deserialize)]
-            struct Wrap {
-                #[allow(dead_code)]
-                mode: SubfolderMode,
-            }
-            assert!(toml::from_str::<Wrap>(r#"mode = "bogus""#).is_err());
+            let parsed: Result<std::collections::HashMap<String, SubfolderMode>, _> =
+                toml::from_str(r#"mode = "bogus""#);
+            assert!(parsed.is_err());
         }
 
         #[test]

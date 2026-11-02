@@ -144,16 +144,6 @@ pub struct PostgresTableSource {
     metadata: TileMetadata,
     table_info: TableInfo,
     tile_query: String,
-    #[allow(dead_code)]
-    // Config value baked into tile_query SQL; kept for future tile-query regeneration
-    extent: u32,
-    #[allow(dead_code)]
-    // Config value baked into tile_query SQL; kept for future tile-query regeneration
-    buffer: u32,
-    #[allow(dead_code)] // Config value baked into tile_query SQL; kept for future LIMIT injection
-    max_features: Option<u32>,
-    #[allow(dead_code)] // Detected at pool init; reserved for margin-aware ST_TileEnvelope queries
-    supports_tile_margin: bool,
     cache: Option<Arc<TileCache>>,
 }
 
@@ -237,10 +227,6 @@ impl PostgresTableSource {
             metadata,
             table_info,
             tile_query,
-            extent: config.extent,
-            buffer: config.buffer,
-            max_features: config.max_features,
-            supports_tile_margin,
             cache,
         })
     }

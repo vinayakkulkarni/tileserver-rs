@@ -316,12 +316,6 @@ async fn data_tile_mlt_format_request_does_not_500() {
     assert!(status < 500, ".mlt request must not 5xx, got {status}");
 }
 
-#[tokio::test]
-async fn data_tile_compression_test_server() {
-    // placeholder to keep the cache server constructor exercised
-    let _ = compression_test_server().await;
-}
-
 // ============================================================
 // Directory + tar source tests (Bundle C — #1006 / #1005)
 // ============================================================

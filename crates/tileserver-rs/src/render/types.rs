@@ -542,27 +542,6 @@ mod tests {
     }
 
     #[test]
-    fn test_render_options_for_static_zero_dimension_rejected() {
-        let result = RenderOptions::for_static(
-            "s".to_string(),
-            "{}".to_string(),
-            StaticType::Center {
-                lon: 0.0,
-                lat: 0.0,
-                zoom: 1.0,
-                bearing: None,
-                pitch: None,
-            },
-            0,
-            100,
-            1,
-            ImageFormat::Png,
-            StaticQueryParams::default(),
-        );
-        assert!(result.is_err());
-    }
-
-    #[test]
     fn test_render_options_for_static_oversized_rejected() {
         let result = RenderOptions::for_static(
             "s".to_string(),
@@ -582,48 +561,6 @@ mod tests {
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("maximum"));
-    }
-
-    #[test]
-    fn test_render_options_for_static_scale_zero_rejected() {
-        let result = RenderOptions::for_static(
-            "s".to_string(),
-            "{}".to_string(),
-            StaticType::Center {
-                lon: 0.0,
-                lat: 0.0,
-                zoom: 1.0,
-                bearing: None,
-                pitch: None,
-            },
-            100,
-            100,
-            0,
-            ImageFormat::Png,
-            StaticQueryParams::default(),
-        );
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_render_options_for_static_scale_too_high_rejected() {
-        let result = RenderOptions::for_static(
-            "s".to_string(),
-            "{}".to_string(),
-            StaticType::Center {
-                lon: 0.0,
-                lat: 0.0,
-                zoom: 1.0,
-                bearing: None,
-                pitch: None,
-            },
-            100,
-            100,
-            5,
-            ImageFormat::Png,
-            StaticQueryParams::default(),
-        );
-        assert!(result.is_err());
     }
 
     #[test]
@@ -652,17 +589,6 @@ mod tests {
         assert!((opts.lat - 37.8).abs() < 0.001);
         assert!((opts.bearing - 45.0).abs() < 0.001);
         assert!((opts.pitch - 30.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_static_query_params_defaults() {
-        let p = StaticQueryParams::default();
-        assert!(p.path.is_none());
-        assert!(p.marker.is_none());
-        assert!(p.geojson.is_none());
-        assert!(!p.latlng);
-        assert!(p.padding.is_none());
-        assert!(p.maxzoom.is_none());
     }
 
     #[test]

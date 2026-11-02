@@ -58,7 +58,6 @@ pub(crate) struct ItemsQueryParams {
     #[serde(default)]
     offset: i64,
     /// ISO 8601 datetime filter (reserved for future use).
-    #[allow(dead_code)]
     #[serde(default)]
     datetime: Option<String>,
 }
