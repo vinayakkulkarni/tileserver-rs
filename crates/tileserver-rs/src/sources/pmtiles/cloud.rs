@@ -36,9 +36,9 @@ impl ObjectStoreBackend {
 }
 
 impl AsyncBackend for ObjectStoreBackend {
-    async fn read(&self, offset: usize, length: usize) -> PmtResult<BackendResponse> {
+    async fn read(&self, offset: u64, length: usize) -> PmtResult<BackendResponse> {
         let opts = GetOptions {
-            range: Some(GetRange::Bounded(offset as u64..(offset + length) as u64)),
+            range: Some(GetRange::Bounded(offset..offset + length as u64)),
             ..Default::default()
         };
         let mut result = self
