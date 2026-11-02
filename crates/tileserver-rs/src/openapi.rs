@@ -6,9 +6,6 @@
 //! The structs and functions in this module are used solely for documentation
 //! generation and are not called directly at runtime.
 
-// All structs/functions here are used solely by utoipa derive macros for OpenAPI doc generation
-#![allow(dead_code)]
-
 use utoipa::OpenApi;
 
 /// OpenAPI documentation for tileserver-rs

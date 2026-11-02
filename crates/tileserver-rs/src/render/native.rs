@@ -22,6 +22,11 @@ static INIT: Once = Once::new();
 
 /// Initialize the MapLibre Native library.
 /// This is called automatically when needed but can be called explicitly.
+///
+/// # Errors
+///
+/// [`TileServerError::RenderError`] when MapLibre Native fails to
+/// initialise.
 pub fn init() -> Result<()> {
     let mut result = Ok(());
 
@@ -203,6 +208,10 @@ impl RenderedImage {
     /// tiles comparable in size to tileserver-gl (~30-40 KB for a typical
     /// 512×512 map tile vs ~134 KB with the `image` crate's default Fast
     /// compression).
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the pixels cannot be encoded.
     pub fn to_png(&self) -> Result<Vec<u8>> {
         use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 
@@ -228,6 +237,10 @@ impl RenderedImage {
     }
 
     /// Convert to JPEG format
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the pixels cannot be encoded.
     pub fn to_jpeg(&self, quality: u8) -> Result<Vec<u8>> {
         use image::{ImageBuffer, Rgb};
 
@@ -266,6 +279,10 @@ impl RenderedImage {
     }
 
     /// Convert to WebP format
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the pixels cannot be encoded.
     pub fn to_webp(&self, _quality: u8) -> Result<Vec<u8>> {
         use image::codecs::webp::WebPEncoder;
 
@@ -298,6 +315,11 @@ unsafe impl Send for HeadlessFrontend {}
 
 impl HeadlessFrontend {
     /// Create a new headless frontend
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the native frontend cannot be
+    /// created.
     pub fn new(size: Size, pixel_ratio: f32) -> Result<Self> {
         init()?;
 
@@ -341,6 +363,11 @@ unsafe impl Send for NativeMap {}
 
 impl NativeMap {
     /// Create a new map instance
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the native map cannot be
+    /// created.
     pub fn new(size: Size, pixel_ratio: f32, mode: MapMode) -> Result<Self> {
         let frontend = HeadlessFrontend::new(size, pixel_ratio)?;
 
@@ -360,6 +387,11 @@ impl NativeMap {
     }
 
     /// Load a style JSON
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when the style JSON contains a null
+    /// byte or MapLibre rejects it.
     pub fn load_style(&mut self, style_json: &str) -> Result<()> {
         let c_style = CString::new(style_json).map_err(|_| {
             TileServerError::RenderError("style JSON contains null bytes".to_string())
@@ -385,6 +417,10 @@ impl NativeMap {
     }
 
     /// Render a still image synchronously
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when MapLibre Native fails to render.
     pub fn render(&mut self, options: Option<RenderOptions>) -> Result<RenderedImage> {
         let mut image_data = MLNImageData::default();
 
@@ -436,6 +472,10 @@ impl NativeMap {
     }
 
     /// Render a tile at the given coordinates
+    ///
+    /// # Errors
+    ///
+    /// [`TileServerError::RenderError`] when MapLibre Native fails to render.
     pub fn render_tile(
         &mut self,
         z: u8,
