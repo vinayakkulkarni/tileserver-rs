@@ -25,6 +25,12 @@
       "skillPath": "skills/nuxt-seo-best-practices/SKILL.md",
       "computedHash": "3f71098e1b7c29edccbff6cc961173404573a2b90563adba0b253d1bbef55f6c"
     },
+    "rust-skills": {
+      "source": "leonardomso/rust-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "9719e9ebd94783d3436ed26156bf9bf2e4c7f63b3220d9d17ff90cba55c92bb8"
+    },
     "vue-best-practices": {
       "source": "vinayakkulkarni/vue-nuxt-best-practices",
       "sourceType": "github",
