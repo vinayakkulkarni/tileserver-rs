@@ -1051,7 +1051,12 @@ async fn build_backend(config: &SourceConfig) -> Result<SftpBackend> {
     SftpBackend::connect(loc, identity, home_dir).await
 }
 
-async fn open_reader(backend: SftpBackend, url_str: &str) -> Result<SftpReader> {
+/// Read the PMTiles header through `backend` and map failures to
+/// [`TileServerError::MetadataError`] naming the source URL.
+async fn open_reader<B: pmtiles::AsyncBackend + Sync + Send>(
+    backend: B,
+    url_str: &str,
+) -> Result<AsyncPmTilesReader<B, HashMapCache>> {
     let cache = HashMapCache::default();
     AsyncPmTilesReader::try_from_source_and_cache(backend, cache)
         .await
@@ -1225,6 +1230,50 @@ impl TileSource for SftpPmTilesSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// In-memory [`pmtiles::AsyncBackend`] over a byte buffer, so
+    /// `open_reader` can be tested without an SSH server.
+    struct BytesBackend(bytes::Bytes);
+
+    impl pmtiles::AsyncBackend for BytesBackend {
+        async fn read(
+            &self,
+            offset: u64,
+            length: usize,
+        ) -> pmtiles::PmtResult<pmtiles::BackendResponse> {
+            let start = usize::try_from(offset)
+                .unwrap_or(usize::MAX)
+                .min(self.0.len());
+            let end = start.saturating_add(length).min(self.0.len());
+            Ok(pmtiles::BackendResponse::new(self.0.slice(start..end)))
+        }
+    }
+
+    #[tokio::test]
+    async fn open_reader_reads_the_header_of_a_valid_archive() {
+        let path = format!(
+            "{}/../../data/tiles/protomaps-sample.pmtiles",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let data = bytes::Bytes::from(std::fs::read(path).unwrap());
+        let reader = open_reader(BytesBackend(data), "sftp://host/a.pmtiles")
+            .await
+            .unwrap();
+        assert_eq!(reader.get_header().tile_type, TileType::Mvt);
+    }
+
+    #[tokio::test]
+    async fn open_reader_names_the_url_when_the_header_is_invalid() {
+        let junk = bytes::Bytes::from_static(b"not a pmtiles archive at all, just bytes");
+        let err = open_reader(BytesBackend(junk), "sftp://host/bad.pmtiles")
+            .await
+            .err()
+            .unwrap();
+        assert!(
+            matches!(&err, TileServerError::MetadataError(m) if m.contains("sftp://host/bad.pmtiles")),
+            "{err:?}"
+        );
+    }
 
     fn opts(pairs: &[(&str, &str)]) -> HashMap<String, String> {
         pairs

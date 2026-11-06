@@ -210,6 +210,53 @@ impl TileSource for CloudPmTilesSource {
 mod tests {
     use super::*;
 
+    fn pmtiles_config(id: &str, path: &str) -> SourceConfig {
+        toml::from_str(&format!(
+            "id = \"{id}\"\ntype = \"pmtiles\"\npath = \"{path}\""
+        ))
+        .unwrap()
+    }
+
+    /// Serve the fixture archive as `s3://bucket/protomaps-sample.pmtiles`
+    /// from a local path-style endpoint and open it through
+    /// `object_store` + pmtiles' `ObjectStoreBackend`.
+    #[tokio::test]
+    async fn opens_an_archive_from_an_s3_compatible_endpoint() {
+        use axum::http::{HeaderValue, header::ETAG};
+        let dir = format!("{}/../../data/tiles", env!("CARGO_MANIFEST_DIR"));
+        let app = axum::Router::new()
+            .nest_service("/bucket", tower_http::services::ServeDir::new(dir))
+            .layer(
+                tower_http::set_header::SetResponseHeaderLayer::if_not_present(
+                    ETAG,
+                    HeaderValue::from_static("\"fixture\""),
+                ),
+            );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let options = HashMap::from([
+            ("aws_endpoint".to_string(), format!("http://{addr}")),
+            ("aws_allow_http".to_string(), "true".to_string()),
+            ("aws_skip_signature".to_string(), "true".to_string()),
+            ("aws_region".to_string(), "us-east-1".to_string()),
+        ]);
+        let mut config = pmtiles_config("s3", "s3://bucket/protomaps-sample.pmtiles");
+        config.options = Some(options);
+        let source = CloudPmTilesSource::from_url(&config).await.unwrap();
+        assert_eq!(source.metadata().id, "s3");
+        let tile = source.get_tile(0, 0, 0).await.unwrap().unwrap();
+        assert!(!tile.data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn rejects_an_unparseable_cloud_url() {
+        let config = pmtiles_config("bad", "not a url");
+        let err = CloudPmTilesSource::from_url(&config).await.err().unwrap();
+        assert!(matches!(err, TileServerError::ConfigError(_)), "{err:?}");
+    }
+
     #[test]
     fn test_is_cloud_url_s3() {
         assert!(is_cloud_url("s3://bucket/path/tiles.pmtiles"));
