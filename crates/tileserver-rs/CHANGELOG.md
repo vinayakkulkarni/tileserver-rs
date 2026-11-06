@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.41.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.1...v2.41.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **deps:** bump @geoql/v-maplibre from 3.0.1 to 3.1.0 ([#1644](https://github.com/vinayakkulkarni/tileserver-rs/issues/1644)) ([249a9ec](https://github.com/vinayakkulkarni/tileserver-rs/commit/249a9ec9a74eeb9fc9a7ab0abcd6b5c9e64e85b3))
+* **deps:** bump @lucide/vue from 1.61.0 to 1.66.0 ([#1643](https://github.com/vinayakkulkarni/tileserver-rs/issues/1643)) ([310b549](https://github.com/vinayakkulkarni/tileserver-rs/commit/310b5498e3c9d107fa36bef08738f7c47d6372be))
+* **deps:** bump @mlc-ai/web-llm from 0.2.86 to 0.2.87 ([#1641](https://github.com/vinayakkulkarni/tileserver-rs/issues/1641)) ([54ef454](https://github.com/vinayakkulkarni/tileserver-rs/commit/54ef45483c5f458e3c643cb61747fb70368777e2))
+* **deps:** bump @tanstack/vue-query from 5.105.0 to 5.105.3 ([#1648](https://github.com/vinayakkulkarni/tileserver-rs/issues/1648)) ([fd760d0](https://github.com/vinayakkulkarni/tileserver-rs/commit/fd760d027cfec63ddc4a9d4e59091ab33f1ec9c3))
+* **deps:** bump cc from 1.10.0 to 1.11.0 ([#1651](https://github.com/vinayakkulkarni/tileserver-rs/issues/1651)) ([6802b80](https://github.com/vinayakkulkarni/tileserver-rs/commit/6802b80e29f8cfde405ae9ebd4126c53e3ab9dfb))
+* **deps:** bump eslint from 10.13.0 to 10.14.0 ([#1640](https://github.com/vinayakkulkarni/tileserver-rs/issues/1640)) ([663ca46](https://github.com/vinayakkulkarni/tileserver-rs/commit/663ca4636227313acc8ed764247da41aae1d1403))
+* **deps:** bump maplibre-gl-inspect from 0.0.10 to 0.0.12 ([#1649](https://github.com/vinayakkulkarni/tileserver-rs/issues/1649)) ([4bb7f02](https://github.com/vinayakkulkarni/tileserver-rs/commit/4bb7f025de5a11f63dfba7c46bc41c0bba91ca32))
+* **deps:** bump motion-v from 2.8.0 to 2.9.0 ([#1634](https://github.com/vinayakkulkarni/tileserver-rs/issues/1634)) ([f0e6c54](https://github.com/vinayakkulkarni/tileserver-rs/commit/f0e6c54193e33df62987b85b6ee277455dd76d74))
+* **deps:** bump node-forge from 1.4.0 to 1.4.2 ([#1642](https://github.com/vinayakkulkarni/tileserver-rs/issues/1642)) ([2bdab16](https://github.com/vinayakkulkarni/tileserver-rs/commit/2bdab169f6ff05ebc36f42b70cf09c386b0291c5))
+* **deps:** bump oxfmt from 0.74.0 to 0.75.0 ([#1635](https://github.com/vinayakkulkarni/tileserver-rs/issues/1635)) ([bb82b3c](https://github.com/vinayakkulkarni/tileserver-rs/commit/bb82b3cbb82abf80ed34febbceac99edac6ecc15))
+* **deps:** bump parquet from 60.0.0 to 60.1.0 in the arrow group ([#1637](https://github.com/vinayakkulkarni/tileserver-rs/issues/1637)) ([f8f5b7b](https://github.com/vinayakkulkarni/tileserver-rs/commit/f8f5b7bdee6ef4159169e43bc139e04f06ac3fea))
+* **deps:** bump rusqlite from 0.41.0 to 0.41.1 ([#1638](https://github.com/vinayakkulkarni/tileserver-rs/issues/1638)) ([6bdcc26](https://github.com/vinayakkulkarni/tileserver-rs/commit/6bdcc2655cbf7508db3af0ce960a3acf8711549f))
+* **deps:** bump ureq from 3.5.0 to 3.5.1 ([#1650](https://github.com/vinayakkulkarni/tileserver-rs/issues/1650)) ([22ae96d](https://github.com/vinayakkulkarni/tileserver-rs/commit/22ae96dcac74ca0bf257cd65dfe5cb56b3aea318))
+
+
+### Miscellaneous
+
+* install rust-skills with the skills cli ([#1645](https://github.com/vinayakkulkarni/tileserver-rs/issues/1645)) ([b5c8e33](https://github.com/vinayakkulkarni/tileserver-rs/commit/b5c8e33d25c7f7d5fc93fcbabc1378e42d7bf741))
+
 ## [2.41.1](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.0...v2.41.1) (2026-11-02)
 
 
