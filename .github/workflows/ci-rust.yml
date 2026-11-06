@@ -78,7 +78,7 @@ jobs:
             libx11-dev
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
@@ -186,7 +186,7 @@ jobs:
             libx11-dev
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
