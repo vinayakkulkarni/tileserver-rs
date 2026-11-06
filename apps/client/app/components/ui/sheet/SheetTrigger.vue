@@ -7,6 +7,6 @@
 
 <template>
   <DialogTrigger v-bind="props">
-    <slot></slot>
+    <slot />
   </DialogTrigger>
 </template>

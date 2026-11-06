@@ -245,7 +245,7 @@
     </aside>
 
     <main class="min-w-0 flex-1 overflow-y-auto bg-background pt-14 lg:pt-0">
-      <slot></slot>
+      <slot />
     </main>
   </div>
 </template>

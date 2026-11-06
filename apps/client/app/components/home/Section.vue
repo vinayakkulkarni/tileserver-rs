@@ -54,7 +54,7 @@
         <div
           class="section-body grid grid-cols-section gap-2 border-t border-border px-section-x-sm py-3"
         >
-          <slot></slot>
+          <slot />
         </div>
       </div>
     </div>

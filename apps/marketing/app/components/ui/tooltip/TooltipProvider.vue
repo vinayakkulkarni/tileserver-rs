@@ -7,6 +7,6 @@
 
 <template>
   <TooltipProvider v-bind="props">
-    <slot></slot>
+    <slot />
   </TooltipProvider>
 </template>

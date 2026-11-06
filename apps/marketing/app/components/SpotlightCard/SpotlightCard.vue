@@ -65,9 +65,7 @@
     :style="{ borderRadius: `${borderRadius}px` }"
   >
     <div
-      class="
-        pointer-events-none absolute inset-0 transition-opacity duration-500
-      "
+      class="pointer-events-none absolute inset-0 transition-opacity duration-500"
       :style="borderStyle"
     ></div>
     <div
@@ -75,9 +73,7 @@
       :style="spotlightStyle"
     ></div>
     <div
-      class="
-        pointer-events-none absolute inset-0 transition-opacity duration-500
-      "
+      class="pointer-events-none absolute inset-0 transition-opacity duration-500"
       :style="{
         borderRadius: `${borderRadius}px`,
         opacity: isHovered ? 0.5 : 0,
@@ -86,7 +82,7 @@
       }"
     ></div>
     <div class="relative z-10">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>

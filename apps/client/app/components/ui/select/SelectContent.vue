@@ -51,7 +51,7 @@
           )
         "
       >
-        <slot></slot>
+        <slot />
       </SelectViewport>
       <SelectScrollDownButton />
     </SelectContent>
