@@ -80,6 +80,16 @@ jobs:
         with:
           key: coverage-${{ matrix.group }}
 
+      - name: Drop incomplete DuckDB source trees
+        # libduckdb-sys 1.20000.1 unpacks its sources once into
+        # target/**/duckdb-sources/<hash> and marks the tree with a COMPLETE file.
+        # rust-cache's target cleanup deletes that file, so a restored tree has no
+        # marker and the build script fails with "Directory not empty"
+        # (duckdb/duckdb-rs#935). Fixed upstream in duckdb/duckdb-rs#936, not yet
+        # released; remove this step once libduckdb-sys > 1.20000.1 ships.
+        shell: bash
+        run: find target -type d -name duckdb-sources -prune -exec rm -rf {} + 2>/dev/null || true
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
