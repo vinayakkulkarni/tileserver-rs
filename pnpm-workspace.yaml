@@ -95,7 +95,7 @@ catalogs:
     '@mlc-ai/web-llm': ^0.2.87
     '@tanstack/ai': ^1.0.1
     '@tanstack/ai-vue': ^1.0.0
-    '@tanstack/query-db-collection': ^1.4.8
+    '@tanstack/query-db-collection': ^1.5.0
     '@tanstack/vue-db': ^0.3.12
     '@tanstack/vue-query': ^5.105.3
     '@tmcw/togeojson': ^7.1.3
