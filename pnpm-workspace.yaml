@@ -103,7 +103,7 @@ catalogs:
     '@types/papaparse': ^5.5.2
     '@types/shpjs': ^3.4.7
     destr: ^2.0.5
-    maplibre-gl-inspect: ^0.0.10
+    maplibre-gl-inspect: ^0.0.12
     papaparse: ^5.7.0
     pmtiles: ^4.5.0
     shpjs: ^6.2.0
