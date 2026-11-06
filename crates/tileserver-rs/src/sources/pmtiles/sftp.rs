@@ -1053,7 +1053,7 @@ async fn build_backend(config: &SourceConfig) -> Result<SftpBackend> {
 
 async fn open_reader(backend: SftpBackend, url_str: &str) -> Result<SftpReader> {
     let cache = HashMapCache::default();
-    AsyncPmTilesReader::try_from_cached_source(backend, cache)
+    AsyncPmTilesReader::try_from_source_and_cache(backend, cache)
         .await
         .map_err(|e| {
             TileServerError::MetadataError(format!(

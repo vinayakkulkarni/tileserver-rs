@@ -33,7 +33,7 @@ futures          = "0.3.34"
 serde            = { version = "1.0.229", features = ["derive"] }
 serde_json       = "1.0.154"
 serde_yaml_ng    = "0.10.0"
-toml             = "1.1.8"
+toml             = "1.2.0"
 
 # Pattern matching (used by CORS origin glob/regex support)
 regex            = "1.13.1"
@@ -50,7 +50,7 @@ tracing          = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Tile formats
-pmtiles          = { version = "0.26.0", default-features = false, features = ["http-async", "mmap-async-tokio", "tilejson"] }
+pmtiles          = { version = "0.28.0", default-features = false, features = ["http-async", "file-async-tokio", "tilejson", "brotli", "zstd"] }
 
 # Cloud object storage (optional)
 object_store     = { version = "0.14.2", default-features = false, features = ["aws", "azure", "gcp"] }
@@ -59,11 +59,11 @@ object_store     = { version = "0.14.2", default-features = false, features = ["
 # under `russh::keys` (the standalone russh-keys crate is deprecated/merged),
 # so we only need russh + russh-sftp. `ring` crypto provider is preferred over
 # `aws-lc-rs` for build-time predictability on Linux/macOS.
-russh            = { version = "0.65.0", default-features = false, features = ["ring"] }
+russh            = { version = "0.65.1", default-features = false, features = ["ring"] }
 russh-sftp       = { version = "3.0.1", default-features = false }
 geozero          = { version = "0.15.1", features = ["with-mvt", "with-geojson"] }
 flate2           = "1.1.10"
-brotli           = "9.0.0"
+brotli           = "9.1.1"
 zstd             = "0.14.3"
 prost            = "0.14.4"
 # CEL (Common Expression Language) per-feature vector tile filtering. Default
@@ -73,7 +73,7 @@ geo-types        = "0.7.20"
 
 # MLT support — unblocked May 8 2026 by cql2 0.5.6 (geo 0.31 → 0.33). 0.9.1
 # renamed `TileLayer01` → `TileLayer`; transcode.rs callsites updated.
-mlt-core         = { version = "0.22.0" }
+mlt-core         = { version = "0.22.1" }
 
 # MBTiles / SQLite
 #
@@ -85,7 +85,7 @@ mlt-core         = { version = "0.22.0" }
 # always present on macOS (/usr/lib/libsqlite3.dylib), Linux distros ship
 # libsqlite3-dev in default repos, and CI/Docker installs it explicitly.
 # Windows is handled separately via the `bundled-windows` feature.
-rusqlite         = { version = "0.41.0", features = ["bundled-windows"] }
+rusqlite         = { version = "0.41.1", features = ["bundled-windows"] }
 
 # HTTP client
 reqwest          = { version = "0.13.5", default-features = false, features = ["rustls", "json", "stream"] }
@@ -122,7 +122,7 @@ rust-embed       = { version = "8.13.0", features = ["axum"] }
 
 # OpenAPI / Scalar API Reference
 utoipa           = { version = "6.0.0", features = ["axum_extras"] }
-scalar_api_reference = { version = "0.2.17", features = ["axum"] }
+scalar_api_reference = { version = "0.2.22", features = ["axum"] }
 
 # OpenTelemetry — full 0.33 family, paired with `tracing-opentelemetry` 0.34
 # (the release line built against `opentelemetry ^0.33`).
@@ -148,7 +148,7 @@ gdal             = { version = "0.19.0", features = ["bindgen"] }
 # bilinear, so the configured resampling needs the raw call (issue #1599).
 # Same crate `gdal` already depends on; the `[patch]` below pins both.
 gdal-sys         = "0.12.0"
-stac             = { version = "0.17.6", default-features = false }
+stac             = { version = "0.17.7", default-features = false }
 
 # PostgreSQL (optional)
 deadpool-postgres = "0.14.2"
@@ -160,13 +160,13 @@ moka             = { version = "0.12.16", features = ["future"] }
 # OGC API (optional, used with postgres)
 ogcapi-types     = { version = "0.3.0", features = ["features", "common"] }
 geojson          = "1.0.0"
-cql2             = "0.6.0"
+cql2             = "0.6.1"
 
 # GeoParquet (optional)
-parquet          = { version = "60.0.0", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
-arrow-array      = "60.0.0"
-arrow-schema     = "60.0.0"
-arrow-cast       = "60.0.0"
+parquet          = { version = "60.1.0", default-features = false, features = ["arrow", "zstd", "snap", "lz4", "async"] }
+arrow-array      = "60.1.0"
+arrow-schema     = "60.1.0"
+arrow-cast       = "60.1.0"
 # geo 0.33 unblocked May 8 2026 by cql2 0.5.6 (which finally shipped a
 # .crate with geo = "0.33.0" — earlier 0.5.4 / 0.5.5 release tags carried
 # stale snapshots that still pinned geo ^0.31; see developmentseed/cql2-rs#199).
@@ -176,16 +176,16 @@ arrow-cast       = "60.0.0"
 geo              = "0.33.1"
 
 # DuckDB (optional)
-duckdb           = { version = "1.20000.0", features = ["bundled"] }
+duckdb           = { version = "1.20000.1", features = ["bundled"] }
 
 # FFI
 libc             = "0.2.191"
-cc               = "1.10.0"
+cc               = "1.11.0"
 cmake            = "0.1.58"
 pkg-config       = "0.3.34"
 
 # Prebuilt download (build-dependencies for mbgl-sys prebuilt feature)
-ureq             = { version = "3.5.0", default-features = false, features = ["rustls"] }
+ureq             = { version = "3.5.1", default-features = false, features = ["rustls"] }
 tar              = "0.4.46"
 
 # Dev / test dependencies
@@ -220,12 +220,13 @@ strip = false
 [profile.dev.package."*"]
 opt-level = 3
 
-# Point gdal + gdal-sys at AlexanderWillner/gdal#fix/gdal-3.13-compat
-# (georust/gdal PR #714). GDAL 3.13 renamed `GDT_Byte` to `GDT_UInt8` in the
-# C enum and added `bOperateInBufType` to `GDALRasterIOExtraArg`; the gdal
-# 0.19.0 crate predates that change and fails to compile against a Homebrew
-# libgdal 3.13 install. Drop this patch block once a gdal release (>0.19.0)
-# lands containing PR #714. Tracking issue: georust/gdal#715.
+# Point gdal + gdal-sys at georust/gdal master. GDAL 3.13 renamed `GDT_Byte`
+# to `GDT_UInt8` and added `bOperateInBufType` to `GDALRasterIOExtraArg`; the
+# gdal 0.19.0 crate predates that and fails to build against libgdal 3.13.
+# The fix (georust/gdal#714) is merged on master, with pre-built 3.13 bindings
+# (#723), but not released: master still carries gdal 0.19.0 / gdal-sys 0.12.0,
+# so this patch applies to the crates.io versions. Master requires GDAL >= 3.8
+# (#716). Drop this block once a gdal release > 0.19.0 lands (georust/gdal#715).
 [patch.crates-io]
-gdal     = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }
-gdal-sys = { git = "https://github.com/AlexanderWillner/gdal.git", rev = "968cf34a3101ef0aa6e418e779752fa282bc3269" }
+gdal     = { git = "https://github.com/georust/gdal.git", rev = "c0a6266b987a2c2d44aea9956c2cae1ed71445cf" }
+gdal-sys = { git = "https://github.com/georust/gdal.git", rev = "c0a6266b987a2c2d44aea9956c2cae1ed71445cf" }
