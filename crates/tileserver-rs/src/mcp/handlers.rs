@@ -665,21 +665,14 @@ async fn point_query_postgres(
     state: &Arc<AppState>,
     args: &QueryFeaturesAtPointArgs,
 ) -> Result<CallToolResult, McpError> {
-    use crate::sources::postgres::PostgresTableSource;
-
-    let Some(source) = state.sources.get(&args.source_id) else {
-        return Ok(tile_error_to_call_result(
-            crate::error::TileServerError::SourceNotFound(args.source_id.clone()),
-        ));
+    let table = match postgres_table(
+        state,
+        &args.source_id,
+        "; feature query at point is only supported for PostgreSQL table sources currently",
+    ) {
+        Ok(t) => t,
+        Err(failure) => return Ok(*failure),
     };
-
-    let Some(table) = source.as_any().downcast_ref::<PostgresTableSource>() else {
-        return Ok(tool_error(format!(
-            "source '{}' is not a PostgreSQL table source; feature query at point is only supported for PostgreSQL table sources currently",
-            args.source_id
-        )));
-    };
-
     let radius = args.radius_deg.unwrap_or(0.0001).abs();
     let bbox = [
         args.lon - radius,
@@ -691,28 +684,15 @@ async fn point_query_postgres(
         .limit
         .unwrap_or(POINT_QUERY_DEFAULT_LIMIT)
         .clamp(1, 1000);
-
-    let (features, _matched) = match table
-        .query_features_geojson(Some(bbox), 4326, 4326, None, None, limit, 0)
-        .await
-    {
-        Ok(v) => v,
-        Err(e) => return Ok(tile_error_to_call_result(e)),
-    };
-
-    let fc = serde_json::json!({
-        "type": "FeatureCollection",
-        "features": features,
-        "numberReturned": features.len(),
-    });
-    match ContentBlock::json(&fc) {
-        Ok(c) => Ok(CallToolResult::success(vec![c])),
-        Err(e) => Ok(tile_error_to_call_result(
-            crate::error::TileServerError::Internal(anyhow::anyhow!(
-                "failed to serialize FeatureCollection: {e}"
-            )),
-        )),
-    }
+    Ok(
+        match table
+            .query_features_geojson(Some(bbox), 4326, 4326, None, None, limit, 0)
+            .await
+        {
+            Ok((features, _)) => feature_collection_result(&features, None),
+            Err(e) => tile_error_to_call_result(e),
+        },
+    )
 }
 
 #[cfg(feature = "postgres")]
@@ -720,65 +700,79 @@ async fn cql2_query_postgres(
     state: &Arc<AppState>,
     args: &QueryFeaturesCql2Args,
 ) -> Result<CallToolResult, McpError> {
-    use crate::sources::postgres::PostgresTableSource;
-    use cql2::{Expr, ToSqlAst};
-
-    let Some(source) = state.sources.get(&args.source_id) else {
-        return Ok(tile_error_to_call_result(
-            crate::error::TileServerError::SourceNotFound(args.source_id.clone()),
-        ));
+    let table = match postgres_table(state, &args.source_id, "") {
+        Ok(t) => t,
+        Err(failure) => return Ok(*failure),
     };
-
-    let Some(table) = source.as_any().downcast_ref::<PostgresTableSource>() else {
-        return Ok(tool_error(format!(
-            "source '{}' is not a PostgreSQL table source",
-            args.source_id
-        )));
+    // The same gate as the OGC `filter=` parameter: only the table's own
+    // columns, and the expression must survive a parse/print round trip.
+    // Translating the raw CQL2 instead would let a caller put any SQL
+    // function call (for example `pg_sleep(10) = 1`) or any column into the
+    // WHERE clause.
+    let sql = match crate::routes::ogc_filter::translate_filter_to_sql(
+        args.cql2.trim(),
+        Some("cql2-text"),
+        &table.table_info().properties,
+    ) {
+        Ok(sql) => sql,
+        Err(e) => return Ok(tool_error(format!("invalid CQL2 filter: {e}"))),
     };
-
-    let expr: Expr = match cql2::parse_text(args.cql2.trim()) {
-        Ok(e) => e,
-        Err(e) => return Ok(tool_error(format!("CQL2-text parse failed: {e}"))),
-    };
-
-    let sql = match expr.to_sql() {
-        Ok(s) => s,
-        Err(e) => return Ok(tool_error(format!("CQL2 -> SQL translation failed: {e}"))),
-    };
-
     let limit = args
         .limit
         .unwrap_or(CQL2_QUERY_DEFAULT_LIMIT)
         .clamp(1, 1000);
+    Ok(
+        match table
+            .query_features_geojson(args.bbox, 4326, 4326, Some(&sql), Some(4326), limit, 0)
+            .await
+        {
+            Ok((features, matched)) => feature_collection_result(&features, Some(matched)),
+            Err(e) => tile_error_to_call_result(e),
+        },
+    )
+}
 
-    let (features, matched) = match table
-        .query_features_geojson(
-            args.bbox,
-            4326,
-            4326,
-            Some(sql.as_str()),
-            Some(4326),
-            limit,
-            0,
-        )
-        .await
-    {
-        Ok(v) => v,
-        Err(e) => return Ok(tile_error_to_call_result(e)),
-    };
+/// The PostgreSQL table source `source_id`, or the tool error to return.
+#[cfg(feature = "postgres")]
+fn postgres_table<'a>(
+    state: &'a AppState,
+    source_id: &str,
+    not_a_table_hint: &str,
+) -> Result<&'a crate::sources::postgres::PostgresTableSource, ToolFailure> {
+    let source = state.sources.get(source_id).ok_or_else(|| {
+        fail(tile_error_to_call_result(
+            crate::error::TileServerError::SourceNotFound(source_id.to_string()),
+        ))
+    })?;
+    source
+        .as_any()
+        .downcast_ref::<crate::sources::postgres::PostgresTableSource>()
+        .ok_or_else(|| {
+            fail(tool_error(format!(
+                "source '{source_id}' is not a PostgreSQL table source{not_a_table_hint}"
+            )))
+        })
+}
 
-    let fc = serde_json::json!({
+/// A GeoJSON FeatureCollection as JSON tool content. `numberMatched` is
+/// included when known.
+#[cfg(feature = "postgres")]
+fn feature_collection_result(
+    features: &[serde_json::Value],
+    matched: Option<i64>,
+) -> CallToolResult {
+    let mut fc = serde_json::json!({
         "type": "FeatureCollection",
         "features": features,
-        "numberMatched": matched,
         "numberReturned": features.len(),
     });
+    if let Some(matched) = matched {
+        fc["numberMatched"] = matched.into();
+    }
     match ContentBlock::json(&fc) {
-        Ok(c) => Ok(CallToolResult::success(vec![c])),
-        Err(e) => Ok(tile_error_to_call_result(
-            crate::error::TileServerError::Internal(anyhow::anyhow!(
-                "failed to serialize FeatureCollection: {e}"
-            )),
+        Ok(c) => CallToolResult::success(vec![c]),
+        Err(e) => tile_error_to_call_result(crate::error::TileServerError::Internal(
+            anyhow::anyhow!("failed to serialize FeatureCollection: {e}"),
         )),
     }
 }
@@ -887,5 +881,109 @@ mod render_static_tests {
         let err = webp_image_result(&vec![0; MAX_RENDER_BYTES + 1]).unwrap_err();
         assert_eq!(err.is_error, Some(true));
         assert!(text(&err).contains("soft cap"));
+    }
+}
+
+/// MCP feature queries against a live PostGIS (`DATABASE_URL`, loaded with
+/// `benchmarks/postgres/init.sql`).
+#[cfg(all(test, feature = "postgres-integration"))]
+mod postgis_tests {
+    use super::*;
+
+    async fn state() -> Arc<AppState> {
+        let url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgresql://tileserver:tileserver@localhost:5432/tiles".into());
+        let config: crate::config::PostgresConfig = toml::from_str(&format!(
+            r#"
+connection_string = "{url}"
+[[tables]]
+id = "cities"
+table = "cities"
+geometry_column = "geom"
+id_column = "id"
+srid = 4326
+"#
+        ))
+        .unwrap();
+        let sources = crate::sources::SourceManager::from_configs_with_postgres(&[], Some(&config))
+            .await
+            .expect("PostGIS must be reachable: set DATABASE_URL");
+        Arc::new(AppState {
+            sources: Arc::new(sources),
+            styles: Arc::new(crate::styles::StyleManager::new()),
+            renderer: None,
+            base_url: "http://localhost:8080".into(),
+            render_base_url: "http://127.0.0.1:8080".into(),
+            ui_enabled: false,
+            fonts_dir: None,
+            files_dir: None,
+            upload_dir: None,
+        })
+    }
+
+    fn body(result: &CallToolResult) -> serde_json::Value {
+        serde_json::to_value(result).unwrap()
+    }
+
+    fn cql2(source_id: &str, cql2: &str) -> QueryFeaturesCql2Args {
+        serde_json::from_value(serde_json::json!({
+            "source_id": source_id, "cql2": cql2, "limit": 5
+        }))
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn cql2_query_filters_on_table_columns() {
+        let state = state().await;
+        let result = cql2_query_postgres(&state, &cql2("cities", "population > 1000000"))
+            .await
+            .unwrap();
+        assert_ne!(result.is_error, Some(true), "{:?}", body(&result));
+        let fc: serde_json::Value =
+            serde_json::from_str(body(&result)["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(fc["type"], "FeatureCollection");
+        assert!(fc["numberMatched"].as_i64().unwrap() > 0);
+        assert!(fc["numberReturned"].as_u64().unwrap() <= 5);
+    }
+
+    #[tokio::test]
+    async fn cql2_query_rejects_sql_functions_and_unknown_columns() {
+        let state = state().await;
+        for injection in ["pg_sleep(1) = 1", "password = 'x'"] {
+            let result = cql2_query_postgres(&state, &cql2("cities", injection))
+                .await
+                .unwrap();
+            assert_eq!(result.is_error, Some(true), "{injection} must be refused");
+            assert!(
+                body(&result).to_string().contains("invalid CQL2 filter"),
+                "{}",
+                body(&result)
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn point_query_returns_features_near_a_city() {
+        let state = state().await;
+        let args: QueryFeaturesAtPointArgs = serde_json::from_value(serde_json::json!({
+            "source_id": "cities", "lon": 0.0, "lat": 0.0, "radius_deg": 180.0, "limit": 3
+        }))
+        .unwrap();
+        let result = point_query_postgres(&state, &args).await.unwrap();
+        let fc: serde_json::Value =
+            serde_json::from_str(body(&result)["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(fc["numberReturned"], 3);
+        assert!(fc.get("numberMatched").is_none());
+        let missing: QueryFeaturesAtPointArgs = serde_json::from_value(serde_json::json!({
+            "source_id": "nope", "lon": 0.0, "lat": 0.0
+        }))
+        .unwrap();
+        assert_eq!(
+            point_query_postgres(&state, &missing)
+                .await
+                .unwrap()
+                .is_error,
+            Some(true)
+        );
     }
 }

@@ -269,6 +269,25 @@ async fn ogc_items_rejects_a_bad_filter_with_400() {
     resp.assert_status_bad_request();
 }
 
+/// A SQL function call in `filter` must never reach PostgreSQL: with no
+/// operator allow-list, `pg_sleep(2) IS NULL` would hold the request ~2 s.
+#[tokio::test]
+async fn ogc_items_rejects_sql_functions_in_the_filter() {
+    let server = server().await;
+    let started = std::time::Instant::now();
+    for filter in [
+        "pg_sleep(2) IS NULL",
+        "query_to_xml('select 1', true, true, '') like '%1%'",
+    ] {
+        server
+            .get("/ogc/collections/cities/items")
+            .add_query_param("filter", filter)
+            .await
+            .assert_status_bad_request();
+    }
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+}
+
 #[tokio::test]
 async fn ogc_queryables_and_schema_list_table_columns() {
     let server = server().await;
