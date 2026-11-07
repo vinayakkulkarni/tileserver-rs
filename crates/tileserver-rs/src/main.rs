@@ -351,36 +351,8 @@ async fn spawn_prometheus(
 }
 
 fn log_auto_detect_report(report: &autodetect::AutoDetectReport) {
-    tracing::info!("Auto-detected from: {}", report.target.display());
-    if !report.sources.is_empty() {
-        tracing::info!(
-            "  Sources: {} ({})",
-            report.sources.len(),
-            report
-                .sources
-                .iter()
-                .map(|s| s.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-    if !report.styles.is_empty() {
-        tracing::info!(
-            "  Styles: {} ({})",
-            report.styles.len(),
-            report
-                .styles
-                .iter()
-                .map(|s| s.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-    if let Some(ref fonts) = report.fonts_dir {
-        tracing::info!("  Fonts: {}", fonts.display());
-    }
-    if !report.geojson_files.is_empty() {
-        tracing::info!("  GeoJSON files: {}", report.geojson_files.len());
+    for line in report.summary() {
+        tracing::info!("{line}");
     }
     for conflict in &report.conflicts {
         tracing::warn!("  Conflict: {}", conflict);
