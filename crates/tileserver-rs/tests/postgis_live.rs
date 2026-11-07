@@ -28,6 +28,7 @@ fn postgres_config() -> PostgresConfig {
         r#"
 connection_string = "{url}"
 pool_size = 4
+pool_pre_warm = true
 
 [[tables]]
 id = "cities"
@@ -43,6 +44,7 @@ table = "roads"
 geometry_column = "geom"
 id_column = "id"
 srid = 4326
+filter = {{ expression = "false" }}
 
 [[functions]]
 id = "points"
@@ -53,6 +55,15 @@ maxzoom = 14
 [[functions]]
 id = "filtered"
 function = "get_filtered_tiles"
+
+# Does not exist: logged and skipped, the other sources still load.
+[[functions]]
+id = "missing"
+function = "no_such_function"
+
+[[tables]]
+id = "missing_table"
+table = "no_such_table"
 "#,
         url = database_url()
     ))
@@ -81,6 +92,9 @@ async fn loads_every_table_and_function_source() {
     for id in ["cities", "roads", "points", "filtered"] {
         assert!(ids.contains(&id), "{id} missing from {ids:?}");
     }
+    for id in ["missing", "missing_table"] {
+        assert!(!ids.contains(&id), "{id} must not load: {ids:?}");
+    }
 }
 
 #[tokio::test]
@@ -90,6 +104,13 @@ async fn table_source_serves_a_vector_tile_with_features() {
     let resp = server.get("/data/cities/0/0/0.pbf").await;
     resp.assert_status_ok();
     assert!(resp.as_bytes().len() > 100, "a z0 tile with 500 cities");
+}
+
+#[tokio::test]
+async fn table_cel_preset_filters_every_feature_out() {
+    let server = server().await;
+    let resp = server.get("/data/roads/0/0/0.pbf").await;
+    assert_eq!(resp.status_code(), 204, "a preset that keeps nothing");
 }
 
 #[tokio::test]
