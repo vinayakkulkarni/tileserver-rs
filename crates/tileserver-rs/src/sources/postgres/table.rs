@@ -1,15 +1,14 @@
 //! PostgreSQL table tile source implementation with optimized spatial filtering.
 
 use async_trait::async_trait;
-use bytes::Bytes;
 use std::sync::Arc;
 use tokio_postgres::types::Type;
 
 use crate::config::PostgresTableConfig;
 use crate::error::{Result, TileServerError};
-use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
+use crate::sources::{TileData, TileFormat, TileMetadata, TileSource};
 
-use super::{PostgresPool, TileCache, TileCacheKey};
+use super::{PostgresPool, TileCache};
 
 /// Encodes a `serde_json::Value` from the client payload into a `(sql, param)`
 /// pair suitable for splicing into a parameterised `INSERT` / `UPDATE`.
@@ -307,6 +306,33 @@ impl PostgresTableSource {
             tile_query,
             cache,
         })
+    }
+
+    /// Run the tile query. An empty result is no tile.
+    async fn query_tile(&self, z: u8, x: u32, y: u32) -> Result<Option<TileData>> {
+        let conn = self.pool.get().await?;
+        let prep_query = conn
+            .prepare_typed_cached(&self.tile_query, &[Type::INT4, Type::INT4, Type::INT4])
+            .await
+            .map_err(|e| {
+                TileServerError::PostgresError(format!(
+                    "failed to prepare tile query for {}.{}: {}",
+                    self.table_info.schema, self.table_info.table, e
+                ))
+            })?;
+        let row = conn
+            .query_opt(&prep_query, &[&i32::from(z), &(x as i32), &(y as i32)])
+            .await
+            .map_err(|e| {
+                TileServerError::PostgresError(format!(
+                    "failed to execute tile query for {}.{} at z={}, x={}, y={}: {}",
+                    self.table_info.schema, self.table_info.table, z, x, y, e
+                ))
+            })?;
+        Ok(row
+            .and_then(|row| row.get::<_, Option<Vec<u8>>>(0))
+            .filter(|d| !d.is_empty())
+            .map(super::pbf_tile))
     }
 
     #[must_use]
@@ -1121,72 +1147,11 @@ impl PostgresTableSource {
 #[async_trait]
 impl TileSource for PostgresTableSource {
     async fn get_tile(&self, z: u8, x: u32, y: u32) -> Result<Option<TileData>> {
-        let max_tile = 1u32 << z;
-        if x >= max_tile || y >= max_tile {
-            return Err(TileServerError::InvalidCoordinates { z, x, y });
-        }
-
-        if z < self.metadata.minzoom || z > self.metadata.maxzoom {
+        if !super::serves_tile(&self.metadata, z, x, y)? {
             return Ok(None);
         }
-
-        let cache_key = self.cache.as_ref().map(|_| TileCacheKey {
-            source_id: self.metadata.id.clone().into(),
-            z,
-            x,
-            y,
-            encoding: TileCompression::None,
-            filter: 0,
-        });
-
-        if let (Some(cache), Some(key)) = (&self.cache, &cache_key)
-            && let Some(tile) = cache.get(key).await
-        {
-            return Ok(Some(tile));
-        }
-
-        let conn = self.pool.get().await?;
-
-        let prep_query = conn
-            .prepare_typed_cached(&self.tile_query, &[Type::INT4, Type::INT4, Type::INT4])
-            .await
-            .map_err(|e| {
-                TileServerError::PostgresError(format!(
-                    "failed to prepare tile query for {}.{}: {}",
-                    self.table_info.schema, self.table_info.table, e
-                ))
-            })?;
-
-        let tile_data: Option<Vec<u8>> = conn
-            .query_opt(&prep_query, &[&(z as i32), &(x as i32), &(y as i32)])
-            .await
-            .map_err(|e| {
-                TileServerError::PostgresError(format!(
-                    "failed to execute tile query for {}.{} at z={}, x={}, y={}: {}",
-                    self.table_info.schema, self.table_info.table, z, x, y, e
-                ))
-            })?
-            .and_then(|row| row.get::<_, Option<Vec<u8>>>(0));
-
-        let result = tile_data.filter(|d| !d.is_empty()).map(|data| {
-            let compression = if data.len() >= 2 && data[0] == 0x1f && data[1] == 0x8b {
-                TileCompression::Gzip
-            } else {
-                TileCompression::None
-            };
-
-            TileData {
-                data: Bytes::from(data),
-                format: TileFormat::Pbf,
-                compression,
-            }
-        });
-
-        if let (Some(cache), Some(key), Some(tile)) = (&self.cache, cache_key, &result) {
-            cache.insert(key, tile.clone()).await;
-        }
-
-        Ok(result)
+        let fetch = self.query_tile(z, x, y);
+        super::through_cache(self.cache.as_deref(), &self.metadata.id, (z, x, y), fetch).await
     }
 
     fn metadata(&self) -> &TileMetadata {
