@@ -11,7 +11,7 @@ use opentelemetry::KeyValue;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
+use opentelemetry_sdk::metrics::{MeterProviderBuilder, PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::trace::{Sampler, SdkTracerProvider};
 use prometheus::Registry;
 use tracing::Subscriber;
@@ -104,70 +104,72 @@ where
 }
 
 fn init_metrics_provider(config: &TelemetryConfig, resource: Resource) -> Option<Registry> {
-    let prometheus_wanted = config.prometheus_bind.is_some();
     let otlp_wanted = config.metrics_enabled && config.enabled;
-
-    if !prometheus_wanted && !otlp_wanted {
+    if config.prometheus_bind.is_none() && !otlp_wanted {
         return None;
     }
-
-    let mut builder = SdkMeterProvider::builder().with_resource(resource);
-
-    let mut otlp_attached = false;
-    if otlp_wanted {
-        match opentelemetry_otlp::MetricExporter::builder()
-            .with_tonic()
-            .with_endpoint(&config.endpoint)
-            .build()
-        {
-            Ok(metrics_exporter) => {
-                let reader = PeriodicReader::builder(metrics_exporter)
-                    .with_interval(Duration::from_secs(config.metrics_export_interval_secs))
-                    .build();
-                builder = builder.with_reader(reader);
-                otlp_attached = true;
-            }
-            Err(e) => {
-                tracing::warn!("Failed to create OTLP metric exporter: {e}. OTLP push disabled.");
-            }
-        }
-    }
-
-    let prom_registry = if prometheus_wanted {
-        let registry = Registry::new();
-        match opentelemetry_prometheus::exporter()
-            .with_registry(registry.clone())
-            .build()
-        {
-            Ok(exporter) => {
-                builder = builder.with_reader(exporter);
-                Some(registry)
-            }
-            Err(e) => {
-                tracing::warn!("Failed to build Prometheus exporter: {e}. Prometheus disabled.");
-                None
-            }
-        }
+    let builder = SdkMeterProvider::builder().with_resource(resource);
+    let (builder, otlp_attached) = if otlp_wanted {
+        attach_otlp_metrics(builder, config)
     } else {
-        None
+        (builder, false)
     };
-
+    let (builder, prom_registry) = if config.prometheus_bind.is_some() {
+        attach_prometheus(builder)
+    } else {
+        (builder, None)
+    };
     if !otlp_attached && prom_registry.is_none() {
         return None;
     }
-
     let provider = builder.build();
     let _ = METER_PROVIDER.set(provider.clone());
     opentelemetry::global::set_meter_provider(provider);
-
     tracing::info!(
         otlp_metrics = otlp_attached,
         prometheus_metrics = prom_registry.is_some(),
         service_name = %config.service_name,
         "OpenTelemetry metrics initialized"
     );
-
     prom_registry
+}
+
+/// Add the OTLP push reader. `false` when the exporter cannot be built.
+fn attach_otlp_metrics(
+    builder: MeterProviderBuilder,
+    config: &TelemetryConfig,
+) -> (MeterProviderBuilder, bool) {
+    match opentelemetry_otlp::MetricExporter::builder()
+        .with_tonic()
+        .with_endpoint(&config.endpoint)
+        .build()
+    {
+        Ok(exporter) => {
+            let reader = PeriodicReader::builder(exporter)
+                .with_interval(Duration::from_secs(config.metrics_export_interval_secs))
+                .build();
+            (builder.with_reader(reader), true)
+        }
+        Err(e) => {
+            tracing::warn!("Failed to create OTLP metric exporter: {e}. OTLP push disabled.");
+            (builder, false)
+        }
+    }
+}
+
+/// Add the Prometheus pull reader and return its registry.
+fn attach_prometheus(builder: MeterProviderBuilder) -> (MeterProviderBuilder, Option<Registry>) {
+    let registry = Registry::new();
+    match opentelemetry_prometheus::exporter()
+        .with_registry(registry.clone())
+        .build()
+    {
+        Ok(exporter) => (builder.with_reader(exporter), Some(registry)),
+        Err(e) => {
+            tracing::warn!("Failed to build Prometheus exporter: {e}. Prometheus disabled.");
+            (builder, None)
+        }
+    }
 }
 
 pub fn shutdown_telemetry() {
@@ -182,4 +184,52 @@ pub fn shutdown_telemetry() {
         tracing::warn!("Tracer shutdown error: {e}");
     }
     tracing::debug!("OpenTelemetry shutdown complete");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use opentelemetry::metrics::MeterProvider as _;
+
+    fn config() -> TelemetryConfig {
+        TelemetryConfig::default()
+    }
+
+    #[test]
+    fn no_metrics_wanted_means_no_provider() {
+        let mut c = config();
+        c.enabled = false;
+        c.prometheus_bind = None;
+        assert!(init_metrics_provider(&c, Resource::builder().build()).is_none());
+    }
+
+    #[test]
+    fn prometheus_reader_exposes_recorded_metrics() {
+        let (builder, registry) = attach_prometheus(SdkMeterProvider::builder());
+        let registry = registry.expect("prometheus exporter builds");
+        let provider = builder.build();
+        provider
+            .meter("test")
+            .u64_counter("tiles_served")
+            .build()
+            .add(3, &[]);
+        let names: Vec<String> = registry
+            .gather()
+            .iter()
+            .map(|f| f.name().to_string())
+            .collect();
+        assert!(
+            names.iter().any(|n| n.starts_with("tiles_served")),
+            "{names:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn otlp_reader_attaches_for_a_valid_endpoint() {
+        let mut c = config();
+        c.endpoint = "http://127.0.0.1:4317".to_string();
+        let (builder, attached) = attach_otlp_metrics(SdkMeterProvider::builder(), &c);
+        assert!(attached);
+        drop(builder.build());
+    }
 }
