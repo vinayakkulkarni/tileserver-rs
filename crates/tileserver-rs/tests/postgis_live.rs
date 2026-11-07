@@ -70,8 +70,58 @@ table = "no_such_table"
     .expect("valid postgres config")
 }
 
+/// An out-db raster function that returns the repo's RGB test COG, plus the
+/// `[[outdb_rasters]]` entry that serves it.
+#[cfg(feature = "raster")]
+async fn with_outdb_source(mut config: PostgresConfig) -> PostgresConfig {
+    let cog = format!(
+        "{}/../../data/raster/test-rgb.cog.tif",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    // Tests run in parallel; concurrent CREATE OR REPLACE of one function
+    // races in pg_proc, so create it once per process.
+    static CREATED: tokio::sync::OnceCell<()> = tokio::sync::OnceCell::const_new();
+    CREATED.get_or_init(|| create_outdb_function(cog)).await;
+    config.outdb_rasters = toml::from_str::<PostgresConfig>(&format!(
+        r#"
+connection_string = "{url}"
+[[outdb_rasters]]
+id = "bay_rgb"
+function = "tileserver_test_outdb"
+minzoom = 0
+maxzoom = 18
+"#,
+        url = database_url()
+    ))
+    .expect("valid out-db config")
+    .outdb_rasters;
+    config
+}
+
+#[cfg(feature = "raster")]
+async fn create_outdb_function(cog: String) {
+    let (client, connection) = tokio_postgres::connect(&database_url(), tokio_postgres::NoTls)
+        .await
+        .expect("PostGIS must be reachable: set DATABASE_URL");
+    tokio::spawn(connection);
+    client
+        .batch_execute(&format!(
+            "CREATE OR REPLACE FUNCTION tileserver_test_outdb(
+                z integer, x integer, y integer, bounds text, params jsonb DEFAULT '{{}}'::jsonb)
+             RETURNS TABLE(filepath text, rescale_min float8, rescale_max float8) AS $$
+               SELECT '{cog}'::text, NULL::float8, NULL::float8
+               WHERE coalesce(params->>'empty', '') <> 'true'
+             $$ LANGUAGE sql STABLE;"
+        ))
+        .await
+        .expect("create the out-db test function");
+}
+
 async fn server() -> axum_test::TestServer {
-    let manager = SourceManager::from_configs_with_postgres(&[], Some(&postgres_config()))
+    let config = postgres_config();
+    #[cfg(feature = "raster")]
+    let config = with_outdb_source(config).await;
+    let manager = SourceManager::from_configs_with_postgres(&[], Some(&config))
         .await
         .expect("PostGIS must be reachable: set DATABASE_URL");
     let mut state = common::minimal_app_state();
@@ -106,6 +156,7 @@ async fn table_source_serves_a_vector_tile_with_features() {
     assert!(resp.as_bytes().len() > 100, "a z0 tile with 500 cities");
 }
 
+#[cfg(feature = "cel")]
 #[tokio::test]
 async fn table_cel_preset_filters_every_feature_out() {
     let server = server().await;
@@ -310,4 +361,31 @@ async fn ogc_geojson_tile_export_returns_features() {
     resp.assert_status_ok();
     let body: Value = resp.json();
     assert!(!body["features"].as_array().unwrap().is_empty());
+}
+
+/// z10 tile over the RGB test COG (San Francisco).
+#[cfg(feature = "raster")]
+#[tokio::test]
+async fn outdb_raster_source_renders_png_and_honours_query_params() {
+    let server = server().await;
+    let resp = server.get("/data/bay_rgb/10/163/395.png").await;
+    resp.assert_status_ok();
+    assert!(resp.as_bytes().starts_with(&[0x89, b'P', b'N', b'G']));
+
+    // The function returns no rows for `empty=true`: nothing to render.
+    let empty = server
+        .get("/data/bay_rgb/10/163/395.png")
+        .add_query_param("empty", "true")
+        .await;
+    assert!(
+        matches!(empty.status_code().as_u16(), 204 | 404),
+        "status {}",
+        empty.status_code()
+    );
+
+    // Outside zoom range and out of the tile grid.
+    server
+        .get("/data/bay_rgb/10/5000/395.png")
+        .await
+        .assert_status_bad_request();
 }
