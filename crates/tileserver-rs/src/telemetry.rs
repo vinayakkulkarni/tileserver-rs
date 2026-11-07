@@ -225,6 +225,16 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn both_readers_give_a_prometheus_registry() {
+        let mut c = config();
+        c.enabled = true;
+        c.metrics_enabled = true;
+        c.endpoint = "http://127.0.0.1:4317".to_string();
+        c.prometheus_bind = Some("127.0.0.1:0".to_string());
+        assert!(init_metrics_provider(&c, Resource::builder().build()).is_some());
+    }
+
+    #[tokio::test]
     async fn otlp_reader_attaches_for_a_valid_endpoint() {
         let mut c = config();
         c.endpoint = "http://127.0.0.1:4317".to_string();

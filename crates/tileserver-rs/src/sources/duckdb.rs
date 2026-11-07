@@ -729,6 +729,36 @@ impl TileSource for DuckDbSource {
 mod tests {
     use super::*;
 
+    #[test]
+    fn row_value_maps_each_duckdb_type() {
+        let conn = Connection::open_in_memory().unwrap();
+        let sql = "SELECT 'a'::VARCHAR, true, 1::TINYINT, 2::SMALLINT, 3::INTEGER, \
+                   4::BIGINT, 5::UTINYINT, 6::USMALLINT, 7::UINTEGER, 8::UBIGINT, \
+                   9::HUGEINT, 1.5::FLOAT, 2.5::DOUBLE, 3.25::DECIMAL(5,2), \
+                   18446744073709551615::UBIGINT, NULL::INTEGER, DATE '2024-01-01'";
+        let mut stmt = conn.prepare(sql).unwrap();
+        let mut rows = stmt.query([]).unwrap();
+        let row = rows.next().unwrap().unwrap();
+        let values: Vec<String> = (0..17)
+            .map(|i| match row_value(row, i) {
+                Some(PropValue::String(v)) => format!("s:{v}"),
+                Some(PropValue::Bool(v)) => format!("b:{v}"),
+                Some(PropValue::Int(v)) => format!("i:{v}"),
+                Some(PropValue::Double(v)) => format!("d:{v}"),
+                None => "none".to_string(),
+            })
+            .collect();
+        assert_eq!(
+            values,
+            [
+                "s:a", "b:true", "i:1", "i:2", "i:3", "i:4", "i:5", "i:6", "i:7", "i:8", "i:9",
+                "d:1.5", "d:2.5", "d:3.25",
+                // u64::MAX does not fit an i64; NULL and DATE are skipped.
+                "none", "none", "none",
+            ]
+        );
+    }
+
     fn hex(bytes: &[u8]) -> String {
         bytes.iter().map(|b| format!("{b:02x}")).collect()
     }
