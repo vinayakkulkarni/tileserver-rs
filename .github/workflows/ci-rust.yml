@@ -154,10 +154,28 @@ jobs:
     timeout-minutes: 90
     env:
       RUST_LOG: 'debug'
+      # --all-features includes `postgres-integration`: tests/postgis_live.rs
+      # and the postgres_sources integration tests run against this service.
+      DATABASE_URL: postgresql://tileserver:tileserver@localhost:5432/tiles
+    services:
+      postgis:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: tileserver
+          POSTGRES_PASSWORD: tileserver
+          POSTGRES_DB: tiles
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tileserver -d tiles"
+          --health-interval 5s --health-timeout 5s --health-retries 20
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      - name: Load PostGIS fixtures
+        run: .github/scripts/load-postgis-fixtures.sh
 
       # ubuntu-latest ships with ~14GB free on /. The bundled libduckdb-sys +
       # GDAL + mbgl-sys C++ build under cargo --all-features (libduckdb alone
