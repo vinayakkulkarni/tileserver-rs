@@ -170,37 +170,13 @@ impl RendererPool {
             response: tx,
         })?;
 
-        let result = match tokio::time::timeout(self.config.render_timeout, rx).await {
-            Ok(Ok(RenderOutput::Tile(result))) => result,
-            Ok(Ok(_)) => Err(TileServerError::RenderError(
-                "unexpected render output type".to_string(),
-            )),
-            Ok(Err(_)) => Err(TileServerError::RenderError(
-                "renderer worker dropped response".to_string(),
-            )),
-            Err(_) => Err(TileServerError::RenderError(format!(
-                "render timed out after {}s",
-                self.config.render_timeout.as_secs()
-            ))),
-        };
-
-        let error_msg: Option<String> = match &result {
-            Ok(_) => None,
-            Err(e) => Some(e.to_string()),
-        };
-        let (outcome, error_ref) = if error_msg.is_some() {
-            (crate::metrics::RenderOutcome::Error, error_msg.as_deref())
-        } else {
-            (crate::metrics::RenderOutcome::Success, None)
-        };
-        crate::metrics::render_recorded(crate::metrics::RenderEvent {
-            style: "tile",
-            format: crate::sources::TileFormat::Png,
-            duration: render_start.elapsed(),
-            outcome,
-            error_reason: error_ref,
-        });
-
+        let result = wait_for(rx, self.config.render_timeout, "render")
+            .await
+            .and_then(|output| match output {
+                RenderOutput::Tile(result) => result,
+                RenderOutput::Static(_) => Err(unexpected_output()),
+            });
+        record_render("tile", render_start, &result);
         result
     }
 
@@ -226,37 +202,13 @@ impl RendererPool {
             response: tx,
         })?;
 
-        let result = match tokio::time::timeout(self.config.render_timeout, rx).await {
-            Ok(Ok(RenderOutput::Static(result))) => result,
-            Ok(Ok(_)) => Err(TileServerError::RenderError(
-                "unexpected render output type".to_string(),
-            )),
-            Ok(Err(_)) => Err(TileServerError::RenderError(
-                "renderer worker dropped response".to_string(),
-            )),
-            Err(_) => Err(TileServerError::RenderError(format!(
-                "static render timed out after {}s",
-                self.config.render_timeout.as_secs()
-            ))),
-        };
-
-        let error_msg: Option<String> = match &result {
-            Ok(_) => None,
-            Err(e) => Some(e.to_string()),
-        };
-        let (outcome, error_ref) = if error_msg.is_some() {
-            (crate::metrics::RenderOutcome::Error, error_msg.as_deref())
-        } else {
-            (crate::metrics::RenderOutcome::Success, None)
-        };
-        crate::metrics::render_recorded(crate::metrics::RenderEvent {
-            style: "static",
-            format: crate::sources::TileFormat::Png,
-            duration: render_start.elapsed(),
-            outcome,
-            error_reason: error_ref,
-        });
-
+        let result = wait_for(rx, self.config.render_timeout, "static render")
+            .await
+            .and_then(|output| match output {
+                RenderOutput::Static(result) => result,
+                RenderOutput::Tile(_) => Err(unexpected_output()),
+            });
+        record_render("static", render_start, &result);
         result
     }
 
@@ -280,6 +232,44 @@ impl RendererPool {
                 }
             })
     }
+}
+
+/// Wait for a worker's answer, at most `timeout`.
+async fn wait_for(
+    rx: oneshot::Receiver<RenderOutput>,
+    timeout: std::time::Duration,
+    what: &str,
+) -> Result<RenderOutput> {
+    match tokio::time::timeout(timeout, rx).await {
+        Ok(Ok(output)) => Ok(output),
+        Ok(Err(_)) => Err(TileServerError::RenderError(
+            "renderer worker dropped response".to_string(),
+        )),
+        Err(_) => Err(TileServerError::RenderError(format!(
+            "{what} timed out after {}s",
+            timeout.as_secs()
+        ))),
+    }
+}
+
+fn unexpected_output() -> TileServerError {
+    TileServerError::RenderError("unexpected render output type".to_string())
+}
+
+/// Record the render duration and outcome in the metrics.
+fn record_render<T>(style: &'static str, started: std::time::Instant, result: &Result<T>) {
+    let error = result.as_ref().err().map(ToString::to_string);
+    crate::metrics::render_recorded(crate::metrics::RenderEvent {
+        style,
+        format: crate::sources::TileFormat::Png,
+        duration: started.elapsed(),
+        outcome: if error.is_some() {
+            crate::metrics::RenderOutcome::Error
+        } else {
+            crate::metrics::RenderOutcome::Success
+        },
+        error_reason: error.as_deref(),
+    });
 }
 
 impl Drop for RendererPool {
@@ -385,6 +375,41 @@ impl WorkerMaps {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn wait_for_returns_the_answer_or_names_the_failure() {
+        let (tx, rx) = oneshot::channel();
+        tx.send(RenderOutput::Tile(Ok(vec![1]))).ok();
+        let out = wait_for(rx, std::time::Duration::from_secs(1), "render").await;
+        assert!(matches!(out, Ok(RenderOutput::Tile(Ok(ref b))) if b == &[1]));
+
+        let (tx, rx) = oneshot::channel::<RenderOutput>();
+        drop(tx);
+        let dropped = wait_for(rx, std::time::Duration::from_secs(1), "render").await;
+        assert!(
+            dropped
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("dropped response")
+        );
+
+        let (_tx, rx) = oneshot::channel::<RenderOutput>();
+        let late = wait_for(rx, std::time::Duration::from_millis(10), "static render").await;
+        assert!(
+            late.err()
+                .unwrap()
+                .to_string()
+                .contains("static render timed out")
+        );
+    }
+
+    #[test]
+    fn record_render_accepts_success_and_error() {
+        let started = std::time::Instant::now();
+        record_render("tile", started, &Ok::<_, TileServerError>(()));
+        record_render::<()>("static", started, &Err(unexpected_output()));
+    }
 
     #[tokio::test]
     async fn test_pool_creation() {
