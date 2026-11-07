@@ -2340,8 +2340,15 @@ server:
 
     #[test]
     fn test_env_var_substitution_postgres_config() {
-        // SAFETY: test-only; no concurrent threads access env vars in this test
-        unsafe { std::env::set_var("DATABASE_URL", "postgresql://user:pass@db:5432/mydb") };
+        // A name no other test reads: tests run in parallel, and the live
+        // PostGIS tests read DATABASE_URL.
+        // SAFETY: test-only; no other test reads this variable.
+        unsafe {
+            std::env::set_var(
+                "TILESERVER_TEST_SUBST_DB_URL",
+                "postgresql://user:pass@db:5432/mydb",
+            )
+        };
 
         let toml = r#"
             [server]
@@ -2350,17 +2357,17 @@ server:
         "#;
 
         let substituted = Config::substitute_env_vars(toml);
-        assert!(!substituted.contains("${DATABASE_URL}"));
+        assert!(!substituted.contains("${TILESERVER_TEST_SUBST_DB_URL}"));
 
-        let toml_with_env = r#"connection_string = "${DATABASE_URL}""#;
+        let toml_with_env = r#"connection_string = "${TILESERVER_TEST_SUBST_DB_URL}""#;
         let substituted = Config::substitute_env_vars(toml_with_env);
         assert_eq!(
             substituted,
             r#"connection_string = "postgresql://user:pass@db:5432/mydb""#
         );
 
-        // SAFETY: test-only; no concurrent threads access env vars in this test
-        unsafe { std::env::remove_var("DATABASE_URL") };
+        // SAFETY: test-only; no other test reads this variable.
+        unsafe { std::env::remove_var("TILESERVER_TEST_SUBST_DB_URL") };
     }
 
     #[test]

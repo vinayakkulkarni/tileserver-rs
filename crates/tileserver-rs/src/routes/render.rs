@@ -298,6 +298,51 @@ mod tests {
     }
 
     #[test]
+    fn tile_size_and_scale_rules() {
+        assert!(check_tile_size(256).is_ok());
+        assert!(check_tile_size(512).is_ok());
+        assert!(
+            check_tile_size(300)
+                .unwrap_err()
+                .to_string()
+                .contains("300")
+        );
+        assert_eq!(render_scale(256, 1), 1);
+        assert_eq!(render_scale(512, 1), 2);
+        assert_eq!(render_scale(512, 3), 6);
+        assert_eq!(render_scale(512, 9), 9);
+    }
+
+    #[test]
+    fn static_request_parses_or_explains() {
+        let params = |size: &str, kind: &str| StaticImageParams {
+            style: "s".into(),
+            static_type: kind.into(),
+            size_fmt: size.into(),
+        };
+        let (w, h, scale, format, _) = params("800x600@2x.webp", "auto").request().unwrap();
+        assert_eq!((w, h, scale, format), (800, 600, 2, ImageFormat::Webp));
+        let bad_size = params("800.png", "auto").request().unwrap_err();
+        assert!(
+            bad_size
+                .to_string()
+                .contains("invalid size format: 800.png")
+        );
+        assert!(params("800x600.png", "nonsense").request().is_err());
+    }
+
+    #[test]
+    fn image_response_sets_type_and_cache() {
+        let response = image_response(
+            ImageFormat::Png,
+            vec![1],
+            HeaderValue::from_static("public, max-age=3600"),
+        );
+        assert_eq!(response.headers()[CONTENT_TYPE], "image/png");
+        assert_eq!(response.headers()[CACHE_CONTROL], "public, max-age=3600");
+    }
+
+    #[test]
     fn record_render_metric_ok_branch() {
         let started = std::time::Instant::now();
         let result: Result<Vec<u8>, TileServerError> = Ok(vec![1, 2, 3]);
@@ -373,44 +418,20 @@ pub(crate) async fn get_raster_tile_with_size(
     Path(params): Path<RasterTileWithSizeParams>,
 ) -> Result<Response, TileServerError> {
     let state = shared.load();
-
-    // Validate tile size (only 256 and 512 are supported)
-    if params.tile_size != 256 && params.tile_size != 512 {
-        return Err(TileServerError::RenderError(format!(
-            "invalid tile size: {}. Only 256 and 512 are supported.",
-            params.tile_size
-        )));
-    }
-
-    // Check if rendering is available
+    check_tile_size(params.tile_size)?;
     let renderer = state
         .renderer
         .as_ref()
         .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
-
-    // Parse parameters
     let (y, additional_scale, format) =
         params.parse().ok_or(TileServerError::InvalidTileRequest)?;
-
-    // Calculate effective scale
-    // For 512px tiles, we use scale=2 (renders at 512px)
-    // For 256px tiles, we use scale=1 (renders at 256px)
-    // Additional scale from URL (e.g., @2x) multiplies on top
-    let base_scale: u8 = if params.tile_size == 512 { 2 } else { 1 };
-    let effective_scale = base_scale * additional_scale;
-
-    // Clamp to valid range
-    let scale = effective_scale.min(9);
-
-    // Get style
-    let style = match state.styles.get(&params.style) {
-        Some(s) => s,
-        None => return Err(TileServerError::StyleNotFound(params.style)),
-    };
-
+    let scale = render_scale(params.tile_size, additional_scale);
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
     let rewritten_style =
         styles::rewrite_style_for_native(&style.style_json, &state.render_base_url, &state.sources);
-
     let render_started = std::time::Instant::now();
     let render_result = renderer
         .render_tile(
@@ -423,16 +444,40 @@ pub(crate) async fn get_raster_tile_with_size(
         )
         .await;
     record_render_metric(&params.style, format, render_started, &render_result);
-    let image_data = render_result?;
+    Ok(image_response(
+        format,
+        render_result?,
+        cache_control::tile_cache_headers(),
+    ))
+}
 
+/// Only 256 and 512 px tiles are rendered.
+fn check_tile_size(tile_size: u16) -> Result<(), TileServerError> {
+    if matches!(tile_size, 256 | 512) {
+        Ok(())
+    } else {
+        Err(TileServerError::RenderError(format!(
+            "invalid tile size: {tile_size}. Only 256 and 512 are supported."
+        )))
+    }
+}
+
+/// Renderer scale: 512 px tiles render at 2x, times the URL's `@Nx`,
+/// capped at 9.
+fn render_scale(tile_size: u16, additional_scale: u8) -> u8 {
+    let base: u8 = if tile_size == 512 { 2 } else { 1 };
+    base.saturating_mul(additional_scale).min(9)
+}
+
+/// An image body with its content type and cache policy.
+fn image_response(format: ImageFormat, data: Vec<u8>, cache: HeaderValue) -> Response {
     let mut headers = HeaderMap::new();
     headers.insert(
         CONTENT_TYPE,
         HeaderValue::from_static(format.content_type()),
     );
-    headers.insert(CACHE_CONTROL, cache_control::tile_cache_headers());
-
-    Ok((headers, image_data).into_response())
+    headers.insert(CACHE_CONTROL, cache);
+    (headers, data).into_response()
 }
 
 /// Static image request parameters
@@ -468,6 +513,18 @@ impl StaticImageParams {
         let height = height_str.parse().ok()?;
 
         Some((width, height, scale, format))
+    }
+
+    /// Size, scale, format and camera, or the error to answer with.
+    fn request(&self) -> Result<(u32, u32, u8, ImageFormat, StaticType), TileServerError> {
+        let (width, height, scale, format) = self.parse().ok_or_else(|| {
+            TileServerError::RenderError(format!("invalid size format: {}", self.size_fmt))
+        })?;
+        let static_type = self
+            .static_type
+            .parse::<StaticType>()
+            .map_err(TileServerError::RenderError)?;
+        Ok((width, height, scale, format, static_type))
     }
 }
 
@@ -508,34 +565,18 @@ pub(crate) async fn get_static_image(
     Query(query): Query<StaticQueryParams>,
 ) -> Result<Response, TileServerError> {
     let state = shared.load();
-
     let renderer = state
         .renderer
         .as_ref()
         .ok_or_else(|| TileServerError::RenderError("rendering not available".to_string()))?;
-
-    // Parse parameters
-    let (width, height, scale, format) = params.parse().ok_or_else(|| {
-        TileServerError::RenderError(format!("invalid size format: {}", params.size_fmt))
-    })?;
-
-    // Parse static type
-    let static_type = params
-        .static_type
-        .parse::<StaticType>()
-        .map_err(TileServerError::RenderError)?;
-
-    // Get style
-    let style = match state.styles.get(&params.style) {
-        Some(s) => s,
-        None => return Err(TileServerError::StyleNotFound(params.style)),
-    };
-
-    // Rewrite style to inline tile URLs for native rendering
+    let (width, height, scale, format, static_type) = params.request()?;
+    let style = state
+        .styles
+        .get(&params.style)
+        .ok_or_else(|| TileServerError::StyleNotFound(params.style.clone()))?;
+    // Inline tile URLs: the native renderer cannot fetch TileJSON.
     let rewritten_style =
         styles::rewrite_style_for_native(&style.style_json, &state.render_base_url, &state.sources);
-
-    // Create render options (shared validation with /og)
     let options = build_static_options(
         params.style.clone(),
         rewritten_style.to_string(),
@@ -546,21 +587,11 @@ pub(crate) async fn get_static_image(
         format,
         query,
     )?;
-
-    // Render static image
     let image_data = renderer.render_static(options).await?;
-
-    // Build response
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        CONTENT_TYPE,
-        HeaderValue::from_static(format.content_type()),
-    );
-    // Cache static images for 1 hour
-    headers.insert(
-        CACHE_CONTROL,
+    // Static images are cached for an hour.
+    Ok(image_response(
+        format,
+        image_data,
         HeaderValue::from_static("public, max-age=3600"),
-    );
-
-    Ok((headers, image_data).into_response())
+    ))
 }

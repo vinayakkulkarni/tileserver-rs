@@ -1,7 +1,7 @@
 //! Local file PMTiles source using memory-mapped I/O.
 
 use async_trait::async_trait;
-use pmtiles::{AsyncPmTilesReader, Compression as PmCompression, MmapBackend, TileCoord, TileType};
+use pmtiles::{AsyncPmTilesReader, Compression as PmCompression, FileBackend, TileCoord, TileType};
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -10,8 +10,8 @@ use crate::config::SourceConfig;
 use crate::error::{Result, TileServerError};
 use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
 
-/// Type alias for local PMTiles reader: Backend=MmapBackend
-type LocalReader = AsyncPmTilesReader<MmapBackend>;
+/// Type alias for local PMTiles reader: Backend=FileBackend
+type LocalReader = AsyncPmTilesReader<FileBackend>;
 
 /// Local file-based PMTiles tile source using memory-mapped I/O
 pub struct LocalPmTilesSource {
@@ -47,7 +47,7 @@ impl LocalPmTilesSource {
         }
 
         // Create memory-mapped backend
-        let backend = MmapBackend::try_from(Path::new(path)).await.map_err(|e| {
+        let backend = FileBackend::try_from(Path::new(path)).await.map_err(|e| {
             TileServerError::MetadataError(format!("failed to open PMTiles file: {}", e))
         })?;
 

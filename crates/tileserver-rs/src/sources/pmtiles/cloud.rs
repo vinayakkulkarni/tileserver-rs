@@ -1,11 +1,9 @@
 //! Cloud object storage PMTiles source (S3/Azure Blob/GCS) via `object_store` crate.
 
 use async_trait::async_trait;
-use object_store::path::Path as ObjectStorePath;
-use object_store::{GetOptions, GetRange, ObjectStore};
 use pmtiles::{
-    AsyncBackend, AsyncPmTilesReader, BackendResponse, Compression as PmCompression, HashMapCache,
-    PmtError, PmtResult, TileCoord, TileType,
+    AsyncPmTilesReader, Compression as PmCompression, HashMapCache, ObjectStoreBackend, TileCoord,
+    TileType,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -14,55 +12,6 @@ use tokio::sync::RwLock;
 use crate::config::SourceConfig;
 use crate::error::{Result, TileServerError};
 use crate::sources::{TileCompression, TileData, TileFormat, TileMetadata, TileSource};
-
-/// A pmtiles [`AsyncBackend`] backed by an `object_store` store.
-///
-/// We implement this ourselves instead of enabling pmtiles' `object-store` feature
-/// because that feature pins `object_store` to 0.13.x. Pulling our own current
-/// `object_store` (0.14+) alongside it puts two semver-incompatible `object_store`
-/// versions in the tree — a diamond conflict that fails the `--all-features` build
-/// (the store we build cannot be handed to pmtiles' 0.13-typed backend). Owning this
-/// ~20-line range reader lets the whole crate depend on a single, current
-/// `object_store`; revisit if pmtiles itself adopts 0.14+.
-struct ObjectStoreBackend {
-    store: Box<dyn ObjectStore>,
-    path: ObjectStorePath,
-}
-
-impl ObjectStoreBackend {
-    fn new(store: Box<dyn ObjectStore>, path: ObjectStorePath) -> Self {
-        Self { store, path }
-    }
-}
-
-impl AsyncBackend for ObjectStoreBackend {
-    async fn read(&self, offset: u64, length: usize) -> PmtResult<BackendResponse> {
-        let opts = GetOptions {
-            range: Some(GetRange::Bounded(offset..offset + length as u64)),
-            ..Default::default()
-        };
-        let mut result = self
-            .store
-            .get_opts(&self.path, opts)
-            .await
-            .map_err(|e| PmtError::Reading(e.into()))?;
-        // Mirror pmtiles' own backend: surface ETag (else Last-Modified) as the data
-        // version string so the reader can detect underlying-source changes identically.
-        let data_version = result
-            .meta
-            .e_tag
-            .take()
-            .or_else(|| Some(result.meta.last_modified.to_rfc3339()));
-        let bytes = result
-            .bytes()
-            .await
-            .map_err(|e| PmtError::Reading(e.into()))?;
-        Ok(match data_version {
-            Some(version) => BackendResponse::new_with_version(bytes, version),
-            None => BackendResponse::new(bytes),
-        })
-    }
-}
 
 type CloudReader = AsyncPmTilesReader<ObjectStoreBackend, HashMapCache>;
 
@@ -108,7 +57,7 @@ impl CloudPmTilesSource {
         let cache = HashMapCache::default();
         let backend = ObjectStoreBackend::new(store, path);
 
-        let reader: CloudReader = AsyncPmTilesReader::try_from_cached_source(backend, cache)
+        let reader: CloudReader = AsyncPmTilesReader::try_from_source_and_cache(backend, cache)
             .await
             .map_err(|e| {
                 TileServerError::MetadataError(format!(
@@ -260,6 +209,53 @@ impl TileSource for CloudPmTilesSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn pmtiles_config(id: &str, path: &str) -> SourceConfig {
+        toml::from_str(&format!(
+            "id = \"{id}\"\ntype = \"pmtiles\"\npath = \"{path}\""
+        ))
+        .unwrap()
+    }
+
+    /// Serve the fixture archive as `s3://bucket/protomaps-sample.pmtiles`
+    /// from a local path-style endpoint and open it through
+    /// `object_store` + pmtiles' `ObjectStoreBackend`.
+    #[tokio::test]
+    async fn opens_an_archive_from_an_s3_compatible_endpoint() {
+        use axum::http::{HeaderValue, header::ETAG};
+        let dir = format!("{}/../../data/tiles", env!("CARGO_MANIFEST_DIR"));
+        let app = axum::Router::new()
+            .nest_service("/bucket", tower_http::services::ServeDir::new(dir))
+            .layer(
+                tower_http::set_header::SetResponseHeaderLayer::if_not_present(
+                    ETAG,
+                    HeaderValue::from_static("\"fixture\""),
+                ),
+            );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let options = HashMap::from([
+            ("aws_endpoint".to_string(), format!("http://{addr}")),
+            ("aws_allow_http".to_string(), "true".to_string()),
+            ("aws_skip_signature".to_string(), "true".to_string()),
+            ("aws_region".to_string(), "us-east-1".to_string()),
+        ]);
+        let mut config = pmtiles_config("s3", "s3://bucket/protomaps-sample.pmtiles");
+        config.options = Some(options);
+        let source = CloudPmTilesSource::from_url(&config).await.unwrap();
+        assert_eq!(source.metadata().id, "s3");
+        let tile = source.get_tile(0, 0, 0).await.unwrap().unwrap();
+        assert!(!tile.data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn rejects_an_unparseable_cloud_url() {
+        let config = pmtiles_config("bad", "not a url");
+        let err = CloudPmTilesSource::from_url(&config).await.err().unwrap();
+        assert!(matches!(err, TileServerError::ConfigError(_)), "{err:?}");
+    }
 
     #[test]
     fn test_is_cloud_url_s3() {

@@ -38,6 +38,6 @@
       )
     "
   >
-    <slot></slot>
+    <slot />
   </NavigationMenuContent>
 </template>

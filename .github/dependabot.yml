@@ -1,4 +1,9 @@
 version: 2
+# Dependency bumps use the `build(deps)` prefix. release-please hides the
+# `build` type (`hidden: true` in release-please-config.json) and does not
+# count it as a releasable unit, so Dependabot merges no longer appear as
+# "Bug Fixes" or cut a patch release on their own. They ship with the next
+# feat/fix release. `build` is an allowed type in lint-pr.yml and commitlint.
 updates:
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -9,8 +14,8 @@ updates:
     assignees:
       - vinayakkulkarni
     commit-message:
-      prefix: fix
-      prefix-development: chore
+      prefix: build
+      prefix-development: build
       include: scope
 
   # Cargo (Rust)
@@ -22,8 +27,8 @@ updates:
     assignees:
       - vinayakkulkarni
     commit-message:
-      prefix: fix
-      prefix-development: chore
+      prefix: build
+      prefix-development: build
       include: scope
     # OpenTelemetry crates MUST bump together. The five SDK/OTLP/tracing
     # crates share an opentelemetry_sdk trait surface (MetricReader); when
@@ -63,7 +68,7 @@ updates:
     assignees:
       - vinayakkulkarni
     commit-message:
-      prefix: fix
-      prefix-development: chore
+      prefix: build
+      prefix-development: build
       include: scope
 

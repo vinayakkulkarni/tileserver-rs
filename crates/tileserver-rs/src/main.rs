@@ -1,27 +1,22 @@
 //! Server entry point for tileserver-rs.
 
-use axum::{
-    Router, ServiceExt,
-    http::{
-        Method,
-        header::{ACCEPT, CONTENT_TYPE},
-    },
-    response::IntoResponse,
-};
+use axum::{Router, ServiceExt};
 #[cfg(feature = "frontend")]
 use axum::{
-    http::{HeaderMap, HeaderValue, StatusCode, Uri, header::CACHE_CONTROL},
-    response::Html,
+    http::{
+        HeaderMap, HeaderValue, StatusCode, Uri,
+        header::{CACHE_CONTROL, CONTENT_TYPE},
+    },
+    response::{Html, IntoResponse},
 };
 #[cfg(feature = "frontend")]
 use rust_embed::Embed;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{net::SocketAddr, sync::Arc};
 use tileserver_rs::trailing_slash::SelectiveTrailingSlashLayer;
 use tokio::net::TcpListener;
 use tower::Layer;
-use tower_http::{compression::CompressionLayer, cors::CorsLayer};
+use tower_http::compression::CompressionLayer;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use utoipa::OpenApi;
 
 mod cli;
 mod logging;
@@ -35,7 +30,6 @@ use tileserver_rs::config;
 #[cfg(feature = "mcp")]
 use tileserver_rs::mcp;
 use tileserver_rs::metrics;
-use tileserver_rs::openapi;
 use tileserver_rs::reload::{
     self, ReloadController, ReloadMeta, RuntimeSettings, SharedState, build_app_state,
     now_unix_seconds,
@@ -72,7 +66,6 @@ async fn run_inspect(
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
-
     let cli = Cli::parse_args();
 
     if let Some(Commands::Inspect {
@@ -84,71 +77,30 @@ async fn main() -> anyhow::Result<()> {
     {
         return run_inspect(target, tile.as_deref(), *verbose, *json).await;
     }
-
     #[cfg(feature = "mcp")]
     if let Some(Commands::McpStdio { config, verbose }) = cli.command.as_ref() {
         return mcp::run_stdio_from_config(config.clone(), *verbose).await;
     }
 
-    let ui_enabled = cli.ui_enabled();
-    let verbose = cli.verbose;
+    serve(cli).await
+}
 
-    // Resolve configuration via startup priority chain
+/// Load the config, build the app, start the side listeners and serve
+/// until a shutdown signal.
+async fn serve(cli: Cli) -> anyhow::Result<()> {
+    let ui_enabled = cli.ui_enabled();
     let (mut config, auto_report) =
         startup::load_runtime_config(cli.config.clone(), cli.path.clone())?;
 
-    // Initialize tracing with OpenTelemetry
-    let filter = if verbose {
-        EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse()?)
-    } else {
-        EnvFilter::from_default_env().add_directive("tileserver_rs=info".parse()?)
-    };
-
-    let fmt_layer = tracing_subscriber::fmt::layer().compact();
-    let registry = tracing_subscriber::registry().with(filter).with(fmt_layer);
-
-    let telemetry_output = telemetry::init_telemetry(&config.telemetry);
-    if let Some(otel_layer) = telemetry_output.tracing_layer {
-        registry.with(otel_layer).init();
-    } else {
-        registry.init();
-    }
-
+    let prometheus_registry = init_tracing(&config, cli.verbose)?;
     metrics::init(config.telemetry.metrics_label_cardinality.into());
-
     if let Some(ref report) = auto_report {
         log_auto_detect_report(report);
     }
 
-    // Override with CLI arguments
-    if let Some(host) = cli.host {
-        config.server.host = host;
-    }
-    if let Some(port) = cli.port {
-        config.server.port = port;
-    }
-    if let Some(public_url) = cli.public_url {
-        config.server.public_url = Some(public_url);
-    }
-
+    apply_cli_overrides(&mut config, &cli);
     #[cfg(feature = "sftp")]
-    {
-        use tileserver_rs::sources::pmtiles::sftp;
-        sftp::set_cli_ssh_identity(cli.ssh_identity.clone());
-        sftp::set_cli_insecure_skip_host_key_verify(cli.ssh_insecure_skip_host_key_verify);
-        sftp::set_global_known_hosts_path(
-            config
-                .sftp
-                .as_ref()
-                .and_then(|s| s.known_hosts_path.clone()),
-        );
-        if cli.ssh_insecure_skip_host_key_verify {
-            tracing::warn!(
-                flag = "--ssh-insecure-skip-host-key-verify",
-                "SSH host key verification disabled — DO NOT USE IN PRODUCTION. Server accepts ANY host key."
-            );
-        }
-    }
+    configure_sftp(&config, &cli);
 
     let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
     config::Config::ensure_cache_dir_writable(&cache_dir)?;
@@ -161,119 +113,146 @@ async fn main() -> anyhow::Result<()> {
         runtime_port: config.server.port,
         public_url_override: None,
     };
-
     let state = build_app_state(&config, &runtime).await?;
-
-    let config_hash = if let Some(ref path) = cli.config {
-        config::Config::load_with_metadata(Some(path.clone()))?.content_hash
-    } else {
-        use sha2::{Digest, Sha256};
-        use std::fmt::Write;
-        let content = toml::to_string(&config).unwrap_or_default();
-        let digest = Sha256::digest(content.as_bytes());
-        let mut hex = String::with_capacity(64);
-        for b in digest {
-            write!(hex, "{b:02x}").expect("write to String never fails");
-        }
-        hex
-    };
-
     let meta = ReloadMeta {
-        config_hash,
+        config_hash: startup::config_hash(cli.config.as_ref(), &config)?,
         loaded_at_unix: now_unix_seconds(),
         loaded_sources: state.sources.len(),
         loaded_styles: state.styles.len(),
         renderer_enabled: state.renderer.is_some(),
         prometheus_listener_active: false,
     };
-
-    let config_path_for_reload = cli.config.clone();
     let controller = Arc::new(ReloadController::new(
         state,
         meta,
         config.clone(),
-        config_path_for_reload,
+        cli.config.clone(),
         runtime,
     ));
     let shared = SharedState::new(Arc::clone(&controller));
 
+    let (app, oauth_store) = build_app(&config, &shared, ui_enabled)?;
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
+    tracing::info!("Starting tileserver on http://{}", addr);
+    let listener = TcpListener::bind(addr).await?;
+
+    if let Some(admin_addr) = startup::admin_addr(&config.server.admin_bind)? {
+        spawn_admin_server(admin_addr, shared.clone(), oauth_store);
+    }
+    tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
+    tokio::spawn(tileserver_rs::live::run_watcher(shared.clone()));
+    if let Some(registry) = prometheus_registry {
+        spawn_prometheus(&config, registry, &controller).await;
+    }
+
+    axum::serve(
+        listener,
+        ServiceExt::<axum::extract::Request>::into_make_service(app),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
+    telemetry::shutdown_telemetry();
+    Ok(())
+}
+
+/// Install the tracing subscriber (plus OpenTelemetry when configured) and
+/// return the Prometheus registry, if metrics export is on.
+fn init_tracing(
+    config: &config::Config,
+    verbose: bool,
+) -> anyhow::Result<Option<prometheus::Registry>> {
+    let level = if verbose { "debug" } else { "info" };
+    let filter =
+        EnvFilter::from_default_env().add_directive(format!("tileserver_rs={level}").parse()?);
+    let registry = tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer().compact());
+    let telemetry_output = telemetry::init_telemetry(&config.telemetry);
+    if let Some(otel_layer) = telemetry_output.tracing_layer {
+        registry.with(otel_layer).init();
+    } else {
+        registry.init();
+    }
+    Ok(telemetry_output.prometheus_registry)
+}
+
+/// `--host`, `--port` and `--public-url` win over the config file.
+fn apply_cli_overrides(config: &mut config::Config, cli: &Cli) {
+    if let Some(host) = &cli.host {
+        config.server.host.clone_from(host);
+    }
+    if let Some(port) = cli.port {
+        config.server.port = port;
+    }
+    if let Some(public_url) = &cli.public_url {
+        config.server.public_url = Some(public_url.clone());
+    }
+}
+
+#[cfg(feature = "sftp")]
+fn configure_sftp(config: &config::Config, cli: &Cli) {
+    use tileserver_rs::sources::pmtiles::sftp;
+    sftp::set_cli_ssh_identity(cli.ssh_identity.clone());
+    sftp::set_cli_insecure_skip_host_key_verify(cli.ssh_insecure_skip_host_key_verify);
+    sftp::set_global_known_hosts_path(
+        config
+            .sftp
+            .as_ref()
+            .and_then(|s| s.known_hosts_path.clone()),
+    );
+    if cli.ssh_insecure_skip_host_key_verify {
+        tracing::warn!(
+            flag = "--ssh-insecure-skip-host-key-verify",
+            "SSH host key verification disabled — DO NOT USE IN PRODUCTION. Server accepts ANY host key."
+        );
+    }
+}
+
+#[cfg(feature = "mcp")]
+type OAuthStore = Option<Arc<dyn mcp::auth_store::OAuthBackend>>;
+#[cfg(not(feature = "mcp"))]
+type OAuthStore = ();
+
+/// The public router: API, MCP, API docs, the optional SPA, middleware, and
+/// the outer subfolder-strip and trailing-slash layers.
+fn build_app(
+    config: &config::Config,
+    shared: &SharedState,
+    ui_enabled: bool,
+) -> anyhow::Result<(
+    tileserver_rs::base_path::BasePathStrip<
+        tileserver_rs::trailing_slash::SelectiveTrailingSlash<Router>,
+    >,
+    OAuthStore,
+)> {
     if ui_enabled {
         tracing::info!("Web UI enabled at /");
     } else {
         tracing::info!("Web UI disabled (use --ui to enable)");
     }
-
-    let allow_origin = tileserver_rs::cors_origin::build_allow_origin(&config.server.cors_origins)?;
-
-    let cors = CorsLayer::new()
-        .allow_headers([ACCEPT, CONTENT_TYPE])
-        .max_age(Duration::from_secs(86400))
-        .allow_origin(allow_origin)
-        .allow_methods([Method::GET, Method::OPTIONS, Method::HEAD]);
-
     let mut router = Router::new().merge(routes::api_router(shared.clone()));
 
     #[cfg(feature = "mcp")]
-    let mcp_oauth_store: Option<std::sync::Arc<dyn mcp::auth_store::OAuthBackend>> =
-        if config.mcp.enabled {
-            tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
-            let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
-            let oauth_store = match &auth_mode {
-                mcp::transport::McpAuthMode::OAuth(state) => Some(state.store.clone()),
-                _ => None,
-            };
-            router = router.merge(mcp::mcp_router(
-                shared.clone(),
-                auth_mode,
-                &config.mcp.cors_origins,
-            ));
-            oauth_store
-        } else {
-            None
+    let oauth_store = if config.mcp.enabled {
+        tracing::info!("MCP server enabled at /mcp (Streamable HTTP)");
+        let auth_mode = mcp::transport::McpAuthMode::from_config(&config.mcp)?;
+        let store = match &auth_mode {
+            mcp::transport::McpAuthMode::OAuth(state) => Some(state.store.clone()),
+            _ => None,
         };
+        router = router.merge(mcp::mcp_router(
+            shared.clone(),
+            auth_mode,
+            &config.mcp.cors_origins,
+        ));
+        store
+    } else {
+        None
+    };
+    #[cfg(not(feature = "mcp"))]
+    let oauth_store = ();
 
-    // OpenAPI JSON endpoint (must be before SPA fallback)
-    let mut openapi_spec = openapi::ApiDoc::openapi();
-    openapi_spec.info.version = env!("CARGO_PKG_VERSION").to_string();
-    let openapi_json = openapi_spec
-        .to_pretty_json()
-        .map_err(|e| anyhow::anyhow!("failed to serialize the OpenAPI spec: {e}"))?;
-    router = router.route(
-        "/openapi.json",
-        axum::routing::get(move || async move {
-            (
-                [(axum::http::header::CONTENT_TYPE, "application/json")],
-                openapi_json.clone(),
-            )
-        }),
-    );
-
-    // Scalar API Reference (self-hosted, no CDN)
-    let scalar_config = serde_json::json!({
-        "url": "/openapi.json",
-        "layout": "classic",
-    });
-    let scalar_html =
-        scalar_api_reference::axum::scalar_response(&scalar_config, Some("/_openapi/scalar.js"));
-    router = router
-        .route(
-            "/_openapi",
-            axum::routing::get(move || async move { scalar_html.clone() }),
-        )
-        .route(
-            "/_openapi/scalar.js",
-            axum::routing::get(|| async {
-                match scalar_api_reference::get_asset_with_mime("scalar.js") {
-                    Some((mime, content)) => (
-                        axum::http::StatusCode::OK,
-                        [(axum::http::header::CONTENT_TYPE, mime)],
-                        content,
-                    )
-                        .into_response(),
-                    None => axum::http::StatusCode::NOT_FOUND.into_response(),
-                }
-            }),
-        );
+    router = router.merge(startup::docs_router()?);
 
     #[cfg(feature = "frontend")]
     if ui_enabled {
@@ -288,160 +267,92 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let router = router
-        .layer(cors)
+        .layer(startup::cors_layer(&config.server.cors_origins)?)
         .layer(CompressionLayer::new())
         .layer(axum::middleware::from_fn(metrics::record_http_request))
         .layer(axum::middleware::from_fn(logging::request_logger));
-
     let router = tileserver_rs::response_headers::apply_extra_response_headers(
         router,
         config.server.extra_response_headers.as_ref(),
     );
 
-    // Normalize trailing slashes before routing so `/_openapi/` matches the
-    // `/_openapi` route (and likewise for /health, /ping, etc.) instead of
-    // 404ing — EXCEPT the SPA viewer routes `/styles/{id}/` and `/data/{id}/`,
-    // whose trailing slash is load-bearing (it selects the embedded UI over the
-    // greedy `/styles/{style_json}` / `/data/{source}` API routes). A blanket
-    // trim collapsed every viewer link onto the API and 404'd it. The layer must
-    // wrap the Router from the OUTSIDE: routing happens before inner `.layer()`
-    // middleware, so applying it via `Router::layer()` would run too late. The
-    // resulting service is served via `ServiceExt::into_make_service`.
-    // Derive the URL subfolder from public_url (empty for a root deployment).
-    // The embedded GUI is rebased for BOTH subfolder modes so the browser
-    // requests prefixed asset/API URLs; the modes differ only in WHERE the
-    // prefix is stripped. In `Nested` mode the server strips it itself via
-    // `BasePathStripLayer`; in `ProxyStrip` mode the reverse proxy strips it,
-    // so the in-server strip base stays empty (a no-op layer).
+    // Layers wrap the router from the OUTSIDE: routing runs before inner
+    // `.layer()` middleware. Strip the subfolder prefix first (nested mode
+    // only; in proxy-strip mode the proxy does it and the base is empty),
+    // then normalize trailing slashes — except on the SPA viewer routes
+    // `/styles/{id}/` and `/data/{id}/`, whose slash selects the UI over the
+    // API routes — then route.
     let base_path = tileserver_rs::config::derive_base_path(config.server.public_url.as_deref());
     #[cfg(feature = "frontend")]
     init_spa_cache(&base_path);
     let strip_base = config.server.subfolder_mode.strip_base(&base_path);
-
-    // Layers wrap the router from the OUTSIDE (routing runs before inner
-    // `.layer()` middleware). Order: strip the subfolder prefix FIRST (nested
-    // mode only), then normalize trailing slashes, then route.
     let app = tileserver_rs::base_path::BasePathStripLayer::new(strip_base.as_str())
         .layer(SelectiveTrailingSlashLayer.layer(router));
+    Ok((app, oauth_store))
+}
 
-    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
-    tracing::info!("Starting tileserver on http://{}", addr);
-
-    let listener = TcpListener::bind(addr).await?;
-
-    let admin_bind = &config.server.admin_bind;
-    if admin_bind != "127.0.0.1:0" {
-        let admin_addr: SocketAddr = admin_bind.parse()?;
-        if !admin_addr.ip().is_loopback() {
-            tracing::warn!(
-                bind = %admin_addr,
-                "admin_bind is NOT a loopback address — destructive admin endpoints (/__admin/reload, /__admin/cache/flush, /__admin/oauth/*) are reachable on ALL interfaces. \
-                 In production, set [server].admin_bind to '127.0.0.1:<port>' and reverse-proxy with auth. \
-                 See https://github.com/vinayakkulkarni/tileserver-rs/blob/main/apps/docs/content/4.guides/16.mcp.md#admin-security"
-            );
-        }
-        let admin_shared = shared.clone();
-        #[cfg(feature = "mcp")]
-        let admin_oauth_store = mcp_oauth_store.clone();
-        tokio::spawn(async move {
-            let admin_app = admin::admin_app(
-                admin_shared,
-                #[cfg(feature = "mcp")]
-                admin_oauth_store,
-            );
-            tracing::info!("Admin server listening on http://{}", admin_addr);
-            match TcpListener::bind(admin_addr).await {
-                Ok(admin_listener) => {
-                    if let Err(e) = axum::serve(admin_listener, admin_app).await {
-                        tracing::error!("Admin server error: {}", e);
-                    }
-                }
-                Err(e) => tracing::error!("Failed to bind admin server to {}: {}", admin_addr, e),
-            }
-        });
-    }
-
-    tokio::spawn(reload::reload_signal(Arc::clone(&controller)));
-    tokio::spawn(tileserver_rs::live::run_watcher(shared.clone()));
-
-    if let Some(registry) = telemetry_output.prometheus_registry
-        && let Some(bind_str) = config.telemetry.prometheus_bind.as_ref()
-    {
-        match bind_str.parse::<SocketAddr>() {
-            Ok(prom_addr) => {
-                let path = config.telemetry.prometheus_path.clone();
-                match metrics::spawn_metrics_server(prom_addr, path, registry).await {
-                    Ok(_handle) => {
-                        tracing::info!(
-                            bind = %prom_addr,
-                            "Prometheus /metrics endpoint enabled"
-                        );
-                        let mut updated = (*controller.meta.load_full()).clone();
-                        updated.prometheus_listener_active = true;
-                        controller.meta.store(Arc::new(updated));
-                    }
-                    Err(e) => {
-                        tracing::error!(
-                            bind = %prom_addr,
-                            error = %e,
-                            "Failed to bind Prometheus /metrics listener; tile serving continues"
-                        );
-                    }
+/// Serve the admin API on its own listener.
+fn spawn_admin_server(addr: SocketAddr, shared: SharedState, oauth_store: OAuthStore) {
+    #[cfg(not(feature = "mcp"))]
+    let () = oauth_store;
+    tokio::spawn(async move {
+        let app = admin::admin_app(
+            shared,
+            #[cfg(feature = "mcp")]
+            oauth_store,
+        );
+        tracing::info!("Admin server listening on http://{}", addr);
+        match TcpListener::bind(addr).await {
+            Ok(listener) => {
+                if let Err(e) = axum::serve(listener, app).await {
+                    tracing::error!("Admin server error: {}", e);
                 }
             }
-            Err(e) => {
-                tracing::error!(
-                    prometheus_bind = %bind_str,
-                    error = %e,
-                    "Invalid prometheus_bind address; Prometheus /metrics disabled"
-                );
-            }
+            Err(e) => tracing::error!("Failed to bind admin server to {}: {}", addr, e),
         }
+    });
+}
+
+/// Start the Prometheus `/metrics` listener when `prometheus_bind` is set.
+/// A bad address or bind failure is logged; tile serving continues.
+async fn spawn_prometheus(
+    config: &config::Config,
+    registry: prometheus::Registry,
+    controller: &ReloadController,
+) {
+    let Some(bind_str) = config.telemetry.prometheus_bind.as_ref() else {
+        return;
+    };
+    let prom_addr = match bind_str.parse::<SocketAddr>() {
+        Ok(addr) => addr,
+        Err(e) => {
+            tracing::error!(
+                prometheus_bind = %bind_str,
+                error = %e,
+                "Invalid prometheus_bind address; Prometheus /metrics disabled"
+            );
+            return;
+        }
+    };
+    let path = config.telemetry.prometheus_path.clone();
+    match metrics::spawn_metrics_server(prom_addr, path, registry).await {
+        Ok(_handle) => {
+            tracing::info!(bind = %prom_addr, "Prometheus /metrics endpoint enabled");
+            let mut updated = (*controller.meta.load_full()).clone();
+            updated.prometheus_listener_active = true;
+            controller.meta.store(Arc::new(updated));
+        }
+        Err(e) => tracing::error!(
+            bind = %prom_addr,
+            error = %e,
+            "Failed to bind Prometheus /metrics listener; tile serving continues"
+        ),
     }
-
-    axum::serve(
-        listener,
-        ServiceExt::<axum::extract::Request>::into_make_service(app),
-    )
-    .with_graceful_shutdown(shutdown_signal())
-    .await?;
-
-    telemetry::shutdown_telemetry();
-
-    Ok(())
 }
 
 fn log_auto_detect_report(report: &autodetect::AutoDetectReport) {
-    tracing::info!("Auto-detected from: {}", report.target.display());
-    if !report.sources.is_empty() {
-        tracing::info!(
-            "  Sources: {} ({})",
-            report.sources.len(),
-            report
-                .sources
-                .iter()
-                .map(|s| s.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-    if !report.styles.is_empty() {
-        tracing::info!(
-            "  Styles: {} ({})",
-            report.styles.len(),
-            report
-                .styles
-                .iter()
-                .map(|s| s.id.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
-    if let Some(ref fonts) = report.fonts_dir {
-        tracing::info!("  Fonts: {}", fonts.display());
-    }
-    if !report.geojson_files.is_empty() {
-        tracing::info!("  GeoJSON files: {}", report.geojson_files.len());
+    for line in report.summary() {
+        tracing::info!("{line}");
     }
     for conflict in &report.conflicts {
         tracing::warn!("  Conflict: {}", conflict);
@@ -575,5 +486,88 @@ mod tests {
             .get(CONTENT_TYPE)
             .and_then(|value| value.to_str().ok());
         assert_eq!(content_type, Some("text/html; charset=utf-8"));
+    }
+}
+
+#[cfg(test)]
+mod startup_tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn cli_overrides_win_over_the_config_file() {
+        let mut config = config::Config::default();
+        config.server.public_url = Some("https://old.example".to_string());
+        let cli = Cli::try_parse_from([
+            "tileserver-rs",
+            "--host",
+            "10.0.0.1",
+            "--port",
+            "9100",
+            "--public-url",
+            "https://tiles.example",
+        ])
+        .unwrap();
+        apply_cli_overrides(&mut config, &cli);
+        assert_eq!(config.server.host, "10.0.0.1");
+        assert_eq!(config.server.port, 9100);
+        assert_eq!(
+            config.server.public_url.as_deref(),
+            Some("https://tiles.example")
+        );
+    }
+
+    #[test]
+    fn missing_cli_flags_keep_the_config_values() {
+        let mut config = config::Config::default();
+        let before = (config.server.host.clone(), config.server.port);
+        apply_cli_overrides(
+            &mut config,
+            &Cli::try_parse_from(["tileserver-rs"]).unwrap(),
+        );
+        assert_eq!((config.server.host, config.server.port), before);
+    }
+
+    #[tokio::test]
+    async fn build_app_serves_the_api_and_docs() {
+        let config = config::Config::default();
+        let state = tileserver_rs::reload::AppState {
+            sources: Arc::new(tileserver_rs::sources::SourceManager::new()),
+            styles: Arc::new(tileserver_rs::styles::StyleManager::new()),
+            renderer: None,
+            base_url: "http://localhost:8080".to_string(),
+            render_base_url: "http://127.0.0.1:8080".to_string(),
+            ui_enabled: false,
+            fonts_dir: None,
+            files_dir: None,
+            upload_dir: None,
+        };
+        let meta = ReloadMeta {
+            config_hash: String::new(),
+            loaded_at_unix: 0,
+            loaded_sources: 0,
+            loaded_styles: 0,
+            renderer_enabled: false,
+            prometheus_listener_active: false,
+        };
+        let runtime = RuntimeSettings {
+            ui_enabled: false,
+            runtime_host: "127.0.0.1".to_string(),
+            runtime_port: 8080,
+            public_url_override: None,
+        };
+        let shared = SharedState::new(Arc::new(ReloadController::new(
+            state,
+            meta,
+            config.clone(),
+            None,
+            runtime,
+        )));
+        let (app, _oauth) = build_app(&config, &shared, false).unwrap();
+        let server = axum_test::TestServer::new(
+            ServiceExt::<axum::extract::Request>::into_make_service(app),
+        );
+        server.get("/health").await.assert_status_ok();
+        server.get("/openapi.json").await.assert_status_ok();
     }
 }

@@ -51,6 +51,6 @@
       willChange: 'opacity, filter',
     }"
   >
-    <slot></slot>
+    <slot />
   </div>
 </template>

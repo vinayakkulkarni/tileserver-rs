@@ -7,6 +7,6 @@
 
 <template>
   <TooltipTrigger v-bind="props">
-    <slot></slot>
+    <slot />
   </TooltipTrigger>
 </template>

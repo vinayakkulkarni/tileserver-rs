@@ -21,12 +21,9 @@
     v-bind="forwardedProps"
     :class="cn(navigationMenuTriggerStyle(), 'group', props.class)"
   >
-    <slot></slot>
+    <slot />
     <ChevronDown
-      class="
-        relative top-px ml-1 size-3 transition duration-300
-        group-data-[state=open]:rotate-180
-      "
+      class="relative top-px ml-1 size-3 transition duration-300 group-data-[state=open]:rotate-180"
       aria-hidden="true"
     />
   </NavigationMenuTrigger>

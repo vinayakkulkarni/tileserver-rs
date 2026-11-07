@@ -73,7 +73,7 @@
     "
     :style="cssVars"
   >
-    <slot></slot>
+    <slot />
   </div>
 </template>
 

@@ -8,6 +8,6 @@
 
 <template>
   <PopoverTrigger v-bind="forwarded">
-    <slot></slot>
+    <slot />
   </PopoverTrigger>
 </template>

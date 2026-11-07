@@ -49,7 +49,7 @@ impl HttpPmTilesSource {
             })?;
 
         // Create async reader with cached URL
-        let reader: HttpReader = AsyncPmTilesReader::new_with_cached_url(cache, client, url)
+        let reader: HttpReader = AsyncPmTilesReader::new_with_url_and_cache(client, url, cache)
             .await
             .map_err(|e| {
                 TileServerError::MetadataError(format!("failed to read PMTiles header: {}", e))
@@ -204,5 +204,52 @@ impl TileSource for HttpPmTilesSource {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pmtiles_config(id: &str, path: &str) -> SourceConfig {
+        toml::from_str(&format!(
+            "id = \"{id}\"\ntype = \"pmtiles\"\npath = \"{path}\""
+        ))
+        .unwrap()
+    }
+
+    /// Serve the fixture archive over HTTP with Range support and open it as
+    /// an HTTP PMTiles source: header, metadata and one tile.
+    #[tokio::test]
+    async fn opens_an_archive_served_over_http() {
+        let dir = format!("{}/../../data/tiles", env!("CARGO_MANIFEST_DIR"));
+        let app = axum::Router::new().fallback_service(tower_http::services::ServeDir::new(dir));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let config = pmtiles_config("remote", &format!("http://{addr}/protomaps-sample.pmtiles"));
+        let source = HttpPmTilesSource::from_url(&config, reqwest::Client::new())
+            .await
+            .unwrap();
+        assert_eq!(source.metadata().id, "remote");
+        assert_eq!(source.metadata().format, TileFormat::Pbf);
+        let tile = source.get_tile(0, 0, 0).await.unwrap().unwrap();
+        assert!(!tile.data.is_empty());
+    }
+
+    #[tokio::test]
+    async fn reports_a_metadata_error_when_the_url_does_not_serve_an_archive() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let app = axum::Router::new();
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let config = pmtiles_config("missing", &format!("http://{addr}/missing.pmtiles"));
+        let err = HttpPmTilesSource::from_url(&config, reqwest::Client::new())
+            .await
+            .err()
+            .unwrap();
+        assert!(matches!(err, TileServerError::MetadataError(_)), "{err:?}");
     }
 }

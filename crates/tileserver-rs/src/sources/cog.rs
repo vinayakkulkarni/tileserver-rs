@@ -401,177 +401,198 @@ fn render_tile_from_dataset(
     resampling: ResamplingMethod,
     colormap: Option<&ColorMapConfig>,
 ) -> Result<Vec<u8>> {
-    let web_mercator = SpatialRef::from_epsg(3857)
-        .map_err(|e| TileServerError::RasterError(format!("failed to create EPSG:3857: {}", e)))?;
-
-    let mem_driver = DriverManager::get_driver_by_name("MEM")
-        .map_err(|e| TileServerError::RasterError(format!("failed to get MEM driver: {}", e)))?;
-
-    let use_colormap = colormap.is_some() && band_count == 1;
-    // Band layout of the MEM warp destination:
-    //   - 1 band + colormap → single f64 band (colormap lookup below)
-    //   - ≥ 3 source bands → 4-band RGBA: R, G, B plus a destination ALPHA
-    //     band maintained by the warp kernel (gdalwarp -dstalpha
-    //     semantics). A source alpha band (e.g. a 4-band RGBA COG) feeds
-    //     the source density; without one every valid source pixel is
-    //     dense. This keeps out-of-footprint areas transparent instead of
-    //     opaque black — matching rio-tiler/TiTiler behaviour.
-    //   - 1 or 2 source bands without colormap → legacy layout (gray or
-    //     R,G), forced fully opaque below.
-    let rgb_with_alpha = !use_colormap && band_count >= 3;
-    let output_bands = if use_colormap {
-        1
-    } else if rgb_with_alpha {
-        4
-    } else {
-        band_count.min(4)
+    let layout = BandLayout::new(band_count, colormap);
+    let warped = warp_destination(layout, [minx, miny, maxx, maxy], tile_size)?;
+    crate::sources::warp::reproject(dataset, &warped, resampling)?;
+    let img = match layout {
+        BandLayout::Colormap(cmap) => colormap_image(&warped, tile_size, cmap, resampling)?,
+        BandLayout::RgbAlpha => bands_image(&warped, 4, tile_size, resampling)?,
+        BandLayout::Plain(bands) => {
+            let mut img = bands_image(&warped, bands, tile_size, resampling)?;
+            make_opaque(&mut img, bands);
+            img
+        }
     };
+    let mut png_data = Vec::new();
+    img.write_to(&mut Cursor::new(&mut png_data), image::ImageFormat::Png)
+        .map_err(|e| TileServerError::RasterError(format!("failed to encode PNG: {e}")))?;
+    Ok(png_data)
+}
 
-    // Byte-typed destination so the warp kernel writes byte-range alpha
-    // (for non-Byte alpha bands the kernel writes 0..1 densities, which a
-    // u8 read would collapse to 1). RGB band writes saturate-cast exactly
-    // as the previous f64→u8 read did.
-    let mut warped = if use_colormap {
-        mem_driver
-            .create_with_band_type::<f64, _>(
-                "",
-                tile_size as usize,
-                tile_size as usize,
-                output_bands,
-            )
-            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?
-    } else {
-        mem_driver
-            .create_with_band_type::<u8, _>(
-                "",
-                tile_size as usize,
-                tile_size as usize,
-                output_bands,
-            )
-            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?
+/// Band layout of the MEM warp destination.
+#[derive(Debug, Clone, Copy)]
+enum BandLayout<'a> {
+    /// One source band and a colormap: one f64 band, colored by lookup.
+    Colormap(&'a ColorMapConfig),
+    /// Three or more source bands: R, G, B plus a destination alpha band
+    /// that the warp kernel maintains (`gdalwarp -dstalpha`). A source alpha
+    /// band feeds the density; without one every valid pixel is dense. Areas
+    /// outside the source stay transparent, as in rio-tiler/TiTiler.
+    RgbAlpha,
+    /// One or two source bands without a colormap: gray or R,G, forced
+    /// fully opaque.
+    Plain(usize),
+}
+
+impl<'a> BandLayout<'a> {
+    fn new(band_count: usize, colormap: Option<&'a ColorMapConfig>) -> Self {
+        match colormap {
+            Some(cmap) if band_count == 1 => Self::Colormap(cmap),
+            _ if band_count >= 3 => Self::RgbAlpha,
+            _ => Self::Plain(band_count.min(4)),
+        }
+    }
+
+    fn output_bands(self) -> usize {
+        match self {
+            Self::Colormap(_) => 1,
+            Self::RgbAlpha => 4,
+            Self::Plain(bands) => bands,
+        }
+    }
+}
+
+/// The EPSG:3857 MEM dataset covering `bounds` that the warp writes into.
+fn warp_destination(layout: BandLayout<'_>, bounds: [f64; 4], tile_size: u32) -> Result<Dataset> {
+    let raster_err = |what: &str, e: gdal::errors::GdalError| {
+        TileServerError::RasterError(format!("failed to {what}: {e}"))
     };
-
-    let pixel_size_x = (maxx - minx) / tile_size as f64;
-    let pixel_size_y = (maxy - miny) / tile_size as f64;
-    let geo_transform = [minx, pixel_size_x, 0.0, maxy, 0.0, -pixel_size_y];
-
+    let web_mercator =
+        SpatialRef::from_epsg(3857).map_err(|e| raster_err("create EPSG:3857", e))?;
+    let mem_driver =
+        DriverManager::get_driver_by_name("MEM").map_err(|e| raster_err("get MEM driver", e))?;
+    let size = tile_size as usize;
+    let bands = layout.output_bands();
+    // Byte-typed unless colormapped, so the warp kernel writes byte-range
+    // alpha (for non-Byte alpha bands it writes 0..1 densities, which a u8
+    // read would collapse to 1).
+    let mut warped = match layout {
+        BandLayout::Colormap(_) => {
+            mem_driver.create_with_band_type::<f64, _>("", size, size, bands)
+        }
+        _ => mem_driver.create_with_band_type::<u8, _>("", size, size, bands),
+    }
+    .map_err(|e| raster_err("create output", e))?;
+    let [minx, miny, maxx, maxy] = bounds;
+    let pixel_x = (maxx - minx) / f64::from(tile_size);
+    let pixel_y = (maxy - miny) / f64::from(tile_size);
     warped
-        .set_geo_transform(&geo_transform)
-        .map_err(|e| TileServerError::RasterError(format!("failed to set geotransform: {}", e)))?;
+        .set_geo_transform(&[minx, pixel_x, 0.0, maxy, 0.0, -pixel_y])
+        .map_err(|e| raster_err("set geotransform", e))?;
     warped
         .set_spatial_ref(&web_mercator)
-        .map_err(|e| TileServerError::RasterError(format!("failed to set SRS: {}", e)))?;
-
-    if rgb_with_alpha {
-        // CRITICAL: mark the destination's last band as the alpha band
-        // BEFORE warping. GDALReprojectImage maps only
-        // min(src_bands, dst_bands) NON-ALPHA bands 1:1 (gdalwarper.cpp:
-        // source/destination bands whose color interpretation is
-        // GCI_AlphaBand are excluded from the count and handled by the
-        // warp kernel as density). Without this marker a 4-band RGBA
-        // source maps RGB only and the destination alpha stays at its
-        // MEM init value 0 — fully transparent tiles (the bug this
-        // fixes).
+        .map_err(|e| raster_err("set SRS", e))?;
+    if matches!(layout, BandLayout::RgbAlpha) {
+        // CRITICAL: mark the last band as alpha BEFORE warping.
+        // GDALReprojectImage maps only min(src, dst) NON-alpha bands 1:1 and
+        // treats GCI_AlphaBand bands as density. Without this marker a 4-band
+        // RGBA source maps RGB only and alpha stays at its MEM init value 0:
+        // fully transparent tiles.
         warped
-            .rasterband(output_bands)
+            .rasterband(bands)
             .and_then(|mut band| band.set_color_interpretation(ColorInterpretation::AlphaBand))
-            .map_err(|e| {
-                TileServerError::RasterError(format!("failed to mark dst alpha band: {}", e))
-            })?;
+            .map_err(|e| raster_err("mark dst alpha band", e))?;
     }
+    Ok(warped)
+}
 
-    crate::sources::warp::reproject(dataset, &warped, resampling)?;
+/// Band 1 through the colormap.
+fn colormap_image(
+    warped: &Dataset,
+    tile_size: u32,
+    cmap: &ColorMapConfig,
+    resampling: ResamplingMethod,
+) -> Result<RgbaImage> {
+    let size = tile_size as usize;
+    let band = warped
+        .rasterband(1)
+        .map_err(|e| TileServerError::RasterError(format!("failed to get band: {e}")))?;
+    let buffer: Buffer<f64> = band
+        .read_as::<f64>(
+            (0, 0),
+            (size, size),
+            (size, size),
+            Some(ResampleAlg::from(resampling)),
+        )
+        .map_err(|e| TileServerError::RasterError(format!("failed to read band: {e}")))?;
+    let data = buffer.data();
+    Ok(ImageBuffer::from_fn(tile_size, tile_size, |x, y| {
+        image::Rgba(cmap.get_color(data[(y * tile_size + x) as usize]))
+    }))
+}
 
+/// Bands `1..=bands` into the R, G, B, A channels; missing channels stay 0.
+fn bands_image(
+    warped: &Dataset,
+    bands: usize,
+    tile_size: u32,
+    resampling: ResamplingMethod,
+) -> Result<RgbaImage> {
+    let size = tile_size as usize;
     let mut img: RgbaImage = ImageBuffer::new(tile_size, tile_size);
-
-    if use_colormap {
-        let cmap = colormap.expect("colormap verified by use_colormap flag");
-        let band = warped
-            .rasterband(1)
-            .map_err(|e| TileServerError::RasterError(format!("failed to get band: {}", e)))?;
-
-        let buffer: Buffer<f64> = band
-            .read_as::<f64>(
+    for band_idx in 1..=bands.min(4) {
+        let band = warped.rasterband(band_idx).map_err(|e| {
+            TileServerError::RasterError(format!("failed to get band {band_idx}: {e}"))
+        })?;
+        let buffer: Buffer<u8> = band
+            .read_as::<u8>(
                 (0, 0),
-                (tile_size as usize, tile_size as usize),
-                (tile_size as usize, tile_size as usize),
+                (size, size),
+                (size, size),
                 Some(ResampleAlg::from(resampling)),
             )
-            .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
-
-        let data = buffer.data();
-
-        for (i, &value) in data.iter().enumerate() {
-            let px = (i % tile_size as usize) as u32;
-            let py = (i / tile_size as usize) as u32;
-            let color = cmap.get_color(value);
-            img.put_pixel(px, py, image::Rgba(color));
-        }
-    } else {
-        for band_idx in 1..=output_bands {
-            let band = warped.rasterband(band_idx).map_err(|e| {
-                TileServerError::RasterError(format!("failed to get band {}: {}", band_idx, e))
-            })?;
-
-            let buffer: Buffer<u8> = band
-                .read_as::<u8>(
-                    (0, 0),
-                    (tile_size as usize, tile_size as usize),
-                    (tile_size as usize, tile_size as usize),
-                    Some(ResampleAlg::from(resampling)),
-                )
-                .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
-
-            let data = buffer.data();
-
-            for (i, &value) in data.iter().enumerate() {
-                let px = (i % tile_size as usize) as u32;
-                let py = (i / tile_size as usize) as u32;
-                let pixel = img.get_pixel_mut(px, py);
-
-                match band_idx {
-                    1 => pixel[0] = value,
-                    2 => pixel[1] = value,
-                    3 => pixel[2] = value,
-                    4 => pixel[3] = value,
-                    _ => {}
-                }
-            }
-        }
-
-        match output_bands {
-            1 => {
-                for pixel in img.pixels_mut() {
-                    let gray = pixel[0];
-                    pixel[1] = gray;
-                    pixel[2] = gray;
-                    pixel[3] = 255;
-                }
-            }
-            // Legacy 2-band layout (R, G): no alpha band exists — force
-            // fully opaque so the tile is at least visible.
-            2 => {
-                for pixel in img.pixels_mut() {
-                    pixel[3] = 255;
-                }
-            }
-            // 4 bands: the destination alpha band was maintained by the
-            // warp kernel from source validity — do not touch it.
-            _ => {}
+            .map_err(|e| TileServerError::RasterError(format!("failed to read band: {e}")))?;
+        for (pixel, &value) in img.pixels_mut().zip(buffer.data()) {
+            pixel[band_idx - 1] = value;
         }
     }
+    Ok(img)
+}
 
-    let mut png_data = Vec::new();
-    let mut cursor = Cursor::new(&mut png_data);
-    img.write_to(&mut cursor, image::ImageFormat::Png)
-        .map_err(|e| TileServerError::RasterError(format!("failed to encode PNG: {}", e)))?;
-
-    Ok(png_data)
+/// Gray (1 band) spreads to RGB; 1 and 2 band layouts have no alpha band,
+/// so they become fully opaque.
+fn make_opaque(img: &mut RgbaImage, bands: usize) {
+    for pixel in img.pixels_mut() {
+        if bands == 1 {
+            pixel[1] = pixel[0];
+            pixel[2] = pixel[0];
+        }
+        pixel[3] = 255;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn band_layout_picks_colormap_rgba_or_plain() {
+        let cmap: ColorMapConfig =
+            toml::from_str("entries = [{ value = 0.0, color = \"#000000\" }]").unwrap();
+        assert!(matches!(
+            BandLayout::new(1, Some(&cmap)),
+            BandLayout::Colormap(_)
+        ));
+        assert!(matches!(
+            BandLayout::new(3, Some(&cmap)),
+            BandLayout::RgbAlpha
+        ));
+        assert!(matches!(BandLayout::new(4, None), BandLayout::RgbAlpha));
+        assert!(matches!(BandLayout::new(2, None), BandLayout::Plain(2)));
+        assert_eq!(BandLayout::new(1, Some(&cmap)).output_bands(), 1);
+        assert_eq!(BandLayout::new(5, None).output_bands(), 4);
+        assert_eq!(BandLayout::new(1, None).output_bands(), 1);
+    }
+
+    #[test]
+    fn make_opaque_spreads_gray_and_keeps_two_band_rg() {
+        let mut gray: RgbaImage = ImageBuffer::from_pixel(1, 1, image::Rgba([9, 0, 0, 0]));
+        make_opaque(&mut gray, 1);
+        assert_eq!(gray.get_pixel(0, 0).0, [9, 9, 9, 255]);
+        let mut rg: RgbaImage = ImageBuffer::from_pixel(1, 1, image::Rgba([1, 2, 0, 0]));
+        make_opaque(&mut rg, 2);
+        assert_eq!(rg.get_pixel(0, 0).0, [1, 2, 0, 255]);
+    }
 
     #[test]
     fn test_tile_to_web_mercator_bbox() {

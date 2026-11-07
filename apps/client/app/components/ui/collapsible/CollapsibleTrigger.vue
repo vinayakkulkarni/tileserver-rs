@@ -7,6 +7,6 @@
 
 <template>
   <CollapsibleTrigger v-bind="props">
-    <slot></slot>
+    <slot />
   </CollapsibleTrigger>
 </template>

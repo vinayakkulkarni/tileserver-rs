@@ -868,6 +868,111 @@ fn extract_column_value(col: &dyn arrow_array::Array, row: usize) -> Option<Prop
     None
 }
 
+/// Read every file and keep the features whose bbox (when the file has a
+/// bbox covering column) meets `filter_bbox`, projected onto `tile_bbox`.
+fn read_tile_features(
+    file_paths: &[PathBuf],
+    geometry_column: &str,
+    has_bbox: bool,
+    property_fields: &[(String, String)],
+    filter_bbox: &[f64; 4],
+    tile_bbox: &[f64; 4],
+) -> Result<Vec<MvtFeature>> {
+    let mut features = Vec::with_capacity(256);
+    for file_path in file_paths {
+        let file = std::fs::File::open(file_path).map_err(|e| {
+            TileServerError::GeoParquetError(format!("failed to open {}: {e}", file_path.display()))
+        })?;
+        let reader = ParquetRecordBatchReaderBuilder::try_new(file)
+            .map_err(|e| TileServerError::GeoParquetError(format!("failed to read parquet: {e}")))?
+            .with_batch_size(8192)
+            .build()
+            .map_err(|e| {
+                TileServerError::GeoParquetError(format!("failed to build reader: {e}"))
+            })?;
+        for batch in reader {
+            let batch = batch.map_err(|e| {
+                TileServerError::GeoParquetError(format!("failed to read batch: {e}"))
+            })?;
+            collect_batch_features(
+                &batch,
+                geometry_column,
+                has_bbox,
+                property_fields,
+                filter_bbox,
+                tile_bbox,
+                &mut features,
+            );
+        }
+    }
+    Ok(features)
+}
+
+fn collect_batch_features(
+    batch: &arrow_array::RecordBatch,
+    geometry_column: &str,
+    has_bbox: bool,
+    property_fields: &[(String, String)],
+    filter_bbox: &[f64; 4],
+    tile_bbox: &[f64; 4],
+    out: &mut Vec<MvtFeature>,
+) {
+    let Some(geom_col) = batch.column_by_name(geometry_column) else {
+        return;
+    };
+    let bbox_col = if has_bbox {
+        batch
+            .column_by_name("bbox")
+            .and_then(|c| c.as_any().downcast_ref::<arrow_array::StructArray>())
+    } else {
+        None
+    };
+    for row in 0..batch.num_rows() {
+        if let Some(feat_bbox) = bbox_col.and_then(|b| row_bbox(b, row))
+            && !bbox_intersects(feat_bbox, filter_bbox)
+        {
+            continue;
+        }
+        let Some(wkb) = row_wkb(geom_col.as_ref(), row) else {
+            continue;
+        };
+        if let Some((geometry, geom_type)) = wkb_to_mvt(wkb, tile_bbox) {
+            out.push(MvtFeature {
+                geom_type,
+                geometry,
+                properties: extract_row_properties(batch, row, property_fields),
+            });
+        }
+    }
+}
+
+/// `[xmin, ymin, xmax, ymax]` from a GeoParquet 1.1 bbox covering struct.
+fn row_bbox(bbox: &arrow_array::StructArray, row: usize) -> Option<[f64; 4]> {
+    let part = |name: &str| {
+        bbox.column_by_name(name)
+            .and_then(|c| c.as_any().downcast_ref::<arrow_array::Float64Array>())
+            .map(|a| a.value(row))
+    };
+    Some([part("xmin")?, part("ymin")?, part("xmax")?, part("ymax")?])
+}
+
+/// Non-empty WKB of `row` from a Binary or LargeBinary column.
+fn row_wkb(col: &dyn arrow_array::Array, row: usize) -> Option<&[u8]> {
+    if col.is_null(row) {
+        return None;
+    }
+    let wkb = col
+        .as_any()
+        .downcast_ref::<arrow_array::BinaryArray>()
+        .map(|a| a.value(row))
+        .or_else(|| {
+            col.as_any()
+                .downcast_ref::<arrow_array::LargeBinaryArray>()
+                .map(|a| a.value(row))
+        })?;
+    (!wkb.is_empty()).then_some(wkb)
+}
+
 #[async_trait]
 impl TileSource for GeoParquetSource {
     async fn get_tile(&self, z: u8, x: u32, y: u32) -> Result<Option<TileData>> {
@@ -898,122 +1003,15 @@ impl TileSource for GeoParquetSource {
             .to_string();
 
         let result = tokio::task::spawn_blocking(move || -> Result<Option<Vec<u8>>> {
-            let mut mvt_features: Vec<MvtFeature> = Vec::with_capacity(256);
-
-            for file_path in &file_paths {
-                let file = std::fs::File::open(file_path).map_err(|e| {
-                    TileServerError::GeoParquetError(format!(
-                        "failed to open {}: {e}",
-                        file_path.display()
-                    ))
-                })?;
-
-                let builder = ParquetRecordBatchReaderBuilder::try_new(file).map_err(|e| {
-                    TileServerError::GeoParquetError(format!("failed to read parquet: {e}"))
-                })?;
-
-                let reader = builder.with_batch_size(8192).build().map_err(|e| {
-                    TileServerError::GeoParquetError(format!("failed to build reader: {e}"))
-                })?;
-
-                for batch_result in reader {
-                    let batch = batch_result.map_err(|e| {
-                        TileServerError::GeoParquetError(format!("failed to read batch: {e}"))
-                    })?;
-
-                    let schema = batch.schema();
-                    let geom_idx = match schema
-                        .fields()
-                        .iter()
-                        .position(|f| f.name() == &geometry_column)
-                    {
-                        Some(idx) => idx,
-                        None => continue,
-                    };
-
-                    for row in 0..batch.num_rows() {
-                        if has_bbox
-                            && let Some(bbox_idx) =
-                                schema.fields().iter().position(|f| f.name() == "bbox")
-                            && let Some(struct_arr) = batch
-                                .column(bbox_idx)
-                                .as_any()
-                                .downcast_ref::<arrow_array::StructArray>()
-                        {
-                            let xmin = struct_arr.column_by_name("xmin").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
-                            });
-                            let xmax = struct_arr.column_by_name("xmax").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
-                            });
-                            let ymin = struct_arr.column_by_name("ymin").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
-                            });
-                            let ymax = struct_arr.column_by_name("ymax").and_then(|c| {
-                                c.as_any().downcast_ref::<arrow_array::Float64Array>()
-                            });
-
-                            if let (Some(xmin), Some(xmax), Some(ymin), Some(ymax)) =
-                                (xmin, xmax, ymin, ymax)
-                            {
-                                let feat_bbox = [
-                                    xmin.value(row),
-                                    ymin.value(row),
-                                    xmax.value(row),
-                                    ymax.value(row),
-                                ];
-                                if !bbox_intersects(feat_bbox, &filter_bbox) {
-                                    continue;
-                                }
-                            }
-                        }
-
-                        let geom_col = batch.column(geom_idx);
-                        let wkb: Option<&[u8]> = geom_col
-                            .as_any()
-                            .downcast_ref::<arrow_array::BinaryArray>()
-                            .and_then(|arr| {
-                                if arr.is_null(row) {
-                                    None
-                                } else {
-                                    Some(arr.value(row))
-                                }
-                            })
-                            .or_else(|| {
-                                geom_col
-                                    .as_any()
-                                    .downcast_ref::<arrow_array::LargeBinaryArray>()
-                                    .and_then(|arr| {
-                                        if arr.is_null(row) {
-                                            None
-                                        } else {
-                                            Some(arr.value(row))
-                                        }
-                                    })
-                            });
-
-                        let wkb = match wkb {
-                            Some(d) if !d.is_empty() => d,
-                            _ => continue,
-                        };
-
-                        if let Some((geom, geom_type)) = wkb_to_mvt(wkb, &tile_bbox) {
-                            let props = extract_row_properties(&batch, row, &property_fields);
-                            mvt_features.push(MvtFeature {
-                                geom_type,
-                                geometry: geom,
-                                properties: props,
-                            });
-                        }
-                    }
-                }
-            }
-
-            if mvt_features.is_empty() {
-                return Ok(None);
-            }
-
-            Ok(Some(encode_mvt_tile(&mvt_features, &layer_name)))
+            let features = read_tile_features(
+                &file_paths,
+                &geometry_column,
+                has_bbox,
+                &property_fields,
+                &filter_bbox,
+                &tile_bbox,
+            )?;
+            Ok((!features.is_empty()).then(|| encode_mvt_tile(&features, &layer_name)))
         })
         .await
         .map_err(|e| TileServerError::GeoParquetError(format!("task join error: {e}")))?;
@@ -1040,6 +1038,331 @@ impl TileSource for GeoParquetSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use arrow_array::{
+        ArrayRef, BinaryArray, BooleanArray, Float32Array, Float64Array, Int32Array, Int64Array,
+        LargeBinaryArray, LargeStringArray, RecordBatch, StringArray, StructArray,
+    };
+    use arrow_schema::{Field, Schema};
+    use geozero::mvt::{Message, Tile};
+    use std::sync::Arc;
+
+    fn wkb_point(x: f64, y: f64) -> Vec<u8> {
+        let mut b = vec![1, 1, 0, 0, 0];
+        b.extend_from_slice(&x.to_le_bytes());
+        b.extend_from_slice(&y.to_le_bytes());
+        b
+    }
+
+    fn wkb_multilinestring(lines: &[&[(f64, f64)]]) -> Vec<u8> {
+        let mut b = vec![1, 5, 0, 0, 0];
+        b.extend_from_slice(&(lines.len() as u32).to_le_bytes());
+        for line in lines {
+            b.extend_from_slice(&make_wkb_linestring(line));
+        }
+        b
+    }
+
+    /// Slippy-map tile containing `lon`/`lat` at `z`.
+    fn tile_of(lon: f64, lat: f64, z: u8) -> (u32, u32) {
+        let n = f64::from(1u32 << z);
+        let x = ((lon + 180.0) / 360.0 * n).floor() as u32;
+        let lat = lat.to_radians();
+        let y = ((1.0 - (lat.tan() + 1.0 / lat.cos()).ln() / std::f64::consts::PI) / 2.0 * n)
+            .floor() as u32;
+        (x, y)
+    }
+
+    const FLORENCE: (f64, f64) = (11.2558, 43.7696);
+    const KANSAS: (f64, f64) = (-100.0, 40.0);
+
+    /// Rows: a Florence point with every property type, a Florence
+    /// multilinestring, a Kansas point (outside Florence tiles), a row with
+    /// a null geometry and one with empty WKB.
+    fn write_geoparquet(path: &std::path::Path, large_binary: bool) {
+        let (fx, fy) = FLORENCE;
+        let geoms: Vec<Option<Vec<u8>>> = vec![
+            Some(wkb_point(fx, fy)),
+            Some(wkb_multilinestring(&[
+                &[(fx, fy), (fx + 0.01, fy + 0.01)],
+                &[(fx + 0.02, fy), (fx + 0.03, fy + 0.01)],
+            ])),
+            Some(wkb_point(KANSAS.0, KANSAS.1)),
+            None,
+            Some(Vec::new()),
+        ];
+        let geometry: ArrayRef = if large_binary {
+            Arc::new(LargeBinaryArray::from_iter(
+                geoms.iter().map(|g| g.as_deref()),
+            ))
+        } else {
+            Arc::new(BinaryArray::from_iter(geoms.iter().map(|g| g.as_deref())))
+        };
+        let bbox_part = |v: [f64; 5]| Arc::new(Float64Array::from(v.to_vec())) as ArrayRef;
+        let coord = |f: fn((f64, f64)) -> f64, d: f64| {
+            [
+                f(FLORENCE) - d,
+                f(FLORENCE),
+                f(KANSAS),
+                f(FLORENCE),
+                f(FLORENCE),
+            ]
+        };
+        let bbox = StructArray::from(vec![
+            (
+                Arc::new(Field::new("xmin", DataType::Float64, false)),
+                bbox_part(coord(|c| c.0, 0.0)),
+            ),
+            (
+                Arc::new(Field::new("ymin", DataType::Float64, false)),
+                bbox_part(coord(|c| c.1, 0.0)),
+            ),
+            (
+                Arc::new(Field::new("xmax", DataType::Float64, false)),
+                bbox_part(coord(|c| c.0 + 0.03, -0.03)),
+            ),
+            (
+                Arc::new(Field::new("ymax", DataType::Float64, false)),
+                bbox_part(coord(|c| c.1 + 0.01, -0.01)),
+            ),
+        ]);
+        let geom_type = if large_binary {
+            DataType::LargeBinary
+        } else {
+            DataType::Binary
+        };
+        let schema = Arc::new(Schema::new(vec![
+            Field::new("name", DataType::Utf8, true),
+            Field::new("label", DataType::LargeUtf8, true),
+            Field::new("rank", DataType::Int32, true),
+            Field::new("population", DataType::Int64, true),
+            Field::new("area", DataType::Float32, true),
+            Field::new("height", DataType::Float64, true),
+            Field::new("capital", DataType::Boolean, true),
+            Field::new("type", DataType::Utf8, true),
+            Field::new("bbox", bbox.data_type().clone(), false),
+            Field::new("geometry", geom_type, true),
+        ]));
+        let batch = RecordBatch::try_new(
+            schema.clone(),
+            vec![
+                Arc::new(StringArray::from(vec![
+                    Some("Firenze"),
+                    None,
+                    Some("Kansas"),
+                    None,
+                    None,
+                ])),
+                Arc::new(LargeStringArray::from(vec![Some("FI"); 5])),
+                Arc::new(Int32Array::from(vec![Some(1); 5])),
+                Arc::new(Int64Array::from(vec![Some(382_258); 5])),
+                Arc::new(Float32Array::from(vec![Some(102.4); 5])),
+                Arc::new(Float64Array::from(vec![Some(50.5); 5])),
+                Arc::new(BooleanArray::from(vec![Some(true); 5])),
+                Arc::new(StringArray::from(vec![Some("place"); 5])),
+                Arc::new(bbox),
+                geometry,
+            ],
+        )
+        .unwrap();
+        let geo = serde_json::json!({
+            "version": "1.1.0",
+            "primary_column": "geometry",
+            "columns": { "geometry": {
+                "encoding": "WKB",
+                "bbox": [KANSAS.0, KANSAS.1, FLORENCE.0 + 0.03, FLORENCE.1 + 0.01],
+                "covering": { "bbox": {
+                    "xmin": ["bbox", "xmin"], "ymin": ["bbox", "ymin"],
+                    "xmax": ["bbox", "xmax"], "ymax": ["bbox", "ymax"]
+                }}
+            }}
+        });
+        let props = parquet::file::properties::WriterProperties::builder()
+            .set_key_value_metadata(Some(vec![parquet::file::metadata::KeyValue::new(
+                "geo".to_string(),
+                geo.to_string(),
+            )]))
+            .build();
+        let file = std::fs::File::create(path).unwrap();
+        let mut writer = parquet::arrow::ArrowWriter::try_new(file, schema, Some(props)).unwrap();
+        writer.write(&batch).unwrap();
+        writer.close().unwrap();
+    }
+
+    fn source_config(path: &std::path::Path) -> SourceConfig {
+        toml::from_str(&format!(
+            "id = \"places\"\ntype = \"geoparquet\"\npath = \"{}\"",
+            path.display()
+        ))
+        .unwrap()
+    }
+
+    fn decode(tile: &TileData) -> Tile {
+        assert_eq!(tile.format, TileFormat::Pbf);
+        Tile::decode(tile.data.as_ref()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn from_config_reads_geo_metadata_bounds_and_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("places.parquet");
+        write_geoparquet(&path, false);
+        let source = GeoParquetSource::from_config(&source_config(&path))
+            .await
+            .unwrap();
+        let meta = source.metadata();
+        assert_eq!(meta.name, "places");
+        assert_eq!(
+            meta.bounds,
+            Some([KANSAS.0, KANSAS.1, FLORENCE.0 + 0.03, FLORENCE.1 + 0.01])
+        );
+        assert!(source.has_bbox_column);
+        assert_eq!(source.geometry_column, "geometry");
+        let fields = &meta.vector_layers.as_ref().unwrap()[0]["fields"];
+        assert_eq!(fields["name"], "String");
+        assert_eq!(fields["population"], "Number");
+        assert_eq!(fields["capital"], "Boolean");
+        assert!(fields.get("type").is_none() && fields.get("bbox").is_none());
+    }
+
+    #[tokio::test]
+    async fn get_tile_encodes_points_lines_and_every_property_type() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("places.parquet");
+        write_geoparquet(&path, false);
+        let source = GeoParquetSource::from_config(&source_config(&path))
+            .await
+            .unwrap();
+        let tile = decode(&source.get_tile(0, 0, 0).await.unwrap().unwrap());
+        let layer = &tile.layers[0];
+        assert_eq!(layer.name, "places");
+        assert_eq!(layer.features.len(), 3, "null and empty geometries skipped");
+        for key in [
+            "name",
+            "label",
+            "rank",
+            "population",
+            "area",
+            "height",
+            "capital",
+        ] {
+            assert!(layer.keys.iter().any(|k| k == key), "{key} missing");
+        }
+        assert!(!layer.keys.iter().any(|k| k == "type"));
+        let has = |pred: fn(&geozero::mvt::tile::Value) -> bool| layer.values.iter().any(pred);
+        assert!(has(|v| v.string_value.as_deref() == Some("Firenze")));
+        assert!(has(|v| v.int_value == Some(382_258)));
+        assert!(has(|v| v.float_value == Some(102.4)));
+        assert!(has(|v| v.double_value == Some(50.5)));
+        assert!(has(|v| v.bool_value == Some(true)));
+    }
+
+    #[tokio::test]
+    async fn get_tile_uses_the_bbox_covering_to_skip_far_rows() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("places.parquet");
+        write_geoparquet(&path, true);
+        let source = GeoParquetSource::from_config(&source_config(&path))
+            .await
+            .unwrap();
+        let (x, y) = tile_of(FLORENCE.0, FLORENCE.1, 10);
+        let tile = decode(&source.get_tile(10, x, y).await.unwrap().unwrap());
+        assert_eq!(tile.layers[0].features.len(), 2, "only the Florence rows");
+        let (x, y) = tile_of(-30.0, 0.0, 10);
+        assert!(source.get_tile(10, x, y).await.unwrap().is_none());
+        assert!(
+            source.get_tile(15, 0, 0).await.unwrap().is_none(),
+            "above maxzoom"
+        );
+    }
+
+    #[test]
+    fn discover_walks_subdirectories_and_filters_extensions() {
+        let dir = tempfile::tempdir().unwrap();
+        let nested = dir.path().join("a/b");
+        std::fs::create_dir_all(&nested).unwrap();
+        for name in [
+            "z.parquet",
+            "a/one.GEOPARQUET",
+            "a/b/two.parquet",
+            "a/notes.txt",
+        ] {
+            std::fs::write(dir.path().join(name), b"").unwrap();
+        }
+        let files = discover_parquet_files(&dir.path().to_path_buf()).unwrap();
+        let names: Vec<_> = files
+            .iter()
+            .map(|p| {
+                p.strip_prefix(dir.path())
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        assert_eq!(names, ["a/b/two.parquet", "a/one.GEOPARQUET", "z.parquet"]);
+        let single = dir.path().join("z.parquet");
+        assert_eq!(discover_parquet_files(&single).unwrap(), [single]);
+        let missing = discover_parquet_files(&dir.path().join("nope")).unwrap_err();
+        assert!(missing.to_string().contains("path not found"), "{missing}");
+    }
+
+    #[test]
+    fn row_helpers_read_bbox_and_reject_empty_wkb() {
+        let col = BinaryArray::from_iter([Some(&[1u8][..]), Some(&[][..]), None]);
+        assert_eq!(row_wkb(&col, 0), Some(&[1u8][..]));
+        assert_eq!(row_wkb(&col, 1), None);
+        assert_eq!(row_wkb(&col, 2), None);
+        assert_eq!(row_wkb(&Int32Array::from(vec![1]), 0), None);
+        let part = |v: f64| Arc::new(Float64Array::from(vec![v])) as ArrayRef;
+        let full = StructArray::from(vec![
+            (
+                Arc::new(Field::new("xmin", DataType::Float64, false)),
+                part(1.0),
+            ),
+            (
+                Arc::new(Field::new("ymin", DataType::Float64, false)),
+                part(2.0),
+            ),
+            (
+                Arc::new(Field::new("xmax", DataType::Float64, false)),
+                part(3.0),
+            ),
+            (
+                Arc::new(Field::new("ymax", DataType::Float64, false)),
+                part(4.0),
+            ),
+        ]);
+        assert_eq!(row_bbox(&full, 0), Some([1.0, 2.0, 3.0, 4.0]));
+        let partial = StructArray::from(vec![(
+            Arc::new(Field::new("xmin", DataType::Float64, false)),
+            part(1.0),
+        )]);
+        assert_eq!(row_bbox(&partial, 0), None);
+    }
+
+    #[test]
+    fn extract_column_value_skips_nulls_and_unsupported_types() {
+        let strings = StringArray::from(vec![None, Some("x")]);
+        assert!(extract_column_value(&strings, 0).is_none());
+        assert!(matches!(
+            extract_column_value(&strings, 1),
+            Some(PropValue::String(s)) if s == "x"
+        ));
+        let unsupported = arrow_array::UInt8Array::from(vec![1]);
+        assert!(extract_column_value(&unsupported, 0).is_none());
+    }
+
+    #[test]
+    fn multilinestring_draws_each_part_and_rejects_bad_input() {
+        let bbox = [0.0, 0.0, 10.0, 10.0];
+        let wkb = wkb_multilinestring(&[&[(1.0, 1.0), (2.0, 2.0)], &[(5.0, 5.0), (6.0, 6.0)]]);
+        let (geom, geom_type) = wkb_multilinestring_to_mvt(&wkb, &bbox).unwrap();
+        assert_eq!(geom_type, 2);
+        let moves = geom.iter().filter(|c| **c == mvt_command(1, 1)).count();
+        assert_eq!(moves, 2, "one MoveTo per part");
+        assert!(wkb_multilinestring_to_mvt(&wkb[..10], &bbox).is_none());
+        assert!(wkb_multilinestring_to_mvt(&wkb_multilinestring(&[]), &bbox).is_none());
+    }
 
     #[tokio::test]
     async fn from_config_reports_an_empty_directory() {

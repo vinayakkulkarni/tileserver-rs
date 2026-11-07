@@ -12,7 +12,13 @@
 //!    whitelist of safe column names, returning 400 Bad Request instead of
 //!    letting the query reach PostgreSQL.
 //!
-//! 2. **Round-trip safety gate** — `cql2`'s grammar is lenient enough to
+//! 2. **Operator allow-list** — `cql2` parses any `name(args)` as an
+//!    operation and `to_sql()` emits an unknown name as a SQL function call,
+//!    so `pg_sleep(10) = 1` or `query_to_xml('select ...', true, true, '')
+//!    like '%x%'` would run arbitrary SQL. Only the operators the CQL2
+//!    standard defines are accepted; we advertise no custom functions.
+//!
+//! 3. **Round-trip safety gate** — `cql2`'s grammar is lenient enough to
 //!    silently drop trailing garbage (e.g. `name = 'x'; DROP TABLE t; --`
 //!    parses as `name = 'x'`). We re-serialize the parsed expression back
 //!    to CQL2-text and require it to round-trip, which rejects any input
@@ -49,8 +55,23 @@ impl FilterLang {
     }
 }
 
+/// Operators of CQL2 itself, in `cql2`'s canonical spelling. Anything else
+/// would reach PostgreSQL as a function call.
+const STANDARD_OPS: &[&str] = &[
+    "and", "or", "not", "=", "<>", "<", "<=", ">", ">=", "like", "between", "in", "isNull",
+    "casei", "accenti", "+", "-", "*", "/", "%", "^", "div",
+];
+
+fn is_standard_op(op: &str) -> bool {
+    STANDARD_OPS.contains(&op)
+        || cql2::SPATIALOPS.contains(&op)
+        || cql2::TEMPORALOPS.contains(&op)
+        || cql2::ARRAYOPS.contains(&op)
+}
+
 /// Recursively walks the CQL2 AST and rejects any `Expr::Property` whose
-/// name is not present in `allowed`.
+/// name is not present in `allowed`, and any operation that is not a CQL2
+/// operator.
 ///
 /// This is the primary SQL-injection defence. Because `cql2::to_sql()`
 /// emits bare identifiers (e.g. `pg_catalog.pg_shadow`), unrestricted
@@ -73,7 +94,16 @@ fn verify_properties(expr: &Expr, allowed: &[String]) -> Result<(), TileServerEr
                 Err(TileServerError::InvalidTileRequest)
             }
         }
-        Expr::Operation { args, .. } => args.iter().try_for_each(|a| verify_properties(a, allowed)),
+        Expr::Operation { op, args } => {
+            if !is_standard_op(op) {
+                tracing::warn!(
+                    function = %op,
+                    "CQL2 filter called a non-standard function; rejecting to prevent SQL injection"
+                );
+                return Err(TileServerError::InvalidTileRequest);
+            }
+            args.iter().try_for_each(|a| verify_properties(a, allowed))
+        }
         Expr::Interval { interval } => interval
             .iter()
             .try_for_each(|a| verify_properties(a, allowed)),
@@ -348,6 +378,37 @@ mod tests {
             translate_filter_to_sql(attack, Some("cql2-text"), &allowed()).is_err(),
             "round-trip gate must reject trailing SQL garbage"
         );
+    }
+
+    #[test]
+    fn rejects_function_calls_that_are_not_cql2_operators() {
+        for filter in [
+            "pg_sleep(10) = 1",
+            "upper(name) = 'A'",
+            "query_to_xml('select 1', true, true, '') like '%1%'",
+            r#"{"op": "=", "args": [{"op": "pg_sleep", "args": [1]}, 1]}"#,
+        ] {
+            assert!(
+                matches!(
+                    translate_filter_to_sql(filter, None, &allowed()),
+                    Err(TileServerError::InvalidTileRequest)
+                ),
+                "{filter} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn accepts_standard_functions() {
+        let props = allowed();
+        for filter in [
+            "casei(name) = casei('berlin')",
+            "accenti(name) = accenti('Zürich')",
+            "population + 1 > 2",
+        ] {
+            translate_filter_to_sql(filter, None, &props)
+                .unwrap_or_else(|e| panic!("{filter}: {e:?}"));
+        }
     }
 
     #[test]

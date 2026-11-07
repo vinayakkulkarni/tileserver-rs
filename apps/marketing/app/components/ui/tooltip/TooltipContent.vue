@@ -43,7 +43,7 @@
         )
       "
     >
-      <slot></slot>
+      <slot />
     </TooltipContent>
   </TooltipPortal>
 </template>

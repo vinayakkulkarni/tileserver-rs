@@ -11,7 +11,7 @@ use std::path::Path;
 
 use bytes::Bytes;
 use geozero::mvt::{Message, Tile, tile::GeomType};
-use pmtiles::{AsyncBackend, AsyncPmTilesReader, HttpBackend, MmapBackend, TileCoord, TileType};
+use pmtiles::{AsyncBackend, AsyncPmTilesReader, FileBackend, HttpBackend, TileCoord, TileType};
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use serde::Serialize;
 
@@ -154,7 +154,7 @@ pub async fn inspect(target: &str, options: InspectOptions) -> Result<InspectRep
     };
     match extension(path).as_deref() {
         Some("pmtiles") => {
-            let backend = MmapBackend::try_from(path)
+            let backend = FileBackend::try_from(path)
                 .await
                 .map_err(|e| TileServerError::MetadataError(format!("{target}: {e}")))?;
             let reader = AsyncPmTilesReader::try_from_source(backend)

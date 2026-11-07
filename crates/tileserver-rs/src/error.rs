@@ -161,101 +161,52 @@ fn sftp_error_response_parts(err: &TileServerError) -> Option<(StatusCode, Strin
     }
 }
 
+impl TileServerError {
+    /// HTTP status for this error. Anything not listed is a server fault.
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::SourceNotFound(_)
+            | Self::TileNotFound { .. }
+            | Self::StyleNotFound(_)
+            | Self::SpriteNotFound(_)
+            | Self::FontNotFound(_)
+            | Self::NotFound(_) => StatusCode::NOT_FOUND,
+            Self::InvalidCoordinates { .. }
+            | Self::InvalidTileRequest
+            | Self::TranscodeUnsupported { .. }
+            | Self::InvalidFilter(_)
+            | Self::UploadError(_) => StatusCode::BAD_REQUEST,
+            Self::MethodNotAllowed(_) => StatusCode::METHOD_NOT_ALLOWED,
+            Self::UploadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+            Self::RenderBusy => StatusCode::SERVICE_UNAVAILABLE,
+            // Defensive net only. `acquire_with_reclaim` swallows this on the
+            // tile path (reclaim -> bounded wait -> one-shot fallback), so a
+            // tile response should never reach here. Kept so a hypothetical
+            // leak maps to a resource-pressure 503, not a 500.
+            #[cfg(feature = "raster")]
+            Self::BudgetExhausted { .. } => StatusCode::SERVICE_UNAVAILABLE,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+
+    /// Body text. File and internal errors hide their detail (paths,
+    /// backtraces); everything else shows its message.
+    fn public_message(&self) -> String {
+        match self {
+            Self::FileError(_) => "File read error".to_string(),
+            Self::Internal(_) => "Internal server error".to_string(),
+            _ => self.to_string(),
+        }
+    }
+}
+
 impl IntoResponse for TileServerError {
     fn into_response(self) -> Response {
-        let (status, message) = match &self {
-            TileServerError::SourceNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::TileNotFound { .. } => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::InvalidCoordinates { .. } => {
-                (StatusCode::BAD_REQUEST, self.to_string())
-            }
-            TileServerError::InvalidTileRequest => (StatusCode::BAD_REQUEST, self.to_string()),
-            TileServerError::StyleNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::SpriteNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::FontNotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::NotFound(_) => (StatusCode::NOT_FOUND, self.to_string()),
-            TileServerError::MethodNotAllowed(_) => {
-                (StatusCode::METHOD_NOT_ALLOWED, self.to_string())
-            }
-            TileServerError::FileError(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "File read error".to_string(),
-            ),
-            TileServerError::MetadataError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::ConfigError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::RenderError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::RenderBusy => (StatusCode::SERVICE_UNAVAILABLE, self.to_string()),
-            TileServerError::MbTilesError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::MltEncodeError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::MltDecodeError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            TileServerError::TranscodeUnsupported { .. } => {
-                (StatusCode::BAD_REQUEST, self.to_string())
-            }
-            TileServerError::CompressionError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "raster")]
-            TileServerError::RasterError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "raster")]
-            TileServerError::BudgetExhausted { .. } => {
-                // Defensive net only. `acquire_with_reclaim` swallows this on
-                // the tile path (reclaim -> bounded wait -> one-shot fallback),
-                // so a tile response should never reach here. Kept so a
-                // hypothetical leak maps to a resource-pressure 503, not a 500.
-                (StatusCode::SERVICE_UNAVAILABLE, self.to_string())
-            }
-            #[cfg(feature = "postgres")]
-            TileServerError::PostgresError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "postgres")]
-            TileServerError::PostgresPoolError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "postgres")]
-            TileServerError::PostgresVersionError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "geoparquet")]
-            TileServerError::GeoParquetError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "duckdb")]
-            TileServerError::DuckDbError(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
-            #[cfg(feature = "stac")]
-            TileServerError::StacError(_) => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()),
-            TileServerError::InvalidFilter(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            TileServerError::UploadError(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            TileServerError::UploadTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, self.to_string()),
-            TileServerError::Internal(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error".to_string(),
-            ),
-            #[cfg(feature = "sftp")]
-            TileServerError::SftpAuthError(_)
-            | TileServerError::SftpConnectionError(_)
-            | TileServerError::SftpHostKeyMismatch { .. } => {
-                sftp_error_response_parts(&self).expect("sftp variant maps to response parts")
-            }
-        };
-
-        (status, message).into_response()
+        #[cfg(feature = "sftp")]
+        if let Some(parts) = sftp_error_response_parts(&self) {
+            return parts.into_response();
+        }
+        (self.status_code(), self.public_message()).into_response()
     }
 }
 
