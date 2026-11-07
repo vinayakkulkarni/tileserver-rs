@@ -16,7 +16,7 @@ use axum::{
 use crate::cache_control;
 use crate::error::TileServerError;
 use crate::reload::SharedState;
-use crate::sources::{self, TileJson};
+use crate::sources::{self, TileData, TileJson};
 
 #[cfg(feature = "raster")]
 use crate::config;
@@ -163,134 +163,13 @@ pub(crate) async fn get_tile(
         return get_tile_as_geojson(&state, &params.source, params.z, params.x, y).await;
     }
 
-    #[cfg(feature = "raster")]
-    let tile = {
-        #[cfg(feature = "postgres")]
-        if state.sources.is_postgres_function_source(&params.source) {
-            let query_params = serde_json::to_value(&query).unwrap_or_default();
-            state
-                .sources
-                .get_vector_tile_with_query_params(
-                    &params.source,
-                    params.z,
-                    params.x,
-                    y,
-                    &query_params,
-                )
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        } else {
-            let resampling = query
-                .get("resampling")
-                .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
-
-            #[cfg(all(feature = "postgres", feature = "raster"))]
-            let query_params = if state.sources.is_outdb_raster_source(&params.source) {
-                Some(serde_json::to_value(&query).unwrap_or_default())
-            } else {
-                None
-            };
-
-            #[cfg(not(all(feature = "postgres", feature = "raster")))]
-            let query_params: Option<serde_json::Value> = None;
-
-            state
-                .sources
-                .get_raster_tile_with_params(
-                    &params.source,
-                    params.z,
-                    params.x,
-                    y,
-                    256,
-                    resampling,
-                    query_params,
-                )
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        }
-
-        #[cfg(not(feature = "postgres"))]
-        {
-            let resampling = query
-                .get("resampling")
-                .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
-
-            state
-                .sources
-                .get_raster_tile_with_params(
-                    &params.source,
-                    params.z,
-                    params.x,
-                    y,
-                    256,
-                    resampling,
-                    None,
-                )
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        }
-    };
-
-    #[cfg(not(feature = "raster"))]
-    let tile = {
-        #[cfg(feature = "postgres")]
-        let tile = if state.sources.is_postgres_function_source(&params.source) {
-            let query_params: serde_json::Value = serde_json::to_value(&query).unwrap_or_default();
-            state
-                .sources
-                .get_vector_tile_with_query_params(
-                    &params.source,
-                    params.z,
-                    params.x,
-                    y,
-                    &query_params,
-                )
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        } else {
-            state
-                .sources
-                .get_tile(&params.source, params.z, params.x, y)
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        };
-
-        #[cfg(not(feature = "postgres"))]
-        let tile = {
-            let _ = query;
-            state
-                .sources
-                .get_tile(&params.source, params.z, params.x, y)
-                .await?
-                .ok_or(TileServerError::TileNotFound {
-                    z: params.z,
-                    x: params.x,
-                    y,
-                })?
-        };
-
-        tile
-    };
+    let tile = fetch_source_tile(
+        &state.sources,
+        &params.source,
+        (params.z, params.x, y),
+        &query,
+    )
+    .await?;
 
     // Band math: when the client passes `?expression=...` and the
     // requested tile is a raster format, parse the expression and
@@ -305,15 +184,7 @@ pub(crate) async fn get_tile(
     // Every active CEL filter (source preset + request) folds into one hash:
     // filtered variants get their own cache entries.
     #[cfg(feature = "cel")]
-    let filter_hash = {
-        let preset = state.sources.preset_filter(&params.source);
-        let active: Vec<&crate::cel_filter::CelFilter> = preset
-            .map(AsRef::as_ref)
-            .into_iter()
-            .chain(request_filter.as_deref())
-            .collect();
-        crate::cel_filter::combined_hash(&active)
-    };
+    let filter_hash = active_filter_hash(&state.sources, &params.source, request_filter.as_deref());
     #[cfg(not(feature = "cel"))]
     let filter_hash = 0;
 
@@ -342,41 +213,8 @@ pub(crate) async fn get_tile(
         return Ok(axum::http::StatusCode::NO_CONTENT.into_response());
     }
 
-    // MLT transcoding: if the requested format differs from the source format
-    // and the `mlt` feature is enabled, attempt on-the-fly transcoding.
     #[cfg(feature = "mlt")]
-    let tile = {
-        let requested_format = format.parse::<crate::sources::TileFormat>().ok();
-        if let Some(target) = requested_format {
-            if tile.format != target && tile.format.is_vector() && target.is_vector() {
-                match crate::transcode::transcode_tile_blocking(tile.clone(), target).await {
-                    Ok(transcoded) => transcoded,
-                    Err(e) => {
-                        // Fall back to serving the original tile on any transcode
-                        // error. This ensures clients always get usable data even
-                        // when mlt-core cannot handle certain geometries or edge
-                        // cases. The original tile (MVT or MLT) is still valid —
-                        // only the on-the-fly format conversion failed.
-                        tracing::warn!(
-                            "transcoding {:?} -> {:?} failed for {}/{}/{}/{}, serving original tile: {}",
-                            tile.format,
-                            target,
-                            params.source,
-                            params.z,
-                            params.x,
-                            y,
-                            e
-                        );
-                        tile
-                    }
-                }
-            } else {
-                tile
-            }
-        } else {
-            tile
-        }
-    };
+    let tile = transcode_if_requested(tile, format, (&params.source, params.z, params.x, y)).await;
 
     let accept_encoding = req_headers
         .get(ACCEPT_ENCODING)
@@ -397,6 +235,100 @@ pub(crate) async fn get_tile(
     )
     .await?;
 
+    Ok(tile_response(tile))
+}
+
+/// Fetch the tile from its source. PostGIS function sources get the query
+/// string as parameters; raster sources honour `?resampling=` (and out-db
+/// rasters get the query string too).
+async fn fetch_source_tile(
+    sources: &sources::SourceManager,
+    source: &str,
+    (z, x, y): (u8, u32, u32),
+    query: &std::collections::HashMap<String, String>,
+) -> Result<TileData, TileServerError> {
+    #[cfg(feature = "postgres")]
+    if sources.is_postgres_function_source(source) {
+        let params = serde_json::to_value(query).unwrap_or_default();
+        return sources
+            .get_vector_tile_with_query_params(source, z, x, y, &params)
+            .await?
+            .ok_or(TileServerError::TileNotFound { z, x, y });
+    }
+    #[cfg(feature = "raster")]
+    let tile = {
+        let resampling = query
+            .get("resampling")
+            .and_then(|s| s.parse::<config::ResamplingMethod>().ok());
+        #[cfg(feature = "postgres")]
+        let params = sources
+            .is_outdb_raster_source(source)
+            .then(|| serde_json::to_value(query).unwrap_or_default());
+        #[cfg(not(feature = "postgres"))]
+        let params: Option<serde_json::Value> = None;
+        sources
+            .get_raster_tile_with_params(source, z, x, y, 256, resampling, params)
+            .await?
+    };
+    #[cfg(not(feature = "raster"))]
+    let tile = {
+        let _ = query;
+        sources.get_tile(source, z, x, y).await?
+    };
+    tile.ok_or(TileServerError::TileNotFound { z, x, y })
+}
+
+/// One hash over the source preset and the request filter; 0 when neither.
+#[cfg(feature = "cel")]
+fn active_filter_hash(
+    sources: &sources::SourceManager,
+    source: &str,
+    request_filter: Option<&crate::cel_filter::CelFilter>,
+) -> u64 {
+    let preset = sources.preset_filter(source);
+    let active: Vec<&crate::cel_filter::CelFilter> = preset
+        .map(AsRef::as_ref)
+        .into_iter()
+        .chain(request_filter)
+        .collect();
+    crate::cel_filter::combined_hash(&active)
+}
+
+/// Transcode between vector formats (MVT ↔ MLT) when the URL asks for a
+/// different one. On a transcode error the original tile is served: it is
+/// still valid, only the conversion failed.
+#[cfg(feature = "mlt")]
+async fn transcode_if_requested(
+    tile: TileData,
+    format: &str,
+    (source, z, x, y): (&str, u8, u32, u32),
+) -> TileData {
+    let Some(target) = format.parse::<crate::sources::TileFormat>().ok() else {
+        return tile;
+    };
+    if tile.format == target || !tile.format.is_vector() || !target.is_vector() {
+        return tile;
+    }
+    match crate::transcode::transcode_tile_blocking(tile.clone(), target).await {
+        Ok(transcoded) => transcoded,
+        Err(e) => {
+            tracing::warn!(
+                "transcoding {:?} -> {:?} failed for {}/{}/{}/{}, serving original tile: {}",
+                tile.format,
+                target,
+                source,
+                z,
+                x,
+                y,
+                e
+            );
+            tile
+        }
+    }
+}
+
+/// Tile body with content type, cache headers, `Vary` and encoding.
+fn tile_response(tile: TileData) -> Response {
     let mut headers = HeaderMap::new();
     headers.insert(
         CONTENT_TYPE,
@@ -406,12 +338,10 @@ pub(crate) async fn get_tile(
     // Vary is mandatory on every tile response: without it CDNs may serve a
     // wrong-encoding cached copy to a client that does not accept it.
     headers.insert(VARY, HeaderValue::from_static("Accept-Encoding"));
-
     if let Some(encoding) = tile.compression.content_encoding() {
         headers.insert(CONTENT_ENCODING, HeaderValue::from_static(encoding));
     }
-
-    Ok((headers, tile.data).into_response())
+    (headers, tile.data).into_response()
 }
 
 struct TileId<'a> {
