@@ -408,12 +408,12 @@ impl Pool {
         self.state.lock().unwrap_or_else(|e| e.into_inner()).live
     }
 
-    /// Close and remove every idle handle, returning how many were taken.
+    /// Close every idle handle and refund its bytes, returning how many were
+    /// closed.
     ///
-    /// Used by [`DatasetCache::reclaim_idle`], which then refunds exactly the
-    /// returned count with [`Self::release_partial`]. Closing and refunding
-    /// per handle keeps the counter equal to the handles that are really
-    /// open, whether or not the pool is later evicted.
+    /// Used by [`DatasetCache::reclaim_idle`]. Closing and refunding per
+    /// handle keeps the counter equal to the handles that are really open,
+    /// whether or not the pool is later evicted.
     fn take_idle_handles(&self) -> usize {
         let mut state = self.state.lock().unwrap_or_else(|e| e.into_inner());
         let taken = state.idle.len();
@@ -424,25 +424,17 @@ impl Pool {
         drop(state);
         drop(handles);
         if taken > 0 {
+            // Refund BEFORE the wake-up. A waiter woken first sees
+            // `live == 0` with the bytes still counted, takes that as "the
+            // budget is held by other pools" and returns `BudgetExhausted`.
+            self.live_bytes
+                .fetch_sub(taken as u64 * self.cost_bytes, Ordering::AcqRel);
             // `live` fell without a handle being returned. A waiter parked on
             // "live > 0" must re-check, or it can sleep forever once `live`
             // reaches 0 and no handle of this pool will ever come back.
             self.returned.notify_all();
         }
         taken
-    }
-
-    /// Refund `count` handles' worth of bytes to the shared counter.
-    ///
-    /// The caller must have closed `count` handles first (see
-    /// [`Self::take_idle_handles`]); handles that are still open stay counted
-    /// until they close or the pool drops.
-    fn release_partial(&self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        self.live_bytes
-            .fetch_sub(count as u64 * self.cost_bytes, Ordering::AcqRel);
     }
 
     /// Acquire a handle for one render, given an `Arc<Pool>` so the returned
@@ -969,7 +961,6 @@ impl DatasetCache {
             if taken == 0 {
                 continue;
             }
-            pool.release_partial(taken);
             reclaimed = reclaimed.saturating_add(taken as u64 * pool.cost_bytes);
             if pool.live_handles() == 0 {
                 self.inner.invalidate(&key).await;
