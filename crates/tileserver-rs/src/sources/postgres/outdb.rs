@@ -347,228 +347,219 @@ impl PostgresOutDbRasterSource {
         resampling: ResamplingMethod,
         colormap: Option<ColorMapConfig>,
     ) -> Result<Option<TileData>> {
-        let mut composite_image: Option<RgbaImage> = None;
-
+        let bounds = [min_x, min_y, max_x, max_y];
+        let mut composite: Option<RgbaImage> = None;
         for result in results {
             let dataset = self.dataset_cache.get_or_open(&result.filepath).await?;
             let dataset_guard = dataset.lock().await;
-
-            let tile_image = Self::render_single_dataset(
+            let tile = Self::render_single_dataset(
                 &dataset_guard,
-                min_x,
-                min_y,
-                max_x,
-                max_y,
+                bounds,
                 tile_size,
                 resampling,
                 colormap.as_ref(),
-                result.rescale_min,
-                result.rescale_max,
+                (result.rescale_min, result.rescale_max),
             )?;
-
-            if let Some(img) = tile_image {
-                match &mut composite_image {
-                    Some(composite) => {
-                        for (x, y, pixel) in img.enumerate_pixels() {
-                            if pixel[3] > 0 {
-                                composite.put_pixel(x, y, *pixel);
-                            }
-                        }
-                    }
-                    None => {
-                        composite_image = Some(img);
-                    }
-                }
+            if let Some(img) = tile {
+                composite = Some(match composite {
+                    Some(base) => overlay(base, &img),
+                    None => img,
+                });
             }
         }
-
-        match composite_image {
-            Some(img) => {
-                let mut png_data = Cursor::new(Vec::new());
-                img.write_to(&mut png_data, image::ImageFormat::Png)
-                    .map_err(|e| {
-                        TileServerError::RasterError(format!("failed to encode PNG: {}", e))
-                    })?;
-
-                Ok(Some(TileData {
-                    data: Bytes::from(png_data.into_inner()),
-                    format: TileFormat::Png,
-                    compression: TileCompression::None,
-                }))
-            }
-            None => Ok(None),
-        }
+        composite.map(|img| encode_png(&img)).transpose()
     }
 
-    #[allow(clippy::too_many_arguments)]
+    /// Warp one dataset onto the tile and turn it into RGBA: through the
+    /// colormap for a single band, or as gray/RGB/RGBA bands otherwise.
     fn render_single_dataset(
         dataset: &Dataset,
-        min_x: f64,
-        min_y: f64,
-        max_x: f64,
-        max_y: f64,
+        bounds: [f64; 4],
         tile_size: u32,
         resampling: ResamplingMethod,
         colormap: Option<&ColorMapConfig>,
-        rescale_min: Option<f64>,
-        rescale_max: Option<f64>,
+        rescale: (Option<f64>, Option<f64>),
     ) -> Result<Option<RgbaImage>> {
         let band_count = dataset.raster_count();
-
         if band_count == 0 {
             return Ok(None);
         }
-
-        let web_mercator = SpatialRef::from_epsg(3857).map_err(|e| {
-            TileServerError::RasterError(format!("failed to create EPSG:3857: {}", e))
-        })?;
-
-        let mem_driver = DriverManager::get_driver_by_name("MEM").map_err(|e| {
-            TileServerError::RasterError(format!("failed to get MEM driver: {}", e))
-        })?;
-
-        let use_colormap = colormap.is_some() && band_count == 1;
-        let output_bands = if use_colormap { 1 } else { band_count.min(4) };
-
-        let mut warped = mem_driver
-            .create_with_band_type::<f64, _>(
-                "",
-                tile_size as usize,
-                tile_size as usize,
-                output_bands,
-            )
-            .map_err(|e| TileServerError::RasterError(format!("failed to create output: {}", e)))?;
-
-        let pixel_size_x = (max_x - min_x) / tile_size as f64;
-        let pixel_size_y = (max_y - min_y) / tile_size as f64;
-        let geo_transform = [min_x, pixel_size_x, 0.0, max_y, 0.0, -pixel_size_y];
-
-        warped.set_geo_transform(&geo_transform).map_err(|e| {
-            TileServerError::RasterError(format!("failed to set geotransform: {}", e))
-        })?;
-        warped
-            .set_spatial_ref(&web_mercator)
-            .map_err(|e| TileServerError::RasterError(format!("failed to set SRS: {}", e)))?;
-
-        if let Err(e) = crate::sources::warp::reproject(dataset, &warped, resampling) {
-            tracing::debug!(
-                "Reproject failed (tile may be outside raster bounds): {}",
-                e
-            );
-            return Ok(None);
-        }
-
-        let mut img: RgbaImage = ImageBuffer::new(tile_size, tile_size);
-
-        if use_colormap {
-            let cmap = colormap.expect("colormap verified by use_colormap flag");
-            let band = warped
-                .rasterband(1)
-                .map_err(|e| TileServerError::RasterError(format!("failed to get band: {}", e)))?;
-
-            let buffer: Buffer<f64> = band
-                .read_as::<f64>(
-                    (0, 0),
-                    (tile_size as usize, tile_size as usize),
-                    (tile_size as usize, tile_size as usize),
-                    None,
-                )
-                .map_err(|e| TileServerError::RasterError(format!("failed to read band: {}", e)))?;
-
-            let nodata = band.no_data_value();
-
-            let use_dynamic_rescale = cmap.rescale_mode == RescaleMode::Dynamic
-                && rescale_min.is_some()
-                && rescale_max.is_some();
-            let use_no_rescale = cmap.rescale_mode == RescaleMode::None;
-            let (dyn_min, dyn_max) = if use_dynamic_rescale {
-                (
-                    rescale_min.expect("checked by use_dynamic_rescale"),
-                    rescale_max.expect("checked by use_dynamic_rescale"),
-                )
-            } else {
-                (0.0, 1.0)
-            };
-            let dyn_range = dyn_max - dyn_min;
-
-            for y in 0..tile_size {
-                for x in 0..tile_size {
-                    let idx = (y * tile_size + x) as usize;
-                    let raw_value = buffer.data()[idx];
-
-                    let color = if nodata
-                        .map(|nd| (raw_value - nd).abs() < f64::EPSILON)
-                        .unwrap_or(false)
-                    {
-                        cmap.nodata_color
-                            .as_ref()
-                            .and_then(|c| ColorMapConfig::parse_color(c))
-                            .unwrap_or([0, 0, 0, 0])
-                    } else if use_no_rescale {
-                        cmap.get_color(raw_value)
-                    } else if use_dynamic_rescale && dyn_range.abs() > f64::EPSILON {
-                        let normalized = ((raw_value - dyn_min) / dyn_range).clamp(0.0, 1.0);
-                        cmap.get_color(normalized)
-                    } else {
-                        cmap.get_color(raw_value)
-                    };
-
-                    img.put_pixel(x, y, image::Rgba(color));
-                }
-            }
+        let colormap = colormap.filter(|_| band_count == 1);
+        let output_bands = if colormap.is_some() {
+            1
         } else {
-            let bands_to_read = band_count.min(4);
-            let mut band_data: Vec<Buffer<f64>> = Vec::with_capacity(bands_to_read);
-
-            for i in 1..=bands_to_read {
-                let band = warped.rasterband(i).map_err(|e| {
-                    TileServerError::RasterError(format!("failed to get band {}: {}", i, e))
-                })?;
-
-                let buffer: Buffer<f64> = band
-                    .read_as::<f64>(
-                        (0, 0),
-                        (tile_size as usize, tile_size as usize),
-                        (tile_size as usize, tile_size as usize),
-                        None,
-                    )
-                    .map_err(|e| {
-                        TileServerError::RasterError(format!("failed to read band {}: {}", i, e))
-                    })?;
-
-                band_data.push(buffer);
+            band_count.min(4)
+        };
+        let Some(warped) = warp_to_tile(dataset, bounds, tile_size, output_bands, resampling)?
+        else {
+            return Ok(None);
+        };
+        let bands = read_bands(&warped, output_bands, tile_size)?;
+        Ok(Some(match colormap {
+            Some(cmap) => {
+                let nodata = warped
+                    .rasterband(1)
+                    .map_err(|e| TileServerError::RasterError(format!("failed to get band: {e}")))?
+                    .no_data_value();
+                colorize(&bands[0], tile_size, nodata, cmap, rescale)
             }
+            None => compose_bands(&bands, tile_size),
+        }))
+    }
+}
 
-            for y in 0..tile_size {
-                for x in 0..tile_size {
-                    let idx = (y * tile_size + x) as usize;
+/// Reproject `dataset` into a `tile_size`² EPSG:3857 MEM dataset covering
+/// `bounds`. `None` when the warp fails, e.g. the tile is outside the raster.
+fn warp_to_tile(
+    dataset: &Dataset,
+    [min_x, min_y, max_x, max_y]: [f64; 4],
+    tile_size: u32,
+    bands: usize,
+    resampling: ResamplingMethod,
+) -> Result<Option<Dataset>> {
+    let raster_err = |what: &str, e: gdal::errors::GdalError| {
+        TileServerError::RasterError(format!("failed to {what}: {e}"))
+    };
+    let web_mercator =
+        SpatialRef::from_epsg(3857).map_err(|e| raster_err("create EPSG:3857", e))?;
+    let mem_driver =
+        DriverManager::get_driver_by_name("MEM").map_err(|e| raster_err("get MEM driver", e))?;
+    let size = tile_size as usize;
+    let mut warped = mem_driver
+        .create_with_band_type::<f64, _>("", size, size, bands)
+        .map_err(|e| raster_err("create output", e))?;
+    let pixel_x = (max_x - min_x) / f64::from(tile_size);
+    let pixel_y = (max_y - min_y) / f64::from(tile_size);
+    warped
+        .set_geo_transform(&[min_x, pixel_x, 0.0, max_y, 0.0, -pixel_y])
+        .map_err(|e| raster_err("set geotransform", e))?;
+    warped
+        .set_spatial_ref(&web_mercator)
+        .map_err(|e| raster_err("set SRS", e))?;
+    if let Err(e) = crate::sources::warp::reproject(dataset, &warped, resampling) {
+        tracing::debug!(
+            "Reproject failed (tile may be outside raster bounds): {}",
+            e
+        );
+        return Ok(None);
+    }
+    Ok(Some(warped))
+}
 
-                    let (r, g, b, a) = if band_data.len() >= 4 {
-                        (
-                            band_data[0].data()[idx].clamp(0.0, 255.0) as u8,
-                            band_data[1].data()[idx].clamp(0.0, 255.0) as u8,
-                            band_data[2].data()[idx].clamp(0.0, 255.0) as u8,
-                            band_data[3].data()[idx].clamp(0.0, 255.0) as u8,
-                        )
-                    } else if band_data.len() >= 3 {
-                        (
-                            band_data[0].data()[idx].clamp(0.0, 255.0) as u8,
-                            band_data[1].data()[idx].clamp(0.0, 255.0) as u8,
-                            band_data[2].data()[idx].clamp(0.0, 255.0) as u8,
-                            255,
-                        )
-                    } else {
-                        let gray = band_data[0].data()[idx].clamp(0.0, 255.0) as u8;
-                        (gray, gray, gray, 255)
-                    };
+/// Read bands `1..=count` of `warped` as `f64`, row-major.
+fn read_bands(warped: &Dataset, count: usize, tile_size: u32) -> Result<Vec<Vec<f64>>> {
+    let size = tile_size as usize;
+    (1..=count)
+        .map(|i| {
+            let band = warped.rasterband(i).map_err(|e| {
+                TileServerError::RasterError(format!("failed to get band {i}: {e}"))
+            })?;
+            let buffer: Buffer<f64> = band
+                .read_as::<f64>((0, 0), (size, size), (size, size), None)
+                .map_err(|e| {
+                    TileServerError::RasterError(format!("failed to read band {i}: {e}"))
+                })?;
+            Ok(buffer.data().to_vec())
+        })
+        .collect()
+}
 
-                    img.put_pixel(x, y, image::Rgba([r, g, b, a]));
-                }
+/// How single-band values map onto the colormap's stops.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Rescale {
+    /// Values are already in colormap units.
+    Raw,
+    /// Normalize `[min, max]` from the database row to `[0, 1]`.
+    Window { min: f64, range: f64 },
+}
+
+fn rescale_for(cmap: &ColorMapConfig, (min, max): (Option<f64>, Option<f64>)) -> Rescale {
+    match (cmap.rescale_mode, min, max) {
+        (RescaleMode::Dynamic, Some(min), Some(max)) if (max - min).abs() > f64::EPSILON => {
+            Rescale::Window {
+                min,
+                range: max - min,
             }
         }
-
-        Ok(Some(img))
+        _ => Rescale::Raw,
     }
+}
+
+/// Color of one single-band value.
+fn colormap_pixel(
+    value: f64,
+    nodata: Option<f64>,
+    cmap: &ColorMapConfig,
+    rescale: Rescale,
+) -> [u8; 4] {
+    if nodata.is_some_and(|nd| (value - nd).abs() < f64::EPSILON) {
+        return cmap
+            .nodata_color
+            .as_ref()
+            .and_then(|c| ColorMapConfig::parse_color(c))
+            .unwrap_or([0, 0, 0, 0]);
+    }
+    match rescale {
+        Rescale::Raw => cmap.get_color(value),
+        Rescale::Window { min, range } => cmap.get_color(((value - min) / range).clamp(0.0, 1.0)),
+    }
+}
+
+/// Single band through the colormap.
+fn colorize(
+    values: &[f64],
+    tile_size: u32,
+    nodata: Option<f64>,
+    cmap: &ColorMapConfig,
+    rescale: (Option<f64>, Option<f64>),
+) -> RgbaImage {
+    let rescale = rescale_for(cmap, rescale);
+    ImageBuffer::from_fn(tile_size, tile_size, |x, y| {
+        let value = values[(y * tile_size + x) as usize];
+        image::Rgba(colormap_pixel(value, nodata, cmap, rescale))
+    })
+}
+
+/// 1 band → gray, 3 → RGB, 4 → RGBA; values clamped to `0..=255`.
+fn compose_bands(bands: &[Vec<f64>], tile_size: u32) -> RgbaImage {
+    let channel = |b: usize, idx: usize| bands[b][idx].clamp(0.0, 255.0) as u8;
+    ImageBuffer::from_fn(tile_size, tile_size, |x, y| {
+        let idx = (y * tile_size + x) as usize;
+        image::Rgba(match bands.len() {
+            n if n >= 4 => [
+                channel(0, idx),
+                channel(1, idx),
+                channel(2, idx),
+                channel(3, idx),
+            ],
+            3 => [channel(0, idx), channel(1, idx), channel(2, idx), 255],
+            _ => {
+                let gray = channel(0, idx);
+                [gray, gray, gray, 255]
+            }
+        })
+    })
+}
+
+/// Draw the non-transparent pixels of `top` over `base`.
+fn overlay(mut base: RgbaImage, top: &RgbaImage) -> RgbaImage {
+    for (x, y, pixel) in top.enumerate_pixels() {
+        if pixel[3] > 0 {
+            base.put_pixel(x, y, *pixel);
+        }
+    }
+    base
+}
+
+fn encode_png(img: &RgbaImage) -> Result<TileData> {
+    let mut png = Cursor::new(Vec::new());
+    img.write_to(&mut png, image::ImageFormat::Png)
+        .map_err(|e| TileServerError::RasterError(format!("failed to encode PNG: {e}")))?;
+    Ok(TileData {
+        data: Bytes::from(png.into_inner()),
+        format: TileFormat::Png,
+        compression: TileCompression::None,
+    })
 }
 
 #[async_trait]
@@ -755,15 +746,11 @@ mod tests {
         let cmap = landcover_colormap();
         let img = PostgresOutDbRasterSource::render_single_dataset(
             &ds,
-            0.0,
-            0.0,
-            EXTENT,
-            EXTENT,
+            [0.0, 0.0, EXTENT, EXTENT],
             256,
             method,
             Some(&cmap),
-            None,
-            None,
+            (None, None),
         )
         .unwrap()
         .expect("tile covers the raster");
@@ -876,5 +863,97 @@ mod tests {
             None
         );
         assert_eq!(FileStamp::of("/nonexistent/file.tif").await, None);
+    }
+
+    fn ramp() -> ColorMapConfig {
+        toml::from_str(
+            r##"
+rescale_mode = "dynamic"
+nodata_color = "#00000000"
+entries = [
+  { value = 0.0, color = "#000000" },
+  { value = 1.0, color = "#ffffff" },
+]
+"##,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn rescale_uses_the_row_window_only_when_dynamic_and_non_empty() {
+        let cmap = ramp();
+        assert_eq!(
+            rescale_for(&cmap, (Some(10.0), Some(20.0))),
+            Rescale::Window {
+                min: 10.0,
+                range: 10.0
+            }
+        );
+        assert_eq!(rescale_for(&cmap, (Some(5.0), Some(5.0))), Rescale::Raw);
+        assert_eq!(rescale_for(&cmap, (None, Some(5.0))), Rescale::Raw);
+        let mut fixed = ramp();
+        fixed.rescale_mode = RescaleMode::None;
+        assert_eq!(rescale_for(&fixed, (Some(0.0), Some(1.0))), Rescale::Raw);
+    }
+
+    #[test]
+    fn colormap_pixel_handles_nodata_window_and_clamp() {
+        let cmap = ramp();
+        let window = Rescale::Window {
+            min: 100.0,
+            range: 100.0,
+        };
+        assert_eq!(
+            colormap_pixel(-9.0, Some(-9.0), &cmap, window),
+            [0, 0, 0, 0]
+        );
+        assert_eq!(
+            colormap_pixel(200.0, None, &cmap, window),
+            cmap.get_color(1.0)
+        );
+        assert_eq!(
+            colormap_pixel(500.0, None, &cmap, window),
+            cmap.get_color(1.0)
+        );
+        assert_eq!(
+            colormap_pixel(0.0, None, &cmap, window),
+            cmap.get_color(0.0)
+        );
+        assert_eq!(
+            colormap_pixel(0.5, None, &cmap, Rescale::Raw),
+            cmap.get_color(0.5)
+        );
+    }
+
+    #[test]
+    fn compose_bands_maps_gray_rgb_and_rgba() {
+        let gray = compose_bands(&[vec![300.0]], 1);
+        assert_eq!(gray.get_pixel(0, 0).0, [255, 255, 255, 255]);
+        let rgb = compose_bands(&[vec![1.0], vec![2.0], vec![3.0]], 1);
+        assert_eq!(rgb.get_pixel(0, 0).0, [1, 2, 3, 255]);
+        let rgba = compose_bands(&[vec![1.0], vec![2.0], vec![3.0], vec![-4.0]], 1);
+        assert_eq!(rgba.get_pixel(0, 0).0, [1, 2, 3, 0]);
+    }
+
+    #[test]
+    fn overlay_keeps_base_under_transparent_pixels_and_encodes_png() {
+        let base = ImageBuffer::from_pixel(2, 1, image::Rgba([1, 1, 1, 255]));
+        let mut top: RgbaImage = ImageBuffer::new(2, 1);
+        top.put_pixel(1, 0, image::Rgba([9, 9, 9, 255]));
+        let out = overlay(base, &top);
+        assert_eq!(out.get_pixel(0, 0).0, [1, 1, 1, 255]);
+        assert_eq!(out.get_pixel(1, 0).0, [9, 9, 9, 255]);
+        let png = encode_png(&out).unwrap();
+        assert_eq!(png.format, TileFormat::Png);
+        assert!(png.data.starts_with(&[0x89, b'P', b'N', b'G']));
+    }
+
+    #[test]
+    fn colorize_reads_values_row_major() {
+        let cmap = ramp();
+        let img = colorize(&[0.0, 1.0], 1, None, &cmap, (None, None));
+        assert_eq!(img.get_pixel(0, 0).0, cmap.get_color(0.0));
+        let img = colorize(&[0.0, 1.0, 0.0, 1.0], 2, None, &cmap, (None, None));
+        assert_eq!(img.get_pixel(1, 0).0, cmap.get_color(1.0));
     }
 }

@@ -10,6 +10,6 @@
 
 <template>
   <TooltipRoot v-bind="forwarded">
-    <slot></slot>
+    <slot />
   </TooltipRoot>
 </template>

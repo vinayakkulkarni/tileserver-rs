@@ -13,6 +13,6 @@
 
 <template>
   <NavigationMenuLink v-bind="forwarded">
-    <slot></slot>
+    <slot />
   </NavigationMenuLink>
 </template>

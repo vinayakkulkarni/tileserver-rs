@@ -10,6 +10,6 @@
 
 <template>
   <CollapsibleRoot v-slot="{ open }" v-bind="forwarded">
-    <slot :open="open"></slot>
+    <slot :open="open" />
   </CollapsibleRoot>
 </template>

@@ -54,50 +54,52 @@ catalogs:
     '@nuxt/eslint': ^1.17.0
     '@nuxt/eslint-config': ^1.17.0
     '@nuxt/fonts': ^1.2.0
-    '@nuxt/icon': ^2.6.1
+    '@nuxt/icon': ^2.6.2
     '@nuxt/scripts': ^1.3.12
     '@nuxtjs/color-mode': ^4.1.0
-    '@openpanel/nuxt': ^0.4.2
-    '@tailwindcss/vite': ^4.3.3
-    '@types/node': ^26.6.5
+    '@openpanel/nuxt': ^0.4.4
+    '@tailwindcss/vite': ^4.3.4
+    '@types/node': ^26.6.6
     '@vueuse/core': ^15.0.0
     '@vueuse/nuxt': ^15.0.0
     class-variance-authority: ^0.7.1
     clsx: ^2.1.1
     eslint: ^10.14.0
     eslint-plugin-better-tailwindcss: ^4.10.0
-    eslint-plugin-oxlint: ^1.89.0
+    eslint-plugin-oxlint: ^1.90.0
     husky: ^9.1.7
     is-ci: ^4.1.0
     lint-staged: ^17.6.0
-    '@lucide/vue': ^1.66.0
+    '@lucide/vue': ^1.70.0
     maplibre-gl: ^6.16.0
-    motion-v: ^2.9.0
-    nuxt: ^4.6.3
-    oxfmt: ^0.75.0
-    oxlint: ^1.89.0
+    motion-v: ^2.11.1
+    nuxt: ^4.6.4
+    oxfmt: ^0.76.0
+    oxlint: ^1.91.0
     radix-vue: ^1.9.17
     reka-ui: ^2.11.0
-    shadcn-nuxt: ^2.8.2
+    shadcn-nuxt: ^2.9.0
     tailwind-merge: ^3.7.0
-    tailwindcss: ^4.3.3
+    tailwindcss: ^4.3.4
     tailwindcss-animate: ^1.0.7
     tw-animate-css: ^1.4.0
     typescript: ^6.0.3
-    vite: ^8.3.5
-    vitest: ^5.0.5
-    vue: ^3.5.44
-    vue-tsc: ^3.3.13
+    vite: ^8.3.6
+    vitest: ^5.1.0
+    vue: ^3.5.45
+    vue-tsc: ^3.3.14
   client:
     '@comark/nuxt': ^0.8.1
     '@geoql/v-maplibre': ^3.1.0
     '@maplibre/mlt': ^1.3.0
     '@mlc-ai/web-llm': ^0.2.87
-    '@tanstack/ai': ^1.0.1
-    '@tanstack/ai-vue': ^1.0.0
-    '@tanstack/query-db-collection': ^1.4.8
-    '@tanstack/vue-db': ^0.3.12
-    '@tanstack/vue-query': ^5.105.3
+    '@tanstack/ai': ^1.2.0
+    '@tanstack/ai-vue': ^1.0.1
+    '@tanstack/query-db-collection': ^1.5.1
+    # Exact pin: a caret on a prerelease lets pnpm pick a later rc build and
+    # install a second @tanstack/db copy next to the one query-db-collection uses.
+    '@tanstack/vue-db': 1.0.0-rc.1.3
+    '@tanstack/vue-query': ^5.106.1
     '@tmcw/togeojson': ^7.1.3
     '@types/geojson': ^7946.0.16
     '@types/papaparse': ^5.5.2
@@ -110,7 +112,7 @@ catalogs:
     zod: ^4.6.7
   marketing:
     ogl: ^1.0.11
-    wrangler: ^4.156.0
+    wrangler: ^4.158.0
   docs:
     '@nuxt/content': ^3.16.2
     better-sqlite3: ^13.0.3

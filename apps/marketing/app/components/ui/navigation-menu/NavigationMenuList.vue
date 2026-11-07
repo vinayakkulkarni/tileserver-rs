@@ -24,6 +24,6 @@
       )
     "
   >
-    <slot></slot>
+    <slot />
   </NavigationMenuList>
 </template>

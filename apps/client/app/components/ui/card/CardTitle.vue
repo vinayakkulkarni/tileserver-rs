@@ -9,6 +9,6 @@
 
 <template>
   <h3 :class="cn('leading-none font-semibold tracking-tight', props.class)">
-    <slot></slot>
+    <slot />
   </h3>
 </template>

@@ -8,28 +8,17 @@
 <template>
   <section data-label="API Reference" class="border-b border-border">
     <div
-      class="
-        grid items-start gap-8 px-6 pt-16 pb-10
-        md:px-12
-        lg:grid-cols-2 lg:px-20
-      "
+      class="grid items-start gap-8 px-6 pt-16 pb-10 md:px-12 lg:grid-cols-2 lg:px-20"
     >
       <!-- Left: section header -->
       <div>
         <p
-          class="
-            mb-3 font-mono text-10 tracking-300 text-muted-foreground
-            uppercase
-            lg:text-xs
-          "
+          class="mb-3 font-mono text-10 tracking-300 text-muted-foreground uppercase lg:text-xs"
         >
           API Reference
         </p>
         <h2
-          class="
-            mb-4 font-display text-3xl font-semibold
-            lg:text-4xl
-          "
+          class="mb-4 font-display text-3xl font-semibold lg:text-4xl"
           style="letter-spacing: -0.03em; line-height: 1.15"
         >
           RESTful API
@@ -40,19 +29,12 @@
           <NuxtLink
             to="https://demo.tileserver.app/_openapi"
             external
-            class="
-              group ml-1 inline-flex items-center gap-1 font-mono text-xs
-              tracking-wider text-primary uppercase transition-colors
-              hover:text-primary/80
-            "
+            class="group ml-1 inline-flex items-center gap-1 font-mono text-xs tracking-wider text-primary uppercase transition-colors hover:text-primary/80"
             @click="trackCta('api_section', 'openapi')"
           >
             Explore the API
             <ExternalLink
-              class="
-                size-3 transition-transform
-                group-hover:translate-x-0.5
-              "
+              class="size-3 transition-transform group-hover:translate-x-0.5"
             />
           </NuxtLink>
         </p>
@@ -85,16 +67,10 @@
       <div
         v-for="group in apiEndpoints"
         :key="group.title"
-        class="
-          bg-background p-6
-          lg:p-8
-        "
+        class="bg-background p-6 lg:p-8"
       >
         <h3
-          class="
-            mb-4 font-mono text-sm font-semibold tracking-wider text-foreground
-            uppercase
-          "
+          class="mb-4 font-mono text-sm font-semibold tracking-wider text-foreground uppercase"
         >
           {{ group.title }}
         </h3>
@@ -102,16 +78,10 @@
           <div
             v-for="endpoint in group.endpoints"
             :key="endpoint.path"
-            class="
-              flex items-center gap-3 border border-border bg-muted/30 px-3 py-2
-              font-mono text-sm
-            "
+            class="flex items-center gap-3 border border-border bg-muted/30 px-3 py-2 font-mono text-sm"
           >
             <span
-              class="
-                bg-success/20 px-1.5 py-0.5 text-xs font-medium
-                text-success
-              "
+              class="bg-success/20 px-1.5 py-0.5 text-xs font-medium text-success"
             >
               {{ endpoint.method }}
             </span>

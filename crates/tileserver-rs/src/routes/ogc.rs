@@ -269,93 +269,110 @@ pub(crate) async fn items(
 ) -> Result<Response, TileServerError> {
     let state = shared.load();
     let base = build_base_url(&state);
-
-    let source = state
-        .sources
-        .get(&collection_id)
-        .ok_or_else(|| TileServerError::SourceNotFound(collection_id.clone()))?;
-
-    let table_source = source
-        .as_any()
-        .downcast_ref::<PostgresTableSource>()
-        .ok_or_else(|| {
-            TileServerError::NotFound(format!(
-                "collection '{collection_id}' is not an OGC features source"
-            ))
-        })?;
-
-    let limit = params.limit.clamp(1, OGC_FEATURES_LIMIT_MAX);
-    let offset = params.offset.max(0);
-
-    reject_datetime(params.datetime.as_deref())?;
-
-    let bbox = parse_bbox(params.bbox.as_deref())?;
-
-    let bbox_crs = match params.bbox_crs.as_deref() {
-        Some(raw) => ogc_crs::parse_crs(raw)?,
-        None => Crs::crs84(),
-    };
-    let output_crs = match params.crs.as_deref() {
-        Some(raw) => ogc_crs::parse_crs(raw)?,
-        None => Crs::crs84(),
-    };
-    let filter_crs = match params.filter_crs.as_deref() {
-        Some(raw) => Some(ogc_crs::parse_crs(raw)?),
-        None => None,
-    };
-
-    let filter_sql = match params.filter.as_deref() {
-        Some(raw) if !raw.trim().is_empty() => Some(ogc_filter::translate_filter_to_sql(
-            raw,
-            params.filter_lang.as_deref(),
-            &table_source.table_info().properties,
-        )?),
-        _ => None,
-    };
+    let table_source = resolve_table(&state, &collection_id)?;
+    let query = ItemsQuery::parse(&params, &table_source.table_info().properties)?;
 
     let (features, number_matched) = table_source
         .query_features_geojson(
-            bbox,
-            bbox_crs.srid(),
-            output_crs.srid(),
-            filter_sql.as_deref(),
-            filter_crs.as_ref().map(Crs::srid),
-            limit,
-            offset,
+            query.bbox,
+            query.bbox_crs.srid(),
+            query.output_crs.srid(),
+            query.filter_sql.as_deref(),
+            query.filter_crs.as_ref().map(Crs::srid),
+            query.limit,
+            query.offset,
         )
         .await?;
-
     let number_returned = features.len() as i64;
-
-    let mut links = vec![serde_json::json!({
-        "href": format!("{base}/collections/{collection_id}/items?limit={limit}&offset={offset}"),
-        "rel": "self",
-        "type": "application/geo+json",
-        "title": "this page"
-    })];
-
-    if offset + number_returned < number_matched {
-        let next_offset = offset + limit;
-        links.push(serde_json::json!({
-            "href": format!("{base}/collections/{collection_id}/items?limit={limit}&offset={next_offset}"),
-            "rel": "next",
-            "type": "application/geo+json",
-            "title": "next page"
-        }));
-    }
 
     let body = serde_json::json!({
         "type": "FeatureCollection",
         "features": features,
         "numberMatched": number_matched,
         "numberReturned": number_returned,
-        "links": links
+        "links": page_links(
+            &format!("{base}/collections/{collection_id}/items"),
+            query.limit,
+            query.offset,
+            number_returned,
+            number_matched,
+        ),
     });
+    geojson_response(body, &query.output_crs)
+}
 
-    let content_crs = HeaderValue::from_str(&output_crs.header_value()).map_err(|_| {
+/// The validated `/items` request: paging clamped, CRSs parsed and the CQL2
+/// filter translated to SQL against the table's columns.
+struct ItemsQuery {
+    limit: i64,
+    offset: i64,
+    bbox: Option<[f64; 4]>,
+    bbox_crs: Crs,
+    output_crs: Crs,
+    filter_crs: Option<Crs>,
+    filter_sql: Option<String>,
+}
+
+impl ItemsQuery {
+    fn parse(params: &ItemsQueryParams, properties: &[String]) -> Result<Self, TileServerError> {
+        reject_datetime(params.datetime.as_deref())?;
+        let filter_sql = match params.filter.as_deref() {
+            Some(raw) if !raw.trim().is_empty() => Some(ogc_filter::translate_filter_to_sql(
+                raw,
+                params.filter_lang.as_deref(),
+                properties,
+            )?),
+            _ => None,
+        };
+        Ok(Self {
+            limit: params.limit.clamp(1, OGC_FEATURES_LIMIT_MAX),
+            offset: params.offset.max(0),
+            bbox: parse_bbox(params.bbox.as_deref())?,
+            bbox_crs: crs_or_crs84(params.bbox_crs.as_deref())?,
+            output_crs: crs_or_crs84(params.crs.as_deref())?,
+            filter_crs: params
+                .filter_crs
+                .as_deref()
+                .map(ogc_crs::parse_crs)
+                .transpose()?,
+            filter_sql,
+        })
+    }
+}
+
+/// Parse an optional CRS parameter; absent means CRS84.
+fn crs_or_crs84(raw: Option<&str>) -> Result<Crs, TileServerError> {
+    raw.map_or_else(|| Ok(Crs::crs84()), ogc_crs::parse_crs)
+}
+
+/// `self` link, plus `next` when more features follow this page.
+fn page_links(
+    items_url: &str,
+    limit: i64,
+    offset: i64,
+    returned: i64,
+    matched: i64,
+) -> Vec<serde_json::Value> {
+    let link = |offset: i64, rel: &str, title: &str| {
+        serde_json::json!({
+            "href": format!("{items_url}?limit={limit}&offset={offset}"),
+            "rel": rel,
+            "type": "application/geo+json",
+            "title": title
+        })
+    };
+    let mut links = vec![link(offset, "self", "this page")];
+    if offset + returned < matched {
+        links.push(link(offset + limit, "next", "next page"));
+    }
+    links
+}
+
+/// A GeoJSON 200 response carrying the `Content-Crs` of `crs`.
+fn geojson_response(body: serde_json::Value, crs: &Crs) -> Result<Response, TileServerError> {
+    let content_crs = HeaderValue::from_str(&crs.header_value()).map_err(|_| {
         TileServerError::PostgresError("failed to encode Content-Crs header".into())
     })?;
-
     Ok((
         StatusCode::OK,
         [
@@ -802,6 +819,57 @@ fn parse_bbox(bbox_str: Option<&str>) -> Result<Option<[f64; 4]>, TileServerErro
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn items_params(query: &str) -> ItemsQueryParams {
+        serde_urlencoded::from_str(query).unwrap()
+    }
+
+    #[test]
+    fn page_links_add_next_only_when_more_features_follow() {
+        let links = page_links("http://x/items", 10, 0, 10, 25);
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0]["href"], "http://x/items?limit=10&offset=0");
+        assert_eq!(links[1]["rel"], "next");
+        assert_eq!(links[1]["href"], "http://x/items?limit=10&offset=10");
+        assert_eq!(page_links("http://x/items", 10, 20, 5, 25).len(), 1);
+    }
+
+    #[test]
+    fn items_query_clamps_paging_and_defaults_to_crs84() {
+        let q = ItemsQuery::parse(&items_params("limit=0&offset=-5"), &[]).unwrap();
+        assert_eq!((q.limit, q.offset), (1, 0));
+        assert_eq!(q.output_crs.srid(), Crs::crs84().srid());
+        assert!(q.bbox.is_none() && q.filter_sql.is_none() && q.filter_crs.is_none());
+        let q = ItemsQuery::parse(&items_params("limit=999999"), &[]).unwrap();
+        assert_eq!(q.limit, OGC_FEATURES_LIMIT_MAX);
+    }
+
+    #[test]
+    fn items_query_parses_bbox_crs_and_filter() {
+        let props = vec!["population".to_string()];
+        let q = ItemsQuery::parse(
+            &items_params(
+                "bbox=1,2,3,4&crs=http://www.opengis.net/def/crs/EPSG/0/3857\
+                 &filter-crs=http://www.opengis.net/def/crs/EPSG/0/4326&filter=population%20%3E%205",
+            ),
+            &props,
+        )
+        .unwrap();
+        assert_eq!(q.bbox, Some([1.0, 2.0, 3.0, 4.0]));
+        assert_eq!(q.output_crs.srid(), 3857);
+        assert_eq!(q.filter_crs.map(|c| c.srid()), Some(4326));
+        assert!(q.filter_sql.unwrap().contains("population"));
+        // A blank filter is no filter.
+        let q = ItemsQuery::parse(&items_params("filter=%20"), &props).unwrap();
+        assert!(q.filter_sql.is_none());
+    }
+
+    #[test]
+    fn items_query_rejects_bad_crs_datetime_and_filter() {
+        assert!(ItemsQuery::parse(&items_params("crs=EPSG:nope"), &[]).is_err());
+        assert!(ItemsQuery::parse(&items_params("datetime=2020-01-01"), &[]).is_err());
+        assert!(ItemsQuery::parse(&items_params("filter=unknown_col%20%3D%201"), &[]).is_err());
+    }
 
     #[derive(Debug, Clone, Serialize)]
     struct OgcLink {

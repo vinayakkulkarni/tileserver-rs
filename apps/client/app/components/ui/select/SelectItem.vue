@@ -37,7 +37,7 @@
     </span>
 
     <SelectItemText>
-      <slot></slot>
+      <slot />
     </SelectItemText>
   </SelectItem>
 </template>

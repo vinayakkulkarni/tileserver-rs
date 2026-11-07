@@ -127,6 +127,16 @@ jobs:
           # Don't cache build targets (saves ~2GB)
           cache-targets: false
 
+      - name: Drop incomplete DuckDB source trees
+        # libduckdb-sys 1.20000.1 unpacks its sources once into
+        # target/**/duckdb-sources/<hash> and marks the tree with a COMPLETE file.
+        # rust-cache's target cleanup deletes that file, so a restored tree has no
+        # marker and the build script fails with "Directory not empty"
+        # (duckdb/duckdb-rs#935). Fixed upstream in duckdb/duckdb-rs#936, not yet
+        # released; remove this step once libduckdb-sys > 1.20000.1 ships.
+        shell: bash
+        run: find target -type d -name duckdb-sources -prune -exec rm -rf {} + 2>/dev/null || true
+
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -144,10 +154,28 @@ jobs:
     timeout-minutes: 90
     env:
       RUST_LOG: 'debug'
+      # --all-features includes `postgres-integration`: tests/postgis_live.rs
+      # and the postgres_sources integration tests run against this service.
+      DATABASE_URL: postgresql://tileserver:tileserver@localhost:5432/tiles
+    services:
+      postgis:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: tileserver
+          POSTGRES_PASSWORD: tileserver
+          POSTGRES_DB: tiles
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tileserver -d tiles"
+          --health-interval 5s --health-timeout 5s --health-retries 20
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      - name: Load PostGIS fixtures
+        run: .github/scripts/load-postgis-fixtures.sh
 
       # ubuntu-latest ships with ~14GB free on /. The bundled libduckdb-sys +
       # GDAL + mbgl-sys C++ build under cargo --all-features (libduckdb alone
@@ -242,6 +270,17 @@ jobs:
       # the gating test run and the LCOV that feeds cargo-crap come from ONE
       # build instead of two. The crate has no executable Rust doctests (all
       # fences are toml/sql/ignore), so llvm-cov skipping doctests loses nothing.
+
+      - name: Drop incomplete DuckDB source trees
+        # libduckdb-sys 1.20000.1 unpacks its sources once into
+        # target/**/duckdb-sources/<hash> and marks the tree with a COMPLETE file.
+        # rust-cache's target cleanup deletes that file, so a restored tree has no
+        # marker and the build script fails with "Directory not empty"
+        # (duckdb/duckdb-rs#935). Fixed upstream in duckdb/duckdb-rs#936, not yet
+        # released; remove this step once libduckdb-sys > 1.20000.1 ships.
+        shell: bash
+        run: find target -type d -name duckdb-sources -prune -exec rm -rf {} + 2>/dev/null || true
+
       - name: Run tests + collect coverage
         run: |
           cargo llvm-cov --workspace --all-features \

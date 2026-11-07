@@ -320,165 +320,73 @@ impl SourceManager {
     /// out-db source fails to load.
     #[cfg(feature = "postgres")]
     pub async fn load_postgres_sources(&mut self, config: &PostgresConfig) -> Result<()> {
-        let pool_settings = PoolSettings {
-            max_size: config.pool_size,
-            wait_timeout_ms: config.pool_wait_timeout_ms,
-            create_timeout_ms: config.pool_create_timeout_ms,
-            recycle_timeout_ms: config.pool_recycle_timeout_ms,
-            pre_warm: config.pool_pre_warm,
-        };
-
         let pool = Arc::new(
             PostgresPool::new(
                 &config.connection_string,
-                pool_settings.clone(),
+                pool_settings(config),
                 config.ssl_cert.as_ref(),
                 config.ssl_key.as_ref(),
                 config.ssl_root_cert.as_ref(),
             )
             .await?,
         );
-
         self.postgres_pool = Some(pool.clone());
-
-        let tile_cache = config.cache.as_ref().map(|cache_config| {
-            let cache = Arc::new(TileCache::new(
-                cache_config.size_mb,
-                cache_config.ttl_seconds,
-            ));
-            tracing::info!(
-                "Initialized PostgreSQL tile cache: {}MB, TTL {}s",
-                cache_config.size_mb,
-                cache_config.ttl_seconds
-            );
-            cache
-        });
+        let tile_cache = config.cache.as_ref().map(postgres_tile_cache);
         self.tile_cache = tile_cache.clone();
 
-        let mut function_sources: Vec<PostgresFunctionSource> =
-            Vec::with_capacity(config.functions.len());
-        for func_config in &config.functions {
-            match PostgresFunctionSource::new(pool.clone(), func_config, tile_cache.clone()).await {
-                Ok(source) => {
-                    tracing::info!(
-                        "Loaded PostgreSQL function source: {} ({}.{})",
-                        func_config.id,
-                        func_config.schema,
-                        func_config.function
-                    );
-                    function_sources.push(source);
-                }
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to load PostgreSQL function source {}: {}",
-                        func_config.id,
-                        e
-                    );
-                }
-            }
-        }
+        let functions = load_function_sources(&pool, &config.functions, &tile_cache).await;
+        let tables = load_table_sources(&pool, &config.tables, &tile_cache).await;
+        #[cfg(feature = "raster")]
+        let outdb = load_outdb_sources(&pool, &config.outdb_rasters).await;
 
-        let mut table_sources: Vec<PostgresTableSource> = Vec::with_capacity(config.tables.len());
-        for table_config in &config.tables {
-            match PostgresTableSource::new(pool.clone(), table_config, tile_cache.clone()).await {
-                Ok(source) => {
-                    tracing::info!(
-                        "Loaded PostgreSQL table source: {} ({}.{})",
-                        table_config.id,
-                        table_config.schema,
-                        table_config.table
-                    );
-                    table_sources.push(source);
-                }
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to load PostgreSQL table source {}: {}",
-                        table_config.id,
-                        e
-                    );
-                }
-            }
-        }
-
-        #[cfg(all(feature = "postgres", feature = "raster"))]
-        let mut outdb_raster_sources: Vec<PostgresOutDbRasterSource> =
-            Vec::with_capacity(config.outdb_rasters.len());
-        #[cfg(all(feature = "postgres", feature = "raster"))]
-        for outdb_config in &config.outdb_rasters {
-            match PostgresOutDbRasterSource::new(pool.clone(), outdb_config).await {
-                Ok(source) => {
-                    tracing::info!(
-                        "Loaded PostgreSQL out-db raster source: {} ({}.{})",
-                        outdb_config.id,
-                        outdb_config.schema,
-                        outdb_config.function.as_ref().unwrap_or(&outdb_config.id)
-                    );
-                    outdb_raster_sources.push(source);
-                }
-                Err(e) => {
-                    tracing::error!(
-                        "Failed to load PostgreSQL out-db raster source {}: {}",
-                        outdb_config.id,
-                        e
-                    );
-                }
-            }
-        }
-
-        if pool_settings.pre_warm {
-            let tile_param_types: &[Type] = &[Type::INT4, Type::INT4, Type::INT4];
-            let mut queries: Vec<(&str, &[Type])> = Vec::new();
-
-            for source in &function_sources {
-                queries.push((source.tile_query(), tile_param_types));
-            }
-            for source in &table_sources {
-                queries.push((source.tile_query(), tile_param_types));
-            }
+        if config.pool_pre_warm {
+            let queries = tile_queries(&functions, &tables);
             #[cfg(feature = "raster")]
-            for source in &outdb_raster_sources {
-                let outdb_param_types: &[Type] =
-                    &[Type::INT4, Type::INT4, Type::INT4, Type::TEXT, Type::JSONB];
-                queries.push((source.tile_query(), outdb_param_types));
-            }
-
+            let queries: Vec<_> = queries
+                .into_iter()
+                .chain(outdb.iter().map(|s| (s.tile_query(), OUTDB_PARAM_TYPES)))
+                .collect();
             pool.warmup(&queries).await?;
         }
 
         #[cfg(feature = "cel")]
-        for func_config in &config.functions {
-            if function_sources
-                .iter()
-                .any(|s| s.metadata().id == func_config.id)
-            {
-                self.register_filter(&func_config.id, func_config.filter.as_ref())?;
-            }
-        }
-        #[cfg(feature = "cel")]
-        for table_config in &config.tables {
-            if table_sources
-                .iter()
-                .any(|s| s.metadata().id == table_config.id)
-            {
-                self.register_filter(&table_config.id, table_config.filter.as_ref())?;
+        for (id, filter) in config
+            .functions
+            .iter()
+            .map(|f| (&f.id, f.filter.as_ref()))
+            .chain(config.tables.iter().map(|t| (&t.id, t.filter.as_ref())))
+        {
+            if self.sources_contain_loaded(id, &functions, &tables) {
+                self.register_filter(id, filter)?;
             }
         }
 
-        for source in function_sources {
+        for source in functions {
             self.sources
                 .insert(source.metadata().id.clone(), Arc::new(source));
         }
-        for source in table_sources {
+        for source in tables {
             self.sources
                 .insert(source.metadata().id.clone(), Arc::new(source));
         }
         #[cfg(feature = "raster")]
-        for source in outdb_raster_sources {
+        for source in outdb {
             self.sources
                 .insert(source.metadata().id.clone(), Arc::new(source));
         }
-
         Ok(())
+    }
+
+    /// Whether `id` names a function or table source that loaded.
+    #[cfg(all(feature = "postgres", feature = "cel"))]
+    fn sources_contain_loaded(
+        &self,
+        id: &str,
+        functions: &[PostgresFunctionSource],
+        tables: &[PostgresTableSource],
+    ) -> bool {
+        functions.iter().any(|s| s.metadata().id == id)
+            || tables.iter().any(|s| s.metadata().id == id)
     }
 
     /// Load a single source from config
@@ -488,45 +396,18 @@ impl SourceManager {
     /// [`TileServerError::ConfigError`] for an unsupported source, and the
     /// errors of the source constructor.
     pub async fn load_source(&mut self, config: &SourceConfig) -> Result<()> {
-        let source: Arc<dyn TileSource> = match config.source_type {
-            SourceType::PMTiles => {
-                #[cfg(feature = "cloud")]
-                if crate::sources::pmtiles::cloud::is_cloud_url(&config.path) {
-                    let source = Arc::new(
-                        crate::sources::pmtiles::cloud::CloudPmTilesSource::from_url(config)
-                            .await?,
-                    );
-                    self.sources.insert(config.id.clone(), source);
-                    #[cfg(feature = "cel")]
-                    self.register_filter(&config.id, config.filter.as_ref())?;
-                    return Ok(());
-                }
+        let source = self.open_source(config).await?;
+        #[cfg(feature = "cel")]
+        self.register_filter(&config.id, config.filter.as_ref())?;
+        self.sources.insert(config.id.clone(), source);
+        Ok(())
+    }
 
-                #[cfg(feature = "sftp")]
-                if crate::sources::pmtiles::sftp::is_sftp_url(&config.path) {
-                    let source = Arc::new(
-                        crate::sources::pmtiles::sftp::SftpPmTilesSource::from_url(config).await?,
-                    );
-                    self.sources.insert(config.id.clone(), source);
-                    #[cfg(feature = "cel")]
-                    self.register_filter(&config.id, config.filter.as_ref())?;
-                    return Ok(());
-                }
-
-                if config.path.starts_with("http://") || config.path.starts_with("https://") {
-                    let client = reqwest::Client::builder()
-                        .user_agent("tileserver-rs/0.1.0")
-                        .build()
-                        .map_err(|e| {
-                            TileServerError::ConfigError(format!(
-                                "failed to create HTTP client: {e}"
-                            ))
-                        })?;
-                    Arc::new(HttpPmTilesSource::from_url(config, client).await?)
-                } else {
-                    Arc::new(LocalPmTilesSource::from_file(config).await?)
-                }
-            }
+    /// Open the source a [`SourceConfig`] describes. DEM sources may refer
+    /// to raster sources loaded before them.
+    async fn open_source(&self, config: &SourceConfig) -> Result<Arc<dyn TileSource>> {
+        Ok(match config.source_type {
+            SourceType::PMTiles => open_pmtiles(config).await?,
             SourceType::MBTiles => Arc::new(MbTilesSource::from_file(config).await?),
             SourceType::Dir => Arc::new(DirSource::from_file(config).await?),
             SourceType::Tar => Arc::new(TarSource::from_file(config).await?),
@@ -548,12 +429,7 @@ impl SourceManager {
             SourceType::Dem => {
                 Arc::new(crate::sources::dem::DemSource::from_config(config, &self.sources).await?)
             }
-        };
-
-        #[cfg(feature = "cel")]
-        self.register_filter(&config.id, config.filter.as_ref())?;
-        self.sources.insert(config.id.clone(), source);
-        Ok(())
+        })
     }
 
     /// Get a source by ID
@@ -788,6 +664,155 @@ fn record_uncached(
         duration: started.elapsed(),
         outcome,
     });
+}
+
+/// Pick the PMTiles backend from the path: cloud object store, SFTP,
+/// HTTP(S) or a local file.
+async fn open_pmtiles(config: &SourceConfig) -> Result<Arc<dyn TileSource>> {
+    #[cfg(feature = "cloud")]
+    if crate::sources::pmtiles::cloud::is_cloud_url(&config.path) {
+        return Ok(Arc::new(
+            crate::sources::pmtiles::cloud::CloudPmTilesSource::from_url(config).await?,
+        ));
+    }
+    #[cfg(feature = "sftp")]
+    if crate::sources::pmtiles::sftp::is_sftp_url(&config.path) {
+        return Ok(Arc::new(
+            crate::sources::pmtiles::sftp::SftpPmTilesSource::from_url(config).await?,
+        ));
+    }
+    if config.path.starts_with("http://") || config.path.starts_with("https://") {
+        let client = reqwest::Client::builder()
+            .user_agent("tileserver-rs/0.1.0")
+            .build()
+            .map_err(|e| {
+                TileServerError::ConfigError(format!("failed to create HTTP client: {e}"))
+            })?;
+        return Ok(Arc::new(HttpPmTilesSource::from_url(config, client).await?));
+    }
+    Ok(Arc::new(LocalPmTilesSource::from_file(config).await?))
+}
+
+/// Prepared-statement parameter types of a vector tile query: `z, x, y`.
+#[cfg(feature = "postgres")]
+const TILE_PARAM_TYPES: &[Type] = &[Type::INT4, Type::INT4, Type::INT4];
+/// Out-db raster query parameters: `z, x, y, bounds, params`.
+#[cfg(all(feature = "postgres", feature = "raster"))]
+const OUTDB_PARAM_TYPES: &[Type] = &[Type::INT4, Type::INT4, Type::INT4, Type::TEXT, Type::JSONB];
+
+#[cfg(feature = "postgres")]
+fn pool_settings(config: &PostgresConfig) -> PoolSettings {
+    PoolSettings {
+        max_size: config.pool_size,
+        wait_timeout_ms: config.pool_wait_timeout_ms,
+        create_timeout_ms: config.pool_create_timeout_ms,
+        recycle_timeout_ms: config.pool_recycle_timeout_ms,
+        pre_warm: config.pool_pre_warm,
+    }
+}
+
+#[cfg(feature = "postgres")]
+fn postgres_tile_cache(cache: &crate::config::PostgresCacheConfig) -> Arc<TileCache> {
+    tracing::info!(
+        "Initialized PostgreSQL tile cache: {}MB, TTL {}s",
+        cache.size_mb,
+        cache.ttl_seconds
+    );
+    Arc::new(TileCache::new(cache.size_mb, cache.ttl_seconds))
+}
+
+/// Statements to prepare on every pooled connection when `pre_warm` is on.
+#[cfg(feature = "postgres")]
+fn tile_queries<'a>(
+    functions: &'a [PostgresFunctionSource],
+    tables: &'a [PostgresTableSource],
+) -> Vec<(&'a str, &'static [Type])> {
+    functions
+        .iter()
+        .map(PostgresFunctionSource::tile_query)
+        .chain(tables.iter().map(PostgresTableSource::tile_query))
+        .map(|q| (q, TILE_PARAM_TYPES))
+        .collect()
+}
+
+/// Load each function source; a failure is logged and the rest still load.
+#[cfg(feature = "postgres")]
+async fn load_function_sources(
+    pool: &Arc<PostgresPool>,
+    configs: &[crate::config::PostgresFunctionConfig],
+    cache: &Option<Arc<TileCache>>,
+) -> Vec<PostgresFunctionSource> {
+    let mut loaded = Vec::with_capacity(configs.len());
+    for c in configs {
+        match PostgresFunctionSource::new(pool.clone(), c, cache.clone()).await {
+            Ok(source) => {
+                tracing::info!(
+                    "Loaded PostgreSQL function source: {} ({}.{})",
+                    c.id,
+                    c.schema,
+                    c.function
+                );
+                loaded.push(source);
+            }
+            Err(e) => tracing::error!("Failed to load PostgreSQL function source {}: {}", c.id, e),
+        }
+    }
+    loaded
+}
+
+/// Load each table source; a failure is logged and the rest still load.
+#[cfg(feature = "postgres")]
+async fn load_table_sources(
+    pool: &Arc<PostgresPool>,
+    configs: &[crate::config::PostgresTableConfig],
+    cache: &Option<Arc<TileCache>>,
+) -> Vec<PostgresTableSource> {
+    let mut loaded = Vec::with_capacity(configs.len());
+    for c in configs {
+        match PostgresTableSource::new(pool.clone(), c, cache.clone()).await {
+            Ok(source) => {
+                tracing::info!(
+                    "Loaded PostgreSQL table source: {} ({}.{})",
+                    c.id,
+                    c.schema,
+                    c.table
+                );
+                loaded.push(source);
+            }
+            Err(e) => tracing::error!("Failed to load PostgreSQL table source {}: {}", c.id, e),
+        }
+    }
+    loaded
+}
+
+/// Load each out-db raster source; a failure is logged and the rest still load.
+#[cfg(all(feature = "postgres", feature = "raster"))]
+async fn load_outdb_sources(
+    pool: &Arc<PostgresPool>,
+    configs: &[crate::config::PostgresOutDbRasterConfig],
+) -> Vec<PostgresOutDbRasterSource> {
+    let mut loaded = Vec::with_capacity(configs.len());
+    for c in configs {
+        match PostgresOutDbRasterSource::new(pool.clone(), c).await {
+            Ok(source) => {
+                tracing::info!(
+                    "Loaded PostgreSQL out-db raster source: {} ({}.{})",
+                    c.id,
+                    c.schema,
+                    c.function.as_ref().unwrap_or(&c.id)
+                );
+                loaded.push(source);
+            }
+            Err(e) => {
+                tracing::error!(
+                    "Failed to load PostgreSQL out-db raster source {}: {}",
+                    c.id,
+                    e
+                );
+            }
+        }
+    }
+    loaded
 }
 
 #[cfg(test)]

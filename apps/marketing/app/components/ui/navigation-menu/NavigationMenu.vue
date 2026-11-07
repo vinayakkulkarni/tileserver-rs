@@ -30,7 +30,7 @@
       )
     "
   >
-    <slot></slot>
+    <slot />
     <NavigationMenuViewport />
   </NavigationMenuRoot>
 </template>

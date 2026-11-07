@@ -6,6 +6,6 @@
 
 <template>
   <div :class="cn('p-6', props.class)">
-    <slot></slot>
+    <slot />
   </div>
 </template>

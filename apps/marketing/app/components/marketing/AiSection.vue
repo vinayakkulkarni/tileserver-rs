@@ -14,28 +14,18 @@
   <section data-label="AI Assistant" class="border-b border-border">
     <div class="px-6 pt-16 pb-10 md:px-12 lg:px-20">
       <p
-        class="
-          mb-3 font-mono text-10 tracking-300 text-muted-foreground
-          uppercase
-          lg:text-xs
-        "
+        class="mb-3 font-mono text-10 tracking-300 text-muted-foreground uppercase lg:text-xs"
       >
         AI Assistant
       </p>
       <h2
-        class="
-          max-w-2xl font-display text-3xl font-semibold
-          lg:text-4xl
-        "
+        class="max-w-2xl font-display text-3xl font-semibold lg:text-4xl"
         style="letter-spacing: -0.03em; line-height: 1.15"
       >
         AI Without the Landlord
       </h2>
       <p
-        class="
-          mt-4 max-w-2xl font-sans text-sm/relaxed text-muted-foreground
-          lg:text-base
-        "
+        class="mt-4 max-w-2xl font-sans text-sm/relaxed text-muted-foreground lg:text-base"
       >
         Your maps, your GPU, your data. By default the built-in AI assistant
         runs entirely in your browser &mdash; no API keys, no cloud inference,
@@ -49,10 +39,7 @@
       <div
         v-for="benefit in aiBenefits"
         :key="benefit.title"
-        class="
-          bg-background p-6
-          lg:p-8
-        "
+        class="bg-background p-6 lg:p-8"
       >
         <component :is="benefit.icon" class="mb-4 size-5 text-primary" />
         <h3 class="mb-2 font-display text-sm font-semibold tracking-tight">
@@ -66,11 +53,7 @@
 
     <!-- Chat example + detail -->
     <div
-      class="
-        grid items-start gap-12 px-6 py-12
-        md:px-12
-        lg:grid-cols-2 lg:px-20
-      "
+      class="grid items-start gap-12 px-6 py-12 md:px-12 lg:grid-cols-2 lg:px-20"
     >
       <div class="overflow-hidden border border-border bg-muted/30">
         <div class="flex items-center gap-2 border-b border-border px-4 py-2.5">
@@ -82,9 +65,7 @@
         <div class="space-y-4 p-5">
           <div v-for="msg in aiChatExample" :key="msg.text" class="flex gap-3">
             <div
-              class="
-                mt-0.5 flex size-6 shrink-0 items-center justify-center border
-              "
+              class="mt-0.5 flex size-6 shrink-0 items-center justify-center border"
               :class="
                 msg.role === 'user'
                   ? 'border-border bg-muted text-muted-foreground'
@@ -126,10 +107,7 @@
           No tokens. No telemetry. No landlords.
         </h3>
         <p
-          class="
-            mb-4 font-sans text-sm/relaxed text-muted-foreground
-            lg:text-base
-          "
+          class="mb-4 font-sans text-sm/relaxed text-muted-foreground lg:text-base"
         >
           The AI runs a quantized LLM directly on your GPU via WebGPU &mdash;
           the same technology that powers browser gaming. First load downloads
@@ -171,32 +149,19 @@
           <NuxtLink
             to="https://demo.tileserver.app"
             external
-            class="
-              group inline-flex items-center gap-2 border border-foreground
-              bg-foreground px-5 py-2.5 font-mono text-xs tracking-wider
-              text-background uppercase transition-colors
-              hover:bg-transparent hover:text-foreground
-            "
+            class="group inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-2.5 font-mono text-xs tracking-wider text-background uppercase transition-colors hover:bg-transparent hover:text-foreground"
             @click="trackCta('ai_section', 'demo')"
           >
             <ExternalLink class="size-3.5" />
             Try It Live
             <ArrowRight
-              class="
-                size-3.5 transition-transform
-                group-hover:translate-x-0.5
-              "
+              class="size-3.5 transition-transform group-hover:translate-x-0.5"
             />
           </NuxtLink>
           <NuxtLink
             to="https://docs.tileserver.app/guides/ai-chat"
             external
-            class="
-              inline-flex items-center gap-2 border border-border px-5 py-2.5
-              font-mono text-xs tracking-wider text-muted-foreground uppercase
-              transition-colors
-              hover:border-foreground/20 hover:text-foreground
-            "
+            class="inline-flex items-center gap-2 border border-border px-5 py-2.5 font-mono text-xs tracking-wider text-muted-foreground uppercase transition-colors hover:border-foreground/20 hover:text-foreground"
             @click="trackCta('ai_section', 'ai_docs')"
           >
             Learn More

@@ -10,19 +10,13 @@
       <div class="flex items-center gap-3">
         <Globe class="size-4 text-muted-foreground" />
         <span
-          class="
-            font-mono text-10 tracking-wider text-muted-foreground uppercase
-            lg:text-xs
-          "
+          class="font-mono text-10 tracking-wider text-muted-foreground uppercase lg:text-xs"
         >
           &copy; {{ new Date().getFullYear() }}
           <NuxtLink
             to="https://vinayakkulkarni.dev"
             external
-            class="
-              transition-colors
-              hover:text-foreground
-            "
+            class="transition-colors hover:text-foreground"
             @click="trackCta('footer', 'author')"
             >Vinayak Kulkarni</NuxtLink
           >
@@ -32,12 +26,7 @@
         <NuxtLink
           to="https://docs.tileserver.app"
           external
-          class="
-            font-mono text-10 tracking-wider text-muted-foreground uppercase
-            transition-colors
-            hover:text-foreground
-            lg:text-xs
-          "
+          class="font-mono text-10 tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground lg:text-xs"
           @click="trackCta('footer', 'docs')"
         >
           Docs
@@ -45,12 +34,7 @@
         <NuxtLink
           to="https://github.com/vinayakkulkarni/tileserver-rs"
           external
-          class="
-            font-mono text-10 tracking-wider text-muted-foreground uppercase
-            transition-colors
-            hover:text-foreground
-            lg:text-xs
-          "
+          class="font-mono text-10 tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground lg:text-xs"
           @click="trackGithub('footer', 'repo')"
         >
           GitHub
@@ -58,12 +42,7 @@
         <NuxtLink
           to="https://github.com/vinayakkulkarni/tileserver-rs/blob/main/LICENSE"
           external
-          class="
-            font-mono text-10 tracking-wider text-muted-foreground uppercase
-            transition-colors
-            hover:text-foreground
-            lg:text-xs
-          "
+          class="font-mono text-10 tracking-wider text-muted-foreground uppercase transition-colors hover:text-foreground lg:text-xs"
           @click="trackGithub('footer', 'license')"
         >
           MIT License

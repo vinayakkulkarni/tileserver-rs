@@ -31,10 +31,7 @@
 <template>
   <div class="md:hidden">
     <button
-      class="
-        flex items-center justify-center p-2
-        hover:bg-accent
-      "
+      class="flex items-center justify-center p-2 hover:bg-accent"
       aria-label="Open menu"
       @click="isOpen = true"
     >
@@ -53,32 +50,22 @@
       <Transition name="slide-left">
         <div
           v-if="isOpen"
-          class="
-            fixed inset-y-0 left-0 z-100 flex w-72 flex-col border-r
-            border-border bg-background shadow-2xl
-          "
+          class="fixed inset-y-0 left-0 z-100 flex w-72 flex-col border-r border-border bg-background shadow-2xl"
         >
           <div
-            class="
-              flex items-center justify-between border-b border-border px-4 py-3
-            "
+            class="flex items-center justify-between border-b border-border px-4 py-3"
           >
             <div class="flex items-center gap-2.5">
               <Globe class="size-5 text-primary" />
               <span
-                class="
-                  font-display text-sm font-semibold tracking-150 uppercase
-                "
+                class="font-display text-sm font-semibold tracking-150 uppercase"
               >
                 <span class="text-foreground">Tileserver</span>
                 <span class="text-primary"> RS</span>
               </span>
             </div>
             <button
-              class="
-                flex items-center justify-center p-2
-                hover:bg-accent
-              "
+              class="flex items-center justify-center p-2 hover:bg-accent"
               aria-label="Close menu"
               @click="handleClose"
             >
@@ -93,14 +80,14 @@
                   :href="link.href"
                   :target="link.external ? '_blank' : undefined"
                   :rel="link.external ? 'noopener noreferrer' : undefined"
-                  class="
-                    flex items-center gap-2 px-3 py-2.5 font-mono text-sm
-                    tracking-wider text-muted-foreground uppercase
-                    hover:bg-accent hover:text-foreground
-                  "
+                  class="flex items-center gap-2 px-3 py-2.5 font-mono text-sm tracking-wider text-muted-foreground uppercase hover:bg-accent hover:text-foreground"
                   @click="handleClose"
                 >
-                  <Icon v-if="link.iconName" :name="link.iconName" class="size-4" />
+                  <Icon
+                    v-if="link.iconName"
+                    :name="link.iconName"
+                    class="size-4"
+                  />
                   {{ link.label }}
                 </a>
               </li>
@@ -109,11 +96,7 @@
 
           <div class="border-t border-border p-4">
             <button
-              class="
-                flex w-full items-center gap-2 px-3 py-2.5 font-mono text-sm
-                tracking-wider text-muted-foreground uppercase
-                hover:bg-accent hover:text-foreground
-              "
+              class="flex w-full items-center gap-2 px-3 py-2.5 font-mono text-sm tracking-wider text-muted-foreground uppercase hover:bg-accent hover:text-foreground"
               @click="toggle"
             >
               <Sun v-if="isDark" class="size-4" />

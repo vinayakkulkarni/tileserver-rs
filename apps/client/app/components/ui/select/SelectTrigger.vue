@@ -25,7 +25,7 @@
       )
     "
   >
-    <slot></slot>
+    <slot />
     <SelectIcon as-child>
       <ChevronDown class="size-4 opacity-50 shrink-0" />
     </SelectIcon>

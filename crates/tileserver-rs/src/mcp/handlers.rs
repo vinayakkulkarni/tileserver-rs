@@ -217,6 +217,106 @@ impl McpHandler {
             .get(source_id)
             .map(|src| src.metadata().to_tilejson(&self.state.base_url))
     }
+
+    /// `tileserver_render_static_map`. `Err` carries the tool-error result.
+    async fn render_static_map(
+        &self,
+        args: RenderStaticMapArgs,
+    ) -> Result<CallToolResult, ToolFailure> {
+        let renderer = self.state.renderer.as_ref().ok_or_else(|| {
+            fail(tool_error(
+                "native renderer is disabled; rebuild with --features raster and set render.pool_size > 0",
+            ))
+        })?;
+        check_render_dimensions(args.width, args.height)?;
+        let style = self.state.styles.get(&args.style_id).ok_or_else(|| {
+            fail(tile_error_to_call_result(
+                crate::error::TileServerError::StyleNotFound(args.style_id.clone()),
+            ))
+        })?;
+        let style_json = self.render_style_json(&style.style_json)?;
+        let render_options = RenderOptions::for_static(
+            style.id.clone(),
+            style_json,
+            StaticType::Center {
+                lon: args.lon,
+                lat: args.lat,
+                zoom: args.zoom,
+                bearing: args.bearing,
+                pitch: args.pitch,
+            },
+            args.width,
+            args.height,
+            1,
+            ImageFormat::Webp,
+            StaticQueryParams::default(),
+        )
+        .map_err(|e| fail(tool_error(format!("invalid render options: {e}"))))?;
+        let bytes = renderer
+            .render_static(render_options)
+            .await
+            .map_err(|e| fail(tile_error_to_call_result(e)))?;
+        webp_image_result(&bytes)
+    }
+
+    /// The style with tile URLs pointing at this server, as JSON text.
+    fn render_style_json(&self, style: &serde_json::Value) -> Result<String, ToolFailure> {
+        let value = crate::styles::rewrite_style_for_api(
+            style,
+            &self.state.render_base_url,
+            &crate::styles::UrlQueryParams::default(),
+            &self.state.sources,
+        );
+        if !(value.is_object() || value.is_array()) {
+            return Err(fail(tool_error(
+                "rewritten style is neither an object nor an array",
+            )));
+        }
+        serde_json::to_string(&value).map_err(|e| {
+            fail(tile_error_to_call_result(
+                crate::error::TileServerError::Internal(anyhow::anyhow!(
+                    "failed to serialize rewritten style: {e}"
+                )),
+            ))
+        })
+    }
+}
+
+/// A tool-level failure, boxed: `CallToolResult` is too large to return by
+/// value in an `Err`.
+type ToolFailure = Box<CallToolResult>;
+
+fn fail(result: CallToolResult) -> ToolFailure {
+    Box::new(result)
+}
+
+/// Both sides in `1..=MAX_RENDER_DIMENSION`.
+fn check_render_dimensions(width: u32, height: u32) -> Result<(), ToolFailure> {
+    if width == 0 || height == 0 {
+        return Err(fail(tool_error(
+            "width and height must be greater than zero",
+        )));
+    }
+    if width > MAX_RENDER_DIMENSION || height > MAX_RENDER_DIMENSION {
+        return Err(fail(tool_error(format!(
+            "image dimensions exceed MCP cap (max {MAX_RENDER_DIMENSION}x{MAX_RENDER_DIMENSION}); got {width}x{height}"
+        ))));
+    }
+    Ok(())
+}
+
+/// Base64 WebP image content, refused above [`MAX_RENDER_BYTES`].
+fn webp_image_result(bytes: &[u8]) -> Result<CallToolResult, ToolFailure> {
+    if bytes.len() > MAX_RENDER_BYTES {
+        return Err(fail(tool_error(format!(
+            "rendered image is {} bytes; exceeds MCP soft cap of {MAX_RENDER_BYTES} bytes \u{2014} request smaller dimensions",
+            bytes.len()
+        ))));
+    }
+    Ok(CallToolResult::success(vec![ContentBlock::image(
+        BASE64_STANDARD.encode(bytes),
+        "image/webp",
+    )]))
 }
 
 #[tool_router]
@@ -373,89 +473,10 @@ impl McpHandler {
         params: Parameters<RenderStaticMapArgs>,
     ) -> Result<CallToolResult, McpError> {
         let Parameters(args) = params;
-
-        let Some(renderer) = self.state.renderer.as_ref() else {
-            return Ok(tool_error(
-                "native renderer is disabled; rebuild with --features raster and set render.pool_size > 0",
-            ));
-        };
-
-        if args.width == 0 || args.height == 0 {
-            return Ok(tool_error("width and height must be greater than zero"));
-        }
-        if args.width > MAX_RENDER_DIMENSION || args.height > MAX_RENDER_DIMENSION {
-            return Ok(tool_error(format!(
-                "image dimensions exceed MCP cap (max {MAX_RENDER_DIMENSION}x{MAX_RENDER_DIMENSION}); got {}x{}",
-                args.width, args.height
-            )));
-        }
-
-        let Some(style) = self.state.styles.get(&args.style_id) else {
-            return Ok(tile_error_to_call_result(
-                crate::error::TileServerError::StyleNotFound(args.style_id),
-            ));
-        };
-
-        let style_json = match crate::styles::rewrite_style_for_api(
-            &style.style_json,
-            &self.state.render_base_url,
-            &crate::styles::UrlQueryParams::default(),
-            &self.state.sources,
-        ) {
-            value if value.is_object() || value.is_array() => match serde_json::to_string(&value) {
-                Ok(s) => s,
-                Err(e) => {
-                    return Ok(tile_error_to_call_result(
-                        crate::error::TileServerError::Internal(anyhow::anyhow!(
-                            "failed to serialize rewritten style: {e}"
-                        )),
-                    ));
-                }
-            },
-            _ => {
-                return Ok(tool_error(
-                    "rewritten style is neither an object nor an array",
-                ));
-            }
-        };
-
-        let render_options = match RenderOptions::for_static(
-            style.id.clone(),
-            style_json,
-            StaticType::Center {
-                lon: args.lon,
-                lat: args.lat,
-                zoom: args.zoom,
-                bearing: args.bearing,
-                pitch: args.pitch,
-            },
-            args.width,
-            args.height,
-            1,
-            ImageFormat::Webp,
-            StaticQueryParams::default(),
-        ) {
-            Ok(o) => o,
-            Err(e) => return Ok(tool_error(format!("invalid render options: {e}"))),
-        };
-
-        let bytes = match renderer.render_static(render_options).await {
-            Ok(b) => b,
-            Err(e) => return Ok(tile_error_to_call_result(e)),
-        };
-
-        if bytes.len() > MAX_RENDER_BYTES {
-            return Ok(tool_error(format!(
-                "rendered image is {} bytes; exceeds MCP soft cap of {MAX_RENDER_BYTES} bytes — request smaller dimensions",
-                bytes.len()
-            )));
-        }
-
-        let encoded = BASE64_STANDARD.encode(&bytes);
-        Ok(CallToolResult::success(vec![ContentBlock::image(
-            encoded,
-            "image/webp",
-        )]))
+        Ok(self
+            .render_static_map(args)
+            .await
+            .unwrap_or_else(|failure| *failure))
     }
 
     #[tool(
@@ -834,5 +855,37 @@ fn stac_search(
                 "failed to serialize STAC FeatureCollection: {e}"
             )),
         )),
+    }
+}
+
+#[cfg(test)]
+mod render_static_tests {
+    use super::*;
+
+    fn text(result: &CallToolResult) -> String {
+        serde_json::to_string(result).unwrap()
+    }
+
+    #[test]
+    fn dimensions_must_be_positive_and_within_the_cap() {
+        assert!(check_render_dimensions(1, MAX_RENDER_DIMENSION).is_ok());
+        let zero = check_render_dimensions(0, 10).unwrap_err();
+        assert_eq!(zero.is_error, Some(true));
+        assert!(text(&zero).contains("greater than zero"));
+        let big = check_render_dimensions(MAX_RENDER_DIMENSION + 1, 10).unwrap_err();
+        assert!(text(&big).contains(&format!("got {}x10", MAX_RENDER_DIMENSION + 1)));
+    }
+
+    #[test]
+    fn webp_result_is_base64_image_and_refuses_oversize() {
+        let ok = webp_image_result(&[1, 2, 3]).unwrap();
+        let json = text(&ok);
+        assert!(
+            json.contains("image/webp") && json.contains("AQID"),
+            "{json}"
+        );
+        let err = webp_image_result(&vec![0; MAX_RENDER_BYTES + 1]).unwrap_err();
+        assert_eq!(err.is_error, Some(true));
+        assert!(text(&err).contains("soft cap"));
     }
 }

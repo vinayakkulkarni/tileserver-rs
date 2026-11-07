@@ -19,13 +19,29 @@ jobs:
     # Each group now runs in its own job; Codecov merges every upload for the
     # commit into one report, so the totals and the 75% gate are unchanged.
     timeout-minutes: 45
+    # PostGIS only for the `core` group, which runs the live PostGIS tests. An
+    # empty image skips the service in the other groups.
+    services:
+      postgis:
+        image: ${{ matrix.group == 'core' && 'postgis/postgis:17-3.5' || '' }}
+        env:
+          POSTGRES_USER: tileserver
+          POSTGRES_PASSWORD: tileserver
+          POSTGRES_DB: tiles
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tileserver -d tiles"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://tileserver:tileserver@localhost:5432/tiles
     strategy:
       fail-fast: false
       matrix:
         include:
           - group: core
             run: >-
-              cargo llvm-cov --no-report --lib --test metrics_endpoint --test api_endpoints --test common_smoke --test http_sources --test pmtiles_local --test integration --test route_core --test route_data --test route_styles --test route_render --test route_fonts --test route_files --test route_og --test route_embed --test route_composite --test route_style_autogen --test route_spatial --test route_ogc --test route_admin_upload --test route_admin_config_schema --test admin_stats --test live_updates --test postgres_sources --test route_llm_proxy --no-default-features --features "postgres,mlt,cel"
+              cargo llvm-cov --no-report --lib --test metrics_endpoint --test api_endpoints --test common_smoke --test http_sources --test pmtiles_local --test integration --test route_core --test route_data --test route_styles --test route_render --test route_fonts --test route_files --test route_og --test route_embed --test route_composite --test route_style_autogen --test route_spatial --test route_ogc --test route_admin_upload --test route_admin_config_schema --test admin_stats --test live_updates --test postgres_sources --test postgis_live --test route_llm_proxy --no-default-features --features "postgres,postgres-integration,mlt,cel" && cargo llvm-cov --no-report --lib --test postgis_live --no-default-features --features "postgres,postgres-integration,raster"
           - group: mcp
             run: >-
               cargo llvm-cov --no-report --lib --test route_mcp_http --test route_mcp_stdio --test route_mcp_oauth --test route_mcp_handlers --test route_admin_oauth --no-default-features --features "mcp" && cargo llvm-cov --no-report --lib --test route_admin_oauth --no-default-features --features "mcp,mcp-persistence"
@@ -79,6 +95,20 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: coverage-${{ matrix.group }}
+
+      - name: Drop incomplete DuckDB source trees
+        # libduckdb-sys 1.20000.1 unpacks its sources once into
+        # target/**/duckdb-sources/<hash> and marks the tree with a COMPLETE file.
+        # rust-cache's target cleanup deletes that file, so a restored tree has no
+        # marker and the build script fails with "Directory not empty"
+        # (duckdb/duckdb-rs#935). Fixed upstream in duckdb/duckdb-rs#936, not yet
+        # released; remove this step once libduckdb-sys > 1.20000.1 ships.
+        shell: bash
+        run: find target -type d -name duckdb-sources -prune -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Load PostGIS fixtures
+        if: matrix.group == 'core'
+        run: .github/scripts/load-postgis-fixtures.sh
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
