@@ -100,7 +100,9 @@ pub fn api_router(state: SharedState) -> Router {
             "/api/upload",
             post(upload::upload_file)
                 .get(upload::list_uploads)
-                .layer(axum::extract::DefaultBodyLimit::max(500 * 1024 * 1024)),
+                // The handler streams the body and enforces the configured
+                // per-file and total limits itself.
+                .layer(axum::extract::DefaultBodyLimit::disable()),
         )
         .route("/api/upload/{id}", delete(upload::delete_upload))
         // Spatial API endpoints (for LLM tool integration)

@@ -121,6 +121,15 @@ impl SharedState {
     pub fn store(&self, state: Arc<AppState>) {
         self.controller.app.store(state);
     }
+
+    /// Replace the live state with `update(current)` while holding the
+    /// reload lock, so an upload or delete never overwrites a concurrent
+    /// reload or another upload with a stale snapshot.
+    pub async fn update(&self, update: impl FnOnce(&AppState) -> AppState) {
+        let _guard = self.controller.reload_mutex.lock().await;
+        let current = self.controller.app.load_full();
+        self.controller.app.store(Arc::new(update(&current)));
+    }
 }
 
 /// Settings that remain stable across hot-reloads.

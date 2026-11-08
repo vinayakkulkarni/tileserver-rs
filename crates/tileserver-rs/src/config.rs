@@ -635,6 +635,13 @@ pub struct ServerConfig {
     /// Maximum upload file size in megabytes (default: 500 MB)
     #[serde(default = "default_upload_max_size_mb")]
     pub upload_max_size_mb: u32,
+    /// Total disk space all uploaded files may use, in megabytes
+    /// (default: 5120 MB). Uploads past it get 413.
+    #[serde(default = "default_upload_max_total_mb")]
+    pub upload_max_total_mb: u32,
+    /// Maximum number of uploaded files kept at once (default: 100).
+    #[serde(default = "default_upload_max_files")]
+    pub upload_max_files: u32,
     /// User-defined response headers applied to every HTTP response.
     ///
     /// Header names must conform to RFC 7230 token grammar (alphanumeric
@@ -713,6 +720,14 @@ fn default_admin_bind() -> String {
     "127.0.0.1:0".to_string()
 }
 
+fn default_upload_max_total_mb() -> u32 {
+    5120
+}
+
+fn default_upload_max_files() -> u32 {
+    100
+}
+
 fn default_upload_max_size_mb() -> u32 {
     500
 }
@@ -727,6 +742,8 @@ impl Default for ServerConfig {
             public_url: None,
             upload_dir: None,
             upload_max_size_mb: default_upload_max_size_mb(),
+            upload_max_total_mb: default_upload_max_total_mb(),
+            upload_max_files: default_upload_max_files(),
             extra_response_headers: None,
             disable_render: false,
             disable_ogc: false,

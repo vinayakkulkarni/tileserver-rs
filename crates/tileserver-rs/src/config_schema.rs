@@ -215,6 +215,22 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 enum_values: None,
             },
             ConfigFieldSchema {
+                key: "upload_max_total_mb",
+                field_type: "u32",
+                default: Some("5120"),
+                description: "Total disk space all uploaded files may use, in megabytes.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
+                key: "upload_max_files",
+                field_type: "u32",
+                default: Some("100"),
+                description: "Maximum number of uploaded files kept at once.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
                 key: "extra_response_headers",
                 field_type: "table<string,string>",
                 default: None,
