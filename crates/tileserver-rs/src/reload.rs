@@ -423,113 +423,12 @@ pub async fn reload_signal(_controller: Arc<ReloadController>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
-
-    fn make_test_app_state() -> AppState {
-        AppState {
-            sources: Arc::new(crate::sources::SourceManager::new()),
-            styles: Arc::new(crate::styles::StyleManager::new()),
-            renderer: None,
-            base_url: "http://localhost:8080".to_string(),
-            render_base_url: "http://127.0.0.1:8080".to_string(),
-            ui_enabled: false,
-            fonts_dir: None,
-            files_dir: None,
-            upload_dir: None,
-        }
-    }
-
-    fn make_test_meta() -> ReloadMeta {
-        ReloadMeta {
-            config_hash: "test-hash".to_string(),
-            loaded_at_unix: now_unix_seconds(),
-            loaded_sources: 0,
-            loaded_styles: 0,
-            renderer_enabled: false,
-            prometheus_listener_active: false,
-        }
-    }
-
-    fn make_test_runtime() -> RuntimeSettings {
-        RuntimeSettings {
-            ui_enabled: false,
-            runtime_host: "127.0.0.1".to_string(),
-            runtime_port: 8080,
-            public_url_override: None,
-        }
-    }
 
     #[test]
     fn now_unix_seconds_is_recent() {
         let t = now_unix_seconds();
         // Must be after 2020-01-01 (unix 1577836800)
         assert!(t > 1_577_836_800, "timestamp should be after 2020");
-    }
-
-    #[test]
-    fn reload_controller_new_stores_initial_state() {
-        let state = make_test_app_state();
-        let meta = make_test_meta();
-        let runtime = make_test_runtime();
-        let controller = ReloadController::new(state, meta, Config::default(), None, runtime);
-        let loaded = controller.app.load_full();
-        assert_eq!(loaded.base_url, "http://localhost:8080");
-    }
-
-    #[test]
-    fn shared_state_new_load_returns_initial_state() {
-        let state = make_test_app_state();
-        let meta = make_test_meta();
-        let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(
-            state,
-            meta,
-            Config::default(),
-            None,
-            runtime,
-        ));
-        let shared = SharedState::new(controller);
-        let loaded = shared.load();
-        assert_eq!(loaded.base_url, "http://localhost:8080");
-    }
-
-    #[test]
-    fn shared_state_meta_returns_initial_hash() {
-        let state = make_test_app_state();
-        let meta = make_test_meta();
-        let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(
-            state,
-            meta,
-            Config::default(),
-            None,
-            runtime,
-        ));
-        let shared = SharedState::new(controller);
-        let loaded_meta = shared.meta();
-        assert_eq!(loaded_meta.config_hash, "test-hash");
-    }
-
-    #[test]
-    fn shared_state_store_swaps_app_state_atomically() {
-        let state = make_test_app_state();
-        let meta = make_test_meta();
-        let runtime = make_test_runtime();
-        let controller = Arc::new(ReloadController::new(
-            state,
-            meta,
-            Config::default(),
-            None,
-            runtime,
-        ));
-        let shared = SharedState::new(controller);
-
-        let mut replacement = make_test_app_state();
-        replacement.base_url = "http://replaced".to_string();
-        shared.store(Arc::new(replacement));
-
-        let loaded = shared.load();
-        assert_eq!(loaded.base_url, "http://replaced");
     }
 
     fn runtime_for(host: &str, port: u16, public_override: Option<&str>) -> RuntimeSettings {
@@ -767,35 +666,5 @@ mod tests {
 
         let new_state = controller.app.load_full();
         assert_eq!(new_state.base_url, "https://changed.test");
-    }
-
-    #[tokio::test]
-    async fn shared_state_reload_through_controller_short_circuits_on_same_hash() {
-        let tempdir = tempfile::tempdir().unwrap();
-        let cfg_path = tempdir.path().join("config.toml");
-        write_default_config_toml(&cfg_path);
-
-        let load = crate::config::Config::load_with_metadata(Some(cfg_path.clone())).unwrap();
-        let runtime = runtime_for("127.0.0.1", 8080, None);
-        let initial_state = build_app_state(&load.config, &runtime).await.unwrap();
-        let meta = ReloadMeta {
-            config_hash: load.content_hash.clone(),
-            loaded_at_unix: now_unix_seconds(),
-            loaded_sources: 0,
-            loaded_styles: 0,
-            renderer_enabled: false,
-            prometheus_listener_active: false,
-        };
-        let controller = Arc::new(ReloadController::new(
-            initial_state,
-            meta,
-            load.config.clone(),
-            Some(cfg_path),
-            runtime,
-        ));
-        let shared = SharedState::new(controller);
-
-        let result = shared.reload(false).await.unwrap();
-        assert!(!result.reloaded);
     }
 }

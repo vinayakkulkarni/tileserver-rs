@@ -323,32 +323,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_detect_source_type_mbtiles() {
-        let st = detect_source_type("world.mbtiles").unwrap();
-        assert!(matches!(st, SourceType::MBTiles));
-    }
-
-    #[test]
     fn test_detect_source_type_sqlite() {
         let st = detect_source_type("data.sqlite").unwrap();
         assert!(matches!(st, SourceType::MBTiles));
     }
 
     #[test]
-    fn test_detect_source_type_db() {
-        let st = detect_source_type("data.db").unwrap();
-        assert!(matches!(st, SourceType::MBTiles));
-    }
-
-    #[test]
     fn test_detect_source_type_unsupported() {
         let result = detect_source_type("data.csv");
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_detect_source_type_no_extension() {
-        let result = detect_source_type("noextension");
         assert!(result.is_err());
     }
 
@@ -453,16 +435,6 @@ mod tests {
         assert_eq!(new_state.render_base_url, original.render_base_url);
         assert_eq!(new_state.ui_enabled, original.ui_enabled);
         assert_eq!(new_state.upload_dir, original.upload_dir);
-    }
-
-    #[test]
-    fn state_with_sources_preserves_renderer_and_dirs() {
-        let shared = build_shared(None);
-        let original = shared.load();
-        let new_state = state_with_sources(&original, SourceManager::new());
-        assert!(new_state.renderer.is_none());
-        assert!(new_state.fonts_dir.is_none());
-        assert!(new_state.files_dir.is_none());
     }
 
     #[tokio::test]

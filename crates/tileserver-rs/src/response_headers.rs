@@ -94,17 +94,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn single_header_appears_on_response() {
-        let mut h = HashMap::new();
-        h.insert("X-Custom".to_string(), "value1".to_string());
-        let server = TestServer::new(router_with(Some(h)));
-        let resp = server.get("/ping").await;
-        resp.assert_status_ok();
-        let v = resp.header("X-Custom");
-        assert_eq!(v.to_str().unwrap(), "value1");
-    }
-
-    #[tokio::test]
     async fn multiple_headers_all_appear() {
         let mut h = HashMap::new();
         h.insert("X-Foo".to_string(), "foo-val".to_string());

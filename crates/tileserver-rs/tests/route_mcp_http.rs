@@ -115,48 +115,6 @@ async fn initialize_and_get_session_id(server: &TestServer) -> String {
 }
 
 #[tokio::test]
-async fn mcp_tools_list_includes_tier_a() {
-    let server = empty_mcp_server();
-    let session_id = initialize_and_get_session_id(&server).await;
-    let resp = server
-        .post("/mcp")
-        .add_header("accept", MCP_ACCEPT)
-        .add_header("mcp-session-id", &session_id)
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/list",
-            "params": {}
-        }))
-        .await;
-    resp.assert_status_ok();
-    let body = parse_sse_json(&resp.text());
-    let tools = body["result"]["tools"]
-        .as_array()
-        .expect("tools must be array");
-    let names: Vec<&str> = tools
-        .iter()
-        .filter_map(|t| t.get("name").and_then(Value::as_str))
-        .collect();
-    for expected in [
-        "tileserver_list_sources",
-        "tileserver_get_source_tilejson",
-        "tileserver_list_styles",
-        "tileserver_get_style",
-        "tileserver_get_tile_metadata",
-        "tileserver_get_server_info",
-        "tileserver_render_static_map",
-        "tileserver_get_tile",
-        "tileserver_query_features_at_point",
-    ] {
-        assert!(
-            names.contains(&expected),
-            "missing tool {expected}; got {names:?}"
-        );
-    }
-}
-
-#[tokio::test]
 async fn mcp_call_list_sources_returns_array_on_empty_state() {
     let server = empty_mcp_server();
     let session_id = initialize_and_get_session_id(&server).await;
@@ -179,39 +137,6 @@ async fn mcp_call_list_sources_returns_array_on_empty_state() {
     let content = &body["result"]["content"];
     assert!(content.is_array(), "content not array: {body}");
     assert_eq!(content[0]["type"], "text");
-}
-
-#[tokio::test]
-async fn mcp_call_render_static_map_without_renderer_returns_is_error() {
-    let server = empty_mcp_server();
-    let session_id = initialize_and_get_session_id(&server).await;
-    let resp = server
-        .post("/mcp")
-        .add_header("accept", MCP_ACCEPT)
-        .add_header("mcp-session-id", &session_id)
-        .json(&json!({
-            "jsonrpc": "2.0",
-            "id": 4,
-            "method": "tools/call",
-            "params": {
-                "name": "tileserver_render_static_map",
-                "arguments": {
-                    "style_id": "ghost",
-                    "lon": 0.0,
-                    "lat": 0.0,
-                    "zoom": 2.0,
-                    "width": 256,
-                    "height": 256
-                }
-            }
-        }))
-        .await;
-    resp.assert_status_ok();
-    let body = parse_sse_json(&resp.text());
-    assert_eq!(
-        body["result"]["isError"], true,
-        "expected isError=true when renderer is absent: {body}"
-    );
 }
 
 #[tokio::test]

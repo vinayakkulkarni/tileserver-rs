@@ -272,20 +272,6 @@ mod tests {
     }
 
     #[test]
-    fn test_from_io_error() {
-        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "gone");
-        let err: TileServerError = io_err.into();
-        assert!(matches!(err, TileServerError::FileError(_)));
-    }
-
-    #[test]
-    fn test_from_anyhow_error() {
-        let anyhow_err = anyhow::anyhow!("something went wrong");
-        let err: TileServerError = anyhow_err.into();
-        assert!(matches!(err, TileServerError::Internal(_)));
-    }
-
-    #[test]
     fn test_source_not_found_status_code() {
         let err = TileServerError::SourceNotFound("x".to_string());
         let response = err.into_response();

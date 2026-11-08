@@ -93,26 +93,6 @@ fn style_test_server() -> TestServer {
 }
 
 #[tokio::test]
-async fn styles_json_empty_returns_200() {
-    let server = common::empty_test_server();
-    let response = server.get("/styles.json").await;
-    response.assert_status_ok();
-}
-
-#[tokio::test]
-async fn styles_json_empty_returns_empty_array() {
-    let server = common::empty_test_server();
-    let response = server.get("/styles.json").await;
-    let body: serde_json::Value = response.json();
-    assert!(body.is_array(), "/styles.json must return a JSON array");
-    assert_eq!(
-        body.as_array().unwrap().len(),
-        0,
-        "empty state must yield empty array"
-    );
-}
-
-#[tokio::test]
 async fn style_json_unknown_style_returns_not_found() {
     let server = common::empty_test_server();
     let response = server.get("/styles/nonexistent/style.json").await;

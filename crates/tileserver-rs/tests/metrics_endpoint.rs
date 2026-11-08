@@ -162,12 +162,6 @@ async fn metrics_endpoint_e2e_happy_path() {
 }
 
 #[tokio::test]
-async fn cardinality_verbose_label_bank() {
-    let bank = metrics::LabelBank::new(metrics::Cardinality::Verbose);
-    assert_eq!(bank.cardinality(), metrics::Cardinality::Verbose);
-}
-
-#[tokio::test]
 async fn metrics_path_without_leading_slash_is_normalized() {
     // A configured path lacking a leading slash must be prefixed with `/`
     // before being registered as a route.

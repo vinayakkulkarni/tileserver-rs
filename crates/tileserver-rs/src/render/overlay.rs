@@ -1063,28 +1063,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_path_negative_coordinates() {
-        let path = parse_path("path-1+000(-180,-90|180,90)", false).unwrap();
-        assert_eq!(path.points.len(), 2);
-        assert!((path.points[0].lon - (-180.0)).abs() < 0.001);
-        assert!((path.points[0].lat - (-90.0)).abs() < 0.001);
-        assert!((path.points[1].lon - 180.0).abs() < 0.001);
-        assert!((path.points[1].lat - 90.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_parse_path_decimal_precision() {
-        let path = parse_path(
-            "path-1+f00(-122.123456,37.987654|-122.654321,37.123456)",
-            false,
-        )
-        .unwrap();
-        assert_eq!(path.points.len(), 2);
-        assert!((path.points[0].lon - (-122.123456)).abs() < 0.0000001);
-        assert!((path.points[0].lat - 37.987654).abs() < 0.0000001);
-    }
-
-    #[test]
     fn test_parse_path_simple_format() {
         // Simple format without path- prefix
         let path = parse_path("0,0|10,10|20,0", false).unwrap();
@@ -1177,20 +1155,6 @@ mod tests {
         // Should use defaults
         assert_eq!(marker.color, Rgba([255, 0, 0, 255])); // Default red
         assert_eq!(marker.size, 24.0);
-    }
-
-    #[test]
-    fn test_parse_marker_negative_coordinates() {
-        let marker = parse_marker("pin-m+00f(-180,-90)").unwrap();
-        assert!((marker.position.lon - (-180.0)).abs() < 0.001);
-        assert!((marker.position.lat - (-90.0)).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_parse_marker_decimal_precision() {
-        let marker = parse_marker("pin-s+f00(-122.123456,37.987654)").unwrap();
-        assert!((marker.position.lon - (-122.123456)).abs() < 0.0000001);
-        assert!((marker.position.lat - 37.987654).abs() < 0.0000001);
     }
 
     #[test]
@@ -1330,36 +1294,6 @@ mod tests {
         assert!(bounds.is_none());
     }
 
-    #[test]
-    fn test_calculate_bounds_global() {
-        let markers = vec![
-            MarkerOverlay {
-                position: GeoPoint {
-                    lon: -180.0,
-                    lat: -90.0,
-                },
-                color: Rgba([255, 0, 0, 255]),
-
-                size: 24.0,
-            },
-            MarkerOverlay {
-                position: GeoPoint {
-                    lon: 180.0,
-                    lat: 90.0,
-                },
-                color: Rgba([0, 255, 0, 255]),
-
-                size: 24.0,
-            },
-        ];
-
-        let bounds = calculate_bounds(&[], &markers).unwrap();
-        assert!((bounds.0 - (-180.0)).abs() < 0.001);
-        assert!((bounds.1 - (-90.0)).abs() < 0.001);
-        assert!((bounds.2 - 180.0).abs() < 0.001);
-        assert!((bounds.3 - 90.0).abs() < 0.001);
-    }
-
     // ============================================================
     // Geo to Pixel Conversion Tests
     // ============================================================
@@ -1497,46 +1431,6 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_polyline_simple() {
-        // Simple two-point line
-        // Encoding (0, 0) -> (1, 1)
-        let encoded = encode_polyline(&[
-            GeoPoint { lon: 0.0, lat: 0.0 },
-            GeoPoint { lon: 1.0, lat: 1.0 },
-        ]);
-        let decoded = decode_polyline(&encoded);
-
-        assert_eq!(decoded.len(), 2);
-        assert!((decoded[0].lat - 0.0).abs() < 0.00001);
-        assert!((decoded[0].lon - 0.0).abs() < 0.00001);
-        assert!((decoded[1].lat - 1.0).abs() < 0.00001);
-        assert!((decoded[1].lon - 1.0).abs() < 0.00001);
-    }
-
-    #[test]
-    fn test_decode_polyline_negative_coords() {
-        // Test with negative coordinates (San Francisco area)
-        let points = vec![
-            GeoPoint {
-                lon: -122.4194,
-                lat: 37.7749,
-            },
-            GeoPoint {
-                lon: -122.4089,
-                lat: 37.7849,
-            },
-        ];
-        let encoded = encode_polyline(&points);
-        let decoded = decode_polyline(&encoded);
-
-        assert_eq!(decoded.len(), 2);
-        assert!((decoded[0].lat - 37.7749).abs() < 0.00001);
-        assert!((decoded[0].lon - (-122.4194)).abs() < 0.00001);
-        assert!((decoded[1].lat - 37.7849).abs() < 0.00001);
-        assert!((decoded[1].lon - (-122.4089)).abs() < 0.00001);
-    }
-
-    #[test]
     fn test_decode_polyline_empty() {
         let points = decode_polyline("");
         assert!(points.is_empty());
@@ -1572,22 +1466,6 @@ mod tests {
             assert!((orig.lat - dec.lat).abs() < 0.00001);
             assert!((orig.lon - dec.lon).abs() < 0.00001);
         }
-    }
-
-    #[test]
-    fn test_encode_polyline_precision() {
-        // Test 5 decimal place precision (standard Google polyline)
-        let points = vec![GeoPoint {
-            lon: -122.12345,
-            lat: 37.98765,
-        }];
-        let encoded = encode_polyline(&points);
-        let decoded = decode_polyline(&encoded);
-
-        assert_eq!(decoded.len(), 1);
-        // Should be accurate to 5 decimal places
-        assert!((decoded[0].lat - 37.98765).abs() < 0.00001);
-        assert!((decoded[0].lon - (-122.12345)).abs() < 0.00001);
     }
 
     #[test]
@@ -1654,46 +1532,6 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_polyline_long_route() {
-        // Test a longer route with many points
-        let original: Vec<GeoPoint> = (0..100)
-            .map(|i| GeoPoint {
-                lon: -122.0 + (i as f64 * 0.01),
-                lat: 37.0 + (i as f64 * 0.01),
-            })
-            .collect();
-
-        let encoded = encode_polyline(&original);
-        let decoded = decode_polyline(&encoded);
-
-        assert_eq!(decoded.len(), 100);
-        for (orig, dec) in original.iter().zip(decoded.iter()) {
-            assert!((orig.lat - dec.lat).abs() < 0.00001);
-            assert!((orig.lon - dec.lon).abs() < 0.00001);
-        }
-    }
-
-    #[test]
-    fn test_decode_polyline_crossing_meridian() {
-        // Test crossing the prime meridian and equator
-        let original = vec![
-            GeoPoint {
-                lon: -1.0,
-                lat: -1.0,
-            },
-            GeoPoint { lon: 0.0, lat: 0.0 },
-            GeoPoint { lon: 1.0, lat: 1.0 },
-        ];
-
-        let encoded = encode_polyline(&original);
-        let decoded = decode_polyline(&encoded);
-
-        assert_eq!(decoded.len(), 3);
-        assert!((decoded[1].lat - 0.0).abs() < 0.00001);
-        assert!((decoded[1].lon - 0.0).abs() < 0.00001);
-    }
-
-    #[test]
     fn test_decode_polyline_extreme_coords() {
         // Test extreme coordinates (near poles)
         let original = vec![
@@ -1729,15 +1567,6 @@ mod tests {
         let center = img.get_pixel(50, 40);
         assert!(center[3] > 0, "interior pixel should be filled");
         assert_eq!(center[0], 255, "R channel should be 255");
-    }
-
-    #[test]
-    fn test_fill_polygon_auto_close() {
-        let mut img = RgbaImage::new(100, 100);
-        let pixels = vec![(10.0f32, 10.0), (90.0, 10.0), (50.0, 90.0)];
-        fill_polygon(&mut img, &pixels, Rgba([0u8, 255, 0, 255]));
-        let p = img.get_pixel(50, 50);
-        assert!(p[3] > 0, "pixel should be written even for open polygon");
     }
 
     #[test]

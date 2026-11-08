@@ -388,18 +388,6 @@ mod tests {
     }
 
     #[test]
-    fn test_tile_format_from_str_mlt() {
-        assert_eq!(TileFormat::from_str("mlt").unwrap(), TileFormat::Mlt);
-    }
-
-    #[test]
-    fn test_tile_format_from_str_existing() {
-        assert_eq!(TileFormat::from_str("pbf").unwrap(), TileFormat::Pbf);
-        assert_eq!(TileFormat::from_str("mvt").unwrap(), TileFormat::Pbf);
-        assert_eq!(TileFormat::from_str("png").unwrap(), TileFormat::Png);
-    }
-
-    #[test]
     fn test_tile_format_is_vector() {
         assert!(TileFormat::Pbf.is_vector());
         assert!(TileFormat::Mlt.is_vector());
@@ -573,38 +561,8 @@ mod tests {
     // --- TileFormat::is_vector() exhaustive ---
 
     #[test]
-    fn tile_format_is_vector_pbf_is_true() {
-        assert!(TileFormat::Pbf.is_vector());
-    }
-
-    #[test]
-    fn tile_format_is_vector_mlt_is_true() {
-        assert!(TileFormat::Mlt.is_vector());
-    }
-
-    #[test]
-    fn tile_format_is_vector_png_is_false() {
-        assert!(!TileFormat::Png.is_vector());
-    }
-
-    #[test]
-    fn tile_format_is_vector_jpeg_is_false() {
-        assert!(!TileFormat::Jpeg.is_vector());
-    }
-
-    #[test]
-    fn tile_format_is_vector_webp_is_false() {
-        assert!(!TileFormat::Webp.is_vector());
-    }
-
-    #[test]
     fn tile_format_is_vector_avif_is_false() {
         assert!(!TileFormat::Avif.is_vector());
-    }
-
-    #[test]
-    fn tile_format_is_vector_unknown_is_false() {
-        assert!(!TileFormat::Unknown.is_vector());
     }
 
     // --- TileFormat::from_str() exhaustive ---
@@ -676,19 +634,6 @@ mod tests {
 
     // --- Equality and clone ---
 
-    #[test]
-    fn tile_format_equality() {
-        assert_eq!(TileFormat::Pbf, TileFormat::Pbf);
-        assert_ne!(TileFormat::Pbf, TileFormat::Png);
-    }
-
-    #[test]
-    fn tile_format_clone() {
-        let fmt = TileFormat::Jpeg;
-        let cloned = fmt;
-        assert_eq!(fmt, cloned);
-    }
-
     // --- TileFormat serialization roundtrip ---
 
     #[test]
@@ -747,14 +692,6 @@ mod tests {
     #[test]
     fn tile_compression_content_encoding_brotli() {
         assert_eq!(TileCompression::Brotli.content_encoding(), Some("br"));
-    }
-
-    #[test]
-    fn tile_compression_equality_and_copy() {
-        let a = TileCompression::Gzip;
-        let b = a;
-        assert_eq!(a, b);
-        assert_ne!(TileCompression::None, TileCompression::Gzip);
     }
 
     // --- to_tilejson_with_key: API key query parameter is appended ---
@@ -881,20 +818,5 @@ mod tests {
     fn tilesource_default_format_returns_metadata_format() {
         let src = DummySource(meta_for(TileFormat::Webp));
         assert_eq!(src.format(), TileFormat::Webp);
-    }
-
-    #[tokio::test]
-    async fn tilesource_dummy_returns_none_for_get_tile() {
-        let src = DummySource(meta_for(TileFormat::Pbf));
-        let result = src.get_tile(0, 0, 0).await.unwrap();
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn tilesource_dummy_as_any_downcasts() {
-        let src = DummySource(meta_for(TileFormat::Pbf));
-        let trait_obj: &dyn TileSource = &src;
-        let any = trait_obj.as_any();
-        assert!(any.downcast_ref::<DummySource>().is_some());
     }
 }

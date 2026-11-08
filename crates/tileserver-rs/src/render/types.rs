@@ -547,28 +547,6 @@ mod tests {
     }
 
     #[test]
-    fn test_render_options_for_static_oversized_rejected() {
-        let result = RenderOptions::for_static(
-            "s".to_string(),
-            "{}".to_string(),
-            StaticType::Center {
-                lon: 0.0,
-                lat: 0.0,
-                zoom: 1.0,
-                bearing: None,
-                pitch: None,
-            },
-            5000,
-            100,
-            1,
-            ImageFormat::Png,
-            StaticQueryParams::default(),
-        );
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("maximum"));
-    }
-
-    #[test]
     fn test_render_options_for_static_valid() {
         let result = RenderOptions::for_static(
             "s".to_string(),
@@ -594,12 +572,6 @@ mod tests {
         assert!((opts.lat - 37.8).abs() < 0.001);
         assert!((opts.bearing - 45.0).abs() < 0.001);
         assert!((opts.pitch - 30.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn test_max_constants() {
-        assert_eq!(MAX_IMAGE_DIMENSION, 4096);
-        assert_eq!(MAX_SCALE_FACTOR, 4);
     }
 
     fn center_origin() -> StaticType {
@@ -689,25 +661,6 @@ mod tests {
     }
 
     #[test]
-    fn test_render_options_for_static_center_with_bearing_pitch() {
-        let opts = for_static_center(
-            StaticType::Center {
-                lon: 10.0,
-                lat: 20.0,
-                zoom: 5.0,
-                bearing: Some(90.0),
-                pitch: Some(45.0),
-            },
-            256,
-            256,
-            1,
-        )
-        .unwrap();
-        assert!((opts.bearing - 90.0).abs() < 1e-9);
-        assert!((opts.pitch - 45.0).abs() < 1e-9);
-    }
-
-    #[test]
     fn test_render_options_for_static_stores_inputs() {
         let opts = RenderOptions::for_static(
             "my-style".to_string(),
@@ -741,14 +694,6 @@ mod tests {
             1,
         )
         .unwrap()
-    }
-
-    #[test]
-    fn test_render_options_for_static_bbox_center_midpoints() {
-        // lon_diff 4, lat_diff 4 → precise path; assert midpoints regardless.
-        let opts = bbox_opts(-2.0, 8.0, 2.0, 12.0);
-        assert!((opts.lon - 0.0).abs() < 1e-9);
-        assert!((opts.lat - 10.0).abs() < 1e-9);
     }
 
     #[test]

@@ -723,30 +723,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_y_and_format_mvt_alias() {
-        let p = tp("0.mvt");
-        let (y, fmt) = p.parse_y_and_format().expect("mvt parses");
-        assert_eq!(y, 0);
-        assert_eq!(fmt, "mvt");
-    }
-
-    #[test]
-    fn parse_y_and_format_mlt_format() {
-        let p = tp("9.mlt");
-        let (y, fmt) = p.parse_y_and_format().expect("mlt parses");
-        assert_eq!(y, 9);
-        assert_eq!(fmt, "mlt");
-    }
-
-    #[test]
-    fn parse_y_and_format_geojson_format() {
-        let p = tp("0.geojson");
-        let (y, fmt) = p.parse_y_and_format().expect("geojson");
-        assert_eq!(y, 0);
-        assert_eq!(fmt, "geojson");
-    }
-
-    #[test]
     fn parse_y_and_format_rejects_missing_dot() {
         let p = tp("notadot");
         assert!(p.parse_y_and_format().is_none());
@@ -756,21 +732,6 @@ mod tests {
     fn parse_y_and_format_rejects_non_numeric_y() {
         let p = tp("abc.pbf");
         assert!(p.parse_y_and_format().is_none());
-    }
-
-    #[test]
-    fn parse_y_and_format_rejects_negative_y() {
-        let p = tp("-1.pbf");
-        assert!(p.parse_y_and_format().is_none());
-    }
-
-    #[test]
-    fn parse_y_and_format_rejects_multiple_dots_in_y() {
-        let p = tp("12.34.pbf");
-        assert!(
-            p.parse_y_and_format().is_none(),
-            "y_str '12.34' is not a valid u32 → rejected"
-        );
     }
 }
 

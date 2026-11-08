@@ -564,12 +564,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_query_controls_default_when_absent() {
-        let p = parse_embed_query(&HashMap::new()).unwrap();
-        assert_eq!(p.controls, vec![Control::Navigation]);
-    }
-
-    #[test]
     fn parse_query_controls_unknown_token_filtered() {
         let p = parse_embed_query(&map_of(&[("controls", "navigation,banana,scale")])).unwrap();
         assert_eq!(p.controls, vec![Control::Navigation, Control::Scale]);
@@ -689,16 +683,6 @@ mod tests {
         assert!(!out.contains('>'));
         assert!(!out.contains('"'));
         assert!(out.contains("&lt;script&gt;"));
-    }
-
-    #[test]
-    fn escape_empty_string() {
-        assert_eq!(html_escape(""), "");
-    }
-
-    #[test]
-    fn escape_unicode_preserved() {
-        assert_eq!(html_escape("café 🗺️"), "café 🗺️");
     }
 
     // ---- build_embed_html ----

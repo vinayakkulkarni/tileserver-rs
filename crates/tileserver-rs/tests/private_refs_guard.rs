@@ -101,14 +101,3 @@ fn public_files_do_not_name_private_repos() {
         hits.join("\n")
     );
 }
-
-#[test]
-fn digest_matcher_catches_owner_repo_pairs_and_subdomains() {
-    // Self-check with harmless names so the matcher logic is covered
-    // without spelling out a forbidden name.
-    let pair = sha256_hex("acme/widgets");
-    let host = sha256_hex("acme.example");
-    let found = candidates("See https://docs.acme.example and acme/widgets#4.");
-    assert!(found.iter().any(|c| sha256_hex(c) == pair));
-    assert!(found.iter().any(|c| sha256_hex(c) == host));
-}

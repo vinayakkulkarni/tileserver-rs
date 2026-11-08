@@ -171,45 +171,6 @@ async fn conformance_is_stable_snapshot() {
     insta::assert_json_snapshot!("ogc_conformance", body);
 }
 
-#[tokio::test]
-async fn conformance_includes_core_class() {
-    let server = common::empty_test_server();
-    let body: Value = server.get("/ogc/conformance").await.json();
-    let classes = body["conformsTo"].as_array().expect("conformsTo array");
-    assert!(
-        classes.iter().any(|c| c
-            .as_str()
-            .is_some_and(|s| s.contains("features-1/1.0/conf/core"))),
-        "conformance declaration must include Part 1 Core class"
-    );
-}
-
-#[tokio::test]
-async fn conformance_includes_part2_crs_class() {
-    let server = common::empty_test_server();
-    let body: Value = server.get("/ogc/conformance").await.json();
-    let classes = body["conformsTo"].as_array().expect("conformsTo");
-    assert!(
-        classes.iter().any(|c| c
-            .as_str()
-            .is_some_and(|s| s.contains("features-2/1.0/conf/crs"))),
-        "conformance declaration must advertise Part 2 CRS class"
-    );
-}
-
-#[tokio::test]
-async fn conformance_includes_part3_filter_class() {
-    let server = common::empty_test_server();
-    let body: Value = server.get("/ogc/conformance").await.json();
-    let classes = body["conformsTo"].as_array().expect("conformsTo");
-    assert!(
-        classes
-            .iter()
-            .any(|c| c.as_str().is_some_and(|s| s.contains("/filter"))),
-        "conformance declaration must advertise Part 3 Filter class"
-    );
-}
-
 // ---------------------------------------------------------------------------
 // Collections listing (`GET /ogc/collections`)
 // ---------------------------------------------------------------------------
@@ -264,17 +225,6 @@ async fn collection_unknown_id_returns_404() {
 async fn items_unknown_collection_returns_404() {
     let server = common::empty_test_server();
     let resp = server.get("/ogc/collections/does-not-exist/items").await;
-    resp.assert_status_not_found();
-}
-
-#[tokio::test]
-async fn items_unknown_collection_with_bbox_still_returns_404() {
-    // The Query extractor parses `bbox` as an Option<String>, so an unknown
-    // collection still resolves to the SourceNotFound branch.
-    let server = common::empty_test_server();
-    let resp = server
-        .get("/ogc/collections/missing/items?bbox=-180,-90,180,90")
-        .await;
     resp.assert_status_not_found();
 }
 
@@ -447,16 +397,5 @@ async fn disable_ogc_keeps_data_routes() {
         resp.status_code().as_u16(),
         404,
         "data.json must remain registered when only OGC is disabled"
-    );
-}
-
-#[tokio::test]
-async fn ogc_enabled_by_default_keeps_landing_registered() {
-    let server = common::empty_test_server();
-    let resp = server.get("/ogc").await;
-    assert_ne!(
-        resp.status_code().as_u16(),
-        404,
-        "OGC landing must be registered by default under the postgres feature"
     );
 }

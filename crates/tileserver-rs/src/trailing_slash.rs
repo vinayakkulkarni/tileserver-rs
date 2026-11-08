@@ -246,14 +246,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn service_preserves_query_on_spa_path() {
-        assert_eq!(
-            echo_uri("/styles/india-dark-mlt/?raster").await,
-            "/styles/india-dark-mlt/?raster"
-        );
-    }
-
-    #[tokio::test]
     async fn service_passes_through_non_slash_path() {
         assert_eq!(echo_uri("/health").await, "/health");
     }

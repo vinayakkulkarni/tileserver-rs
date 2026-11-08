@@ -155,10 +155,4 @@ port = 9999
             ),
         }
     }
-
-    #[test]
-    fn init_stdio_tracing_filter_directive_parses() {
-        let _ = EnvFilter::from_default_env().add_directive("tileserver_rs=debug".parse().unwrap());
-        let _ = EnvFilter::from_default_env().add_directive("tileserver_rs=info".parse().unwrap());
-    }
 }

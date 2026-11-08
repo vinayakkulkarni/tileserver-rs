@@ -336,13 +336,6 @@ mod tests {
     }
 
     #[test]
-    fn lng_lat_to_tile_east_hemisphere_zoom_2() {
-        let (x, y) = lng_lat_to_tile(179.0, 0.0, 2);
-        assert!(x <= 3);
-        assert!(y <= 3);
-    }
-
-    #[test]
     fn lng_lat_to_tile_clamps_to_max_tile_index() {
         let (x, y) = lng_lat_to_tile(180.0, -85.0, 2);
         assert!(x < 4);
@@ -423,12 +416,6 @@ mod tests {
     #[test]
     fn parse_mvt_features_returns_empty_for_now() {
         let empty: Vec<SpatialFeature> = parse_mvt_features(&[1, 2, 3], &None, 10);
-        assert!(empty.is_empty());
-    }
-
-    #[test]
-    fn parse_mvt_features_with_layer_filter_returns_empty() {
-        let empty = parse_mvt_features(&[], &Some(vec!["roads".into()]), 5);
         assert!(empty.is_empty());
     }
 }

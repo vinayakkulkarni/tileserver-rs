@@ -32,10 +32,4 @@ mod tests {
         let s = hv.to_str().unwrap();
         assert!(s.contains("stale-while-revalidate=604800"));
     }
-
-    #[test]
-    fn test_tile_cache_headers_valid_header_value() {
-        let hv = tile_cache_headers();
-        assert!(hv.to_str().is_ok());
-    }
 }

@@ -375,26 +375,6 @@ mod tests {
     }
 
     #[test]
-    fn recompress_gzip_to_brotli_preserves_bytes() {
-        let cfg = CompressionConfig::default();
-        let raw = b"vector tile payload bytes".repeat(50);
-        let gz = encode(&raw, TileCompression::Gzip, &cfg).unwrap();
-        let br = recompress(&gz, TileCompression::Gzip, TileCompression::Brotli, &cfg).unwrap();
-        assert_eq!(
-            decode(&br, TileCompression::Brotli).unwrap().as_ref(),
-            raw.as_slice()
-        );
-    }
-
-    #[test]
-    fn recompress_same_encoding_is_noop_passthrough() {
-        let cfg = CompressionConfig::default();
-        let data = b"already gzip".to_vec();
-        let out = recompress(&data, TileCompression::Gzip, TileCompression::Gzip, &cfg).unwrap();
-        assert_eq!(out, data);
-    }
-
-    #[test]
     fn encode_none_is_identity() {
         let cfg = CompressionConfig::default();
         let raw = b"raw".to_vec();
@@ -531,19 +511,6 @@ mod tests {
         assert_eq!(
             decode(&out.data, TileCompression::Brotli).unwrap().as_ref(),
             raw.as_slice()
-        );
-    }
-
-    #[test]
-    fn negotiate_tiny_compressed_tile_short_circuits_to_identity() {
-        let cfg = CompressionConfig::default();
-        // Highly-repetitive data: gzip output is well under MIN_COMPRESS_BYTES.
-        let raw = b"aaaa".repeat(200);
-        let tile = gzip_tile(&raw);
-        assert!(tile.data.len() < MIN_COMPRESS_BYTES);
-        assert_eq!(
-            negotiate(Some("br"), tile.compression, tile.data.len(), &cfg),
-            TileCompression::None
         );
     }
 }

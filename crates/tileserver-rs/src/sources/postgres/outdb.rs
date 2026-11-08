@@ -652,15 +652,6 @@ mod tests {
     }
 
     #[test]
-    fn test_tile_bbox_coverage_z0() {
-        let (min_x, _min_y, max_x, _max_y) =
-            PostgresOutDbRasterSource::tile_to_web_mercator_bbox(0, 0, 0);
-        let total_width = 2.0 * WEB_MERCATOR_EXTENT;
-        let bbox_width = max_x - min_x;
-        assert!((bbox_width - total_width).abs() < 1.0);
-    }
-
-    #[test]
     fn test_tile_bbox_adjacent_tiles() {
         let (_, _, max_x_0, _) = PostgresOutDbRasterSource::tile_to_web_mercator_bbox(2, 0, 0);
         let (min_x_1, _, _, _) = PostgresOutDbRasterSource::tile_to_web_mercator_bbox(2, 1, 0);

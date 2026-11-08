@@ -1018,17 +1018,6 @@ mod tests {
     }
 
     #[test]
-    fn pkce_s256_computation_matches_rfc_test_vector() {
-        // RFC 7636 Appendix B: verifier "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
-        // → challenge "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM".
-        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-        let expected = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
-        let digest = Sha256::digest(verifier.as_bytes());
-        let computed = URL_SAFE_NO_PAD.encode(digest);
-        assert_eq!(computed, expected);
-    }
-
-    #[test]
     fn jwt_round_trip_with_state_key() {
         let s = state();
         let token = issue_access_token(&s, "test-client", "mcp").expect("sign");

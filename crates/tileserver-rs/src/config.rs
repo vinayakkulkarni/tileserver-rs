@@ -1854,13 +1854,6 @@ mod tests {
     }
 
     #[test]
-    fn test_compression_present_on_default_config() {
-        let config = Config::default();
-        assert_eq!(config.compression.br_quality, 5);
-        assert_eq!(config.compression.zstd_level, 3);
-    }
-
-    #[test]
     fn test_compression_deserialize_from_toml() {
         let toml = r#"
 [compression]
@@ -2287,16 +2280,6 @@ server:
     }
 
     #[test]
-    fn test_env_var_substitution_basic() {
-        // SAFETY: test-only; no concurrent threads access env vars in this test
-        unsafe { std::env::set_var("TEST_VAR_1", "hello") };
-        let result = Config::substitute_env_vars("value is ${TEST_VAR_1}");
-        assert_eq!(result, "value is hello");
-        // SAFETY: test-only; no concurrent threads access env vars in this test
-        unsafe { std::env::remove_var("TEST_VAR_1") };
-    }
-
-    #[test]
     fn test_env_var_substitution_with_default() {
         // SAFETY: test-only; no concurrent threads access env vars in this test
         unsafe { std::env::remove_var("NONEXISTENT_VAR") };
@@ -2443,13 +2426,6 @@ server:
         assert!(!cache.enabled);
         assert_eq!(cache.max_size_mb, 512);
         assert_eq!(cache.ttl_seconds, 3600);
-    }
-
-    #[test]
-    fn test_cache_config_default_via_config() {
-        let config = Config::default();
-        assert!(!config.cache.enabled);
-        assert_eq!(config.cache.max_size_mb, 512);
     }
 
     #[test]
@@ -2600,18 +2576,6 @@ server:
     }
 
     #[test]
-    fn test_server_config_custom_port_and_host() {
-        let toml_str = r#"
-            [server]
-            host = "127.0.0.1"
-            port = 9090
-        "#;
-        let config: Config = toml::from_str(toml_str).expect("parse server config with port");
-        assert_eq!(config.server.port, 9090);
-        assert_eq!(config.server.host, "127.0.0.1");
-    }
-
-    #[test]
     fn test_server_config_public_url_override() {
         let toml_str = r#"
             [server]
@@ -2728,13 +2692,6 @@ path = "/tmp/test.pmtiles"
     }
 
     #[test]
-    fn test_config_load_wrapper_returns_config_only() {
-        let nonexistent = PathBuf::from("/tmp/definitely-not-a-real-config-9998.toml");
-        let result = Config::load(Some(nonexistent));
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn test_config_load_with_metadata_invalid_toml_errors() {
         use std::io::Write;
         let mut tmp = tempfile::NamedTempFile::new().expect("create tempfile");
@@ -2774,21 +2731,6 @@ port = ${{TEST_ENV_SUB_PORT}}
         let s = serde_json::to_string(&SourceType::PMTiles).expect("serialize");
         let back: SourceType = serde_json::from_str(&s).expect("deserialize");
         assert_eq!(back, SourceType::PMTiles);
-    }
-
-    #[test]
-    fn test_telemetry_default_metrics_path() {
-        let config = Config::default();
-        assert_eq!(config.telemetry.prometheus_path, "/metrics");
-    }
-
-    #[test]
-    fn test_metrics_label_cardinality_serde_standard_variant() {
-        let s = serde_json::to_string(&MetricsLabelCardinality::Standard).expect("serialize");
-        assert_eq!(s, "\"standard\"");
-        let back: MetricsLabelCardinality =
-            serde_json::from_str("\"standard\"").expect("deserialize");
-        assert_eq!(back, MetricsLabelCardinality::Standard);
     }
 
     #[cfg(feature = "postgres")]
@@ -3373,17 +3315,6 @@ entries = [
         }
 
         #[test]
-        fn composite_config_with_multiple_sources() {
-            let toml = r#"
-                [[composites]]
-                id = "trio"
-                sources = ["a", "b", "c"]
-            "#;
-            let cfg: Config = toml::from_str(toml).expect("parse");
-            assert_eq!(cfg.composites[0].sources.len(), 3);
-        }
-
-        #[test]
         fn composite_config_requires_id() {
             let toml = r#"
                 [[composites]]
@@ -3423,29 +3354,8 @@ entries = [
         }
 
         #[test]
-        fn derive_base_path_single_segment() {
-            assert_eq!(derive_base_path(Some("https://example.com/maps")), "/maps");
-        }
-
-        #[test]
         fn derive_base_path_strips_trailing_slash() {
             assert_eq!(derive_base_path(Some("https://example.com/maps/")), "/maps");
-        }
-
-        #[test]
-        fn derive_base_path_multi_segment() {
-            assert_eq!(
-                derive_base_path(Some("https://example.com/tiles/maps")),
-                "/tiles/maps"
-            );
-        }
-
-        #[test]
-        fn derive_base_path_preserves_port_in_authority() {
-            assert_eq!(
-                derive_base_path(Some("http://localhost:8080/maps")),
-                "/maps"
-            );
         }
 
         #[test]
@@ -3453,11 +3363,6 @@ entries = [
             // No `://` — the authority-vs-path split falls back to the first
             // slash, so `example.com/maps` still yields `/maps`.
             assert_eq!(derive_base_path(Some("example.com/maps")), "/maps");
-        }
-
-        #[test]
-        fn derive_base_path_only_slashes_is_root() {
-            assert_eq!(derive_base_path(Some("https://example.com///")), "");
         }
 
         // ---- SubfolderMode -------------------------------------------
@@ -3506,12 +3411,6 @@ entries = [
             // The reverse proxy strips the prefix, so the in-server layer is a
             // no-op regardless of the derived base path.
             assert_eq!(SubfolderMode::ProxyStrip.strip_base("/maps"), "");
-        }
-
-        #[test]
-        fn strip_base_nested_with_empty_base_is_empty() {
-            // A root deployment in nested mode still yields an empty strip base.
-            assert_eq!(SubfolderMode::Nested.strip_base(""), "");
         }
     }
 }

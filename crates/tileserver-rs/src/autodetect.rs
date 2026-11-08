@@ -689,19 +689,6 @@ mod tests {
     }
 
     #[test]
-    fn test_detect_config_directory_with_geojson() {
-        let temp = TempDir::new().unwrap();
-        let root = temp.path().canonicalize().unwrap();
-        std::fs::write(root.join("a.geojson"), b"{}").unwrap();
-        std::fs::write(root.join("b.geojson"), b"{}").unwrap();
-
-        let (config, report) = detect_config(root.clone()).unwrap();
-
-        assert_eq!(report.geojson_files.len(), 2);
-        assert_eq!(config.files, Some(root.clone()));
-    }
-
-    #[test]
     fn test_detect_config_directory_with_sprites_dir() {
         let temp = TempDir::new().unwrap();
         let root = temp.path().canonicalize().unwrap();

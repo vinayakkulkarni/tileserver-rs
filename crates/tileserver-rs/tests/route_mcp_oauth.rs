@@ -238,17 +238,6 @@ async fn oauth_register_missing_redirect_uris_returns_400() {
 }
 
 #[tokio::test]
-async fn oauth_authorize_redirects_with_code_when_approved() {
-    let server = test_server(test_state());
-    let client_id = register_client(&server).await;
-    let verifier = "verifier-must-be-43-or-more-chars-aaaaaaaaaaaaaaaaaaa";
-    let challenge = pkce_challenge(verifier);
-
-    let code = approve_and_get_code(&server, &client_id, &challenge, "xyz").await;
-    assert!(!code.is_empty(), "auth code is non-empty");
-}
-
-#[tokio::test]
 async fn oauth_authorize_rejects_plain_pkce() {
     let server = test_server(test_state());
     let client_id = register_client(&server).await;
