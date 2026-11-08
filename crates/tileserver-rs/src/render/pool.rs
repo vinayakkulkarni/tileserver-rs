@@ -60,6 +60,15 @@ enum RenderOutput {
 struct RenderRequest {
     job: RenderJob,
     response: oneshot::Sender<RenderOutput>,
+    /// After this instant the caller has already given up waiting.
+    deadline: std::time::Instant,
+}
+
+impl RenderRequest {
+    /// The caller timed out or went away, so rendering would be wasted work.
+    fn abandoned(&self, now: std::time::Instant) -> bool {
+        self.response.is_closed() || now >= self.deadline
+    }
 }
 
 pub struct RendererPool {
@@ -96,6 +105,10 @@ impl RendererPool {
                     let mut maps = WorkerMaps::new(tile_size);
 
                     while let Ok(request) = rx.recv() {
+                        if request.abandoned(std::time::Instant::now()) {
+                            tracing::debug!(worker = i, "skipping abandoned render job");
+                            continue;
+                        }
                         let output = match request.job {
                             RenderJob::Tile {
                                 ref style_json,
@@ -168,6 +181,7 @@ impl RendererPool {
                 scale: scale as f32,
             },
             response: tx,
+            deadline: std::time::Instant::now() + self.config.render_timeout,
         })?;
 
         let result = wait_for(rx, self.config.render_timeout, "render")
@@ -192,6 +206,10 @@ impl RendererPool {
         options: RenderOptions,
     ) -> Result<RenderedImage> {
         let render_start = std::time::Instant::now();
+        let mut options = options;
+        options.pixel_ratio = options
+            .pixel_ratio
+            .clamp(1.0, f32::from(self.max_scale.max(1)));
         let (tx, rx) = oneshot::channel();
 
         self.dispatch(RenderRequest {
@@ -200,6 +218,7 @@ impl RendererPool {
                 options,
             },
             response: tx,
+            deadline: std::time::Instant::now() + self.config.render_timeout,
         })?;
 
         let result = wait_for(rx, self.config.render_timeout, "static render")
@@ -376,6 +395,38 @@ fn scale_key(ratio: f32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn request(deadline: std::time::Instant) -> (RenderRequest, oneshot::Receiver<RenderOutput>) {
+        let (tx, rx) = oneshot::channel();
+        let job = RenderJob::Tile {
+            style_json: String::new(),
+            z: 0,
+            x: 0,
+            y: 0,
+            tile_size: 256,
+            scale: 1.0,
+        };
+        (
+            RenderRequest {
+                job,
+                response: tx,
+                deadline,
+            },
+            rx,
+        )
+    }
+
+    #[test]
+    fn abandoned_jobs_are_detected() {
+        let now = std::time::Instant::now();
+        let later = now + Duration::from_secs(5);
+        let (live, _rx) = request(later);
+        assert!(!live.abandoned(now), "caller waiting, deadline ahead");
+        assert!(live.abandoned(later), "deadline passed");
+        let (gone, rx) = request(later);
+        drop(rx);
+        assert!(gone.abandoned(now), "caller dropped its receiver");
+    }
 
     #[test]
     fn reuse_if_same_keeps_only_a_matching_map() {
