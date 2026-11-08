@@ -1595,6 +1595,36 @@ pub struct ConfigLoadMetadata {
     pub content_hash: String,
 }
 
+/// Shortest `[mcp].auth_token` accepted without a warning.
+#[cfg(feature = "mcp")]
+const MIN_MCP_AUTH_TOKEN_LEN: usize = 16;
+
+/// Reject an MCP bearer token that is empty or still holds a `$VAR`
+/// reference. Env substitution leaves unknown variables as written, so an
+/// unset `${MCP_AUTH_TOKEN}` would otherwise become the literal, public
+/// secret. A short token only logs a warning, so existing setups still start.
+#[cfg(feature = "mcp")]
+fn validate_mcp_auth_token(token: &str) -> anyhow::Result<()> {
+    let unexpanded = token.char_indices().any(|(i, c)| {
+        c == '$'
+            && token[i + 1..].starts_with(|n: char| n == '{' || n == '_' || n.is_ascii_alphabetic())
+    });
+    if unexpanded {
+        anyhow::bail!(
+            "`[mcp].auth_token` contains an unexpanded environment variable; set it in the environment or remove auth_token"
+        );
+    }
+    if token.trim().is_empty() {
+        anyhow::bail!("`[mcp].auth_token` is empty; set a token or remove auth_token");
+    }
+    if token.len() < MIN_MCP_AUTH_TOKEN_LEN {
+        tracing::warn!(
+            "`[mcp].auth_token` is shorter than {MIN_MCP_AUTH_TOKEN_LEN} characters; use a long random token"
+        );
+    }
+    Ok(())
+}
+
 impl Config {
     fn hash_content(content: &str) -> String {
         use std::fmt::Write;
@@ -1634,6 +1664,8 @@ impl Config {
     ///
     /// Returns an error when:
     /// - `[mcp]` enables both `auth_token` and `oauth.enabled` (mutually exclusive).
+    /// - `[mcp].auth_token` is empty or still holds an unexpanded `$VAR`
+    ///   reference (the environment variable was not set).
     /// - `[mcp.oauth].enabled = true` without `issuer_url` set.
     /// - `[mcp.oauth].enabled = true` without `signing_key_path` set.
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -1643,6 +1675,9 @@ impl Config {
                 anyhow::bail!(
                     "cannot enable both static bearer (`[mcp].auth_token`) and OAuth (`[mcp.oauth].enabled`); pick one"
                 );
+            }
+            if let Some(token) = &self.mcp.auth_token {
+                validate_mcp_auth_token(token)?;
             }
             if self.mcp.oauth.enabled && self.mcp.oauth.issuer_url.is_none() {
                 anyhow::bail!("`[mcp.oauth].issuer_url` is required when oauth.enabled = true");
@@ -3524,5 +3559,38 @@ mod llm_config_tests {
         ] {
             assert!(!is_allowed_llm_base_url(bad), "{bad} should be rejected");
         }
+    }
+}
+
+#[cfg(all(test, feature = "mcp"))]
+mod mcp_auth_token_tests {
+    use super::Config;
+
+    fn with_token(token: &str) -> anyhow::Result<()> {
+        let mut config = Config::default();
+        config.mcp.auth_token = Some(token.to_string());
+        config.validate()
+    }
+
+    #[test]
+    fn unset_env_reference_is_rejected() {
+        let toml = "[mcp]\nauth_token = \"${TILESERVER_TEST_SURELY_UNSET_VAR}\"\n";
+        let expanded = Config::substitute_env_vars(toml);
+        let config: Config = toml::from_str(&expanded).unwrap();
+        let err = config.validate().unwrap_err().to_string();
+        assert!(err.contains("unexpanded environment variable"), "{err}");
+        assert!(with_token("$MCP_TOKEN").is_err());
+    }
+
+    #[test]
+    fn empty_token_is_rejected() {
+        assert!(with_token("   ").unwrap_err().to_string().contains("empty"));
+    }
+
+    #[test]
+    fn real_tokens_are_accepted() {
+        assert!(with_token("short").is_ok(), "short tokens only warn");
+        assert!(with_token("c0ffee-$-not-a-var-0123456789").is_ok());
+        assert!(with_token("a3f1c9e8b7d6a5f4e3d2c1b0a9f8e7d6").is_ok());
     }
 }
