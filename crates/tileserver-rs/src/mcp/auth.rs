@@ -216,6 +216,10 @@ pub struct OAuthState {
     /// the `mcp-persistence` Cargo feature and pointing
     /// `[mcp.oauth.store_path]` at a SQLite file.
     pub store: Arc<dyn OAuthBackend>,
+    /// Operator secret the consent form must carry before `/approve` issues
+    /// an authorization code. `None` disables approval entirely, so OAuth
+    /// mode can never hand tokens to anonymous callers.
+    pub approval_secret: Option<Arc<str>>,
 }
 
 impl std::fmt::Debug for OAuthState {
@@ -261,7 +265,15 @@ impl OAuthState {
             decoding_key: Arc::new(decoding_key),
             token_ttl: Duration::from_secs(clamped_ttl),
             store: Arc::new(InMemoryStore::new()),
+            approval_secret: None,
         })
+    }
+
+    /// Set the operator approval secret checked by `/approve`.
+    #[must_use]
+    pub fn with_approval_secret(mut self, secret: impl Into<Arc<str>>) -> Self {
+        self.approval_secret = Some(secret.into());
+        self
     }
 
     /// Load an [`OAuthState`] by reading the signing key from disk.
@@ -498,6 +510,7 @@ fn render_consent_page(
     <input type="hidden" name="state" value="{state}">
     <input type="hidden" name="code_challenge" value="{code_challenge}">
     <input type="hidden" name="code_challenge_method" value="S256">
+    <p><label>Operator approval code <input type="password" name="approval_code" autocomplete="off" required></label></p>
     <button type="submit" name="approved" value="true">Approve</button>
     <button type="submit" name="approved" value="false">Deny</button>
   </form>
@@ -541,6 +554,8 @@ struct ApproveForm {
     code_challenge: String,
     code_challenge_method: String,
     approved: String,
+    #[serde(default)]
+    approval_code: String,
 }
 
 async fn approve(State(state): State<OAuthState>, Form(form): Form<ApproveForm>) -> Response {
@@ -560,6 +575,10 @@ async fn approve(State(state): State<OAuthState>, Form(form): Form<ApproveForm>)
             url.push_str(&urlencoding::encode(&form.state));
         }
         return Redirect::to(&url).into_response();
+    }
+
+    if let Err(resp) = check_approval_code(&state, &form.approval_code) {
+        return *resp;
     }
 
     let client = match state.store.get_client(&form.client_id).await {
@@ -607,6 +626,26 @@ async fn approve(State(state): State<OAuthState>, Form(form): Form<ApproveForm>)
     Redirect::to(&url).into_response()
 }
 
+/// Require the operator approval code before an authorization code is
+/// issued. Without a configured secret, approval is refused outright.
+fn check_approval_code(state: &OAuthState, submitted: &str) -> Result<(), Box<Response>> {
+    let Some(secret) = state.approval_secret.as_deref() else {
+        return Err(Box::new(error_json(
+            StatusCode::FORBIDDEN,
+            "access_denied",
+            "approval is disabled: set [mcp.oauth].approval_secret",
+        )));
+    };
+    if submitted.as_bytes().ct_eq(secret.as_bytes()).unwrap_u8() != 1 {
+        return Err(Box::new(error_json(
+            StatusCode::FORBIDDEN,
+            "access_denied",
+            "wrong operator approval code",
+        )));
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Token exchange
 // ---------------------------------------------------------------------------
@@ -625,6 +664,40 @@ struct TokenForm {
     code_verifier: Option<String>,
     #[serde(default)]
     refresh_token: Option<String>,
+    #[serde(default)]
+    client_secret: Option<String>,
+}
+
+/// Load `client_id` and, for a confidential client, check `client_secret`.
+///
+/// A deleted client fails here too, so revoking a client stops both grants.
+async fn authenticate_client(
+    state: &OAuthState,
+    client_id: &str,
+    client_secret: Option<&str>,
+) -> Result<RegisteredClient, Box<Response>> {
+    let client = match state.store.get_client(client_id).await {
+        Ok(c) => c,
+        Err(e) => return Err(Box::new(backend_error_response(&e))),
+    };
+    let Some(client) = client else {
+        return Err(Box::new(error_json(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "unknown or revoked client_id",
+        )));
+    };
+    if let Some(expected) = client.client_secret.as_deref() {
+        let given = client_secret.unwrap_or_default();
+        if given.as_bytes().ct_eq(expected.as_bytes()).unwrap_u8() != 1 {
+            return Err(Box::new(error_json(
+                StatusCode::UNAUTHORIZED,
+                "invalid_client",
+                "client authentication failed",
+            )));
+        }
+    }
+    Ok(client)
 }
 
 async fn token(State(state): State<OAuthState>, request: Request<Body>) -> Response {
@@ -689,6 +762,9 @@ async fn token_authorization_code(state: OAuthState, form: TokenForm) -> Respons
             "redirect_uri is required",
         );
     };
+    if let Err(resp) = authenticate_client(&state, client_id, form.client_secret.as_deref()).await {
+        return *resp;
+    }
 
     let entry = match take_auth_code(&state, code).await {
         Ok(e) => e,
@@ -792,6 +868,11 @@ async fn token_refresh(state: OAuthState, form: TokenForm) -> Response {
             "invalid_grant",
             "refresh token does not match client_id",
         );
+    }
+    if let Err(resp) =
+        authenticate_client(&state, &entry.client_id, form.client_secret.as_deref()).await
+    {
+        return *resp;
     }
 
     let access_token = match issue_access_token(&state, &entry.client_id, &entry.scope) {
@@ -897,7 +978,15 @@ pub async fn validate_oauth_bearer(
     validation.set_audience(&["mcp"]);
     validation.set_issuer(&[state.issuer_url.as_str()]);
     match decode::<AccessTokenClaims>(token, &state.decoding_key, &validation) {
-        Ok(_) => next.run(req).await,
+        Ok(data) => match state.store.get_client(&data.claims.sub).await {
+            Ok(Some(_)) => next.run(req).await,
+            Ok(None) => bearer_challenge(
+                StatusCode::UNAUTHORIZED,
+                "invalid_token",
+                "the client for this token was revoked",
+            ),
+            Err(e) => backend_error_response(&e),
+        },
         Err(e) => {
             tracing::debug!("rejected MCP bearer: {e}");
             bearer_challenge(

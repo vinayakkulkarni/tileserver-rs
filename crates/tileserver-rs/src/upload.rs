@@ -31,6 +31,70 @@ fn state_with_sources(state: &AppState, new_manager: SourceManager) -> AppState 
     }
 }
 
+/// Upload limits read from `[server]` on each request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct UploadLimits {
+    max_file_bytes: u64,
+    max_total_bytes: u64,
+    max_files: usize,
+}
+
+impl UploadLimits {
+    fn from_config(server: &crate::config::ServerConfig) -> Self {
+        const MB: u64 = 1024 * 1024;
+        Self {
+            max_file_bytes: u64::from(server.upload_max_size_mb) * MB,
+            max_total_bytes: u64::from(server.upload_max_total_mb) * MB,
+            max_files: usize::try_from(server.upload_max_files).unwrap_or(usize::MAX),
+        }
+    }
+}
+
+/// Number of registered uploads and the bytes their files use on disk.
+async fn upload_usage(registry: &crate::reload::UploadRegistry) -> (usize, u64) {
+    let paths: Vec<std::path::PathBuf> = registry
+        .read()
+        .await
+        .values()
+        .map(|info| info.file_path.clone())
+        .collect();
+    let mut bytes = 0;
+    for path in &paths {
+        if let Ok(meta) = tokio::fs::metadata(path).await {
+            bytes += meta.len();
+        }
+    }
+    (paths.len(), bytes)
+}
+
+/// A file being uploaded. Deleted on drop unless [`Self::commit`] ran, so
+/// an error, a rejected file or a dropped request never leaves it behind.
+struct PartialUpload {
+    path: std::path::PathBuf,
+    committed: bool,
+}
+
+impl PartialUpload {
+    fn new(path: std::path::PathBuf) -> Self {
+        Self {
+            path,
+            committed: false,
+        }
+    }
+
+    fn commit(&mut self) {
+        self.committed = true;
+    }
+}
+
+impl Drop for PartialUpload {
+    fn drop(&mut self) {
+        if !self.committed {
+            let _ = std::fs::remove_file(&self.path);
+        }
+    }
+}
+
 /// Upload response returned to the client
 #[derive(Serialize)]
 pub struct UploadResponse {
@@ -118,27 +182,33 @@ pub async fn upload_file(
     let saved_name = format!("{upload_id}.{ext}");
     let file_path = upload_dir.join(&saved_name);
 
-    // Compute max size from config (loaded at startup)
-    // Default 500 MB, read from the live config value stored during build_app_state
-    let max_upload_bytes: usize = 500 * 1024 * 1024; // fallback; real limit enforced by axum layer
+    let limits = UploadLimits::from_config(&shared.config().server);
+    let (files, used_bytes) = upload_usage(shared.uploads()).await;
+    if files >= limits.max_files {
+        return Err(TileServerError::UploadError(format!(
+            "upload limit reached: {files} files; delete an upload first"
+        )));
+    }
+    let max_upload_bytes = limits
+        .max_file_bytes
+        .min(limits.max_total_bytes.saturating_sub(used_bytes));
 
-    // Stream chunks to disk — never holds the full file in memory
+    // Stream chunks to disk — never holds the full file in memory. The guard
+    // deletes the file on every early return and if the request is dropped.
+    let mut partial = PartialUpload::new(file_path.clone());
     let mut file = tokio::fs::File::create(&file_path)
         .await
         .map_err(|e| TileServerError::UploadError(format!("failed to create file: {e}")))?;
 
-    let mut total_size: usize = 0;
+    let mut total_size: u64 = 0;
 
     while let Some(chunk) = field
         .chunk()
         .await
         .map_err(|e| TileServerError::UploadError(format!("failed to read chunk: {e}")))?
     {
-        total_size += chunk.len();
+        total_size += chunk.len() as u64;
         if total_size > max_upload_bytes {
-            // Clean up partial file
-            drop(file);
-            let _ = tokio::fs::remove_file(&file_path).await;
             return Err(TileServerError::UploadTooLarge);
         }
         file.write_all(&chunk)
@@ -202,29 +272,29 @@ pub async fn upload_file(
 
     let mut temp_manager = SourceManager::new();
     if let Err(e) = temp_manager.load_source(&source_config).await {
-        let _ = tokio::fs::remove_file(&file_path).await;
         return Err(TileServerError::UploadError(format!(
             "failed to load source from uploaded file: {e}"
         )));
     }
 
     let Some(new_source) = temp_manager.get(&source_id).cloned() else {
-        let _ = tokio::fs::remove_file(&file_path).await;
         return Err(TileServerError::UploadError(
             "source failed to register".into(),
         ));
     };
 
-    // Swap into the live state: clone sources, add new one, rebuild AppState
-    let mut sources_map = state.sources.clone_sources();
-    sources_map.insert(source_id.clone(), new_source);
-    let new_manager = SourceManager::from_sources(sources_map);
-    #[cfg(feature = "cel")]
-    let new_manager = new_manager.with_filters(state.sources.clone_filters());
-
-    let new_state = state_with_sources(&state, new_manager);
-
-    shared.store(Arc::new(new_state));
+    // Swap into the live state from a fresh snapshot under the reload lock.
+    shared
+        .update(|current| {
+            let mut sources_map = current.sources.clone_sources();
+            sources_map.insert(source_id.clone(), new_source);
+            let new_manager = SourceManager::from_sources(sources_map);
+            #[cfg(feature = "cel")]
+            let new_manager = new_manager.with_filters(current.sources.clone_filters());
+            state_with_sources(current, new_manager)
+        })
+        .await;
+    partial.commit();
 
     // Track in upload registry
     let format_label = source_type_label(&source_type);
@@ -294,17 +364,17 @@ pub async fn delete_upload(
         uploads.remove(&source_id).map(|info| info.file_path)
     };
 
-    // Remove source from live state
-    let state = shared.load();
-    let mut sources_map = state.sources.clone_sources();
-    sources_map.remove(&source_id);
-    let new_manager = SourceManager::from_sources(sources_map);
-    #[cfg(feature = "cel")]
-    let new_manager = new_manager.with_filters(state.sources.clone_filters());
-
-    let new_state = state_with_sources(&state, new_manager);
-
-    shared.store(Arc::new(new_state));
+    // Remove source from the live state (fresh snapshot, under the lock)
+    shared
+        .update(|current| {
+            let mut sources_map = current.sources.clone_sources();
+            sources_map.remove(&source_id);
+            let new_manager = SourceManager::from_sources(sources_map);
+            #[cfg(feature = "cel")]
+            let new_manager = new_manager.with_filters(current.sources.clone_filters());
+            state_with_sources(current, new_manager)
+        })
+        .await;
 
     // Delete the uploaded file from disk
     if let Some(path) = file_path {
@@ -386,6 +456,13 @@ mod tests {
     use std::path::PathBuf;
 
     fn build_shared(upload_dir: Option<PathBuf>) -> SharedState {
+        build_shared_with(upload_dir, crate::config::Config::default())
+    }
+
+    fn build_shared_with(
+        upload_dir: Option<PathBuf>,
+        config: crate::config::Config,
+    ) -> SharedState {
         let state = AppState {
             sources: Arc::new(SourceManager::new()),
             styles: Arc::new(StyleManager::new()),
@@ -411,13 +488,7 @@ mod tests {
             runtime_port: 8080,
             public_url_override: None,
         };
-        let controller = Arc::new(ReloadController::new(
-            state,
-            meta,
-            crate::config::Config::default(),
-            None,
-            runtime,
-        ));
+        let controller = Arc::new(ReloadController::new(state, meta, config, None, runtime));
         SharedState::new(controller)
     }
 
@@ -666,5 +737,83 @@ mod tests {
             "tempdir should be empty after failed upload, found: {entries:?}"
         );
         assert!(shared.uploads().read().await.is_empty());
+    }
+
+    #[test]
+    fn partial_upload_is_deleted_unless_committed() {
+        let dir = tempfile::tempdir().unwrap();
+        let dropped = dir.path().join("a.mbtiles");
+        std::fs::write(&dropped, b"x").unwrap();
+        drop(PartialUpload::new(dropped.clone()));
+        assert!(!dropped.exists());
+
+        let kept = dir.path().join("b.mbtiles");
+        std::fs::write(&kept, b"x").unwrap();
+        let mut guard = PartialUpload::new(kept.clone());
+        guard.commit();
+        drop(guard);
+        assert!(kept.exists());
+    }
+
+    #[tokio::test]
+    async fn upload_over_the_configured_size_is_413_and_leaves_no_file() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut config = crate::config::Config::default();
+        config.server.upload_max_size_mb = 1;
+        let shared = build_shared_with(Some(tempdir.path().to_path_buf()), config);
+        let server = TestServer::new(router_with_shared(shared));
+
+        let form = MultipartForm::new().add_part(
+            "file",
+            Part::bytes(vec![0u8; 1024 * 1024 + 1]).file_name("big.mbtiles"),
+        );
+        let resp = server.post("/api/upload").multipart(form).await;
+        assert_eq!(resp.status_code().as_u16(), 413, "{}", resp.text());
+        assert_eq!(std::fs::read_dir(tempdir.path()).unwrap().count(), 0);
+    }
+
+    #[tokio::test]
+    async fn upload_is_refused_once_the_file_count_limit_is_reached() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let mut config = crate::config::Config::default();
+        config.server.upload_max_files = 1;
+        let shared = build_shared_with(Some(tempdir.path().to_path_buf()), config);
+        let server = TestServer::new(router_with_shared(shared.clone()));
+
+        let staging = tempdir.path().join("src.mbtiles");
+        write_minimal_mbtiles(&staging);
+        let bytes = std::fs::read(&staging).unwrap();
+        std::fs::remove_file(&staging).unwrap();
+
+        let upload = |name: &'static str| {
+            MultipartForm::new().add_part("file", Part::bytes(bytes.clone()).file_name(name))
+        };
+        let first = server
+            .post("/api/upload")
+            .multipart(upload("a.mbtiles"))
+            .await;
+        assert_eq!(first.status_code().as_u16(), 200, "{}", first.text());
+        let second = server
+            .post("/api/upload")
+            .multipart(upload("b.mbtiles"))
+            .await;
+        assert!(second.status_code().is_client_error());
+        assert!(second.text().contains("upload limit"), "{}", second.text());
+    }
+
+    #[tokio::test]
+    async fn concurrent_updates_build_on_each_other() {
+        let shared = build_shared(None);
+        let append = |shared: SharedState, tag: &'static str| async move {
+            shared
+                .update(|current| AppState {
+                    base_url: format!("{}{tag}", current.base_url),
+                    ..current.clone()
+                })
+                .await;
+        };
+        tokio::join!(append(shared.clone(), "-a"), append(shared.clone(), "-b"));
+        let url = shared.load().base_url.clone();
+        assert!(url.contains("-a") && url.contains("-b"), "{url}");
     }
 }

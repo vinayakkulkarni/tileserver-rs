@@ -115,6 +115,10 @@ fn verify_properties(expr: &Expr, allowed: &[String]) -> Result<(), TileServerEr
     }
 }
 
+/// Longest CQL2 filter accepted. Real filters are a few hundred bytes; the
+/// cap bounds parse depth and the size of the generated SQL.
+pub(crate) const MAX_FILTER_BYTES: usize = 8 * 1024;
+
 /// Parses a CQL2 expression and returns a PostgreSQL-compatible SQL fragment
 /// ready to splice into a `WHERE` clause.
 ///
@@ -138,7 +142,7 @@ pub(crate) fn translate_filter_to_sql(
     allowed_properties: &[String],
 ) -> Result<String, TileServerError> {
     let trimmed = raw.trim();
-    if trimmed.is_empty() {
+    if trimmed.is_empty() || trimmed.len() > MAX_FILTER_BYTES {
         return Err(TileServerError::InvalidTileRequest);
     }
 
@@ -259,6 +263,15 @@ fn canonicalise_cql_text(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn over_long_filters_are_rejected() {
+        let props = vec!["a".to_string()];
+        let long = format!("a = 1{}", " AND a = 1".repeat(MAX_FILTER_BYTES / 9 + 1));
+        assert!(long.len() > MAX_FILTER_BYTES);
+        assert!(translate_filter_to_sql(&long, None, &props).is_err());
+        assert!(translate_filter_to_sql("a = 1 AND a = 2", None, &props).is_ok());
+    }
 
     fn allowed() -> Vec<String> {
         vec![

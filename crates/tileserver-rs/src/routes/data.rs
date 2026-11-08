@@ -179,7 +179,16 @@ pub(crate) async fn get_tile(
     // interact because band math only applies to raster formats and
     // MLT only to vector formats.
     #[cfg(feature = "raster")]
-    let tile = apply_band_math_if_requested(tile, &query);
+    let tile = if query.contains_key("expression") {
+        // Decode, per-pixel eval and PNG encode are CPU work: keep them off
+        // the async worker threads.
+        let band_query = query.clone();
+        tokio::task::spawn_blocking(move || apply_band_math_if_requested(tile, &band_query))
+            .await
+            .map_err(|e| TileServerError::RenderError(format!("band math task failed: {e}")))?
+    } else {
+        tile
+    };
 
     // Every active CEL filter (source preset + request) folds into one hash:
     // filtered variants get their own cache entries.
@@ -187,6 +196,11 @@ pub(crate) async fn get_tile(
     let filter_hash = active_filter_hash(&state.sources, &params.source, request_filter.as_deref());
     #[cfg(not(feature = "cel"))]
     let filter_hash = 0;
+
+    // Route-level cache entries depend on every byte-changing request input
+    // (output format, ?expression=, ?resampling=, PostGIS query parameters),
+    // not just the tile address, so they get their own key variant.
+    let variant = request_variant(filter_hash, format, &query);
 
     #[cfg(feature = "cel")]
     let tile = match &request_filter {
@@ -198,7 +212,7 @@ pub(crate) async fn get_tile(
                     z: params.z,
                     x: params.x,
                     y,
-                    filter: filter_hash,
+                    filter: variant,
                 },
                 tile,
                 filter,
@@ -228,7 +242,7 @@ pub(crate) async fn get_tile(
             z: params.z,
             x: params.x,
             y,
-            filter: filter_hash,
+            filter: variant,
         },
         tile,
         accept_encoding,
@@ -276,6 +290,22 @@ async fn fetch_source_tile(
         sources.get_tile(source, z, x, y).await?
     };
     tile.ok_or(TileServerError::TileNotFound { z, x, y })
+}
+
+/// Cache-key variant for a route-level tile: the CEL filter hash, the
+/// requested output format and the whole query string. Never 0, so these
+/// entries can't overwrite the source-level cache entry for the same tile.
+fn request_variant(
+    filter_hash: u64,
+    format: &str,
+    query: &std::collections::HashMap<String, String>,
+) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut pairs: Vec<(&String, &String)> = query.iter().collect();
+    pairs.sort_unstable();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    ("route-variant", filter_hash, format, pairs).hash(&mut hasher);
+    hasher.finish().max(1)
 }
 
 /// One hash over the source preset and the request filter; 0 when neither.
@@ -551,11 +581,9 @@ async fn get_tile_as_geojson(
     x: u32,
     y: u32,
 ) -> Result<Response, TileServerError> {
-    use flate2::read::GzDecoder;
     use geozero::ProcessToJson;
     use geozero::mvt::{Message, Tile};
     use sources::TileCompression;
-    use std::io::Read;
 
     let source = state
         .sources
@@ -577,14 +605,8 @@ async fn get_tile_as_geojson(
 
     // Decompress if needed
     let raw_data = match tile.compression {
-        TileCompression::Gzip => {
-            let mut decoder = GzDecoder::new(&tile.data[..]);
-            let mut decompressed = Vec::with_capacity(tile.data.len() * 4);
-            decoder.read_to_end(&mut decompressed).map_err(|e| {
-                TileServerError::RenderError(format!("failed to decompress tile: {}", e))
-            })?;
-            decompressed
-        }
+        TileCompression::Gzip => crate::compression::decode_gzip(&tile.data)
+            .map_err(|e| TileServerError::RenderError(format!("failed to decompress tile: {e}")))?,
         TileCompression::None => tile.data.to_vec(),
         _ => {
             return Err(TileServerError::RenderError(format!(
@@ -673,7 +695,7 @@ fn apply_band_math_if_requested(
     let parsed = match expression::ParsedExpression::parse(expr_str, raster.band_count()) {
         Ok(p) => p,
         Err(e) => {
-            tracing::warn!(expression = %expr_str, error = %e, "band math: parse failed; serving original");
+            tracing::warn!(expression = %expression::log_preview(expr_str), error = %e, "band math: parse failed; serving original");
             return tile;
         }
     };
@@ -681,7 +703,7 @@ fn apply_band_math_if_requested(
     let result = match expression::apply(&parsed, &raster) {
         Ok(r) => r,
         Err(e) => {
-            tracing::warn!(expression = %expr_str, error = %e, "band math: eval failed; serving original");
+            tracing::warn!(expression = %expression::log_preview(expr_str), error = %e, "band math: eval failed; serving original");
             return tile;
         }
     };
@@ -704,6 +726,42 @@ fn apply_band_math_if_requested(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn request_variant_separates_byte_changing_inputs() {
+        let q = |pairs: &[(&str, &str)]| -> std::collections::HashMap<String, String> {
+            pairs
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect()
+        };
+        let plain = request_variant(0, "pbf", &q(&[]));
+        assert_ne!(plain, 0);
+        assert_eq!(plain, request_variant(0, "pbf", &q(&[])));
+        assert_ne!(plain, request_variant(0, "mlt", &q(&[])));
+        assert_ne!(plain, request_variant(7, "pbf", &q(&[])));
+        let a = request_variant(
+            0,
+            "png",
+            &q(&[("expression", "b1"), ("resampling", "nearest")]),
+        );
+        assert_eq!(
+            a,
+            request_variant(
+                0,
+                "png",
+                &q(&[("resampling", "nearest"), ("expression", "b1")])
+            )
+        );
+        assert_ne!(
+            a,
+            request_variant(
+                0,
+                "png",
+                &q(&[("expression", "b2"), ("resampling", "nearest")])
+            )
+        );
+    }
 
     fn tp(y_fmt: &str) -> TileParams {
         TileParams {

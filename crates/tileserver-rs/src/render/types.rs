@@ -7,6 +7,11 @@ pub const MAX_IMAGE_DIMENSION: u32 = 4096;
 /// Maximum allowed scale factor for retina images
 pub const MAX_SCALE_FACTOR: u8 = 4;
 
+/// Largest static image in physical pixels (width × scale × height × scale),
+/// 4096 × 4096. Each side may still be up to [`MAX_IMAGE_DIMENSION`], but a
+/// large image at a high scale would need a gigabyte of RGBA readback.
+pub const MAX_STATIC_PIXELS: u64 = 4096 * 4096;
+
 /// Image format for rendered output
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -249,6 +254,12 @@ impl RenderOptions {
             return Err(format!(
                 "Scale factor must be between 1 and {}",
                 MAX_SCALE_FACTOR
+            ));
+        }
+        let physical = u64::from(width) * u64::from(height) * u64::from(scale) * u64::from(scale);
+        if physical > MAX_STATIC_PIXELS {
+            return Err(format!(
+                "Image is {physical} physical pixels (width × height × scale²); the maximum is {MAX_STATIC_PIXELS}"
             ));
         }
 
@@ -600,6 +611,15 @@ mod tests {
             ImageFormat::Png,
             StaticQueryParams::default(),
         )
+    }
+
+    #[test]
+    fn static_pixel_budget_counts_the_scale() {
+        assert!(for_static_center(center_origin(), 4096, 4096, 1).is_ok());
+        assert!(for_static_center(center_origin(), 2048, 2048, 2).is_ok());
+        let err = for_static_center(center_origin(), 4096, 4096, 2).unwrap_err();
+        assert!(err.contains("physical pixels"), "{err}");
+        assert!(for_static_center(center_origin(), 2048, 2049, 2).is_err());
     }
 
     #[test]

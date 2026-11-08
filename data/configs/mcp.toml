@@ -49,6 +49,7 @@ cors_origins = ["*"]
 # enabled = true
 # issuer_url = "https://tiles.example.com"
 # signing_key_path = "/etc/tileserver-rs/mcp-jwt-key.pem"
+# approval_secret = "${MCP_APPROVAL_SECRET}"  # operator code typed on the consent page (required)
 # token_ttl_secs = 3600  # max 86 400 (24 h); larger values are clamped down
 # store_path = "/var/lib/tileserver-rs/oauth-store.sqlite"  # persist OAuth state (requires mcp-persistence feature)
 

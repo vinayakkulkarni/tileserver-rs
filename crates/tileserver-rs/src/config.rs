@@ -203,6 +203,11 @@ pub struct McpOAuthConfig {
     /// Cargo feature — startup fails fast if set without it. When unset,
     /// the store is in-memory and resets on every restart.
     pub store_path: Option<std::path::PathBuf>,
+    /// Operator secret that the consent page asks for before it issues an
+    /// authorization code. Required when `enabled = true`: without it, any
+    /// anonymous caller could approve itself. Use `${ENV_VAR}` to keep it
+    /// out of the config file.
+    pub approval_secret: Option<String>,
 }
 
 #[cfg(feature = "mcp")]
@@ -219,6 +224,7 @@ impl Default for McpOAuthConfig {
             signing_key_path: None,
             token_ttl_secs: default_token_ttl_secs(),
             store_path: None,
+            approval_secret: None,
         }
     }
 }
@@ -442,6 +448,12 @@ pub struct LlmConfig {
     /// (default: 30).
     #[serde(default = "default_llm_rate_limit")]
     pub rate_limit_per_minute: u32,
+    /// Largest output a proxied request may ask for, in tokens (default:
+    /// 8192). `max_tokens`, `max_completion_tokens` and a thinking budget
+    /// above it are lowered to it, and `n` is forced to 1, so a client
+    /// cannot multiply the cost of the operator's key.
+    #[serde(default = "default_llm_max_output_tokens")]
+    pub max_output_tokens: u32,
 }
 
 const fn default_true_llm() -> bool {
@@ -456,6 +468,9 @@ const fn default_llm_max_body_bytes() -> usize {
 const fn default_llm_rate_limit() -> u32 {
     30
 }
+const fn default_llm_max_output_tokens() -> u32 {
+    8192
+}
 
 impl Default for LlmConfig {
     fn default() -> Self {
@@ -469,6 +484,7 @@ impl Default for LlmConfig {
             timeout_secs: default_llm_timeout_secs(),
             max_body_bytes: default_llm_max_body_bytes(),
             rate_limit_per_minute: default_llm_rate_limit(),
+            max_output_tokens: default_llm_max_output_tokens(),
         }
     }
 }
@@ -626,9 +642,22 @@ pub struct ServerConfig {
     /// Defaults to `<cache_dir>/uploads` (i.e. `resolve_cache_dir(None)`) if not set.
     #[serde(default)]
     pub upload_dir: Option<PathBuf>,
+    /// Extra `Host`/`Origin` names the admin listener accepts besides
+    /// loopback (`localhost`, `127.0.0.1`, `[::1]`). Needed when a reverse
+    /// proxy forwards its own `Host` header to the admin port. Other names
+    /// get 403, which blocks DNS-rebinding and cross-site requests.
+    #[serde(default)]
+    pub admin_allowed_hosts: Vec<String>,
     /// Maximum upload file size in megabytes (default: 500 MB)
     #[serde(default = "default_upload_max_size_mb")]
     pub upload_max_size_mb: u32,
+    /// Total disk space all uploaded files may use, in megabytes
+    /// (default: 5120 MB). Uploads past it get 413.
+    #[serde(default = "default_upload_max_total_mb")]
+    pub upload_max_total_mb: u32,
+    /// Maximum number of uploaded files kept at once (default: 100).
+    #[serde(default = "default_upload_max_files")]
+    pub upload_max_files: u32,
     /// User-defined response headers applied to every HTTP response.
     ///
     /// Header names must conform to RFC 7230 token grammar (alphanumeric
@@ -707,6 +736,14 @@ fn default_admin_bind() -> String {
     "127.0.0.1:0".to_string()
 }
 
+fn default_upload_max_total_mb() -> u32 {
+    5120
+}
+
+fn default_upload_max_files() -> u32 {
+    100
+}
+
 fn default_upload_max_size_mb() -> u32 {
     500
 }
@@ -720,7 +757,10 @@ impl Default for ServerConfig {
             admin_bind: default_admin_bind(),
             public_url: None,
             upload_dir: None,
+            admin_allowed_hosts: Vec::new(),
             upload_max_size_mb: default_upload_max_size_mb(),
+            upload_max_total_mb: default_upload_max_total_mb(),
+            upload_max_files: default_upload_max_files(),
             extra_response_headers: None,
             disable_render: false,
             disable_ogc: false,
@@ -1595,6 +1635,36 @@ pub struct ConfigLoadMetadata {
     pub content_hash: String,
 }
 
+/// Shortest MCP secret accepted without a warning.
+#[cfg(feature = "mcp")]
+const MIN_MCP_AUTH_TOKEN_LEN: usize = 16;
+
+/// Reject an MCP secret (`key`) that is empty or still holds a `$VAR`
+/// reference. Env substitution leaves unknown variables as written, so an
+/// unset `${MCP_AUTH_TOKEN}` would otherwise become the literal, public
+/// secret. A short token only logs a warning, so existing setups still start.
+#[cfg(feature = "mcp")]
+fn validate_secret(key: &str, token: &str) -> anyhow::Result<()> {
+    let unexpanded = token.char_indices().any(|(i, c)| {
+        c == '$'
+            && token[i + 1..].starts_with(|n: char| n == '{' || n == '_' || n.is_ascii_alphabetic())
+    });
+    if unexpanded {
+        anyhow::bail!(
+            "`{key}` contains an unexpanded environment variable; set it in the environment"
+        );
+    }
+    if token.trim().is_empty() {
+        anyhow::bail!("`{key}` is empty");
+    }
+    if token.len() < MIN_MCP_AUTH_TOKEN_LEN {
+        tracing::warn!(
+            "`{key}` is shorter than {MIN_MCP_AUTH_TOKEN_LEN} characters; use a long random value"
+        );
+    }
+    Ok(())
+}
+
 impl Config {
     fn hash_content(content: &str) -> String {
         use std::fmt::Write;
@@ -1634,6 +1704,9 @@ impl Config {
     ///
     /// Returns an error when:
     /// - `[mcp]` enables both `auth_token` and `oauth.enabled` (mutually exclusive).
+    /// - `[mcp].auth_token` is empty or still holds an unexpanded `$VAR`
+    ///   reference (the environment variable was not set).
+    /// - `[mcp.oauth].enabled = true` without a usable `approval_secret`.
     /// - `[mcp.oauth].enabled = true` without `issuer_url` set.
     /// - `[mcp.oauth].enabled = true` without `signing_key_path` set.
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -1643,6 +1716,17 @@ impl Config {
                 anyhow::bail!(
                     "cannot enable both static bearer (`[mcp].auth_token`) and OAuth (`[mcp.oauth].enabled`); pick one"
                 );
+            }
+            if let Some(token) = &self.mcp.auth_token {
+                validate_secret("[mcp].auth_token", token)?;
+            }
+            if self.mcp.oauth.enabled {
+                let Some(secret) = &self.mcp.oauth.approval_secret else {
+                    anyhow::bail!(
+                        "`[mcp.oauth].approval_secret` is required when oauth.enabled = true"
+                    );
+                };
+                validate_secret("[mcp.oauth].approval_secret", secret)?;
             }
             if self.mcp.oauth.enabled && self.mcp.oauth.issuer_url.is_none() {
                 anyhow::bail!("`[mcp.oauth].issuer_url` is required when oauth.enabled = true");
@@ -3524,5 +3608,52 @@ mod llm_config_tests {
         ] {
             assert!(!is_allowed_llm_base_url(bad), "{bad} should be rejected");
         }
+    }
+}
+
+#[cfg(all(test, feature = "mcp"))]
+mod mcp_auth_token_tests {
+    use super::Config;
+
+    fn with_token(token: &str) -> anyhow::Result<()> {
+        let mut config = Config::default();
+        config.mcp.auth_token = Some(token.to_string());
+        config.validate()
+    }
+
+    #[test]
+    fn unset_env_reference_is_rejected() {
+        let toml = "[mcp]\nauth_token = \"${TILESERVER_TEST_SURELY_UNSET_VAR}\"\n";
+        let expanded = Config::substitute_env_vars(toml);
+        let config: Config = toml::from_str(&expanded).unwrap();
+        let err = config.validate().unwrap_err().to_string();
+        assert!(err.contains("unexpanded environment variable"), "{err}");
+        assert!(with_token("$MCP_TOKEN").is_err());
+    }
+
+    #[test]
+    fn empty_token_is_rejected() {
+        assert!(with_token("   ").unwrap_err().to_string().contains("empty"));
+    }
+
+    #[test]
+    fn oauth_requires_a_usable_approval_secret() {
+        let mut config = Config::default();
+        config.mcp.oauth.enabled = true;
+        config.mcp.oauth.issuer_url = Some("https://tiles.example".to_string());
+        config.mcp.oauth.signing_key_path = Some("/tmp/key.pem".into());
+        let err = config.validate().unwrap_err().to_string();
+        assert!(err.contains("approval_secret"), "{err}");
+        config.mcp.oauth.approval_secret = Some("${UNSET_APPROVAL}".to_string());
+        assert!(config.validate().is_err());
+        config.mcp.oauth.approval_secret = Some("a-long-operator-approval-code".to_string());
+        config.validate().unwrap();
+    }
+
+    #[test]
+    fn real_tokens_are_accepted() {
+        assert!(with_token("short").is_ok(), "short tokens only warn");
+        assert!(with_token("c0ffee-$-not-a-var-0123456789").is_ok());
+        assert!(with_token("a3f1c9e8b7d6a5f4e3d2c1b0a9f8e7d6").is_ok());
     }
 }

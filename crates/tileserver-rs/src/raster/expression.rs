@@ -41,6 +41,23 @@ pub enum ExpressionError {
     UnknownVariable(String),
     #[error("expression evaluation failed: {0}")]
     Eval(String),
+    #[error("expression is longer than {MAX_EXPRESSION_BYTES} bytes")]
+    TooLong,
+}
+
+/// Longest `?expression=` accepted. Real band-math formulas (NDVI, EVI,
+/// band ratios) are well under 100 bytes; the cap stops a client from
+/// sending a huge expression that is then evaluated once per pixel.
+pub const MAX_EXPRESSION_BYTES: usize = 512;
+
+/// The first 64 bytes of `raw`, for logs, so one request can't flood them.
+#[must_use]
+pub fn log_preview(raw: &str) -> &str {
+    let mut end = raw.len().min(64);
+    while !raw.is_char_boundary(end) {
+        end -= 1;
+    }
+    &raw[..end]
 }
 
 /// A parsed, validated band-math expression ready to evaluate.
@@ -65,12 +82,16 @@ impl ParsedExpression {
     ///
     /// # Errors
     ///
-    /// Returns [`ExpressionError::Parse`] on syntactically invalid
+    /// Returns [`ExpressionError::TooLong`] past [`MAX_EXPRESSION_BYTES`],
+    /// [`ExpressionError::Parse`] on syntactically invalid
     /// input, [`ExpressionError::UnknownVariable`] when a variable
     /// is not of the form `b<n>`, or
     /// [`ExpressionError::BandOutOfRange`] when a `b<n>` index
     /// exceeds `n_bands`.
     pub fn parse(raw: &str, n_bands: usize) -> Result<Self, ExpressionError> {
+        if raw.len() > MAX_EXPRESSION_BYTES {
+            return Err(ExpressionError::TooLong);
+        }
         let inner = exmex::parse::<f64>(raw).map_err(|e| ExpressionError::Parse(e.to_string()))?;
 
         let mut band_order: Vec<usize> = Vec::with_capacity(inner.var_names().len());
@@ -191,6 +212,14 @@ mod tests {
 
     #[test]
     fn parse_rejects_band_out_of_range() {
+        let long = "b1+".repeat(MAX_EXPRESSION_BYTES / 3 + 1) + "b1";
+        assert!(matches!(
+            ParsedExpression::parse(&long, 1),
+            Err(ExpressionError::TooLong)
+        ));
+        assert!(ParsedExpression::parse("b1+".repeat(100).trim_end_matches('+'), 1).is_ok());
+        assert_eq!(log_preview(&long).len(), 64);
+        assert_eq!(log_preview("b1"), "b1");
         let err = ParsedExpression::parse("b1 + b3", 2).unwrap_err();
         assert!(matches!(err, ExpressionError::BandOutOfRange { .. }));
     }

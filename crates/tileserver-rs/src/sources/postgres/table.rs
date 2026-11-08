@@ -196,6 +196,11 @@ fn extract_property(row: &tokio_postgres::Row, column: &str) -> serde_json::Valu
     serde_json::Value::Null
 }
 
+/// Longest an OGC API Features query may run, in milliseconds. The query
+/// carries an anonymous CQL2 filter, so it must not hold a pooled
+/// connection indefinitely.
+pub const OGC_QUERY_TIMEOUT_MS: u64 = 30_000;
+
 #[derive(Debug, Clone)]
 pub struct TableInfo {
     pub schema: String,
@@ -461,7 +466,19 @@ impl PostgresTableSource {
         offset: i64,
     ) -> Result<(Vec<serde_json::Value>, i64)> {
         let _ = filter_srid;
-        let conn = self.pool.get().await?;
+        let mut conn = self.pool.get().await?;
+        // Feature queries take an anonymous CQL2 filter: bound how long they
+        // may hold a pooled connection. SET LOCAL ends with the transaction.
+        let conn = conn
+            .transaction()
+            .await
+            .map_err(|e| TileServerError::PostgresError(format!("begin failed: {e}")))?;
+        conn.batch_execute(&format!(
+            "SET LOCAL statement_timeout = {}",
+            OGC_QUERY_TIMEOUT_MS
+        ))
+        .await
+        .map_err(|e| TileServerError::PostgresError(format!("set timeout failed: {e}")))?;
         let info = &self.table_info;
 
         let id_expr = info
@@ -586,6 +603,9 @@ impl PostgresTableSource {
             })
             .collect();
 
+        conn.commit()
+            .await
+            .map_err(|e| TileServerError::PostgresError(format!("commit failed: {e}")))?;
         Ok((features, total_count))
     }
 

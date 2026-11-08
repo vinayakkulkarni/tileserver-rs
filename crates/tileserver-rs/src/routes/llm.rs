@@ -105,6 +105,31 @@ pub(crate) async fn get_llm_config(State(state): State<SharedState>) -> Json<Llm
     })
 }
 
+/// Cap the fields that multiply the cost of one proxied request: force
+/// `n` to 1 and lower output-token and thinking budgets to `max_tokens`.
+fn limit_cost_fields(fields: &mut serde_json::Map<String, serde_json::Value>, max_tokens: u32) {
+    let cap = u64::from(max_tokens);
+    let clamp = |v: &mut serde_json::Value| {
+        if v.as_u64().is_none_or(|n| n > cap) {
+            *v = serde_json::Value::from(cap);
+        }
+    };
+    if fields.contains_key("n") {
+        fields.insert("n".to_string(), serde_json::Value::from(1));
+    }
+    for key in ["max_tokens", "max_completion_tokens"] {
+        if let Some(v) = fields.get_mut(key) {
+            clamp(v);
+        }
+    }
+    if let Some(budget) = fields
+        .get_mut("thinking")
+        .and_then(|t| t.get_mut("budget_tokens"))
+    {
+        clamp(budget);
+    }
+}
+
 /// `POST /api/llm/chat`
 pub(crate) async fn post_llm_chat(
     State(state): State<SharedState>,
@@ -128,6 +153,7 @@ pub(crate) async fn post_llm_chat(
         .as_deref()
         .ok_or_else(|| LlmProxyError::Misconfigured("llm.model is not set".to_string()))?;
     fields.insert("model".to_string(), serde_json::Value::from(model));
+    limit_cost_fields(fields, llm.max_output_tokens);
 
     let base_url = llm
         .base_url
@@ -224,6 +250,28 @@ fn host_of(url: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cost_fields_are_capped() {
+        let mut body = serde_json::json!({
+            "n": 8, "max_tokens": 1_000_000, "max_completion_tokens": "lots",
+            "thinking": {"type": "enabled", "budget_tokens": 900_000},
+            "messages": []
+        });
+        limit_cost_fields(body.as_object_mut().unwrap(), 4096);
+        assert_eq!(body["n"], 1);
+        assert_eq!(body["max_tokens"], 4096);
+        assert_eq!(body["max_completion_tokens"], 4096);
+        assert_eq!(body["thinking"]["budget_tokens"], 4096);
+
+        let mut small = serde_json::json!({"max_tokens": 100, "messages": []});
+        limit_cost_fields(small.as_object_mut().unwrap(), 4096);
+        assert_eq!(
+            small["max_tokens"], 100,
+            "a request under the cap is unchanged"
+        );
+        assert!(small.get("n").is_none());
+    }
 
     #[test]
     fn upstream_url_per_provider() {

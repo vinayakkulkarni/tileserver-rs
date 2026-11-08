@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { Bot, User } from '@lucide/vue';
+  import { chatMarkdownPlugins } from '~/lib/chat-markdown';
   import type { ReadonlyUIMessage } from '~/types/llm';
   import {
     getTextContent,
@@ -52,6 +53,7 @@
           <Suspense>
             <Markdown
               :value="textContent"
+              :plugins="chatMarkdownPlugins"
               :streaming="isStreaming"
               :caret="isStreaming"
               class="text-sm/relaxed"

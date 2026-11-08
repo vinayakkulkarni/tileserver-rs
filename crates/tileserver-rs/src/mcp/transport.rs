@@ -103,8 +103,14 @@ impl McpAuthMode {
                 .signing_key_path
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].signing_key_path` is required"))?;
+            let approval_secret = cfg
+                .oauth
+                .approval_secret
+                .as_deref()
+                .ok_or_else(|| anyhow::anyhow!("`[mcp.oauth].approval_secret` is required"))?;
             let state =
-                OAuthState::from_file(issuer.to_string(), key_path, cfg.oauth.token_ttl_secs)?;
+                OAuthState::from_file(issuer.to_string(), key_path, cfg.oauth.token_ttl_secs)?
+                    .with_approval_secret(approval_secret);
             let state = match cfg.oauth.store_path.as_deref() {
                 #[cfg(feature = "mcp-persistence")]
                 Some(store_path) => {
@@ -690,6 +696,7 @@ mod tests {
                 enabled: true,
                 issuer_url: Some("http://localhost:8080".to_string()),
                 signing_key_path: Some(key.path().to_path_buf()),
+                approval_secret: Some("test-approval-secret-0123".to_string()),
                 store_path: Some(store_path.clone()),
                 ..crate::config::McpOAuthConfig::default()
             },
@@ -722,6 +729,7 @@ mod tests {
                 enabled: true,
                 issuer_url: Some("http://localhost:8080".to_string()),
                 signing_key_path: Some(key.path().to_path_buf()),
+                approval_secret: Some("test-approval-secret-0123".to_string()),
                 ..crate::config::McpOAuthConfig::default()
             },
             ..McpConfig::default()
@@ -752,6 +760,7 @@ mod tests {
                 enabled: true,
                 issuer_url: Some("http://localhost:8080".to_string()),
                 signing_key_path: Some(key.path().to_path_buf()),
+                approval_secret: Some("test-approval-secret-0123".to_string()),
                 store_path: Some(std::path::PathBuf::from("/tmp/oauth.sqlite")),
                 ..crate::config::McpOAuthConfig::default()
             },
@@ -776,6 +785,7 @@ mod tests {
                 enabled: true,
                 issuer_url: None,
                 signing_key_path: Some(key.path().to_path_buf()),
+                approval_secret: Some("test-approval-secret-0123".to_string()),
                 ..crate::config::McpOAuthConfig::default()
             },
             ..McpConfig::default()
