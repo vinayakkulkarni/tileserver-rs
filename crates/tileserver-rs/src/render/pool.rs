@@ -310,7 +310,7 @@ impl WorkerMaps {
     }
 
     fn get_tile_map(&mut self, scale: f32) -> Result<&mut NativeMap> {
-        let key = (scale * 100.0) as u32;
+        let key = scale_key(scale);
         if !self.tile_maps.contains_key(&key) {
             let map = NativeMap::new(
                 Size::new(self.tile_size, self.tile_size),
@@ -346,21 +346,12 @@ impl WorkerMaps {
         style_json: &str,
         options: &RenderOptions,
     ) -> Result<RenderedImage> {
-        let ratio_key = (options.pixel_ratio * 100.0) as u32;
-        let needs_new = match &self.static_map {
-            Some((key, _)) => *key != ratio_key,
-            None => true,
+        let ratio_key = scale_key(options.pixel_ratio);
+        let map = match self.static_map.take() {
+            Some((key, map)) if key == ratio_key => map,
+            _ => NativeMap::new(options.size, options.pixel_ratio, MapMode::Static)?,
         };
-
-        if needs_new {
-            let map = NativeMap::new(options.size, options.pixel_ratio, MapMode::Static)?;
-            self.static_map = Some((ratio_key, map));
-        }
-
-        let (_, map) = self
-            .static_map
-            .as_mut()
-            .expect("static_map was initialized above");
+        let (_, map) = self.static_map.insert((ratio_key, map));
         map.set_size(options.size);
         map.load_style(style_json)?;
         map.render(Some(RenderOptions {
@@ -372,9 +363,22 @@ impl WorkerMaps {
     }
 }
 
+/// Map cache key for a pixel ratio: hundredths, so 1.5 and 1.50 share a map.
+fn scale_key(ratio: f32) -> u32 {
+    (ratio * 100.0) as u32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scale_key_groups_ratios_by_hundredths() {
+        assert_eq!(scale_key(1.0), 100);
+        assert_eq!(scale_key(2.5), 250);
+        assert_eq!(scale_key(1.5), scale_key(1.50));
+        assert_ne!(scale_key(1.0), scale_key(2.0));
+    }
 
     #[tokio::test]
     async fn wait_for_returns_the_answer_or_names_the_failure() {
