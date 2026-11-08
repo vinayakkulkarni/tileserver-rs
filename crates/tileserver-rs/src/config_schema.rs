@@ -500,6 +500,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 optional: false,
                 enum_values: None,
             },
+            ConfigFieldSchema {
+                key: "max_output_tokens",
+                field_type: "u32",
+                default: Some("8192"),
+                description: "Cap on max_tokens, max_completion_tokens and thinking budget in proxied requests; n is forced to 1.",
+                optional: false,
+                enum_values: None,
+            },
         ],
     },
     ConfigSectionSchema {

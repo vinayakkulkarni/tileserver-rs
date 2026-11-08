@@ -448,6 +448,12 @@ pub struct LlmConfig {
     /// (default: 30).
     #[serde(default = "default_llm_rate_limit")]
     pub rate_limit_per_minute: u32,
+    /// Largest output a proxied request may ask for, in tokens (default:
+    /// 8192). `max_tokens`, `max_completion_tokens` and a thinking budget
+    /// above it are lowered to it, and `n` is forced to 1, so a client
+    /// cannot multiply the cost of the operator's key.
+    #[serde(default = "default_llm_max_output_tokens")]
+    pub max_output_tokens: u32,
 }
 
 const fn default_true_llm() -> bool {
@@ -462,6 +468,9 @@ const fn default_llm_max_body_bytes() -> usize {
 const fn default_llm_rate_limit() -> u32 {
     30
 }
+const fn default_llm_max_output_tokens() -> u32 {
+    8192
+}
 
 impl Default for LlmConfig {
     fn default() -> Self {
@@ -475,6 +484,7 @@ impl Default for LlmConfig {
             timeout_secs: default_llm_timeout_secs(),
             max_body_bytes: default_llm_max_body_bytes(),
             rate_limit_per_minute: default_llm_rate_limit(),
+            max_output_tokens: default_llm_max_output_tokens(),
         }
     }
 }
