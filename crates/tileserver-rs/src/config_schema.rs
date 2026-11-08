@@ -191,6 +191,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 enum_values: None,
             },
             ConfigFieldSchema {
+                key: "admin_allowed_hosts",
+                field_type: "string[]",
+                default: Some("[]"),
+                description: "Extra Host/Origin names the admin listener accepts besides loopback; others get 403.",
+                optional: false,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
                 key: "public_url",
                 field_type: "string",
                 default: None,

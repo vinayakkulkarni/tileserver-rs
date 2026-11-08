@@ -642,6 +642,12 @@ pub struct ServerConfig {
     /// Defaults to `<cache_dir>/uploads` (i.e. `resolve_cache_dir(None)`) if not set.
     #[serde(default)]
     pub upload_dir: Option<PathBuf>,
+    /// Extra `Host`/`Origin` names the admin listener accepts besides
+    /// loopback (`localhost`, `127.0.0.1`, `[::1]`). Needed when a reverse
+    /// proxy forwards its own `Host` header to the admin port. Other names
+    /// get 403, which blocks DNS-rebinding and cross-site requests.
+    #[serde(default)]
+    pub admin_allowed_hosts: Vec<String>,
     /// Maximum upload file size in megabytes (default: 500 MB)
     #[serde(default = "default_upload_max_size_mb")]
     pub upload_max_size_mb: u32,
@@ -751,6 +757,7 @@ impl Default for ServerConfig {
             admin_bind: default_admin_bind(),
             public_url: None,
             upload_dir: None,
+            admin_allowed_hosts: Vec::new(),
             upload_max_size_mb: default_upload_max_size_mb(),
             upload_max_total_mb: default_upload_max_total_mb(),
             upload_max_files: default_upload_max_files(),
