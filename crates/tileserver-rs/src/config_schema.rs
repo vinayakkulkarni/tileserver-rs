@@ -1286,6 +1286,14 @@ pub static CONFIG_SCHEMA: &[ConfigSectionSchema] = &[
                 enum_values: None,
             },
             ConfigFieldSchema {
+                key: "approval_secret",
+                field_type: "string",
+                default: None,
+                description: "Required when enabled = true. Operator code the consent page asks for before it issues an authorization code.",
+                optional: true,
+                enum_values: None,
+            },
+            ConfigFieldSchema {
                 key: "token_ttl_secs",
                 field_type: "u64",
                 default: Some("3600"),

@@ -203,6 +203,11 @@ pub struct McpOAuthConfig {
     /// Cargo feature — startup fails fast if set without it. When unset,
     /// the store is in-memory and resets on every restart.
     pub store_path: Option<std::path::PathBuf>,
+    /// Operator secret that the consent page asks for before it issues an
+    /// authorization code. Required when `enabled = true`: without it, any
+    /// anonymous caller could approve itself. Use `${ENV_VAR}` to keep it
+    /// out of the config file.
+    pub approval_secret: Option<String>,
 }
 
 #[cfg(feature = "mcp")]
@@ -219,6 +224,7 @@ impl Default for McpOAuthConfig {
             signing_key_path: None,
             token_ttl_secs: default_token_ttl_secs(),
             store_path: None,
+            approval_secret: None,
         }
     }
 }
@@ -1595,31 +1601,31 @@ pub struct ConfigLoadMetadata {
     pub content_hash: String,
 }
 
-/// Shortest `[mcp].auth_token` accepted without a warning.
+/// Shortest MCP secret accepted without a warning.
 #[cfg(feature = "mcp")]
 const MIN_MCP_AUTH_TOKEN_LEN: usize = 16;
 
-/// Reject an MCP bearer token that is empty or still holds a `$VAR`
+/// Reject an MCP secret (`key`) that is empty or still holds a `$VAR`
 /// reference. Env substitution leaves unknown variables as written, so an
 /// unset `${MCP_AUTH_TOKEN}` would otherwise become the literal, public
 /// secret. A short token only logs a warning, so existing setups still start.
 #[cfg(feature = "mcp")]
-fn validate_mcp_auth_token(token: &str) -> anyhow::Result<()> {
+fn validate_secret(key: &str, token: &str) -> anyhow::Result<()> {
     let unexpanded = token.char_indices().any(|(i, c)| {
         c == '$'
             && token[i + 1..].starts_with(|n: char| n == '{' || n == '_' || n.is_ascii_alphabetic())
     });
     if unexpanded {
         anyhow::bail!(
-            "`[mcp].auth_token` contains an unexpanded environment variable; set it in the environment or remove auth_token"
+            "`{key}` contains an unexpanded environment variable; set it in the environment"
         );
     }
     if token.trim().is_empty() {
-        anyhow::bail!("`[mcp].auth_token` is empty; set a token or remove auth_token");
+        anyhow::bail!("`{key}` is empty");
     }
     if token.len() < MIN_MCP_AUTH_TOKEN_LEN {
         tracing::warn!(
-            "`[mcp].auth_token` is shorter than {MIN_MCP_AUTH_TOKEN_LEN} characters; use a long random token"
+            "`{key}` is shorter than {MIN_MCP_AUTH_TOKEN_LEN} characters; use a long random value"
         );
     }
     Ok(())
@@ -1666,6 +1672,7 @@ impl Config {
     /// - `[mcp]` enables both `auth_token` and `oauth.enabled` (mutually exclusive).
     /// - `[mcp].auth_token` is empty or still holds an unexpanded `$VAR`
     ///   reference (the environment variable was not set).
+    /// - `[mcp.oauth].enabled = true` without a usable `approval_secret`.
     /// - `[mcp.oauth].enabled = true` without `issuer_url` set.
     /// - `[mcp.oauth].enabled = true` without `signing_key_path` set.
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -1677,7 +1684,15 @@ impl Config {
                 );
             }
             if let Some(token) = &self.mcp.auth_token {
-                validate_mcp_auth_token(token)?;
+                validate_secret("[mcp].auth_token", token)?;
+            }
+            if self.mcp.oauth.enabled {
+                let Some(secret) = &self.mcp.oauth.approval_secret else {
+                    anyhow::bail!(
+                        "`[mcp.oauth].approval_secret` is required when oauth.enabled = true"
+                    );
+                };
+                validate_secret("[mcp.oauth].approval_secret", secret)?;
             }
             if self.mcp.oauth.enabled && self.mcp.oauth.issuer_url.is_none() {
                 anyhow::bail!("`[mcp.oauth].issuer_url` is required when oauth.enabled = true");
@@ -3585,6 +3600,20 @@ mod mcp_auth_token_tests {
     #[test]
     fn empty_token_is_rejected() {
         assert!(with_token("   ").unwrap_err().to_string().contains("empty"));
+    }
+
+    #[test]
+    fn oauth_requires_a_usable_approval_secret() {
+        let mut config = Config::default();
+        config.mcp.oauth.enabled = true;
+        config.mcp.oauth.issuer_url = Some("https://tiles.example".to_string());
+        config.mcp.oauth.signing_key_path = Some("/tmp/key.pem".into());
+        let err = config.validate().unwrap_err().to_string();
+        assert!(err.contains("approval_secret"), "{err}");
+        config.mcp.oauth.approval_secret = Some("${UNSET_APPROVAL}".to_string());
+        assert!(config.validate().is_err());
+        config.mcp.oauth.approval_secret = Some("a-long-operator-approval-code".to_string());
+        config.validate().unwrap();
     }
 
     #[test]

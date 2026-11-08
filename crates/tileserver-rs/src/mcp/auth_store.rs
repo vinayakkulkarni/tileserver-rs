@@ -201,6 +201,7 @@ impl OAuthBackend for InMemoryStore {
     async fn delete_client(&self, client_id: &str) -> BackendResult<()> {
         let mut guard = self.inner.write().await;
         guard.clients.remove(client_id);
+        guard.auth_codes.retain(|_, e| e.client_id != client_id);
         guard.refresh_tokens.retain(|_, e| e.client_id != client_id);
         Ok(())
     }

@@ -33,6 +33,9 @@ const TEST_TTL_SECS: u64 = 3600;
 /// key for anything other than localhost test runs.
 const TEST_RSA_PEM: &str = include_str!("fixtures/oauth_test_key.pem");
 
+/// Operator approval code every test consent form submits.
+const TEST_APPROVAL_SECRET: &str = "test-approval-secret-0123";
+
 fn test_state() -> OAuthState {
     static CACHED: OnceLock<OAuthState> = OnceLock::new();
     CACHED
@@ -43,6 +46,7 @@ fn test_state() -> OAuthState {
                 TEST_TTL_SECS,
             )
             .expect("test RSA PEM is well-formed")
+            .with_approval_secret(TEST_APPROVAL_SECRET)
         })
         .clone()
 }
@@ -106,6 +110,7 @@ async fn approve_and_get_code(
             ("code_challenge", code_challenge),
             ("code_challenge_method", "S256"),
             ("approved", "true"),
+            ("approval_code", TEST_APPROVAL_SECRET),
         ])
         .await;
 
@@ -514,6 +519,7 @@ async fn oob_redirect_uri_round_trip_succeeds() {
             ),
             ("code_challenge_method", "S256"),
             ("approved", "true"),
+            ("approval_code", TEST_APPROVAL_SECRET),
         ])
         .await;
 
@@ -555,6 +561,7 @@ async fn approve_with_unregistered_redirect_uri_is_rejected() {
             ),
             ("code_challenge_method", "S256"),
             ("approved", "true"),
+            ("approval_code", TEST_APPROVAL_SECRET),
         ])
         .await;
     resp.assert_status(StatusCode::BAD_REQUEST);
@@ -590,6 +597,7 @@ async fn redirect_uri_comparison_is_exact_no_trailing_slash_normalisation() {
             ),
             ("code_challenge_method", "S256"),
             ("approved", "true"),
+            ("approval_code", TEST_APPROVAL_SECRET),
         ])
         .await;
     approve.assert_status(StatusCode::BAD_REQUEST);
@@ -636,4 +644,163 @@ async fn dcr_returns_429_when_client_cap_is_reached() {
     resp.assert_status(StatusCode::TOO_MANY_REQUESTS);
     let body: Value = resp.json();
     assert_eq!(body["error"], "too_many_clients");
+}
+
+// ---------------------------------------------------------------------------
+// Security regressions (#1656: C2, C9, C10)
+// ---------------------------------------------------------------------------
+
+async fn approve_status(server: &TestServer, client_id: &str, code: Option<&str>) -> StatusCode {
+    let challenge = pkce_challenge("verifier-that-is-long-enough-for-pkce-0123456789");
+    let mut form = vec![
+        ("client_id", client_id),
+        ("redirect_uri", TEST_REDIRECT),
+        ("scope", "mcp"),
+        ("code_challenge", challenge.as_str()),
+        ("code_challenge_method", "S256"),
+        ("approved", "true"),
+    ];
+    if let Some(code) = code {
+        form.push(("approval_code", code));
+    }
+    server.post("/approve").form(&form).await.status_code()
+}
+
+#[tokio::test]
+async fn approve_without_the_operator_code_is_forbidden() {
+    let server = test_server(test_state());
+    let client_id = register_client(&server).await;
+    assert_eq!(
+        approve_status(&server, &client_id, None).await,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        approve_status(&server, &client_id, Some("wrong")).await,
+        StatusCode::FORBIDDEN
+    );
+    assert!(
+        approve_status(&server, &client_id, Some(TEST_APPROVAL_SECRET))
+            .await
+            .is_redirection()
+    );
+}
+
+#[tokio::test]
+async fn approve_is_refused_when_no_secret_is_configured() {
+    let state = OAuthState::from_pem(
+        TEST_ISSUER.to_string(),
+        TEST_RSA_PEM.as_bytes(),
+        TEST_TTL_SECS,
+    )
+    .unwrap();
+    let server = test_server(state);
+    let client_id = register_client(&server).await;
+    assert_eq!(
+        approve_status(&server, &client_id, Some("anything")).await,
+        StatusCode::FORBIDDEN
+    );
+}
+
+#[tokio::test]
+async fn confidential_client_must_send_its_secret_to_token() {
+    let server = test_server(test_state());
+    let resp = server
+        .post("/register")
+        .json(&json!({
+            "client_name": "confidential",
+            "redirect_uris": [TEST_REDIRECT],
+            "token_endpoint_auth_method": "client_secret_post"
+        }))
+        .await;
+    let body: Value = resp.json();
+    let client_id = body["client_id"].as_str().unwrap().to_string();
+    let secret = body["client_secret"].as_str().unwrap().to_string();
+    let verifier = "verifier-that-is-long-enough-for-pkce-0123456789";
+    let challenge = pkce_challenge(verifier);
+
+    let exchange = |code: String, secret: Option<String>| {
+        let mut form = vec![
+            ("grant_type", "authorization_code".to_string()),
+            ("code", code),
+            ("code_verifier", verifier.to_string()),
+            ("client_id", client_id.clone()),
+            ("redirect_uri", TEST_REDIRECT.to_string()),
+        ];
+        if let Some(s) = secret {
+            form.push(("client_secret", s));
+        }
+        form
+    };
+    let code = approve_and_get_code(&server, &client_id, &challenge, "s").await;
+    let no_secret = server.post("/token").form(&exchange(code, None)).await;
+    assert_eq!(no_secret.status_code(), StatusCode::UNAUTHORIZED);
+
+    let code = approve_and_get_code(&server, &client_id, &challenge, "s").await;
+    let wrong = server
+        .post("/token")
+        .form(&exchange(code, Some("nope".to_string())))
+        .await;
+    assert_eq!(wrong.status_code(), StatusCode::UNAUTHORIZED);
+
+    let code = approve_and_get_code(&server, &client_id, &challenge, "s").await;
+    let ok = server
+        .post("/token")
+        .form(&exchange(code, Some(secret)))
+        .await;
+    ok.assert_status_ok();
+}
+
+#[tokio::test]
+async fn deleting_a_client_revokes_its_tokens_and_codes() {
+    let state = OAuthState::from_pem(
+        TEST_ISSUER.to_string(),
+        TEST_RSA_PEM.as_bytes(),
+        TEST_TTL_SECS,
+    )
+    .unwrap()
+    .with_approval_secret(TEST_APPROVAL_SECRET);
+    let store = state.store.clone();
+    let server = test_server(state);
+    let client_id = register_client(&server).await;
+    let verifier = "verifier-that-is-long-enough-for-pkce-0123456789";
+    let challenge = pkce_challenge(verifier);
+    let code = approve_and_get_code(&server, &client_id, &challenge, "s").await;
+    let tokens: Value = server
+        .post("/token")
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", code.as_str()),
+            ("code_verifier", verifier),
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", TEST_REDIRECT),
+        ])
+        .await
+        .json();
+    let access = tokens["access_token"].as_str().unwrap().to_string();
+    let pending = approve_and_get_code(&server, &client_id, &challenge, "s").await;
+
+    let ok = server
+        .post("/mcp")
+        .add_header(header::AUTHORIZATION, format!("Bearer {access}"))
+        .await;
+    ok.assert_status_ok();
+
+    store.delete_client(&client_id).await.unwrap();
+
+    let after = server
+        .post("/mcp")
+        .add_header(header::AUTHORIZATION, format!("Bearer {access}"))
+        .await;
+    assert_eq!(after.status_code(), StatusCode::UNAUTHORIZED);
+    let code_after = server
+        .post("/token")
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", pending.as_str()),
+            ("code_verifier", verifier),
+            ("client_id", client_id.as_str()),
+            ("redirect_uri", TEST_REDIRECT),
+        ])
+        .await;
+    assert!(code_after.status_code().is_client_error());
 }
