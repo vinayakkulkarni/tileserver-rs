@@ -484,6 +484,34 @@ pub async fn discover_assets_by_bbox(
 // Re-exported here for backward-compatible `stac::to_gdal_cog_path` paths.
 pub use super::to_gdal_cog_path;
 
+/// Source option that lets a remote STAC catalog point at local or
+/// GDAL-virtual (`/vsi…`) asset paths. Off by default.
+pub const ALLOW_LOCAL_HREFS_OPTION: &str = "allow_local_hrefs";
+
+/// Whether `href` from a STAC response may reach GDAL.
+///
+/// `http(s)://` hrefs are always allowed. Anything else (a local path,
+/// `file:`, `/vsi…`, `s3://`) is allowed only when the catalog itself is a
+/// local file the operator controls, or when the source sets
+/// `options.allow_local_hrefs = "true"`. A remote catalog therefore cannot
+/// make the server open its own files or GDAL virtual filesystems.
+#[must_use]
+pub fn asset_href_allowed(template: &SourceConfig, href: &str) -> bool {
+    let is_http = |s: &str| {
+        let lower = s.trim_start().to_ascii_lowercase();
+        lower.starts_with("https://") || lower.starts_with("http://")
+    };
+    if is_http(href) {
+        return true;
+    }
+    let opted_in = template
+        .options
+        .as_ref()
+        .and_then(|o| o.get(ALLOW_LOCAL_HREFS_OPTION))
+        .is_some_and(|v| v.eq_ignore_ascii_case("true"));
+    !is_http(&template.path) || opted_in
+}
+
 /// A COG source config for one STAC asset, styled like the catalog
 /// (`template`: colormap, resampling, zoom range, DEM options).
 fn asset_cog_config(template: &SourceConfig, href: &str) -> SourceConfig {
@@ -531,6 +559,10 @@ fn asset_cog_config(template: &SourceConfig, href: &str) -> SourceConfig {
 /// The static-mode source: the catalog's first asset as a COG. A failure is
 /// logged and leaves the source without tiles.
 async fn first_asset_source(config: &SourceConfig, href: &str) -> Option<Arc<CogSource>> {
+    if !asset_href_allowed(config, href) {
+        tracing::warn!(source = %config.id, "skipping STAC asset with a non-http href from a remote catalog");
+        return None;
+    }
     match CogSource::from_file(&asset_cog_config(config, href)).await {
         Ok(source) => Some(Arc::new(source)),
         Err(e) => {
@@ -552,6 +584,10 @@ async fn render_single_asset(
     x: u32,
     y: u32,
 ) -> Result<Option<TileData>> {
+    if !asset_href_allowed(template, &asset.href) {
+        tracing::warn!(source = %template.id, item = %asset.id, "skipping STAC asset with a non-http href from a remote catalog");
+        return Ok(None);
+    }
     let cfg = asset_cog_config(template, &asset.href);
 
     match CogSource::from_file(&cfg).await {
@@ -1524,11 +1560,63 @@ mod mock_api_tests {
         (base, requests)
     }
 
+    /// The mock items point at a local test COG, so these sources opt in to
+    /// local hrefs; [`config_strict`] leaves the default (http only).
     fn config(api: &str, dynamic: bool) -> SourceConfig {
+        let mut cfg = config_strict(api, dynamic);
+        cfg.options = Some(
+            [(ALLOW_LOCAL_HREFS_OPTION.to_string(), "true".to_string())]
+                .into_iter()
+                .collect(),
+        );
+        cfg
+    }
+
+    fn config_strict(api: &str, dynamic: bool) -> SourceConfig {
         toml::from_str(&format!(
             "id = \"s2\"\ntype = \"stac\"\npath = \"{api}\"\ncollection = \"sentinel\"\nasset_role = \"visual\"\nmax_items = 7\ndynamic = {dynamic}\n"
         ))
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn remote_catalog_cannot_point_gdal_at_local_files() {
+        let (base, _) = mock_api().await;
+        let strict = StacSource::new(&config_strict(&format!("{base}/one"), true))
+            .await
+            .unwrap();
+        assert!(
+            strict.get_tile(10, 163, 395).await.unwrap().is_none(),
+            "a local href from a remote catalog is skipped"
+        );
+        let static_src = StacSource::new(&config_strict(&format!("{base}/two"), false))
+            .await
+            .unwrap();
+        assert!(static_src.get_tile(10, 163, 395).await.unwrap().is_none());
+    }
+
+    #[test]
+    fn asset_href_allowed_by_catalog_origin() {
+        let remote = config_strict("https://stac.example/api", true);
+        assert!(asset_href_allowed(&remote, "https://cdn.example/a.tif"));
+        assert!(asset_href_allowed(&remote, " HTTP://cdn.example/a.tif"));
+        for bad in [
+            "/etc/passwd",
+            "/vsicurl/http://x/a.tif",
+            "file:///a.tif",
+            "s3://b/a.tif",
+        ] {
+            assert!(!asset_href_allowed(&remote, bad), "{bad}");
+        }
+        let local = config_strict("/data/catalog.json", false);
+        assert!(
+            asset_href_allowed(&local, "/data/a.tif"),
+            "local catalog is trusted"
+        );
+        assert!(asset_href_allowed(
+            &config("https://stac.example/api", true),
+            "/data/a.tif"
+        ));
     }
 
     #[tokio::test]
