@@ -347,9 +347,9 @@ impl WorkerMaps {
         options: &RenderOptions,
     ) -> Result<RenderedImage> {
         let ratio_key = scale_key(options.pixel_ratio);
-        let map = match self.static_map.take() {
-            Some((key, map)) if key == ratio_key => map,
-            _ => NativeMap::new(options.size, options.pixel_ratio, MapMode::Static)?,
+        let map = match reuse_if_same(self.static_map.take(), ratio_key) {
+            Some(map) => map,
+            None => NativeMap::new(options.size, options.pixel_ratio, MapMode::Static)?,
         };
         let (_, map) = self.static_map.insert((ratio_key, map));
         map.set_size(options.size);
@@ -363,6 +363,11 @@ impl WorkerMaps {
     }
 }
 
+/// The cached map when it was built for `key`; `None` means build a new one.
+fn reuse_if_same<T>(slot: Option<(u32, T)>, key: u32) -> Option<T> {
+    slot.and_then(|(k, map)| (k == key).then_some(map))
+}
+
 /// Map cache key for a pixel ratio: hundredths, so 1.5 and 1.50 share a map.
 fn scale_key(ratio: f32) -> u32 {
     (ratio * 100.0) as u32
@@ -371,6 +376,13 @@ fn scale_key(ratio: f32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reuse_if_same_keeps_only_a_matching_map() {
+        assert_eq!(reuse_if_same(Some((100, "map")), 100), Some("map"));
+        assert_eq!(reuse_if_same(Some((100, "map")), 200), None);
+        assert_eq!(reuse_if_same::<&str>(None, 100), None);
+    }
 
     #[test]
     fn scale_key_groups_ratios_by_hundredths() {
