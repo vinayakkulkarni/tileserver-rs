@@ -197,6 +197,11 @@ pub(crate) async fn get_tile(
     #[cfg(not(feature = "cel"))]
     let filter_hash = 0;
 
+    // Route-level cache entries depend on every byte-changing request input
+    // (output format, ?expression=, ?resampling=, PostGIS query parameters),
+    // not just the tile address, so they get their own key variant.
+    let variant = request_variant(filter_hash, format, &query);
+
     #[cfg(feature = "cel")]
     let tile = match &request_filter {
         Some(filter) => {
@@ -207,7 +212,7 @@ pub(crate) async fn get_tile(
                     z: params.z,
                     x: params.x,
                     y,
-                    filter: filter_hash,
+                    filter: variant,
                 },
                 tile,
                 filter,
@@ -237,7 +242,7 @@ pub(crate) async fn get_tile(
             z: params.z,
             x: params.x,
             y,
-            filter: filter_hash,
+            filter: variant,
         },
         tile,
         accept_encoding,
@@ -285,6 +290,22 @@ async fn fetch_source_tile(
         sources.get_tile(source, z, x, y).await?
     };
     tile.ok_or(TileServerError::TileNotFound { z, x, y })
+}
+
+/// Cache-key variant for a route-level tile: the CEL filter hash, the
+/// requested output format and the whole query string. Never 0, so these
+/// entries can't overwrite the source-level cache entry for the same tile.
+fn request_variant(
+    filter_hash: u64,
+    format: &str,
+    query: &std::collections::HashMap<String, String>,
+) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut pairs: Vec<(&String, &String)> = query.iter().collect();
+    pairs.sort_unstable();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    ("route-variant", filter_hash, format, pairs).hash(&mut hasher);
+    hasher.finish().max(1)
 }
 
 /// One hash over the source preset and the request filter; 0 when neither.
@@ -705,6 +726,42 @@ fn apply_band_math_if_requested(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn request_variant_separates_byte_changing_inputs() {
+        let q = |pairs: &[(&str, &str)]| -> std::collections::HashMap<String, String> {
+            pairs
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect()
+        };
+        let plain = request_variant(0, "pbf", &q(&[]));
+        assert_ne!(plain, 0);
+        assert_eq!(plain, request_variant(0, "pbf", &q(&[])));
+        assert_ne!(plain, request_variant(0, "mlt", &q(&[])));
+        assert_ne!(plain, request_variant(7, "pbf", &q(&[])));
+        let a = request_variant(
+            0,
+            "png",
+            &q(&[("expression", "b1"), ("resampling", "nearest")]),
+        );
+        assert_eq!(
+            a,
+            request_variant(
+                0,
+                "png",
+                &q(&[("resampling", "nearest"), ("expression", "b1")])
+            )
+        );
+        assert_ne!(
+            a,
+            request_variant(
+                0,
+                "png",
+                &q(&[("expression", "b2"), ("resampling", "nearest")])
+            )
+        );
+    }
 
     fn tp(y_fmt: &str) -> TileParams {
         TileParams {
