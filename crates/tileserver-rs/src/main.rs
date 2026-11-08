@@ -88,6 +88,14 @@ async fn main() -> anyhow::Result<()> {
 /// Load the config, build the app, start the side listeners and serve
 /// until a shutdown signal.
 async fn serve(cli: Cli) -> anyhow::Result<()> {
+    serve_with(cli, shutdown_signal()).await
+}
+
+/// [`serve`] with the shutdown future as a parameter, so a test can stop it.
+async fn serve_with(
+    cli: Cli,
+    shutdown: impl std::future::Future<Output = ()> + Send + 'static,
+) -> anyhow::Result<()> {
     let (config, auto_report) = startup::load_runtime_config(cli.config.clone(), cli.path.clone())?;
     let prometheus_registry = init_tracing(&config, cli.verbose)?;
     serve_until(
@@ -95,7 +103,7 @@ async fn serve(cli: Cli) -> anyhow::Result<()> {
         config,
         auto_report.as_ref(),
         prometheus_registry,
-        shutdown_signal(),
+        shutdown,
     )
     .await?;
     telemetry::shutdown_telemetry();
@@ -543,6 +551,56 @@ mod startup_tests {
             .await
             .unwrap();
         assert!(cache.is_dir(), "prepare_config creates the cache dir");
+    }
+
+    #[tokio::test]
+    async fn serve_with_loads_the_config_and_stops_on_shutdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join("config.toml");
+        std::fs::write(&config_path, "[server]\nhost = \"127.0.0.1\"\nport = 0\n").unwrap();
+        let cache = dir.path().join("cache");
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--cache-dir",
+            cache.to_str().unwrap(),
+            "--no-ui",
+        ]);
+        let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
+        serve_with(cli, shutdown).await.unwrap();
+        assert!(
+            cache.is_dir(),
+            "the server ran far enough to prepare the cache dir"
+        );
+    }
+
+    #[tokio::test]
+    async fn serve_until_starts_admin_and_prometheus_listeners() {
+        let dir = tempfile::tempdir().unwrap();
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--cache-dir",
+            dir.path().to_str().unwrap(),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "0",
+            "--no-ui",
+        ]);
+        let mut config = config::Config::default();
+        config.server.admin_bind = "127.0.0.1:0".to_string();
+        config.telemetry.prometheus_bind = Some("127.0.0.1:0".to_string());
+        let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
+        serve_until(
+            &cli,
+            config,
+            None,
+            Some(prometheus::Registry::new()),
+            shutdown,
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
