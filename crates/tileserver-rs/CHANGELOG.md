@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.41.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.2...v2.41.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* security audit fixes (10 confirmed findings, 6 hardening leads) ([#1657](https://github.com/vinayakkulkarni/tileserver-rs/issues/1657)) ([0afbc6d](https://github.com/vinayakkulkarni/tileserver-rs/commit/0afbc6d11db76bee6fa1c3d4b1e37fbce7ba7bbe))
+
+
+### Code Refactoring
+
+* bring the last two CRAP offenders under the threshold ([#1654](https://github.com/vinayakkulkarni/tileserver-rs/issues/1654)) ([d662ebd](https://github.com/vinayakkulkarni/tileserver-rs/commit/d662ebd446b251783b4c9530021c86f63b662cb1))
+
 ## [2.41.2](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.1...v2.41.2) (2026-11-08)
 
 
