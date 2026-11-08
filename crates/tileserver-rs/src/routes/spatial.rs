@@ -219,15 +219,8 @@ pub(crate) async fn post_spatial_query(
 
     // Decompress if needed
     let raw_data = match tile_data.compression {
-        sources::TileCompression::Gzip => {
-            use std::io::Read;
-            let mut decoder = flate2::read::GzDecoder::new(&tile_data.data[..]);
-            let mut decompressed = Vec::with_capacity(tile_data.data.len() * 4);
-            decoder
-                .read_to_end(&mut decompressed)
-                .map_err(|e| TileServerError::MetadataError(format!("gzip decode failed: {e}")))?;
-            decompressed
-        }
+        sources::TileCompression::Gzip => crate::compression::decode_gzip(&tile_data.data)
+            .map_err(|e| TileServerError::MetadataError(format!("gzip decode failed: {e}")))?,
         _ => tile_data.data.to_vec(),
     };
 

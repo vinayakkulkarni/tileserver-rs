@@ -139,32 +139,68 @@ pub fn negotiate(
     }
 }
 
-/// Decompress `data` from `from` to raw identity bytes.
+/// Largest decompressed tile body accepted, 64 MiB.
+///
+/// Real vector and raster tiles decompress to a few MiB at most. The cap
+/// stops a crafted tile (a "decompression bomb" in an uploaded MBTiles,
+/// for example) from inflating into gigabytes of memory.
+pub const MAX_DECODED_TILE_BYTES: u64 = 64 * 1024 * 1024;
+
+/// Read `reader` to the end, failing once the output passes `max` bytes.
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] naming `what` when the stream is
+/// invalid or inflates past `max`.
+fn read_bounded(reader: impl Read, max: u64, what: &str) -> Result<Vec<u8>> {
+    let mut out = Vec::new();
+    reader
+        .take(max + 1)
+        .read_to_end(&mut out)
+        .map_err(|e| TileServerError::CompressionError(format!("{what} decode: {e}")))?;
+    if out.len() as u64 > max {
+        return Err(TileServerError::CompressionError(format!(
+            "{what} decode: output exceeds {max} bytes"
+        )));
+    }
+    Ok(out)
+}
+
+/// Decompress gzip `data`, capped at [`MAX_DECODED_TILE_BYTES`].
+///
+/// # Errors
+///
+/// [`TileServerError::CompressionError`] when `data` is not valid gzip or
+/// inflates past the cap.
+pub fn decode_gzip(data: &[u8]) -> Result<Vec<u8>> {
+    read_bounded(
+        flate2::read::GzDecoder::new(data),
+        MAX_DECODED_TILE_BYTES,
+        "gzip",
+    )
+}
+
+/// Decompress `data` from `from` to raw identity bytes, capped at
+/// [`MAX_DECODED_TILE_BYTES`].
 ///
 /// Uncompressed input is borrowed, not copied.
 ///
 /// # Errors
 ///
-/// [`TileServerError::CompressionError`] when `data` is not valid for `from`.
+/// [`TileServerError::CompressionError`] when `data` is not valid for `from`
+/// or inflates past the cap.
 pub fn decode(data: &[u8], from: TileCompression) -> Result<Cow<'_, [u8]>> {
+    let max = MAX_DECODED_TILE_BYTES;
     match from {
         TileCompression::None => Ok(Cow::Borrowed(data)),
-        TileCompression::Gzip => {
-            let mut out = Vec::new();
-            flate2::read::GzDecoder::new(data)
-                .read_to_end(&mut out)
-                .map_err(|e| TileServerError::CompressionError(format!("gzip decode: {e}")))?;
-            Ok(Cow::Owned(out))
+        TileCompression::Gzip => decode_gzip(data).map(Cow::Owned),
+        TileCompression::Zstd => {
+            let decoder = zstd::stream::read::Decoder::new(data)
+                .map_err(|e| TileServerError::CompressionError(format!("zstd decode: {e}")))?;
+            read_bounded(decoder, max, "zstd").map(Cow::Owned)
         }
-        TileCompression::Zstd => zstd::decode_all(data)
-            .map(Cow::Owned)
-            .map_err(|e| TileServerError::CompressionError(format!("zstd decode: {e}"))),
         TileCompression::Brotli => {
-            let mut out = Vec::new();
-            brotli::Decompressor::new(data, 4096)
-                .read_to_end(&mut out)
-                .map_err(|e| TileServerError::CompressionError(format!("brotli decode: {e}")))?;
-            Ok(Cow::Owned(out))
+            read_bounded(brotli::Decompressor::new(data, 4096), max, "brotli").map(Cow::Owned)
         }
     }
 }
@@ -242,6 +278,39 @@ pub fn recode(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One MiB of zeros past the cap, compressed with `to`.
+    fn bomb(to: TileCompression) -> Vec<u8> {
+        let raw = vec![0u8; usize::try_from(MAX_DECODED_TILE_BYTES).unwrap() + 1024 * 1024];
+        encode(&raw, to, &CompressionConfig::default()).unwrap()
+    }
+
+    #[test]
+    fn decode_rejects_output_past_the_cap_for_every_codec() {
+        for codec in [
+            TileCompression::Gzip,
+            TileCompression::Zstd,
+            TileCompression::Brotli,
+        ] {
+            let packed = bomb(codec);
+            assert!(
+                packed.len() < 1024 * 1024,
+                "{codec:?} bomb stays small on disk"
+            );
+            let err = decode(&packed, codec).unwrap_err().to_string();
+            assert!(err.contains("exceeds"), "{codec:?}: {err}");
+        }
+    }
+
+    #[test]
+    fn decode_accepts_output_exactly_at_the_cap() {
+        let raw = vec![7u8; usize::try_from(MAX_DECODED_TILE_BYTES).unwrap()];
+        let packed = encode(&raw, TileCompression::Zstd, &CompressionConfig::default()).unwrap();
+        assert_eq!(
+            decode(&packed, TileCompression::Zstd).unwrap().len(),
+            raw.len()
+        );
+    }
 
     #[test]
     fn best_target_picks_brotli_from_full_set() {

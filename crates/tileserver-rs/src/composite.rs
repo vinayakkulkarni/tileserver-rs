@@ -66,15 +66,8 @@ where
 ///
 /// [`TileServerError::MltDecodeError`] when `data` is not valid gzip.
 pub fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>> {
-    use flate2::read::GzDecoder;
-    use std::io::Read;
-
-    let mut decoder = GzDecoder::new(data);
-    let mut out = Vec::with_capacity(data.len() * 4);
-    decoder
-        .read_to_end(&mut out)
-        .map_err(|e| TileServerError::MltDecodeError(format!("composite gzip decode: {e}")))?;
-    Ok(out)
+    crate::compression::decode_gzip(data)
+        .map_err(|e| TileServerError::MltDecodeError(format!("composite gzip decode: {e}")))
 }
 
 /// Decode an MVT PBF into its layers.

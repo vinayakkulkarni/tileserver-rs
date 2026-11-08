@@ -551,11 +551,9 @@ async fn get_tile_as_geojson(
     x: u32,
     y: u32,
 ) -> Result<Response, TileServerError> {
-    use flate2::read::GzDecoder;
     use geozero::ProcessToJson;
     use geozero::mvt::{Message, Tile};
     use sources::TileCompression;
-    use std::io::Read;
 
     let source = state
         .sources
@@ -577,14 +575,8 @@ async fn get_tile_as_geojson(
 
     // Decompress if needed
     let raw_data = match tile.compression {
-        TileCompression::Gzip => {
-            let mut decoder = GzDecoder::new(&tile.data[..]);
-            let mut decompressed = Vec::with_capacity(tile.data.len() * 4);
-            decoder.read_to_end(&mut decompressed).map_err(|e| {
-                TileServerError::RenderError(format!("failed to decompress tile: {}", e))
-            })?;
-            decompressed
-        }
+        TileCompression::Gzip => crate::compression::decode_gzip(&tile.data)
+            .map_err(|e| TileServerError::RenderError(format!("failed to decompress tile: {e}")))?,
         TileCompression::None => tile.data.to_vec(),
         _ => {
             return Err(TileServerError::RenderError(format!(

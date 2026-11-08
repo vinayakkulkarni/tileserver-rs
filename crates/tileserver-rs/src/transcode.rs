@@ -9,8 +9,6 @@
 //! Gated behind the `mlt` cargo feature.
 
 use bytes::Bytes;
-use flate2::read::GzDecoder;
-use std::io::Read;
 
 use crate::error::{Result, TileServerError};
 use crate::sources::{TileCompression, TileData, TileFormat};
@@ -184,14 +182,9 @@ pub fn transcode_tile(tile: &TileData, target_format: TileFormat) -> Result<Tile
 fn decompress_tile_data(tile: &TileData) -> Result<Vec<u8>> {
     match tile.compression {
         TileCompression::None => Ok(tile.data.to_vec()),
-        TileCompression::Gzip => {
-            let mut decoder = GzDecoder::new(tile.data.as_ref());
-            let mut decompressed = Vec::with_capacity(tile.data.len() * 4);
-            decoder.read_to_end(&mut decompressed).map_err(|e| {
-                TileServerError::MltDecodeError(format!("gzip decompression failed: {e}"))
-            })?;
-            Ok(decompressed)
-        }
+        TileCompression::Gzip => crate::compression::decode_gzip(&tile.data).map_err(|e| {
+            TileServerError::MltDecodeError(format!("gzip decompression failed: {e}"))
+        }),
         _ => Err(TileServerError::MltDecodeError(format!(
             "{:?} decompression not supported for transcoding",
             tile.compression
