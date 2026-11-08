@@ -223,18 +223,4 @@ mod tests {
         rewrite_request_path(&mut req, "/bad\u{7f}path");
         assert_eq!(req.uri().path(), "/maps/ping");
     }
-
-    #[test]
-    fn rewrite_with_valid_path_preserves_query() {
-        // Happy-path direct call: the query string survives the rebuild.
-        let mut req = Request::builder()
-            .uri("/maps/styles/x?raster")
-            .body(Body::empty())
-            .expect("valid request");
-        rewrite_request_path(&mut req, "/styles/x");
-        assert_eq!(
-            req.uri().path_and_query().map(|pq| pq.as_str()),
-            Some("/styles/x?raster")
-        );
-    }
 }

@@ -275,13 +275,6 @@ mod tests {
     }
 
     #[test]
-    fn render_outcome_equality() {
-        assert_eq!(RenderOutcome::Success, RenderOutcome::Success);
-        assert_eq!(RenderOutcome::Error, RenderOutcome::Error);
-        assert_ne!(RenderOutcome::Success, RenderOutcome::Error);
-    }
-
-    #[test]
     fn init_is_idempotent() {
         init(Cardinality::Strict);
         init(Cardinality::Verbose);

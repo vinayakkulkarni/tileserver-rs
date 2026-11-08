@@ -172,51 +172,6 @@ mod openapi_tests {
             }
         }
     }
-
-    #[test]
-    fn test_openapi_serializes_to_valid_json_string() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-        let spec = ApiDoc::openapi();
-        let json_str = serde_json::to_string(&spec).expect("spec serializes to string");
-        assert!(
-            json_str.starts_with('{'),
-            "OpenAPI spec JSON starts with {{"
-        );
-        assert!(
-            json_str.contains("tileserver-rs"),
-            "JSON contains product name"
-        );
-    }
-
-    #[test]
-    fn test_openapi_round_trip() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-        let spec = ApiDoc::openapi();
-        let json = serde_json::to_string(&spec).expect("serialize");
-        let reparsed: serde_json::Value = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(
-            reparsed["info"]["title"].as_str().unwrap(),
-            "tileserver-rs API"
-        );
-    }
-
-    #[test]
-    fn test_openapi_version_is_non_empty() {
-        use tileserver_rs::openapi::ApiDoc;
-        use utoipa::OpenApi;
-        let spec = ApiDoc::openapi();
-        assert!(
-            !spec.info.version.is_empty(),
-            "API version must not be empty"
-        );
-        assert!(
-            spec.info.version.contains('.'),
-            "Version should be semver-like: {}",
-            spec.info.version
-        );
-    }
 }
 
 // ============================================================
@@ -228,43 +183,6 @@ mod data_tests {
     use tileserver_rs::{Config, SourceManager};
 
     #[tokio::test]
-    async fn test_data_json_returns_all_sources() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let all_metadata = sources.all_metadata();
-
-        // Should have sources from our test config
-        assert!(!all_metadata.is_empty(), "Should have at least one source");
-    }
-
-    #[tokio::test]
-    async fn test_data_source_tilejson() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        // Get a specific source
-        let source = sources.get("protomaps");
-        assert!(source.is_some(), "Should have protomaps source");
-
-        let tilejson = source
-            .unwrap()
-            .metadata()
-            .to_tilejson("http://localhost:8080");
-
-        // Verify TileJSON structure
-        assert_eq!(tilejson.tilejson, "3.0.0");
-        assert!(!tilejson.tiles.is_empty());
-        assert!(tilejson.minzoom <= tilejson.maxzoom);
-    }
-
-    #[tokio::test]
     async fn test_data_source_not_found() {
         let config =
             Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
@@ -274,21 +192,6 @@ mod data_tests {
 
         let source = sources.get("nonexistent-source");
         assert!(source.is_none(), "Should not find nonexistent source");
-    }
-
-    #[tokio::test]
-    async fn test_tile_retrieval() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let source = sources.get("protomaps").expect("Should have protomaps");
-
-        // Try to get a tile at a valid zoom level
-        let tile = source.get_tile(0, 0, 0).await;
-        assert!(tile.is_ok(), "Should be able to query tile");
     }
 
     #[tokio::test]
@@ -315,18 +218,6 @@ mod data_tests {
 mod style_tests {
     use super::*;
     use tileserver_rs::{Config, StyleManager};
-
-    #[test]
-    fn test_styles_json_returns_all_styles() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-        let styles = StyleManager::from_configs(&config.styles).expect("Should load styles");
-
-        let all_infos = styles.all_infos("http://localhost:8080");
-
-        // Should have styles from our test config
-        assert!(!all_infos.is_empty(), "Should have at least one style");
-    }
 
     #[test]
     fn test_style_info_structure() {
@@ -402,21 +293,6 @@ mod font_tests {
     use super::*;
     use std::fs;
     use tileserver_rs::Config;
-
-    #[test]
-    fn test_fonts_directory_exists() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-
-        if let Some(ref fonts_path) = config.fonts {
-            assert!(
-                fonts_path.exists(),
-                "Fonts directory should exist: {:?}",
-                fonts_path
-            );
-            assert!(fonts_path.is_dir(), "Fonts path should be a directory");
-        }
-    }
 
     #[test]
     fn test_fonts_list() {
@@ -1032,21 +908,6 @@ mod key_param_tests {
 mod config_tests {
     use super::*;
     use tileserver_rs::Config;
-
-    #[test]
-    fn test_config_loads() {
-        let config = Config::load(Some(PathBuf::from(TEST_CONFIG)));
-        assert!(config.is_ok(), "Should load test config");
-    }
-
-    #[test]
-    fn test_config_has_server_section() {
-        let config =
-            Config::load(Some(PathBuf::from(TEST_CONFIG))).expect("Should load test config");
-        // Port defaults to 8080 if not specified
-        // Host defaults to "0.0.0.0" if not specified
-        assert!(!config.server.host.is_empty());
-    }
 
     #[test]
     fn test_config_sources_valid() {

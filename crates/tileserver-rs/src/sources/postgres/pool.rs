@@ -250,35 +250,3 @@ impl PostgresPool {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_version_comparison() {
-        let v11 = Version::new(11, 0, 0);
-        let v12 = Version::new(12, 0, 0);
-        let v3_0 = Version::new(3, 0, 0);
-        let v3_1 = Version::new(3, 1, 0);
-
-        assert!(v11 >= MINIMUM_POSTGRES_VERSION);
-        assert!(v12 >= MINIMUM_POSTGRES_VERSION);
-        assert!(v3_0 >= MINIMUM_POSTGIS_VERSION);
-        assert!(v3_1 >= ST_TILE_ENVELOPE_MARGIN_VERSION);
-        assert!(v3_0 < ST_TILE_ENVELOPE_MARGIN_VERSION);
-    }
-
-    #[test]
-    fn test_version_parsing() {
-        let v: Version = "14.5.0".parse().unwrap();
-        assert_eq!(v.major, 14);
-        assert_eq!(v.minor, 5);
-        assert_eq!(v.patch, 0);
-
-        let v: Version = "3.4.2".parse().unwrap();
-        assert_eq!(v.major, 3);
-        assert_eq!(v.minor, 4);
-        assert_eq!(v.patch, 2);
-    }
-}

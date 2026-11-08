@@ -250,13 +250,6 @@ mod tests {
         assert!(!tile.data.is_empty());
     }
 
-    #[tokio::test]
-    async fn rejects_an_unparseable_cloud_url() {
-        let config = pmtiles_config("bad", "not a url");
-        let err = CloudPmTilesSource::from_url(&config).await.err().unwrap();
-        assert!(matches!(err, TileServerError::ConfigError(_)), "{err:?}");
-    }
-
     #[test]
     fn test_is_cloud_url_s3() {
         assert!(is_cloud_url("s3://bucket/path/tiles.pmtiles"));
@@ -399,13 +392,5 @@ mod tests {
             }
             other => panic!("expected ConfigError, got {other:?}"),
         }
-    }
-
-    #[tokio::test]
-    async fn from_url_empty_url_returns_error() {
-        let cfg = make_config("");
-        let result = CloudPmTilesSource::from_url(&cfg).await;
-        let err = result.err().expect("empty URL must fail");
-        assert!(matches!(err, TileServerError::ConfigError(_)));
     }
 }

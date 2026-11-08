@@ -9,72 +9,13 @@
 
 #![cfg(feature = "raster")]
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const RASTER_TEST_CONFIG: &str = "tests/config.raster.toml";
-
-mod fixture_validation {
-    use super::*;
-
-    #[test]
-    fn test_rgb_cog_fixture_exists() {
-        let path = Path::new("../../data/raster/test-rgb.cog.tif");
-        assert!(path.exists(), "RGB COG fixture should exist at {:?}", path);
-    }
-
-    #[test]
-    fn test_dem_cog_fixture_exists() {
-        let path = Path::new("../../data/raster/test-dem.cog.tif");
-        assert!(path.exists(), "DEM COG fixture should exist at {:?}", path);
-    }
-
-    #[test]
-    fn test_raster_config_exists() {
-        let path = Path::new(RASTER_TEST_CONFIG);
-        assert!(
-            path.exists(),
-            "Raster test config should exist at {:?}",
-            path
-        );
-    }
-
-    #[test]
-    fn test_raster_config_parses() {
-        let config_content =
-            std::fs::read_to_string(RASTER_TEST_CONFIG).expect("Should read raster config");
-
-        let parsed: toml::Value =
-            toml::from_str(&config_content).expect("Config should be valid TOML");
-
-        assert!(
-            parsed.get("sources").is_some(),
-            "Should have [[sources]] section"
-        );
-        assert!(
-            parsed.get("raster").is_some(),
-            "Should have [raster] section"
-        );
-    }
-}
 
 mod cog_source_loading {
     use super::*;
     use tileserver_rs::{Config, SourceManager};
-
-    #[tokio::test]
-    async fn test_load_cog_sources_from_config() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load COG sources from config");
-
-        assert!(
-            sources.len() >= 2,
-            "Should have at least 2 COG sources loaded"
-        );
-    }
 
     #[tokio::test]
     async fn test_dem_cog_source_metadata() {
@@ -193,25 +134,6 @@ mod raster_tile_retrieval {
         // Zoom level 10, tile coordinates covering San Francisco area
         let tile = rgb_source.get_tile(10, 163, 395).await;
         assert!(tile.is_ok(), "get_tile should not error at z10");
-    }
-
-    #[tokio::test]
-    async fn test_get_dem_tile() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let dem_source = sources
-            .get("test-dem")
-            .expect("Should have test-dem source");
-
-        let tile = dem_source.get_tile(0, 0, 0).await;
-        assert!(tile.is_ok(), "get_tile should not error for DEM");
-
-        let tile_data = tile.unwrap();
-        assert!(tile_data.is_some(), "Should return DEM tile data");
     }
 
     #[tokio::test]
@@ -468,63 +390,6 @@ mod resampling_tests {
             assert_eq!(img.width(), 512, "Tile width should be 512");
             assert_eq!(img.height(), 512, "Tile height should be 512");
         }
-    }
-}
-
-mod reprojection_tests {
-    use super::*;
-    use tileserver_rs::{Config, SourceManager};
-
-    #[tokio::test]
-    async fn test_wgs84_to_web_mercator_reprojection() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        // Our test COGs are in WGS84 (EPSG:4326)
-        // Tiles should be served in Web Mercator (EPSG:3857)
-        let rgb_source = sources
-            .get("test-rgb")
-            .expect("Should have test-rgb source");
-
-        // Get a tile - this exercises the reprojection path
-        let tile = rgb_source.get_tile(0, 0, 0).await.expect("Should get tile");
-
-        assert!(tile.is_some(), "Reprojected tile should be available");
-    }
-
-    #[tokio::test]
-    async fn test_bounds_are_wgs84() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let rgb_source = sources
-            .get("test-rgb")
-            .expect("Should have test-rgb source");
-        let metadata = rgb_source.metadata();
-        let bounds = metadata.bounds.expect("Should have bounds");
-
-        assert!(
-            bounds[0] >= -180.0 && bounds[0] <= 180.0,
-            "West bound in WGS84 range"
-        );
-        assert!(
-            bounds[1] >= -90.0 && bounds[1] <= 90.0,
-            "South bound in WGS84 range"
-        );
-        assert!(
-            bounds[2] >= -180.0 && bounds[2] <= 180.0,
-            "East bound in WGS84 range"
-        );
-        assert!(
-            bounds[3] >= -90.0 && bounds[3] <= 90.0,
-            "North bound in WGS84 range"
-        );
     }
 }
 

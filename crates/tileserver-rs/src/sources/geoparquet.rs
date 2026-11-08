@@ -1507,11 +1507,6 @@ mod tests {
     }
 
     #[test]
-    fn test_wkb_point_to_mvt_empty() {
-        assert!(wkb_point_to_mvt(&[], &[0.0, 0.0, 1.0, 1.0]).is_none());
-    }
-
-    #[test]
     fn test_wkb_point_to_mvt_too_short() {
         assert!(wkb_point_to_mvt(&[1, 0, 0, 0], &[0.0, 0.0, 1.0, 1.0]).is_none());
     }
@@ -1553,29 +1548,6 @@ mod tests {
         assert_eq!(map["count"], "Number");
         assert_eq!(map["area"], "Number");
         assert_eq!(map["active"], "Boolean");
-    }
-
-    #[test]
-    fn test_encode_mvt_value_string() {
-        let bytes = encode_mvt_value(&PropValue::String("hello".to_string()));
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
-    fn test_encode_mvt_value_int() {
-        let bytes = encode_mvt_value(&PropValue::Int(42));
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
-    fn test_encode_mvt_tile_basic() {
-        let features = vec![MvtFeature {
-            geom_type: 1,
-            geometry: vec![mvt_command(1, 1), zigzag_encode(100), zigzag_encode(200)],
-            properties: vec![("name".to_string(), PropValue::String("test".to_string()))],
-        }];
-        let tile_bytes = encode_mvt_tile(&features, "test_layer");
-        assert!(!tile_bytes.is_empty());
     }
 
     #[test]

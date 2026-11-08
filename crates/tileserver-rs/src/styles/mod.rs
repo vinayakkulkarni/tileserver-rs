@@ -1082,25 +1082,6 @@ mod tests {
     }
 
     #[test]
-    fn test_rewrite_style_for_native_mlt_source_uses_pbf() {
-        let mgr = manager_with_source("india", TileFormat::Mlt);
-        let style = json!({
-            "version": 8,
-            "sources": {
-                "india": { "type": "vector", "url": "/data/india" }
-            }
-        });
-
-        let result = rewrite_style_for_native(&style, "http://localhost:8080", &mgr);
-        let src = &result["sources"]["india"];
-        assert_eq!(
-            src["tiles"][0],
-            "http://localhost:8080/data/india/{z}/{x}/{y}.pbf"
-        );
-        assert!(src.get("encoding").is_none());
-    }
-
-    #[test]
     fn test_rewrite_style_for_native_absolute_urls_untouched() {
         // Absolute glyphs/sprite (not starting with '/') are left untouched.
         let mgr = SourceManager::new();

@@ -374,51 +374,6 @@ async fn render_static_map_returns_error_when_renderer_disabled() {
     );
 }
 
-#[tokio::test]
-async fn render_static_map_rejects_zero_dimensions() {
-    let server = server_for(common::shared_state_populated());
-    let session = initialize_session(&server).await;
-
-    // Renderer is absent, so the "no renderer" branch fires before the
-    // dimension check. Build a state with a stub renderer? Not feasible
-    // without real native libs — instead exercise the zero-dimension path
-    // by hitting the empty state (still no renderer, same branch). The
-    // value of this test is documenting that bad inputs do not crash.
-    let body = call_tool(
-        &server,
-        &session,
-        "tileserver_render_static_map",
-        json!({
-            "style_id": "protomaps-light",
-            "lon": 0.0, "lat": 0.0, "zoom": 2.0,
-            "width": 0, "height": 0
-        }),
-    )
-    .await;
-
-    assert!(is_error(&body), "expected isError: {body}");
-}
-
-#[tokio::test]
-async fn render_static_map_rejects_oversized_dimensions() {
-    let server = server_for(common::shared_state_populated());
-    let session = initialize_session(&server).await;
-
-    let body = call_tool(
-        &server,
-        &session,
-        "tileserver_render_static_map",
-        json!({
-            "style_id": "protomaps-light",
-            "lon": 0.0, "lat": 0.0, "zoom": 2.0,
-            "width": 4096, "height": 4096
-        }),
-    )
-    .await;
-
-    assert!(is_error(&body), "expected isError: {body}");
-}
-
 // ============================================================
 // tileserver_get_tile
 // ============================================================

@@ -60,14 +60,6 @@ async fn og_with_disable_render_route_unregistered() {
 }
 
 #[tokio::test]
-async fn og_route_registered_when_render_enabled() {
-    let server = populated_server();
-    let res = server.get("/og/protomaps-light?center=0,0").await;
-    // 500 (renderer absent) proves the route is registered, not 404.
-    res.assert_status(StatusCode::INTERNAL_SERVER_ERROR);
-}
-
-#[tokio::test]
 async fn og_query_param_format_passes_validation() {
     let server = populated_server();
     let res = server

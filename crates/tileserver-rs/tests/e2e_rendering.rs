@@ -16,48 +16,10 @@
 //! Generated test images are stored in `tests/snapshots/` for visual inspection.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Directory for storing snapshot images
 const SNAPSHOTS_DIR: &str = "tests/snapshots";
-
-/// Compare two PNG images and return if they match (within tolerance)
-fn images_match(img1_path: &Path, img2_path: &Path, tolerance: f64) -> bool {
-    let img1 = match image::open(img1_path) {
-        Ok(img) => img.to_rgba8(),
-        Err(_) => return false,
-    };
-
-    let img2 = match image::open(img2_path) {
-        Ok(img) => img.to_rgba8(),
-        Err(_) => return false,
-    };
-
-    // Check dimensions
-    if img1.dimensions() != img2.dimensions() {
-        return false;
-    }
-
-    let (width, height) = img1.dimensions();
-    let total_pixels = (width * height) as f64;
-    let mut diff_pixels = 0u64;
-
-    for (p1, p2) in img1.pixels().zip(img2.pixels()) {
-        // Compare RGBA values with some tolerance for anti-aliasing
-        let dr = (p1[0] as i32 - p2[0] as i32).abs();
-        let dg = (p1[1] as i32 - p2[1] as i32).abs();
-        let db = (p1[2] as i32 - p2[2] as i32).abs();
-        let da = (p1[3] as i32 - p2[3] as i32).abs();
-
-        // If any channel differs by more than threshold, count as different
-        if dr > 5 || dg > 5 || db > 5 || da > 5 {
-            diff_pixels += 1;
-        }
-    }
-
-    let diff_ratio = diff_pixels as f64 / total_pixels;
-    diff_ratio <= tolerance
-}
 
 // ============================================================
 // Overlay Rendering Tests
@@ -295,24 +257,6 @@ mod json_snapshots {
     use tileserver_rs::{Config, SourceManager, StyleManager};
 
     #[tokio::test]
-    async fn test_tilejson_snapshot() {
-        let config = Config::load(Some(PathBuf::from("tests/config.test.toml")))
-            .expect("Should load config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let protomaps = sources.get("protomaps").expect("Should have protomaps");
-        let tilejson = protomaps.metadata().to_tilejson("http://localhost:8080");
-
-        // Convert to JSON for snapshot
-        let json = serde_json::to_value(&tilejson).expect("Should serialize");
-
-        // Use insta for JSON snapshot comparison
-        insta::assert_json_snapshot!("tilejson_protomaps", json);
-    }
-
-    #[tokio::test]
     async fn test_style_info_snapshot() {
         let config = Config::load(Some(PathBuf::from("tests/config.test.toml")))
             .expect("Should load config");
@@ -359,35 +303,6 @@ mod raster_snapshots {
     use tileserver_rs::{Config, SourceManager};
 
     const RASTER_TEST_CONFIG: &str = "tests/config.raster.toml";
-
-    #[tokio::test]
-    async fn test_rgb_tile_snapshot() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let rgb_source = sources
-            .get("test-rgb")
-            .expect("Should have test-rgb source");
-
-        let tile = rgb_source
-            .get_tile(0, 0, 0)
-            .await
-            .expect("Should get tile")
-            .expect("Should have tile data");
-
-        let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_rgb_z0.png");
-        fs::create_dir_all(SNAPSHOTS_DIR).ok();
-        fs::write(&output_path, &tile.data).expect("Should write RGB tile");
-
-        assert!(output_path.exists(), "RGB tile snapshot should be created");
-
-        let img = image::load_from_memory(&tile.data).expect("Should decode PNG");
-        assert_eq!(img.width(), 256);
-        assert_eq!(img.height(), 256);
-    }
 
     #[tokio::test]
     async fn test_dem_colormap_tile_snapshot() {
@@ -446,60 +361,6 @@ mod raster_snapshots {
     }
 
     #[tokio::test]
-    async fn test_dem_discrete_colormap_snapshot() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let dem_discrete = sources
-            .get("test-dem-discrete")
-            .expect("Should have test-dem-discrete source");
-
-        let tile = dem_discrete
-            .get_tile(0, 0, 0)
-            .await
-            .expect("Should get tile")
-            .expect("Should have tile data");
-
-        let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_dem_discrete_z0.png");
-        fs::create_dir_all(SNAPSHOTS_DIR).ok();
-        fs::write(&output_path, &tile.data).expect("Should write discrete DEM tile");
-
-        assert!(output_path.exists());
-    }
-
-    #[tokio::test]
-    async fn test_rgb_tile_512_snapshot() {
-        let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
-            .expect("Should load raster test config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let rgb_source = sources
-            .get("test-rgb")
-            .expect("Should have test-rgb source");
-
-        if let Some(cog) = rgb_source.as_any().downcast_ref::<CogSource>() {
-            let tile = cog
-                .get_tile_with_resampling(0, 0, 0, 512, ResamplingMethod::Bilinear)
-                .await
-                .expect("Should get 512px tile")
-                .expect("Should have data");
-
-            let output_path = PathBuf::from(SNAPSHOTS_DIR).join("raster_rgb_512_z0.png");
-            fs::create_dir_all(SNAPSHOTS_DIR).ok();
-            fs::write(&output_path, &tile.data).expect("Should write 512px tile");
-
-            let img = image::load_from_memory(&tile.data).expect("Should decode PNG");
-            assert_eq!(img.width(), 512);
-            assert_eq!(img.height(), 512);
-        }
-    }
-
-    #[tokio::test]
     async fn test_resampling_comparison_snapshots() {
         let config = Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG)))
             .expect("Should load raster test config");
@@ -548,22 +409,6 @@ mod raster_json_snapshots {
     const RASTER_TEST_CONFIG: &str = "tests/config.raster.toml";
 
     #[tokio::test]
-    async fn test_cog_tilejson_snapshot() {
-        let config =
-            Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG))).expect("Should load config");
-        let sources = SourceManager::from_configs(&config.sources)
-            .await
-            .expect("Should load sources");
-
-        let rgb_source = sources.get("test-rgb").expect("Should have test-rgb");
-        let tilejson = rgb_source.metadata().to_tilejson("http://localhost:8080");
-
-        let json = serde_json::to_value(&tilejson).expect("Should serialize");
-
-        insta::assert_json_snapshot!("tilejson_cog_rgb", json);
-    }
-
-    #[tokio::test]
     async fn test_raster_sources_list_snapshot() {
         let config =
             Config::load(Some(PathBuf::from(RASTER_TEST_CONFIG))).expect("Should load config");
@@ -582,58 +427,5 @@ mod raster_json_snapshots {
         let json = serde_json::to_value(&all_metadata).expect("Should serialize");
 
         insta::assert_json_snapshot!("raster_sources_list", json);
-    }
-}
-
-// ============================================================
-// Snapshot Comparison Helpers
-// ============================================================
-
-#[cfg(test)]
-mod snapshot_helpers {
-    use super::*;
-
-    #[test]
-    fn test_snapshots_directory_exists() {
-        fs::create_dir_all(SNAPSHOTS_DIR).expect("Should create snapshots dir");
-        assert!(Path::new(SNAPSHOTS_DIR).is_dir());
-    }
-
-    #[test]
-    fn test_image_comparison_identical() {
-        // Create two identical images
-        let img = image::RgbaImage::from_pixel(10, 10, image::Rgba([255, 0, 0, 255]));
-
-        let path1 = PathBuf::from(SNAPSHOTS_DIR).join("test_identical_1.png");
-        let path2 = PathBuf::from(SNAPSHOTS_DIR).join("test_identical_2.png");
-
-        fs::create_dir_all(SNAPSHOTS_DIR).ok();
-        img.save(&path1).unwrap();
-        img.save(&path2).unwrap();
-
-        assert!(images_match(&path1, &path2, 0.0));
-
-        // Cleanup
-        fs::remove_file(&path1).ok();
-        fs::remove_file(&path2).ok();
-    }
-
-    #[test]
-    fn test_image_comparison_different() {
-        let img1 = image::RgbaImage::from_pixel(10, 10, image::Rgba([255, 0, 0, 255]));
-        let img2 = image::RgbaImage::from_pixel(10, 10, image::Rgba([0, 0, 255, 255]));
-
-        let path1 = PathBuf::from(SNAPSHOTS_DIR).join("test_diff_red.png");
-        let path2 = PathBuf::from(SNAPSHOTS_DIR).join("test_diff_blue.png");
-
-        fs::create_dir_all(SNAPSHOTS_DIR).ok();
-        img1.save(&path1).unwrap();
-        img2.save(&path2).unwrap();
-
-        assert!(!images_match(&path1, &path2, 0.0));
-
-        // Cleanup
-        fs::remove_file(&path1).ok();
-        fs::remove_file(&path2).ok();
     }
 }

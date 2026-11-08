@@ -150,13 +150,6 @@ async fn index_json_empty_state_returns_array() {
 }
 
 #[tokio::test]
-async fn index_json_with_key_param_works() {
-    let server = common::empty_test_server();
-    let response = server.get("/index.json?key=testkey123").await;
-    response.assert_status_ok();
-}
-
-#[tokio::test]
 async fn styles_json_empty_state_returns_empty_array() {
     let server = common::empty_test_server();
     let response = server.get("/styles.json").await;

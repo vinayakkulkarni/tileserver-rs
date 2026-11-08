@@ -88,53 +88,49 @@ async fn main() -> anyhow::Result<()> {
 /// Load the config, build the app, start the side listeners and serve
 /// until a shutdown signal.
 async fn serve(cli: Cli) -> anyhow::Result<()> {
-    let ui_enabled = cli.ui_enabled();
-    let (mut config, auto_report) =
-        startup::load_runtime_config(cli.config.clone(), cli.path.clone())?;
+    serve_with(cli, shutdown_signal()).await
+}
 
+/// [`serve`] with the shutdown future as a parameter, so a test can stop it.
+async fn serve_with(
+    cli: Cli,
+    shutdown: impl std::future::Future<Output = ()> + Send + 'static,
+) -> anyhow::Result<()> {
+    let (config, auto_report) = startup::load_runtime_config(cli.config.clone(), cli.path.clone())?;
     let prometheus_registry = init_tracing(&config, cli.verbose)?;
+    serve_until(
+        &cli,
+        config,
+        auto_report.as_ref(),
+        prometheus_registry,
+        shutdown,
+    )
+    .await?;
+    telemetry::shutdown_telemetry();
+    Ok(())
+}
+
+/// Everything after config load and logging setup: build the state, bind,
+/// start the side tasks and serve until `shutdown` resolves.
+async fn serve_until(
+    cli: &Cli,
+    mut config: config::Config,
+    auto_report: Option<&autodetect::AutoDetectReport>,
+    prometheus_registry: Option<prometheus::Registry>,
+    shutdown: impl std::future::Future<Output = ()> + Send + 'static,
+) -> anyhow::Result<()> {
     metrics::init(config.telemetry.metrics_label_cardinality.into());
-    if let Some(ref report) = auto_report {
+    if let Some(report) = auto_report {
         log_auto_detect_report(report);
     }
-
-    apply_cli_overrides(&mut config, &cli);
-    #[cfg(feature = "sftp")]
-    configure_sftp(&config, &cli);
-
-    let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
-    config::Config::ensure_cache_dir_writable(&cache_dir)?;
-    tracing::info!("Cache directory: {}", cache_dir.display());
-    config.cache.dir = Some(cache_dir);
-
-    let runtime = RuntimeSettings {
-        ui_enabled,
-        runtime_host: config.server.host.clone(),
-        runtime_port: config.server.port,
-        public_url_override: None,
-    };
-    let state = build_app_state(&config, &runtime).await?;
-    let meta = ReloadMeta {
-        config_hash: startup::config_hash(cli.config.as_ref(), &config)?,
-        loaded_at_unix: now_unix_seconds(),
-        loaded_sources: state.sources.len(),
-        loaded_styles: state.styles.len(),
-        renderer_enabled: state.renderer.is_some(),
-        prometheus_listener_active: false,
-    };
-    let controller = Arc::new(ReloadController::new(
-        state,
-        meta,
-        config.clone(),
-        cli.config.clone(),
-        runtime,
-    ));
+    prepare_config(&mut config, cli)?;
+    let controller = build_controller(&config, cli).await?;
     let shared = SharedState::new(Arc::clone(&controller));
 
-    let (app, oauth_store) = build_app(&config, &shared, ui_enabled)?;
+    let (app, oauth_store) = build_app(&config, &shared, cli.ui_enabled())?;
     let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
-    tracing::info!("Starting tileserver on http://{}", addr);
     let listener = TcpListener::bind(addr).await?;
+    tracing::info!("Starting tileserver on http://{}", listener.local_addr()?);
 
     if let Some(admin_addr) = startup::admin_addr(&config.server.admin_bind)? {
         spawn_admin_server(admin_addr, shared.clone(), oauth_store);
@@ -149,10 +145,50 @@ async fn serve(cli: Cli) -> anyhow::Result<()> {
         listener,
         ServiceExt::<axum::extract::Request>::into_make_service(app),
     )
-    .with_graceful_shutdown(shutdown_signal())
+    .with_graceful_shutdown(shutdown)
     .await?;
-    telemetry::shutdown_telemetry();
     Ok(())
+}
+
+/// Apply CLI overrides and make sure the cache directory is writable.
+fn prepare_config(config: &mut config::Config, cli: &Cli) -> anyhow::Result<()> {
+    apply_cli_overrides(config, cli);
+    #[cfg(feature = "sftp")]
+    configure_sftp(config, cli);
+    let cache_dir = config.resolve_cache_dir(cli.cache_dir.as_deref());
+    config::Config::ensure_cache_dir_writable(&cache_dir)?;
+    tracing::info!("Cache directory: {}", cache_dir.display());
+    config.cache.dir = Some(cache_dir);
+    Ok(())
+}
+
+/// Build the app state and the reload controller that owns it.
+async fn build_controller(
+    config: &config::Config,
+    cli: &Cli,
+) -> anyhow::Result<Arc<ReloadController>> {
+    let runtime = RuntimeSettings {
+        ui_enabled: cli.ui_enabled(),
+        runtime_host: config.server.host.clone(),
+        runtime_port: config.server.port,
+        public_url_override: None,
+    };
+    let state = build_app_state(config, &runtime).await?;
+    let meta = ReloadMeta {
+        config_hash: startup::config_hash(cli.config.as_ref(), config)?,
+        loaded_at_unix: now_unix_seconds(),
+        loaded_sources: state.sources.len(),
+        loaded_styles: state.styles.len(),
+        renderer_enabled: state.renderer.is_some(),
+        prometheus_listener_active: false,
+    };
+    Ok(Arc::new(ReloadController::new(
+        state,
+        meta,
+        config.clone(),
+        cli.config.clone(),
+        runtime,
+    )))
 }
 
 /// Install the tracing subscriber (plus OpenTelemetry when configured) and
@@ -493,6 +529,96 @@ mod tests {
 mod startup_tests {
     use super::*;
     use clap::Parser;
+
+    #[tokio::test]
+    async fn serve_until_starts_and_stops_on_shutdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join("config.toml");
+        std::fs::write(&config_path, "[server]\nhost = \"127.0.0.1\"\nport = 0\n").unwrap();
+        let cache = dir.path().join("cache");
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--cache-dir",
+            cache.to_str().unwrap(),
+            "--no-ui",
+        ]);
+        let (config, report) =
+            startup::load_runtime_config(cli.config.clone(), cli.path.clone()).unwrap();
+        let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
+        serve_until(&cli, config, report.as_ref(), None, shutdown)
+            .await
+            .unwrap();
+        assert!(cache.is_dir(), "prepare_config creates the cache dir");
+    }
+
+    #[tokio::test]
+    async fn serve_with_loads_the_config_and_stops_on_shutdown() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_path = dir.path().join("config.toml");
+        std::fs::write(&config_path, "[server]\nhost = \"127.0.0.1\"\nport = 0\n").unwrap();
+        let cache = dir.path().join("cache");
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--cache-dir",
+            cache.to_str().unwrap(),
+            "--no-ui",
+        ]);
+        let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
+        serve_with(cli, shutdown).await.unwrap();
+        assert!(
+            cache.is_dir(),
+            "the server ran far enough to prepare the cache dir"
+        );
+    }
+
+    #[tokio::test]
+    async fn serve_until_starts_admin_and_prometheus_listeners() {
+        let dir = tempfile::tempdir().unwrap();
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--cache-dir",
+            dir.path().to_str().unwrap(),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "0",
+            "--no-ui",
+        ]);
+        let mut config = config::Config::default();
+        config.server.admin_bind = "127.0.0.1:0".to_string();
+        config.telemetry.prometheus_bind = Some("127.0.0.1:0".to_string());
+        let shutdown = tokio::time::sleep(std::time::Duration::from_millis(100));
+        serve_until(
+            &cli,
+            config,
+            None,
+            Some(prometheus::Registry::new()),
+            shutdown,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn serve_until_reports_a_bad_address() {
+        let dir = tempfile::tempdir().unwrap();
+        let cli = Cli::parse_from([
+            "tileserver-rs",
+            "--cache-dir",
+            dir.path().to_str().unwrap(),
+            "--host",
+            "not a host",
+            "--no-ui",
+        ]);
+        let err = serve_until(&cli, config::Config::default(), None, None, async {})
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("invalid socket address"), "{err}");
+    }
 
     #[test]
     fn cli_overrides_win_over_the_config_file() {

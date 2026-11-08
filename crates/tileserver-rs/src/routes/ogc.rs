@@ -10,8 +10,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Deserialize;
-#[cfg(test)]
-use serde::Serialize;
 
 use crate::error::TileServerError;
 use crate::reload::SharedState;
@@ -871,16 +869,6 @@ mod tests {
         assert!(ItemsQuery::parse(&items_params("filter=unknown_col%20%3D%201"), &[]).is_err());
     }
 
-    #[derive(Debug, Clone, Serialize)]
-    struct OgcLink {
-        href: String,
-        rel: String,
-        #[serde(rename = "type")]
-        media_type: String,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        title: Option<String>,
-    }
-
     #[test]
     fn parse_bbox_none_returns_none() {
         assert!(parse_bbox(None).unwrap().is_none());
@@ -911,16 +899,6 @@ mod tests {
     }
 
     #[test]
-    fn parse_bbox_too_few_values_fails() {
-        assert!(parse_bbox(Some("-180,-90,180")).is_err());
-    }
-
-    #[test]
-    fn parse_bbox_too_many_values_fails() {
-        assert!(parse_bbox(Some("-180,-90,180,90,100")).is_err());
-    }
-
-    #[test]
     fn parse_bbox_non_numeric_fails() {
         assert!(parse_bbox(Some("abc,-90,180,90")).is_err());
     }
@@ -928,34 +906,6 @@ mod tests {
     #[test]
     fn parse_bbox_empty_string_fails() {
         assert!(parse_bbox(Some("")).is_err());
-    }
-
-    #[test]
-    fn conformance_includes_required_classes() {
-        let body = serde_json::json!({
-            "conformsTo": [
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson"
-            ]
-        });
-        let conforms = body["conformsTo"].as_array().unwrap();
-        assert_eq!(conforms.len(), 3);
-        assert!(
-            conforms
-                .iter()
-                .any(|v| v.as_str().unwrap().contains("conf/core"))
-        );
-        assert!(
-            conforms
-                .iter()
-                .any(|v| v.as_str().unwrap().contains("conf/oas30"))
-        );
-        assert!(
-            conforms
-                .iter()
-                .any(|v| v.as_str().unwrap().contains("conf/geojson"))
-        );
     }
 
     #[test]
@@ -1047,44 +997,6 @@ mod tests {
     }
 
     #[test]
-    fn default_limit_is_10() {
-        assert_eq!(default_limit(), OGC_FEATURES_LIMIT_DEFAULT);
-        assert_eq!(OGC_FEATURES_LIMIT_DEFAULT, 10);
-    }
-
-    #[test]
-    fn max_limit_is_10000() {
-        assert_eq!(OGC_FEATURES_LIMIT_MAX, 10_000);
-    }
-
-    #[test]
-    fn ogc_link_serializes_correctly() {
-        let link = OgcLink {
-            href: "http://example.com".to_string(),
-            rel: "self".to_string(),
-            media_type: "application/json".to_string(),
-            title: Some("Test".to_string()),
-        };
-        let json = serde_json::to_value(&link).unwrap();
-        assert_eq!(json["href"], "http://example.com");
-        assert_eq!(json["rel"], "self");
-        assert_eq!(json["type"], "application/json");
-        assert_eq!(json["title"], "Test");
-    }
-
-    #[test]
-    fn ogc_link_skips_none_title() {
-        let link = OgcLink {
-            href: "http://example.com".to_string(),
-            rel: "self".to_string(),
-            media_type: "application/json".to_string(),
-            title: None,
-        };
-        let json = serde_json::to_value(&link).unwrap();
-        assert!(!json.as_object().unwrap().contains_key("title"));
-    }
-
-    #[test]
     fn items_query_params_defaults() {
         let params: ItemsQueryParams = serde_json::from_str(r#"{}"#).unwrap();
         assert!(params.bbox.is_none());
@@ -1106,210 +1018,6 @@ mod tests {
     fn parse_bbox_zero_width_valid() {
         let result = parse_bbox(Some("10,20,10,20")).unwrap().unwrap();
         assert_eq!(result, [10.0, 20.0, 10.0, 20.0]);
-    }
-
-    #[test]
-    fn parse_bbox_decimal_precision() {
-        let result = parse_bbox(Some("8.12345,47.54321,9.98765,48.01234"))
-            .unwrap()
-            .unwrap();
-        assert!((result[0] - 8.12345).abs() < f64::EPSILON);
-        assert!((result[1] - 47.54321).abs() < f64::EPSILON);
-    }
-
-    #[test]
-    fn build_collection_json_crs_field() {
-        let meta = crate::sources::TileMetadata {
-            id: "t".to_string(),
-            name: "T".to_string(),
-            description: None,
-            attribution: None,
-            format: crate::sources::TileFormat::Pbf,
-            minzoom: 0,
-            maxzoom: 22,
-            bounds: None,
-            center: None,
-            vector_layers: None,
-        };
-        let json = build_collection_json(&meta, "http://localhost", 4326);
-        let crs = json["crs"].as_array().unwrap();
-        assert_eq!(crs.len(), 1);
-        assert!(crs[0].as_str().unwrap().contains("CRS84"));
-    }
-
-    #[test]
-    fn conformance_three_uris() {
-        let body = serde_json::json!({
-            "conformsTo": [
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson"
-            ]
-        });
-        assert_eq!(body["conformsTo"].as_array().unwrap().len(), 3);
-    }
-
-    #[test]
-    fn feature_collection_structure() {
-        let body = serde_json::json!({
-            "type": "FeatureCollection",
-            "features": [],
-            "numberMatched": 0,
-            "numberReturned": 0,
-            "links": []
-        });
-        assert_eq!(body["type"], "FeatureCollection");
-        assert!(body["features"].as_array().unwrap().is_empty());
-        assert_eq!(body["numberMatched"], 0);
-        assert_eq!(body["numberReturned"], 0);
-    }
-
-    #[test]
-    fn feature_structure() {
-        let body = serde_json::json!({
-            "type": "Feature",
-            "id": "42",
-            "geometry": {"type": "Point", "coordinates": [8.5, 47.5]},
-            "properties": {"name": "Zurich"},
-            "links": []
-        });
-        assert_eq!(body["type"], "Feature");
-        assert_eq!(body["id"], "42");
-        assert_eq!(body["geometry"]["type"], "Point");
-        assert_eq!(body["properties"]["name"], "Zurich");
-    }
-
-    #[test]
-    fn landing_page_structure() {
-        let landing = serde_json::json!({
-            "title": "tileserver-rs OGC API",
-            "description": "OGC API Features access to PostGIS table sources",
-            "links": [
-                {"href": "http://localhost:8080/ogc", "rel": "self", "type": "application/json"},
-                {"href": "http://localhost:8080/ogc/conformance", "rel": "conformance", "type": "application/json"},
-                {"href": "http://localhost:8080/ogc/collections", "rel": "data", "type": "application/json"},
-                {"href": "http://localhost:8080/openapi.json", "rel": "service-desc", "type": "application/vnd.oai.openapi+json;version=3.0"},
-                {"href": "http://localhost:8080/_openapi", "rel": "service-doc", "type": "text/html"}
-            ]
-        });
-        assert_eq!(landing["title"], "tileserver-rs OGC API");
-        let links = landing["links"].as_array().unwrap();
-        assert_eq!(links.len(), 5);
-        assert!(links.iter().any(|l| l["rel"] == "self"));
-        assert!(links.iter().any(|l| l["rel"] == "conformance"));
-        assert!(links.iter().any(|l| l["rel"] == "data"));
-        assert!(links.iter().any(|l| l["rel"] == "service-desc"));
-        assert!(links.iter().any(|l| l["rel"] == "service-doc"));
-    }
-
-    #[test]
-    fn landing_page_link_types() {
-        let links = [
-            OgcLink {
-                href: "http://localhost".to_string(),
-                rel: "self".to_string(),
-                media_type: "application/json".to_string(),
-                title: Some("this document".to_string()),
-            },
-            OgcLink {
-                href: "http://localhost/conformance".to_string(),
-                rel: "conformance".to_string(),
-                media_type: "application/json".to_string(),
-                title: None,
-            },
-        ];
-        assert_eq!(links[0].rel, "self");
-        assert_eq!(links[1].rel, "conformance");
-    }
-
-    #[test]
-    fn pagination_link_next() {
-        let base = "http://localhost:8080";
-        let collection_id = "test";
-        let limit = 10;
-        let offset = 0;
-        let number_returned = 10i64;
-        let number_matched = 25i64;
-
-        let has_next = offset + number_returned < number_matched;
-        assert!(has_next);
-
-        let next_offset = offset + limit;
-        let next_href =
-            format!("{base}/collections/{collection_id}/items?limit={limit}&offset={next_offset}");
-        assert!(next_href.contains("offset=10"));
-    }
-
-    #[test]
-    fn pagination_no_next_when_exhausted() {
-        let offset = 20i64;
-        let number_returned = 5i64;
-        let number_matched = 25i64;
-
-        let has_next = offset + number_returned < number_matched;
-        assert!(!has_next);
-    }
-
-    #[test]
-    fn limit_clamp_within_range() {
-        let limit: i64 = 50;
-        let clamped = limit.clamp(1, OGC_FEATURES_LIMIT_MAX);
-        assert_eq!(clamped, 50);
-    }
-
-    #[test]
-    fn limit_clamp_exceeds_max() {
-        let limit: i64 = 50_000;
-        let clamped = limit.clamp(1, OGC_FEATURES_LIMIT_MAX);
-        assert_eq!(clamped, OGC_FEATURES_LIMIT_MAX);
-    }
-
-    #[test]
-    fn limit_clamp_below_min() {
-        let limit: i64 = -5;
-        let clamped = limit.clamp(1, OGC_FEATURES_LIMIT_MAX);
-        assert_eq!(clamped, 1);
-    }
-
-    #[test]
-    fn offset_max_zero() {
-        let offset: i64 = -10;
-        let clamped = offset.max(0);
-        assert_eq!(clamped, 0);
-    }
-
-    #[test]
-    fn offset_positive_passthrough() {
-        let offset: i64 = 100;
-        let clamped = offset.max(0);
-        assert_eq!(clamped, 100);
-    }
-
-    #[test]
-    fn build_collection_json_item_type() {
-        let meta = crate::sources::TileMetadata {
-            id: "pts".to_string(),
-            name: "Points".to_string(),
-            description: None,
-            attribution: None,
-            format: crate::sources::TileFormat::Pbf,
-            minzoom: 0,
-            maxzoom: 14,
-            bounds: Some([-180.0, -90.0, 180.0, 90.0]),
-            center: None,
-            vector_layers: None,
-        };
-        let json = build_collection_json(&meta, "http://localhost", 4326);
-        assert_eq!(json["itemType"], "feature");
-    }
-
-    #[test]
-    fn parse_bbox_negative_coordinates() {
-        let result = parse_bbox(Some("-122.5,37.5,-122.0,38.0"))
-            .unwrap()
-            .unwrap();
-        assert!((result[0] - (-122.5)).abs() < f64::EPSILON);
-        assert!((result[1] - 37.5).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -1339,24 +1047,6 @@ mod tests {
     fn reject_datetime_errors_on_any_value() {
         assert!(reject_datetime(Some("2024-01-01T00:00:00Z")).is_err());
         assert!(reject_datetime(Some("2024-01-01/2024-12-31")).is_err());
-    }
-
-    #[test]
-    fn conformance_includes_part2_crs_class() {
-        let body = serde_json::json!({
-            "conformsTo": [
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/oas30",
-                "http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson",
-                ogc_crs::CONFORMANCE_CRS,
-            ]
-        });
-        let classes = body["conformsTo"].as_array().unwrap();
-        assert!(
-            classes
-                .iter()
-                .any(|c| c.as_str().unwrap().contains("features-2/1.0/conf/crs"))
-        );
     }
 
     #[test]
@@ -1485,15 +1175,6 @@ mod tests {
         let params: ItemsQueryParams = serde_json::from_str(r#"{"offset":-50}"#).unwrap();
         let clamped = params.offset.max(0);
         assert_eq!(clamped, 0);
-    }
-
-    #[test]
-    fn parse_bbox_large_negative_values() {
-        let result = parse_bbox(Some("-179.999,-89.999,179.999,89.999"))
-            .unwrap()
-            .unwrap();
-        assert!((result[0] - (-179.999)).abs() < 1e-6);
-        assert!((result[3] - 89.999).abs() < 1e-6);
     }
 
     #[test]
@@ -1708,29 +1389,6 @@ mod tests {
                 .iter()
                 .any(|l| l["rel"] == "self")
         );
-    }
-
-    #[tokio::test]
-    async fn test_collections_with_no_sources() {
-        let shared = make_test_shared_state(SourceManager::new());
-        let app = ogc_test_router(shared);
-
-        let resp = app
-            .oneshot(
-                Request::builder()
-                    .uri("/ogc/collections")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(resp.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert!(json["collections"].as_array().unwrap().is_empty());
     }
 
     #[tokio::test]

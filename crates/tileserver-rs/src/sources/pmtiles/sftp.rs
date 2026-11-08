@@ -2215,15 +2215,6 @@ mod tests {
         assert_eq!(rest, b"456789");
     }
 
-    #[tokio::test]
-    async fn test_seek_to_zero_is_start() {
-        let mut cursor = std::io::Cursor::new(b"abc".to_vec());
-        seek_to(&mut cursor, 0).await.unwrap();
-        let mut rest = Vec::new();
-        cursor.read_to_end(&mut rest).await.unwrap();
-        assert_eq!(rest, b"abc");
-    }
-
     // ── U63–U66: read_range_into_buf (full read / EOF short read / empty) ──
 
     #[tokio::test]

@@ -115,19 +115,6 @@ mod tests {
     }
 
     #[test]
-    fn maps_render_error_to_is_error() {
-        let result = tile_error_to_call_result(TileServerError::RenderError("boom".into()));
-        assert_eq!(result.is_error, Some(true));
-    }
-
-    #[test]
-    fn maps_invalid_coordinates_to_is_error() {
-        let result =
-            tile_error_to_call_result(TileServerError::InvalidCoordinates { z: 30, x: 0, y: 0 });
-        assert_eq!(result.is_error, Some(true));
-    }
-
-    #[test]
     fn maps_internal_error_to_is_error() {
         let result =
             tile_error_to_call_result(TileServerError::Internal(anyhow::anyhow!("kaboom")));

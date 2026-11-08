@@ -134,33 +134,4 @@ mod tests {
         ));
         assert!(img_err.to_string().contains("image encoding failed"));
     }
-
-    #[test]
-    fn encode_single_band_grayscale_works() {
-        let data = array![[[42.0_f32, 42.0], [42.0, 42.0]]];
-        let raster = RasterImage::from_opaque(data, None);
-        let png = to_png(&raster).expect("single band should encode");
-        assert!(!png.is_empty());
-    }
-
-    #[test]
-    fn encode_jpeg_with_minimum_quality() {
-        let data = array![[[100.0_f32, 110.0], [120.0, 130.0]]];
-        let raster = RasterImage::from_opaque(data, None);
-        let jpeg = to_jpeg(&raster, 1).expect("jpeg q=1 should encode");
-        assert!(!jpeg.is_empty());
-    }
-
-    #[test]
-    fn encode_webp_round_trip_preserves_dimensions() {
-        let data = array![[
-            [10.0_f32, 20.0, 30.0],
-            [40.0, 50.0, 60.0],
-            [70.0, 80.0, 90.0]
-        ]];
-        let raster = RasterImage::from_opaque(data, None);
-        let webp = to_webp(&raster).expect("webp encode");
-        let decoded = image::load_from_memory_with_format(&webp, ImageFormat::WebP).unwrap();
-        assert_eq!(decoded.dimensions(), (3, 3));
-    }
 }

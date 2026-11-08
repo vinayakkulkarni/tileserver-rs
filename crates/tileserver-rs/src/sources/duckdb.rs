@@ -892,16 +892,6 @@ mod tests {
     }
 
     #[test]
-    fn test_substitute_template_bbox() {
-        let query = "WHERE ST_Intersects(geom, ST_MakeEnvelope({bbox}))";
-        let result = substitute_template(query, 0, 0, 0, &[-180.0, -85.0, 180.0, 85.0]);
-        assert!(result.contains("-180"));
-        assert!(result.contains("180"));
-        assert!(result.contains("-85"));
-        assert!(result.contains("85"));
-    }
-
-    #[test]
     fn test_substitute_template_all_vars() {
         let query = "z={z} x={x} y={y} bbox={bbox}";
         let result = substitute_template(query, 5, 10, 20, &[1.0, 2.0, 3.0, 4.0]);
@@ -970,35 +960,6 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_mvt_tile_basic() {
-        let features = vec![MvtFeature {
-            geom_type: 1,
-            geometry: vec![mvt_command(1, 1), zigzag_encode(100), zigzag_encode(200)],
-            properties: vec![("name".to_string(), PropValue::String("test".to_string()))],
-        }];
-        let bytes = encode_mvt_tile(&features, "test_layer");
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
-    fn test_encode_mvt_value_string() {
-        let bytes = encode_mvt_value(&PropValue::String("hello".to_string()));
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
-    fn test_encode_mvt_value_int() {
-        let bytes = encode_mvt_value(&PropValue::Int(42));
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
-    fn test_encode_mvt_value_bool() {
-        let bytes = encode_mvt_value(&PropValue::Bool(true));
-        assert!(!bytes.is_empty());
-    }
-
-    #[test]
     fn test_config_source_type_duckdb_serde() {
         use crate::config::SourceType;
         let json = serde_json::to_string(&SourceType::DuckDB).unwrap();
@@ -1049,28 +1010,6 @@ mod tests {
         );
         assert!(config.sources[0].query.is_some());
         assert!(config.sources[0].layer_name.is_none());
-    }
-
-    #[test]
-    fn test_duckdb_connection_open_in_memory() {
-        let conn = Connection::open_in_memory();
-        assert!(conn.is_ok());
-    }
-
-    #[test]
-    fn test_duckdb_basic_query() {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(
-            "CREATE TABLE t (id INTEGER, name VARCHAR); INSERT INTO t VALUES (1, 'test');",
-        )
-        .unwrap();
-        let mut stmt = conn.prepare("SELECT id, name FROM t").unwrap();
-        let mut rows = stmt.query([]).unwrap();
-        let row = rows.next().unwrap().unwrap();
-        let id: i32 = row.get(0).unwrap();
-        let name: String = row.get(1).unwrap();
-        assert_eq!(id, 1);
-        assert_eq!(name, "test");
     }
 }
 

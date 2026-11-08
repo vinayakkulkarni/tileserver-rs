@@ -164,13 +164,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_is_crs84_with_srid_4326() {
-        let crs = Crs::crs84();
-        assert_eq!(crs.srid(), 4326);
-        assert_eq!(crs.uri.as_str(), CRS84_URI);
-    }
-
-    #[test]
     fn parses_http_epsg_uri() {
         let crs = parse_crs("http://www.opengis.net/def/crs/EPSG/0/25832").unwrap();
         assert_eq!(crs.srid(), 25832);

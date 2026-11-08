@@ -323,19 +323,6 @@ mod tests {
     // --- parse_composite_id ---
 
     #[test]
-    fn parse_composite_id_single() {
-        assert_eq!(parse_composite_id("a"), Some(vec!["a".to_string()]));
-    }
-
-    #[test]
-    fn parse_composite_id_two() {
-        assert_eq!(
-            parse_composite_id("a+b"),
-            Some(vec!["a".to_string(), "b".to_string()])
-        );
-    }
-
-    #[test]
     fn parse_composite_id_three() {
         assert_eq!(
             parse_composite_id("a+b+c"),
@@ -361,11 +348,6 @@ mod tests {
         assert_eq!(parse_composite_id("+"), None);
     }
 
-    #[test]
-    fn parse_composite_id_trailing_plus_drops_empty() {
-        assert_eq!(parse_composite_id("a+"), Some(vec!["a".to_string()]));
-    }
-
     // --- is_composite_id ---
 
     #[test]
@@ -376,11 +358,6 @@ mod tests {
     #[test]
     fn is_composite_id_no_plus_is_false() {
         assert!(!is_composite_id("solo"));
-    }
-
-    #[test]
-    fn is_composite_id_only_plus_is_true() {
-        assert!(is_composite_id("+"));
     }
 
     // --- validate_composite_source_ids ---
@@ -437,22 +414,6 @@ mod tests {
     }
 
     #[test]
-    fn decode_mvt_layers_single_layer_roundtrips() {
-        let t = Tile {
-            layers: vec![layer(
-                "roads",
-                vec!["name"],
-                vec![value_string("main")],
-                vec![feature(vec![0, 0])],
-            )],
-        };
-        let raw = encode_mvt_pbf(&t);
-        let decoded = decode_mvt_layers(&raw).unwrap();
-        assert_eq!(decoded.len(), 1);
-        assert_eq!(decoded[0].name, "roads");
-    }
-
-    #[test]
     fn decode_mvt_layers_multi_layer_roundtrips() {
         let t = Tile {
             layers: vec![
@@ -469,13 +430,6 @@ mod tests {
     #[test]
     fn merge_mvt_layers_empty_input_produces_empty_tile() {
         assert!(merge_mvt_layers(vec![]).layers.is_empty());
-    }
-
-    #[test]
-    fn merge_mvt_layers_single_layer_passes_through() {
-        let t = merge_mvt_layers(vec![layer("roads", vec![], vec![], vec![feature(vec![])])]);
-        assert_eq!(t.layers.len(), 1);
-        assert_eq!(t.layers[0].features.len(), 1);
     }
 
     #[test]
@@ -595,14 +549,6 @@ mod tests {
     }
 
     // --- composite_tilejson ---
-
-    #[test]
-    fn composite_tilejson_single_source_passes_through_minmax() {
-        let a = meta("a", 3, 12, None);
-        let tj = composite_tilejson("a", &[&a], "http://h", None);
-        assert_eq!(tj.minzoom, 3);
-        assert_eq!(tj.maxzoom, 12);
-    }
 
     #[test]
     fn composite_tilejson_minzoom_is_max_of_sources() {

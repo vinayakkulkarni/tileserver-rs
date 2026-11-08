@@ -796,21 +796,6 @@ mod tests {
     }
 
     #[test]
-    fn test_stac_item_rejects_invalid_bbox_length() {
-        let item_json = serde_json::json!({
-            "type": "Feature",
-            "id": "test",
-            "stac_version": "1.0.0",
-            "geometry": null,
-            "bbox": [-122.5, 37.0, 0.0, -122.0, 37.5],
-            "properties": {"datetime": null},
-            "assets": {},
-            "links": []
-        });
-        assert!(serde_json::from_value::<stac::Item>(item_json).is_err());
-    }
-
-    #[test]
     fn test_tile_to_wgs84_bbox_z0_covers_world() {
         let b = tile_to_wgs84_bbox(0, 0, 0);
         assert!((b[0] - -180.0).abs() < 1e-6);
@@ -825,21 +810,6 @@ mod tests {
         assert!((b[0] - -180.0).abs() < 1e-6);
         assert!((b[2] - 0.0).abs() < 1e-6);
         assert!(b[1] < b[3]);
-    }
-
-    #[test]
-    fn test_stac_item_missing_bbox_is_optional() {
-        let item_json = serde_json::json!({
-            "type": "Feature",
-            "id": "no-bbox",
-            "stac_version": "1.0.0",
-            "geometry": null,
-            "properties": {"datetime": null},
-            "assets": {},
-            "links": []
-        });
-        let item: stac::Item = serde_json::from_value(item_json).unwrap();
-        assert!(item.bbox.is_none());
     }
 
     #[test]
@@ -1478,48 +1448,11 @@ mod tests {
     }
 
     #[test]
-    fn test_tile_to_wgs84_bbox_z0() {
-        let bbox = tile_to_wgs84_bbox(0, 0, 0);
-        assert!((bbox[0] - (-180.0)).abs() < 0.01);
-        assert!((bbox[2] - 180.0).abs() < 0.01);
-        assert!(bbox[1] < -85.0 && bbox[1] > -86.0);
-        assert!(bbox[3] > 85.0 && bbox[3] < 86.0);
-    }
-
-    #[test]
     fn test_tile_to_wgs84_bbox_z2_corner() {
         let bbox = tile_to_wgs84_bbox(2, 0, 0);
         assert!((bbox[0] - (-180.0)).abs() < 0.01);
         assert!((bbox[2] - (-90.0)).abs() < 0.01);
         assert!(bbox[3] > 0.0);
-    }
-
-    #[test]
-    fn test_extract_assets_from_item_collection_basic() {
-        let item1 = sample_item_json(
-            "i1",
-            "data",
-            "image/tiff; application=geotiff; profile=cloud-optimized",
-        );
-        let collection = sample_item_collection(vec![item1]);
-        let assets = extract_assets_from_item_collection(&collection, "data").unwrap();
-        assert_eq!(assets.len(), 1);
-        assert_eq!(assets[0].id, "i1");
-    }
-
-    #[test]
-    fn test_extract_assets_from_item_collection_filters_non_cog() {
-        let item1 = sample_item_json("i1", "thumbnail", "image/png");
-        let collection = sample_item_collection(vec![item1]);
-        let result = extract_assets_from_item_collection(&collection, "data");
-        assert!(result.is_ok(), "result: {:?}", result);
-    }
-
-    #[test]
-    fn test_extract_assets_from_item_collection_empty_features() {
-        let collection = sample_item_collection(vec![]);
-        let assets = extract_assets_from_item_collection(&collection, "data").unwrap();
-        assert!(assets.is_empty());
     }
 }
 

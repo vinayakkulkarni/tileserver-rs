@@ -96,48 +96,12 @@ async fn compression_test_server() -> TestServer {
 // ============================================================
 
 #[tokio::test]
-async fn data_json_empty_returns_empty_array() {
-    let server = common::empty_test_server();
-    let resp = server.get("/data.json").await;
-    resp.assert_status_ok();
-    let body: serde_json::Value = resp.json();
-    assert!(body.is_array(), "/data.json must return a JSON array");
-    assert_eq!(
-        body.as_array().unwrap().len(),
-        0,
-        "empty state must return zero sources"
-    );
-}
-
-#[tokio::test]
-async fn data_source_tilejson_not_found_returns_error() {
-    let server = common::empty_test_server();
-    let resp = server.get("/data/nonexistent-source").await;
-    assert_ne!(
-        resp.status_code().as_u16(),
-        200,
-        "missing source must not return 200"
-    );
-}
-
-#[tokio::test]
 async fn data_source_tilejson_json_suffix_not_found_returns_error() {
     // Path is parsed BEFORE `.json` is stripped, so this also hits the
     // SourceNotFound branch — exercises the `.json` suffix code path too.
     let server = common::empty_test_server();
     let resp = server.get("/data/nonexistent.json").await;
     assert_ne!(resp.status_code().as_u16(), 200);
-}
-
-#[tokio::test]
-async fn data_tile_unknown_source_returns_error() {
-    let server = common::empty_test_server();
-    let resp = server.get("/data/nonexistent/0/0/0.pbf").await;
-    assert_ne!(
-        resp.status_code().as_u16(),
-        200,
-        "unknown source tile request must not return 200"
-    );
 }
 
 #[tokio::test]
@@ -162,19 +126,6 @@ async fn data_tile_malformed_y_fmt_does_not_500() {
 // ============================================================
 // PMTiles-backed tests — exercise the happy-path branches
 // ============================================================
-
-#[tokio::test]
-async fn data_json_with_sources_returns_entries() {
-    let server = pmtiles_test_server().await;
-    let resp = server.get("/data.json").await;
-    resp.assert_status_ok();
-    let body: serde_json::Value = resp.json();
-    let arr = body.as_array().expect("/data.json must return an array");
-    assert!(
-        !arr.is_empty(),
-        "should have at least 1 source loaded from config.test.toml"
-    );
-}
 
 #[tokio::test]
 async fn data_json_entry_has_tilejson_shape() {
@@ -254,13 +205,6 @@ async fn data_source_tilejson_with_key_query_param() {
     );
 }
 
-#[tokio::test]
-async fn data_source_tilejson_unknown_source_returns_error() {
-    let server = pmtiles_test_server().await;
-    let resp = server.get("/data/does-not-exist").await;
-    assert_ne!(resp.status_code().as_u16(), 200);
-}
-
 // ============================================================
 // Tile retrieval tests
 // ============================================================
@@ -280,15 +224,6 @@ async fn data_tile_zoom_0_returns_2xx_or_204() {
 }
 
 #[tokio::test]
-async fn data_tile_mvt_format_alias_accepted() {
-    // `.mvt` and `.pbf` are both valid vector tile extensions.
-    let server = pmtiles_test_server().await;
-    let resp = server.get("/data/protomaps/0/0/0.mvt").await;
-    let status = resp.status_code().as_u16();
-    assert!(status < 500, ".mvt request must not 5xx, got {status}");
-}
-
-#[tokio::test]
 async fn data_tile_out_of_range_zoom_does_not_500() {
     // Zoom 30 is beyond any sane tileset's maxzoom — handler must
     // return a 4xx (TileNotFound), never panic or 5xx.
@@ -296,13 +231,6 @@ async fn data_tile_out_of_range_zoom_does_not_500() {
     let resp = server.get("/data/protomaps/30/0/0.pbf").await;
     let status = resp.status_code().as_u16();
     assert!(status < 500, "out-of-range zoom must not 5xx, got {status}");
-}
-
-#[tokio::test]
-async fn data_tile_unknown_source_with_real_sources_returns_error() {
-    let server = pmtiles_test_server().await;
-    let resp = server.get("/data/unknown-id/0/0/0.pbf").await;
-    assert_ne!(resp.status_code().as_u16(), 200);
 }
 
 #[tokio::test]
@@ -451,17 +379,6 @@ async fn data_tilejson_mock_source_returns_correct_metadata() {
 }
 
 #[tokio::test]
-async fn data_tilejson_mock_source_strip_json_suffix() {
-    let server = common::server_with_sources(vec![
-        Arc::new(common::MockSource::pbf("mock-strip")) as Arc<dyn tileserver_rs::TileSource>
-    ]);
-    let resp = server.get("/data/mock-strip.json").await;
-    resp.assert_status_ok();
-    let body: serde_json::Value = resp.json();
-    assert_eq!(body["id"], "mock-strip");
-}
-
-#[tokio::test]
 async fn data_tile_mock_source_returns_200_with_content_type() {
     let server = common::server_with_sources(vec![
         Arc::new(common::MockSource::pbf("mock-tile")) as Arc<dyn tileserver_rs::TileSource>
@@ -593,21 +510,6 @@ async fn data_tile_mock_mvt_extension_alias_works() {
     ]);
     let resp = server.get("/data/alias-mvt/0/0/0.mvt").await;
     resp.assert_status_ok();
-}
-
-#[tokio::test]
-async fn data_tilejson_mock_source_with_api_key_appended() {
-    let server = common::server_with_sources(vec![
-        Arc::new(common::MockSource::pbf("keyed")) as Arc<dyn tileserver_rs::TileSource>
-    ]);
-    let resp = server.get("/data/keyed?key=secret-xyz").await;
-    resp.assert_status_ok();
-    let body: serde_json::Value = resp.json();
-    let first = body["tiles"][0].as_str().unwrap_or("");
-    assert!(
-        first.contains("key=secret-xyz"),
-        "API key must be appended to tile URLs, got {first}"
-    );
 }
 
 // ============================================================

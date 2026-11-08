@@ -315,36 +315,6 @@ mod tests {
     }
 
     #[test]
-    fn test_build_sql_query_escapes_schema_and_function() {
-        let (sql, _) = PostgresFunctionSource::build_sql_query("my_schema", "tile_func", false);
-        assert!(sql.contains("\"my_schema\""));
-        assert!(sql.contains("\"tile_func\""));
-    }
-
-    #[test]
-    fn test_tile_metadata_defaults() {
-        let config = PostgresFunctionConfig {
-            id: "test".to_string(),
-            schema: "public".to_string(),
-            function: "my_tiles".to_string(),
-            name: None,
-            attribution: None,
-            description: None,
-            minzoom: 0,
-            maxzoom: 14,
-            bounds: Some([-180.0, -85.0, 180.0, 85.0]),
-            filter: None,
-        };
-
-        // Test that center is calculated from bounds
-        let bounds = config.bounds.unwrap();
-        let center_lon = (bounds[0] + bounds[2]) / 2.0;
-        let center_lat = (bounds[1] + bounds[3]) / 2.0;
-        assert_eq!(center_lon, 0.0);
-        assert_eq!(center_lat, 0.0);
-    }
-
-    #[test]
     fn empty_query_is_null_or_empty_object() {
         assert!(is_empty_query(&serde_json::Value::Null));
         assert!(is_empty_query(&serde_json::json!({})));

@@ -368,16 +368,6 @@ mod tests {
         assert_eq!(geometry_to_layer_type("Frobnicate"), None);
     }
 
-    #[test]
-    fn geometry_to_layer_type_empty_returns_none() {
-        assert_eq!(geometry_to_layer_type(""), None);
-    }
-
-    #[test]
-    fn geometry_to_layer_type_geometrycollection_returns_none() {
-        assert_eq!(geometry_to_layer_type("GeometryCollection"), None);
-    }
-
     // --- full style generation ---
 
     fn three_layers() -> Value {

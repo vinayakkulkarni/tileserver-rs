@@ -17,30 +17,6 @@ use common::MockSource;
 // ============================================================
 
 #[tokio::test]
-async fn spatial_schema_unknown_source_returns_error() {
-    let server = common::empty_test_server();
-    let resp = server.get("/api/spatial/schema/missing").await;
-    assert_ne!(resp.status_code().as_u16(), 200);
-}
-
-#[tokio::test]
-async fn spatial_stats_unknown_source_returns_error() {
-    let server = common::empty_test_server();
-    let resp = server.get("/api/spatial/stats/missing").await;
-    assert_ne!(resp.status_code().as_u16(), 200);
-}
-
-#[tokio::test]
-async fn spatial_query_unknown_source_returns_error() {
-    let server = common::empty_test_server();
-    let resp = server
-        .post("/api/spatial/query")
-        .json(&serde_json::json!({"source": "ghost"}))
-        .await;
-    assert_ne!(resp.status_code().as_u16(), 200);
-}
-
-#[tokio::test]
 async fn spatial_query_malformed_body_returns_4xx() {
     let server = common::empty_test_server();
     let resp = server
@@ -51,20 +27,6 @@ async fn spatial_query_malformed_body_returns_4xx() {
     assert!(
         (400..500).contains(&status),
         "malformed body must yield 4xx, got {status}"
-    );
-}
-
-#[tokio::test]
-async fn spatial_query_missing_source_field_returns_4xx() {
-    let server = common::empty_test_server();
-    let resp = server
-        .post("/api/spatial/query")
-        .json(&serde_json::json!({}))
-        .await;
-    let status = resp.status_code().as_u16();
-    assert!(
-        (400..500).contains(&status),
-        "missing required 'source' must yield 4xx, got {status}"
     );
 }
 

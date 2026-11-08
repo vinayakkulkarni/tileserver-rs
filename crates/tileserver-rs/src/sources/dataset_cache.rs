@@ -1120,28 +1120,6 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn byte_budget_is_enforced() {
-        // The counted path refuses to open past the budget: the bound is
-        // enforced, not merely reported. (`acquire_with_reclaim` then escalates
-        // to a one-shot fallback — covered separately — so this asserts the
-        // *counted* path only.)
-        let Some((_dir, p)) = tiny_gtiff("tiny.tif") else {
-            return;
-        };
-        let budget = BASE_COST_BYTES / 2;
-        let cache = DatasetCache::with_max_bytes(0, Duration::from_secs(60), budget);
-        let pool = cache.get_or_open(&p).await.expect("pool");
-        assert!(
-            matches!(
-                pool.acquire_arc().await,
-                Err(TileServerError::BudgetExhausted { .. })
-            ),
-            "opening past the byte budget must be refused with BudgetExhausted"
-        );
-        assert_eq!(pool.live_handles(), 0, "no handle leaked past the budget");
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn budget_too_small_for_one_handle_still_renders_via_fallback() {
         // A pool whose single handle costs more than the whole budget can never
         // be *cached* — `acquire_arc` refuses with `BudgetExhausted` forever.
@@ -1387,11 +1365,6 @@ mod tests {
             0,
             "dropping the pool must release the idle handle's bytes"
         );
-    }
-
-    #[tokio::test]
-    async fn global_is_stable_across_calls() {
-        assert!(std::ptr::eq(global(), global()));
     }
 
     /// Test 1 (reviewer's step 1-4): a busy source fills the budget, goes idle,

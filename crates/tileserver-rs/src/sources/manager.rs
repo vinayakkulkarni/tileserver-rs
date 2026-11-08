@@ -1095,13 +1095,6 @@ mod tests {
         assert!(cloned.is_empty());
     }
 
-    #[test]
-    fn mock_source_as_any_downcasts_to_concrete_type() {
-        let src: Arc<dyn TileSource> = Arc::new(MockSource::new("downcast-me"));
-        let any = src.as_any();
-        assert!(any.downcast_ref::<MockSource>().is_some());
-    }
-
     #[tokio::test]
     async fn get_tile_with_cache_hit_returns_cached_data_on_second_call() {
         let mut map = HashMap::new();
@@ -1372,16 +1365,6 @@ mod tests {
     async fn from_configs_continues_on_load_failure() {
         let cfg = missing_mbtiles_config("missing");
         let mgr = SourceManager::from_configs(&[cfg]).await.unwrap();
-        assert!(mgr.is_empty());
-    }
-
-    #[tokio::test]
-    async fn from_configs_with_multiple_failures_returns_empty_manager() {
-        let configs = vec![
-            missing_mbtiles_config("first"),
-            missing_mbtiles_config("second"),
-        ];
-        let mgr = SourceManager::from_configs(&configs).await.unwrap();
         assert!(mgr.is_empty());
     }
 

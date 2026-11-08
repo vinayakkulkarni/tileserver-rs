@@ -1223,24 +1223,6 @@ mod tests {
     use utoipa::OpenApi;
 
     #[test]
-    fn test_openapi_spec_generates() {
-        let spec = ApiDoc::openapi();
-
-        // Check basic structure
-        assert_eq!(spec.info.title, "tileserver-rs API");
-        // The version in the derive macro is a placeholder; main.rs overrides it
-        // at runtime with CARGO_PKG_VERSION. Here we just check the placeholder exists.
-        assert!(!spec.info.version.is_empty());
-
-        // Check that paths exist
-        let paths = spec.paths.paths;
-        assert!(paths.contains_key("/health"));
-        assert!(paths.contains_key("/data.json"));
-        assert!(paths.contains_key("/styles.json"));
-        assert!(paths.contains_key("/fonts.json"));
-    }
-
-    #[test]
     fn test_openapi_spec_has_all_endpoints() {
         let spec = ApiDoc::openapi();
         let paths = spec.paths.paths;

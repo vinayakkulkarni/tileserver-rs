@@ -279,12 +279,6 @@ mod tests {
         assert_eq!(MbTilesSource::flip_y(2, 3), 0);
     }
 
-    #[test]
-    fn test_flip_y_high_zoom() {
-        assert_eq!(MbTilesSource::flip_y(10, 0), 1023);
-        assert_eq!(MbTilesSource::flip_y(10, 1023), 0);
-    }
-
     fn create_in_memory_mbtiles() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(

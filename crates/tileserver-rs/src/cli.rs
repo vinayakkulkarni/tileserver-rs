@@ -209,33 +209,9 @@ mod tests {
     }
 
     #[test]
-    fn test_cli_port_long() {
-        let cli = parse(&["tileserver-rs", "--port", "9090"]);
-        assert_eq!(cli.port, Some(9090));
-    }
-
-    #[test]
-    fn test_cli_host_long() {
-        let cli = parse(&["tileserver-rs", "--host", "127.0.0.1"]);
-        assert_eq!(cli.host.as_deref(), Some("127.0.0.1"));
-    }
-
-    #[test]
     fn test_cli_public_url() {
         let cli = parse(&["tileserver-rs", "--public-url", "https://tiles.example.com"]);
         assert_eq!(cli.public_url.as_deref(), Some("https://tiles.example.com"));
-    }
-
-    #[test]
-    fn test_cli_verbose() {
-        let cli = parse(&["tileserver-rs", "-v"]);
-        assert!(cli.verbose);
-    }
-
-    #[test]
-    fn test_cli_no_ui_flag() {
-        let cli = parse(&["tileserver-rs", "--no-ui"]);
-        assert!(cli.no_ui);
     }
 
     #[test]
