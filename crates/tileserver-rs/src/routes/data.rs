@@ -179,7 +179,16 @@ pub(crate) async fn get_tile(
     // interact because band math only applies to raster formats and
     // MLT only to vector formats.
     #[cfg(feature = "raster")]
-    let tile = apply_band_math_if_requested(tile, &query);
+    let tile = if query.contains_key("expression") {
+        // Decode, per-pixel eval and PNG encode are CPU work: keep them off
+        // the async worker threads.
+        let band_query = query.clone();
+        tokio::task::spawn_blocking(move || apply_band_math_if_requested(tile, &band_query))
+            .await
+            .map_err(|e| TileServerError::RenderError(format!("band math task failed: {e}")))?
+    } else {
+        tile
+    };
 
     // Every active CEL filter (source preset + request) folds into one hash:
     // filtered variants get their own cache entries.
@@ -665,7 +674,7 @@ fn apply_band_math_if_requested(
     let parsed = match expression::ParsedExpression::parse(expr_str, raster.band_count()) {
         Ok(p) => p,
         Err(e) => {
-            tracing::warn!(expression = %expr_str, error = %e, "band math: parse failed; serving original");
+            tracing::warn!(expression = %expression::log_preview(expr_str), error = %e, "band math: parse failed; serving original");
             return tile;
         }
     };
@@ -673,7 +682,7 @@ fn apply_band_math_if_requested(
     let result = match expression::apply(&parsed, &raster) {
         Ok(r) => r,
         Err(e) => {
-            tracing::warn!(expression = %expr_str, error = %e, "band math: eval failed; serving original");
+            tracing::warn!(expression = %expression::log_preview(expr_str), error = %e, "band math: eval failed; serving original");
             return tile;
         }
     };
