@@ -117,7 +117,7 @@ catalogs:
     '@nuxt/content': ^3.16.2
     better-sqlite3: ^13.0.3
   benchmarks:
-    autocannon: ^8.0.0
+    autocannon: ^9.0.0
     chalk: ^6.0.1
     cli-table3: ^0.6.5
     commander: ^15.1.0
