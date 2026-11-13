@@ -93,7 +93,7 @@ catalogs:
     '@geoql/v-maplibre': ^3.1.2
     '@maplibre/mlt': ^1.3.0
     '@mlc-ai/web-llm': ^0.2.87
-    '@tanstack/ai': ^1.2.0
+    '@tanstack/ai': ^1.4.0
     '@tanstack/ai-vue': ^1.0.1
     '@tanstack/query-db-collection': ^1.5.1
     # Exact pin: a caret on a prerelease lets pnpm pick a later rc build and
