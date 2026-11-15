@@ -77,7 +77,7 @@ use jsonwebtoken::{
     Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode,
     errors::Error as JwtError,
 };
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey;
 use rsa::pkcs1::{DecodeRsaPrivateKey, EncodeRsaPublicKey, LineEnding};
 use rsa::pkcs8::DecodePrivateKey;
 use serde::{Deserialize, Serialize};
@@ -1024,8 +1024,8 @@ fn bearer_challenge(status: StatusCode, error: &str, description: &str) -> Respo
 fn derive_public_key_pem(private_pem: &[u8]) -> Result<String, OAuthError> {
     let pem_str = std::str::from_utf8(private_pem)
         .map_err(|e| OAuthError::PrivateKey(format!("not valid UTF-8: {e}")))?;
-    let key = RsaPrivateKey::from_pkcs8_pem(pem_str)
-        .or_else(|_| RsaPrivateKey::from_pkcs1_pem(pem_str))
+    let key = PrivateKey::from_pkcs8_pem(pem_str)
+        .or_else(|_| PrivateKey::from_pkcs1_pem(pem_str))
         .map_err(|e| OAuthError::PrivateKey(e.to_string()))?;
     let public = key.to_public_key();
     public
