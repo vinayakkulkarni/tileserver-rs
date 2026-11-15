@@ -77,7 +77,7 @@ use jsonwebtoken::{
     Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode,
     errors::Error as JwtError,
 };
-use rsa::RsaPrivateKey;
+use rsa::PrivateKey;
 use rsa::pkcs1::{DecodeRsaPrivateKey, EncodeRsaPublicKey, LineEnding};
 use rsa::pkcs8::DecodePrivateKey;
 use serde::{Deserialize, Serialize};
@@ -1024,8 +1024,8 @@ fn bearer_challenge(status: StatusCode, error: &str, description: &str) -> Respo
 fn derive_public_key_pem(private_pem: &[u8]) -> Result<String, OAuthError> {
     let pem_str = std::str::from_utf8(private_pem)
         .map_err(|e| OAuthError::PrivateKey(format!("not valid UTF-8: {e}")))?;
-    let key = RsaPrivateKey::from_pkcs8_pem(pem_str)
-        .or_else(|_| RsaPrivateKey::from_pkcs1_pem(pem_str))
+    let key = PrivateKey::from_pkcs8_pem(pem_str)
+        .or_else(|_| PrivateKey::from_pkcs1_pem(pem_str))
         .map_err(|e| OAuthError::PrivateKey(e.to_string()))?;
     let public = key.to_public_key();
     public
@@ -1097,6 +1097,24 @@ mod tests {
     fn state() -> OAuthState {
         OAuthState::from_pem("http://localhost:8080".to_string(), TEST_PEM, 3600)
             .expect("test PEM parses")
+    }
+
+    #[test]
+    fn public_key_is_derived_from_pkcs1_and_pkcs8_keys() {
+        use rsa::pkcs1::EncodeRsaPrivateKey;
+        let pkcs8 = std::str::from_utf8(TEST_PEM).unwrap();
+        let pkcs1 = PrivateKey::from_pkcs8_pem(pkcs8)
+            .unwrap()
+            .to_pkcs1_pem(LineEnding::LF)
+            .unwrap();
+        assert!(pkcs1.starts_with("-----BEGIN RSA PRIVATE KEY-----"));
+        let from_pkcs8 = derive_public_key_pem(TEST_PEM).unwrap();
+        let from_pkcs1 = derive_public_key_pem(pkcs1.as_bytes()).unwrap();
+        assert_eq!(from_pkcs1, from_pkcs8);
+        assert!(matches!(
+            derive_public_key_pem(b"not a key"),
+            Err(OAuthError::PrivateKey(_))
+        ));
     }
 
     #[test]

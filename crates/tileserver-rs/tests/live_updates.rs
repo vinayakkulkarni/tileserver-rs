@@ -79,8 +79,11 @@ async fn harness(live: &str) -> Harness {
         runtime,
     ));
     let shared = SharedState::new(controller);
+    // Reload messages arrive after a file-watcher poll; axum-test 22 gives up
+    // on a WebSocket receive after 30 ms by default.
     let server = TestServer::builder()
         .http_transport()
+        .web_socket_receive_timeout(Duration::from_secs(5))
         .build(api_router(shared.clone()));
     Harness {
         _dir: dir,
@@ -92,9 +95,7 @@ async fn harness(live: &str) -> Harness {
 }
 
 async fn next_json(ws: &mut TestWebSocket) -> Value {
-    tokio::time::timeout(Duration::from_secs(5), ws.receive_json::<Value>())
-        .await
-        .expect("message within 5 s")
+    ws.receive_json::<Value>().await
 }
 
 #[tokio::test]
@@ -176,11 +177,8 @@ async fn subscriptions_limit_messages_to_chosen_sources() {
         .reload_sources(&["florence".to_owned()])
         .await
         .unwrap();
-    assert!(
-        tokio::time::timeout(Duration::from_millis(300), ws.receive_text())
-            .await
-            .is_err()
-    );
+    ws.assert_receive_no_message_within(Duration::from_millis(300))
+        .await;
 }
 
 #[tokio::test]
