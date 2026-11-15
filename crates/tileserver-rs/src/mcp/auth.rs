@@ -1100,6 +1100,24 @@ mod tests {
     }
 
     #[test]
+    fn public_key_is_derived_from_pkcs1_and_pkcs8_keys() {
+        use rsa::pkcs1::EncodeRsaPrivateKey;
+        let pkcs8 = std::str::from_utf8(TEST_PEM).unwrap();
+        let pkcs1 = PrivateKey::from_pkcs8_pem(pkcs8)
+            .unwrap()
+            .to_pkcs1_pem(LineEnding::LF)
+            .unwrap();
+        assert!(pkcs1.starts_with("-----BEGIN RSA PRIVATE KEY-----"));
+        let from_pkcs8 = derive_public_key_pem(TEST_PEM).unwrap();
+        let from_pkcs1 = derive_public_key_pem(pkcs1.as_bytes()).unwrap();
+        assert_eq!(from_pkcs1, from_pkcs8);
+        assert!(matches!(
+            derive_public_key_pem(b"not a key"),
+            Err(OAuthError::PrivateKey(_))
+        ));
+    }
+
+    #[test]
     fn token_ttl_is_clamped_to_24h() {
         let state = OAuthState::from_pem("http://localhost:8080".to_string(), TEST_PEM, 1_000_000)
             .expect("PEM parses");
