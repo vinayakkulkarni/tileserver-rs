@@ -47,14 +47,14 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'en' },
-      title: 'Tileserver RS - High-Performance Vector Tile Server',
+      title: 'Tileserver RS - One Binary for Vector, Raster, COG and PostGIS Tiles',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         {
           name: 'description',
           content:
-            'High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with native MapLibre rendering.',
+            'One Rust binary that replaces martin, tileserver-gl and titiler: vector tiles, raster rendering, COG/STAC, DEM terrain, PostGIS and OGC APIs.',
         },
         {
           name: 'keywords',
@@ -64,24 +64,24 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#111119' },
         {
           property: 'og:title',
-          content: 'Tileserver RS - High-Performance Vector Tile Server',
+          content: 'Tileserver RS - One Binary for Vector, Raster, COG and PostGIS Tiles',
         },
         {
           property: 'og:description',
           content:
-            'High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with native MapLibre rendering.',
+            'One Rust binary that replaces martin, tileserver-gl and titiler: vector tiles, raster rendering, COG/STAC, DEM terrain, PostGIS and OGC APIs.',
         },
         { property: 'og:type', content: 'website' },
         { property: 'og:url', content: 'https://tileserver.app' },
         { name: 'twitter:card', content: 'summary_large_image' },
         {
           name: 'twitter:title',
-          content: 'Tileserver RS - High-Performance Vector Tile Server',
+          content: 'Tileserver RS - One Binary for Vector, Raster, COG and PostGIS Tiles',
         },
         {
           name: 'twitter:description',
           content:
-            'High-performance vector tile server built in Rust. Serve PMTiles and MBTiles with native MapLibre rendering.',
+            'One Rust binary that replaces martin, tileserver-gl and titiler: vector tiles, raster rendering, COG/STAC, DEM terrain, PostGIS and OGC APIs.',
         },
       ],
       link: [

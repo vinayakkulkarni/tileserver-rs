@@ -12,9 +12,31 @@
 
 **[Live demo](https://demo.tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs)** · [Website](https://tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) · [Docs](https://docs.tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs) · [Docker image](https://github.com/vinayakkulkarni/tileserver-rs/pkgs/container/tileserver-rs)
 
-<img src="./.github/assets/tileserver-rs.png" width="512" height="512" align="center" alt="tileserver-rs logo" />
+**One Rust binary that replaces martin, tileserver-gl and titiler.** Vector tiles, server-side rendering, COG and STAC imagery, DEM terrain, PostGIS and OGC APIs from a single self-hosted server.
 
-High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
+<p align="center">
+  <a href="https://tileserver.app/videos/tileserver-rs-demo.mp4"><img src="./.github/assets/tileserver-rs-demo.gif" width="800" alt="tileserver-rs demo: vector tiles, static rendering, Sentinel-2 STAC imagery, Everest terrain and the data inspector" /></a>
+  <br />
+  <sub>30-second tour recorded on the <a href="https://demo.tileserver.app?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs">live demo</a> · <a href="https://tileserver.app/videos/tileserver-rs-demo.mp4">MP4</a></sub>
+</p>
+
+```bash
+# Serves sample data on http://localhost:8080 (an empty /data downloads ~15 MB of samples)
+docker run -p 8080:8080 ghcr.io/vinayakkulkarni/tileserver-rs:latest
+```
+
+### One server instead of three
+
+| You need | Usually | tileserver-rs |
+|---|---|---|
+| Vector tiles from PMTiles, MBTiles, PostGIS | martin | ✓ PostGIS tables +8% vs martin; PMTiles and PostGIS functions about equal |
+| Rendered PNG/WebP tiles, static maps | tileserver-gl | ✓ via MapLibre Native (34% slower than tileserver-gl today) |
+| COG and STAC imagery | titiler | ✓ **11.2× faster** than titiler (864 vs 77 req/s) |
+| DEM terrain-RGB tiles | titiler | ✓ **8.4× faster** than titiler (1,142 vs 136 req/s) |
+| OGC API Features (CQL2, CRUD) | pg_featureserv | ✓ |
+| AI agents on your maps | — | ✓ MCP server + in-browser map AI |
+
+Numbers are from the October 2026 quiet-host benchmarks, including the rows where tileserver-rs is slower (martin is also ~2× faster on PostGIS viewport grids). Harness and full results: [benchmarks](https://docs.tileserver.app/benchmarks/performance?utm_source=github&utm_medium=readme&utm_campaign=tileserver-rs).
 
 ## Features
 
@@ -35,7 +57,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 - **Live Updates** - `GET /ws` WebSocket tells maps to re-fetch a source's tiles when its file, URL or config changes
 - **Analytics Dashboard** - Requests, cache hit rate, latency percentiles, a request heatmap and top tiles at `/admin/analytics`
 - **`inspect` CLI** - Print the metadata, layers and tile counts of a PMTiles/MBTiles file or URL, or decode one tile
-- **High Performance** - ~100ms per tile (warm cache), ~800ms cold cache
+- **High Performance** - Cached tiles in ~1 ms; COG 11× and DEM 8× faster than titiler ([benchmarks](https://docs.tileserver.app/benchmarks/performance))
 - **TileJSON 3.0** - Full TileJSON metadata API
 - **MapLibre GL JS** - Built-in map viewer and data inspector
 - **Docker Ready** - Easy deployment with Docker Compose v2
@@ -45,7 +67,7 @@ High-performance vector tile server built in Rust with a modern Nuxt 4 frontend.
 
 - **Backend**: Rust 1.98+, Axum 0.8, Tokio
 - **Native Rendering**: MapLibre Native (C++) via FFI bindings
-- **Frontend**: Nuxt 4, Vue 3.5, Tailwind CSS v4, shadcn-vue
+- **Frontend**: Nuxt 4, Vue 3.6, Tailwind CSS v4, shadcn-vue
 - **Tooling**: pnpm workspaces, Docker multi-stage builds
 
 ## Table of Contents
@@ -465,17 +487,17 @@ pnpm run build:client
 
 ### Cargo Feature Flags
 
-| Feature | Description |
-|---------|-------------|
-| `http` | Enable serving PMTiles from remote HTTP URLs |
-| `mlt` | Enable MLT (MapLibre Tiles) transcoding support |
+Default features: `postgres`, `raster`, `mlt`, `cloud`, `stac`, `dem`, `cel`. Opt-in: `mcp`, `mcp-persistence`, `geoparquet`, `duckdb`, `frontend`, `sftp`. The full table lives in the [configuration reference](https://docs.tileserver.app/getting-started/config#cargo-features).
 
 ```bash
-# Build with MLT support
-cargo build --release --features mlt
+# Default build
+cargo build --release
 
-# Build with all optional features
-cargo build --release --features http,mlt
+# Add the MCP server, GeoParquet and the embedded web UI
+cargo build --release --features mcp,geoparquet,frontend
+
+# Only what you need (for example PMTiles/MBTiles + MLT)
+cargo build --release --no-default-features --features mlt
 ```
 
 ### Project Structure

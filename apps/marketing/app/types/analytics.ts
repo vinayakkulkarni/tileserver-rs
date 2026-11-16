@@ -10,6 +10,7 @@ export type CtaLocation =
   | 'nav'
   | 'mobile_nav'
   | 'hero'
+  | 'demo_video'
   | 'ai_section'
   | 'api_section'
   | 'performance_section'

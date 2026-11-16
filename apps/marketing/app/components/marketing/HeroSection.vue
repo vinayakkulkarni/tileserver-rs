@@ -49,24 +49,24 @@
             class="inline-flex flex-wrap items-center justify-center gap-1.5 text-muted-foreground sm:gap-2"
           >
             <BotMessageSquare class="size-3 text-primary" />
-            <span class="text-primary">Browser-Local AI</span>
-            &mdash; no API keys
+            <span class="text-primary">Map AI</span>
+            &mdash; in your browser or your own key
           </span>
         </div>
 
         <h1
           class="mb-8 font-display text-3xl/1-1 font-bold tracking-n40 sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
         >
-          <span class="text-foreground">Serve Vector Tiles</span>
+          <span class="text-foreground">Replace Three Tile Servers</span>
           <ShinyText
-            text="At Lightning Speed"
+            text="With One Rust Binary"
             :speed="4"
             class="mt-2 block pb-2 font-display leading-1-1"
           />
         </h1>
 
         <SplitText
-          text="One Rust binary. All geospatial formats. Vector tiles, raster tiles, PostGIS collections, COG, STAC, and OGC APIs — everything you need to serve maps at scale, with a browser-local AI that actually talks to your data."
+          text="Vector tiles, server-side rendering, COG and STAC imagery, DEM terrain, PostGIS and OGC APIs — the work of martin, tileserver-gl and titiler in one server. 11× faster than titiler on COG tiles."
           by="words"
           :delay="30"
           :duration="0.4"
