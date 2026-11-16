@@ -2,9 +2,10 @@
   const { isDark } = useThemeToggle();
 
   usePageSeo({
-    title: 'Tileserver RS: one binary for all geospatial data',
+    title:
+      'Tileserver RS: one binary that replaces martin, tileserver-gl and titiler',
     description:
-      'Serve vector tiles, raster tiles, PostGIS collections, COG, STAC, and OGC APIs from a single Rust binary. Browser-local AI. Self-hosted. Zero config.',
+      'Vector tiles, raster rendering, COG and STAC imagery, DEM terrain, PostGIS and OGC APIs from a single self-hosted Rust binary. 11× faster than titiler on COG tiles.',
     path: '/',
   });
 
@@ -64,6 +65,7 @@
         class="mt-frame-inner ml-frame-gutter w-frame-content overflow-hidden lg:mt-frame-outer lg:ml-frame-outer lg:w-frame-content-lg"
       >
         <MarketingHeroSection />
+        <MarketingDemoVideoSection />
         <MarketingFeaturesSection />
         <MarketingAiSection />
         <MarketingPerformanceSection />

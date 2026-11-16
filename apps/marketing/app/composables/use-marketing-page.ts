@@ -235,9 +235,9 @@ export function useMarketingPage() {
     },
     {
       icon: BotMessageSquare,
-      title: 'Browser-Local AI',
+      title: 'Map AI',
       description:
-        'Talk to your maps with a built-in LLM. Runs entirely in your browser via WebGPU: no API keys, no cloud, no token costs.',
+        'Talk to your maps with a built-in LLM. Runs in your browser via WebGPU by default, or bring your own OpenAI-compatible or Anthropic key.',
       category: 'Intelligence',
     },
     {

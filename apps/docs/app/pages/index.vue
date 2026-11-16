@@ -72,7 +72,7 @@
       icon: Image,
       title: 'Native Raster Rendering',
       description:
-        'Generate PNG/JPEG/WebP tiles from vector styles using MapLibre Native (~100ms/tile).',
+        'Generate PNG/JPEG/WebP tiles from vector styles using MapLibre Native.',
     },
     {
       icon: Camera,
@@ -288,9 +288,9 @@
             <span class="text-primary">RS</span>
           </h1>
           <p class="mb-10 max-w-2xl font-sans text-lg/relaxed text-muted-foreground">
-            High-performance vector tile server built in Rust. Serve PMTiles and
-            MBTiles with native raster rendering, static map images, and TileJSON
-            3.0 metadata.
+            One Rust binary that replaces martin, tileserver-gl and titiler:
+            vector tiles, native raster rendering, COG and STAC imagery, DEM
+            terrain, PostGIS and OGC APIs.
           </p>
           <div class="flex flex-wrap gap-3">
             <NuxtLink
