@@ -7,6 +7,7 @@
 
 import type { Map, MapOptions } from 'maplibre-gl';
 
+import { resolveInitialView, VIEWER_MAX_PITCH } from '~/lib/initial-view';
 import type { LayerColor } from '~/types/data';
 import { fetchDataSource } from '~/utils/api/data';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
@@ -54,6 +55,10 @@ export function useDataInspector(dataId: Ref<string>) {
 
   const mapOptions = computed<MapOptions>(() => ({
     container: 'data-inspector-map',
+    // Same rule as the style viewer: a pitch above MapLibre's default
+    // maxPitch (60) made `hash: true` drop the whole hash.
+    ...resolveInitialView(window.location.hash),
+    maxPitch: VIEWER_MAX_PITCH,
     hash: true,
     style: {
       version: 8,
