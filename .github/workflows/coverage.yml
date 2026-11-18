@@ -18,7 +18,11 @@ jobs:
     # The feature combos used to run one after another in one job (~47 min).
     # Each group now runs in its own job; Codecov merges every upload for the
     # commit into one report, so the totals and the 75% gate are unchanged.
-    timeout-minutes: 45
+    # 75, not 45: a cold cache (a new stable Rust changes the rust-cache key)
+    # rebuilds bundled DuckDB from source, ~22 min, and a slow apt mirror
+    # added 16 min more. The duckdb group then hit 45 min while saving its
+    # cache, so the cache never warmed and every rerun timed out (PR #1684).
+    timeout-minutes: 75
     # PostGIS only for the `core` group, which runs the live PostGIS tests. An
     # empty image skips the service in the other groups.
     services:
