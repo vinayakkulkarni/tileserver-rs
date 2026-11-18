@@ -5,6 +5,7 @@
  */
 
 import type { Map, MapOptions, StyleSpecification } from 'maplibre-gl';
+import { resolveInitialView, VIEWER_MAX_PITCH } from '~/lib/initial-view';
 import { ensureMaplibreWorker } from '~/utils/maplibre-worker';
 import { useLiveUpdates } from './use-live-updates';
 import { useMapInteractionTracking } from './use-map-interaction-tracking';
@@ -26,11 +27,15 @@ export function useStyleViewer(styleId: Ref<string>, isRaster: Ref<boolean>) {
   const mapOptions = computed<MapOptions | null>(() => {
     if (!style.value) return null;
 
+    const rawStyle = toRaw(style.value) as StyleSpecification;
+    // URL hash, then the style's own camera, then the world view.
+    const view = resolveInitialView(window.location.hash, rawStyle);
+
     return {
       container: containerId,
-      style: toRaw(style.value) as StyleSpecification,
-      center: [0, 0] as [number, number],
-      zoom: 1,
+      style: rawStyle,
+      ...view,
+      maxPitch: VIEWER_MAX_PITCH,
       hash: true,
       interactive: true,
     };

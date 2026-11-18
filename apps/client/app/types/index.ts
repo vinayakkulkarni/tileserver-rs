@@ -40,7 +40,7 @@ export type {
 } from './live';
 export type { FilterCategory, FilterChip } from './home-filters';
 export type { OfetchLikeError } from './fetch';
-export type { VMapOptions } from './map';
+export type { InitialView, StyleCamera, VMapOptions } from './map';
 export type { PingResponse } from './server';
 export type { Style, TileJSON } from './style';
 export type {
