@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.41.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.3...v2.41.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* **client:** open the style viewer at the URL hash or the style camera ([#1684](https://github.com/vinayakkulkarni/tileserver-rs/issues/1684)) ([3410892](https://github.com/vinayakkulkarni/tileserver-rs/commit/3410892c59f9ad3c129735ee235b9b24ce6e695a))
+
+
+### Documentation
+
+* relaunch README and marketing with the one-binary pitch and demo video ([#1682](https://github.com/vinayakkulkarni/tileserver-rs/issues/1682)) ([580b892](https://github.com/vinayakkulkarni/tileserver-rs/commit/580b892cc20e35a24dd3ecfbef107a88f3ef4b5e))
+
 ## [2.41.3](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.2...v2.41.3) (2026-11-08)
 
 
