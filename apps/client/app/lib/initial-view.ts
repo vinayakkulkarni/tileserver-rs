@@ -18,7 +18,7 @@ export const VIEWER_MAX_PITCH = 85;
 const MIN_ZOOM = -2;
 const MAX_ZOOM = 22;
 
-export const DEFAULT_VIEW: InitialView = {
+const DEFAULT_VIEW: InitialView = {
   center: [0, 0],
   zoom: 1,
   bearing: 0,
@@ -53,7 +53,7 @@ function numberOr(value: unknown, fallback: number): number {
 }
 
 /** Read the camera a style declares. Returns null when it sets no center. */
-export function styleView(style: StyleCamera | null | undefined) {
+function styleView(style: StyleCamera | null | undefined) {
   const center = style?.center;
   if (!Array.isArray(center) || center.length < 2) return null;
   const [lng, lat] = center;
