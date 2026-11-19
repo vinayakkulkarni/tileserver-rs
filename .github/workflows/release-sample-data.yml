@@ -46,14 +46,20 @@ jobs:
             tileserver-rs-sample-data.tar.gz.sha256
           retention-days: 30
 
+      # gh release upload, not softprops/action-gh-release: on an existing
+      # release, softprops v3 PATCHes the release and resends target_commitish.
+      # GitHub rejects that from GITHUB_TOKEN (403 "Resource not accessible by
+      # integration") when the tag's .github/workflows differ from main's, so
+      # every backfill (workflow_dispatch from main) failed after the build.
+      # release-please already created the release; this only adds assets.
+      # https://github.com/softprops/action-gh-release/issues/836
       - name: Upload to release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          files: |
-            tileserver-rs-sample-data.tar.gz
-            tileserver-rs-sample-data.tar.gz.sha256
-          draft: false
-          prerelease: ${{ contains(github.event.inputs.tag || github.ref_name, '-alpha') || contains(github.event.inputs.tag || github.ref_name, '-beta') || contains(github.event.inputs.tag || github.ref_name, '-rc') }}
+        run: |
+          gh release upload "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber \
+            "tileserver-rs-sample-data.tar.gz" \
+            "tileserver-rs-sample-data.tar.gz.sha256"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
