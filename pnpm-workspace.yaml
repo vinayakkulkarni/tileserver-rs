@@ -119,7 +119,7 @@ catalogs:
     # install a second @tanstack/db copy next to the one query-db-collection uses.
     '@tanstack/vue-db': 1.0.0-rc.1.5
     '@tanstack/vue-query': ^5.107.1
-    '@tmcw/togeojson': ^7.1.3
+    '@tmcw/togeojson': ^7.1.4
     '@types/geojson': ^7946.0.16
     '@types/papaparse': ^5.5.2
     '@types/shpjs': ^3.4.7
