@@ -7,6 +7,12 @@ class TileserverRs < Formula
   version "2.41.4"
   license "MIT"
 
+  # The released binary is dynamically linked against these Homebrew
+  # libraries (libuv.1 and libgdal.39). Without them dyld fails at startup
+  # and the formula's `test do` block fails the install.
+  depends_on "gdal"
+  depends_on "libuv"
+
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/vinayakkulkarni/tileserver-rs/releases/download/v#{version}/tileserver-rs-aarch64-apple-darwin.tar.gz"

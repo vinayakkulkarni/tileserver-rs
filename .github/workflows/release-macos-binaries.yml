@@ -17,12 +17,15 @@ env:
 jobs:
   build:
     name: Build macOS ${{ matrix.arch }}
-    # macos-15 (arm64): GitHub retired the macos-14 image, and jobs on it now
-    # fail in 1s with "The configuration 'macos-14-arm64-us-default' is not
-    # supported" (v2.41.2-v2.41.4 shipped no macOS binary). macos-15 is the
-    # oldest arm64 image left, so the binary keeps the widest macOS support.
+    # macos-latest (arm64), never a numbered image: GitHub retires macOS
+    # images on its own schedule (macos-14 was retired 2026-11-02 and jobs on
+    # it failed in 1 second with "macos-14-arm64-us-default is not supported",
+    # so v2.41.2-v2.41.4 shipped no macOS binary). `latest` follows the move
+    # instead of breaking on it. The trade-off: the image can change without
+    # a commit here, so the "Verify deployment target" step below fails the
+    # build if the SDK ever raises the binary's minimum macOS.
     # https://docs.github.com/en/actions/reference/runners/github-hosted-runners
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -113,6 +116,18 @@ jobs:
           cd dist
           tar -czvf tileserver-rs-${{ matrix.target }}.tar.gz tileserver-rs
           shasum -a 256 tileserver-rs-${{ matrix.target }}.tar.gz > tileserver-rs-${{ matrix.target }}.tar.gz.sha256
+
+      - name: Verify deployment target
+        run: |
+          # The binary must stay runnable on the oldest macOS we support.
+          # Rust defaults to 11.0 unless a build raises it; this fails loudly
+          # if a future macos-latest image does.
+          MINOS=$(otool -l dist/tileserver-rs | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit}')
+          echo "Mach-O minimum macOS: ${MINOS}"
+          case "${MINOS}" in
+            11.*) echo "OK" ;;
+            *) echo "::error::minimum macOS moved to ${MINOS} (expected 11.x)"; exit 1 ;;
+          esac
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

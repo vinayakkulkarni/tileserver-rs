@@ -44,12 +44,10 @@ jobs:
 
   build-macos:
     name: Build macOS (aarch64-apple-darwin)
-    # macos-15 (arm64): GitHub retired the macos-14 image, and jobs on it now
-    # fail in 1s with "The configuration 'macos-14-arm64-us-default' is not
-    # supported" (v2.41.2-v2.41.4 shipped no macOS binary). macos-15 is the
-    # oldest arm64 image left, so the binary keeps the widest macOS support.
+    # macos-latest (arm64): follow GitHub's image moves instead of being
+    # retired out from under us (macos-14 was retired 2026-11-02).
     # https://docs.github.com/en/actions/reference/runners/github-hosted-runners
-    runs-on: macos-15
+    runs-on: macos-latest
     needs: create-release
     timeout-minutes: 120
     env:

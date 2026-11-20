@@ -10,6 +10,8 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  # Required by the SARIF upload step below (Code Scanning).
+  security-events: write
 
 jobs:
   doctor:
@@ -19,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # `scope: changed` resolves the PR merge-base; a shallow clone has no
+          # history to find it in.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6.1.1
@@ -49,8 +55,33 @@ jobs:
           fail-on: error
           api-key: ${{ secrets.DOCTOR_API_KEY }}
           project: ${{ github.repository }}
+          # Gate on what THIS pull request introduces. `changed` compares the
+          # head with its base (doctor-action 2.2 + nuxt-doctor 1.9) and reports
+          # only new findings, so a pre-existing warning in an untouched file
+          # no longer blocks an unrelated PR. Push and release runs still audit
+          # the whole project (the action ignores scope off pull requests) and
+          # the score still covers every finding.
+          scope: changed
           # Fork PRs get a read-only GITHUB_TOKEN, so posting the review fails
           # with "Resource not accessible by integration" and fails the gate.
           # Post only for same-repo PRs; the audit itself still runs on forks.
           pr-comment: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
           comment-mode: both
+          # No "nothing to fix" comment on every clean PR; an existing summary
+          # is still updated.
+          comment-on-clean: false
+
+      # The action writes doctor-report.json and doctor.sarif from one run.
+      # Uploading the SARIF puts findings in the Security > Code scanning tab
+      # and annotates the diff. A fork PR has no security-events permission,
+      # so skip it there; the gate above still runs.
+      - name: Upload SARIF to Code Scanning
+        if: |
+          always() &&
+          (github.event_name != 'pull_request' ||
+           github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: doctor.sarif
+          category: nuxt-doctor

@@ -13,6 +13,8 @@ permissions:
   checks: write
   pull-requests: write
   deployments: write
+  # The doctor job uploads a SARIF report to Code Scanning.
+  security-events: write
 
 concurrency:
   group: pipeline-${{ github.ref }}
@@ -27,7 +29,7 @@ jobs:
     steps:
       - name: Extract branch name
         id: get-branch
-        run: echo "current_branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+        run: echo "current_branch=${GITHUB_REF##*/}" >> "$GITHUB_OUTPUT"
 
   lint-branch:
     name: 'Lint branch'
@@ -63,6 +65,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      security-events: write
     uses: ./.github/workflows/doctor.yml
     secrets: inherit
 
