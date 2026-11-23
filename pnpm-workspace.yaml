@@ -133,7 +133,7 @@ catalogs:
     ogl: ^1.0.11
     wrangler: ^4.165.0
   docs:
-    '@nuxt/content': ^3.16.2
+    '@nuxt/content': ^3.17.0
     better-sqlite3: ^13.2.0
   benchmarks:
     autocannon: ^9.0.0
