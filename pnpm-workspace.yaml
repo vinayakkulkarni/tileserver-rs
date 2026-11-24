@@ -71,7 +71,7 @@ catalogs:
     '@nuxt/eslint': ^1.17.0
     '@nuxt/eslint-config': ^1.17.0
     '@nuxt/fonts': ^1.2.0
-    '@nuxt/icon': ^2.6.2
+    '@nuxt/icon': ^2.6.3
     '@nuxt/scripts': ^2.0.0-beta.16
     '@nuxtjs/color-mode': ^4.1.0
     '@openpanel/nuxt': ^0.4.4
