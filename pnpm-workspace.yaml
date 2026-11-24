@@ -47,7 +47,7 @@ allowBuilds:
 # overrides pnpm would install Vue 3.5 next to 3.6 (two runtimes, broken
 # reactivity). Remove once Vue 3.6.0 is stable.
 overrides:
-  'vue': 3.6.0-rc.15
+  'vue': 3.6.0-rc.16
   '@vue/compiler-core': 3.6.0-rc.15
   '@vue/compiler-dom': 3.6.0-rc.15
   '@vue/compiler-sfc': 3.6.0-rc.15
@@ -105,7 +105,7 @@ catalogs:
     vitest: ^5.1.1
     # Exact pin: a caret on a prerelease lets pnpm resolve a second Vue copy.
     # The overrides below force every package onto this one release.
-    vue: 3.6.0-rc.15
+    vue: 3.6.0-rc.16
     vue-tsc: ^3.3.14
   client:
     '@comark/nuxt': ^0.9.2
