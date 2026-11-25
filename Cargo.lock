@@ -2346,16 +2346,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generic-array"
-version = "1.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "337d46834ee672ab3e48caca2cb0c78cc174fb12b3a68d0d88f99a0519a5e36e"
-dependencies = [
- "rustversion",
- "typenum",
-]
-
-[[package]]
 name = "geo"
 version = "0.33.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5484,9 +5474,9 @@ dependencies = [
 
 [[package]]
 name = "russh"
-version = "0.65.2"
+version = "0.65.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78229f06e4d96d83bea5f5133ad3b6e4b5f0ce22d8e31c1ff7243ec8e18d5ba1"
+checksum = "569d8c45e20c123af2fc5ecb4803fde0a98572449ba4c24ed97741d7b02fedf7"
 dependencies = [
  "aes",
  "bitflags",
@@ -5507,7 +5497,6 @@ dependencies = [
  "elliptic-curve",
  "enum_dispatch",
  "futures",
- "generic-array 1.4.5",
  "getrandom 0.4.3",
  "ghash",
  "hex-literal",
@@ -6679,7 +6668,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
