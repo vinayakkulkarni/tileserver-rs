@@ -193,8 +193,8 @@ catalogs:
       specifier: ^1.4.0
       version: 1.4.0
     '@tanstack/ai-vue':
-      specifier: ^1.1.0
-      version: 1.1.0
+      specifier: ^1.1.1
+      version: 1.1.1
     '@tanstack/query-db-collection':
       specifier: ^1.5.2
       version: 1.5.2
@@ -443,7 +443,7 @@ importers:
         version: 1.4.0(zod@4.6.7)
       '@tanstack/ai-vue':
         specifier: catalog:client
-        version: 1.1.0(@tanstack/ai@1.4.0(zod@4.6.7))(vue@3.6.0-rc.15(typescript@6.0.3))(zod@4.6.7)
+        version: 1.1.1(@tanstack/ai@1.4.0(zod@4.6.7))(vue@3.6.0-rc.15(typescript@6.0.3))(zod@4.6.7)
       '@tanstack/query-db-collection':
         specifier: catalog:client
         version: 1.5.2(@tanstack/db@1.0.0-rc.1.5(typescript@6.0.3))(@tanstack/query-core@5.108.2)(typescript@6.0.3)
@@ -3118,8 +3118,8 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7 || ^8
 
-  '@tanstack/ai-client@1.2.0':
-    resolution: {integrity: sha512-fwDe6AijLgScdEDq6Cy15U6V1i2GPBtxSmUhNGytGxuW1IQIFvufYMqSmVtJ4pd/CrZXvm43BoBo6jLogl574w==}
+  '@tanstack/ai-client@1.2.1':
+    resolution: {integrity: sha512-m6EjS6pRdbOxMrIIgWm6QtOfCGBbAh2QnV7PJ6b64xfeq908bTYk5U2dJKQboFN2PuAIHFa02Udbvu6nU5tp8g==}
 
   '@tanstack/ai-event-client@1.0.1':
     resolution: {integrity: sha512-IURnn4oRKJbtbAuC3GcXRcuKHi8DrPmwuACqaTq6ApSGlyJyHhq0NTksKEmzql2Z12+njFjsKSXG9c7UbSHTxg==}
@@ -3130,8 +3130,8 @@ packages:
   '@tanstack/ai-utils@1.1.0':
     resolution: {integrity: sha512-li47v/794azVLourgteS/+jjH/ZF+cIp/3RMVA1VybtKAFiMy3ZGxREU10OzfUghMzYLdfpK2l6ahvlWxNVHug==}
 
-  '@tanstack/ai-vue@1.1.0':
-    resolution: {integrity: sha512-3ljAkLxz14FXxvQx4QOtgJUxB/Pr6zSTSjsVXPbQ16J4D6hwZfS1bXwy3XbW1xOyN4dl7LWC2LQ+LjisInUToQ==}
+  '@tanstack/ai-vue@1.1.1':
+    resolution: {integrity: sha512-6kCW1UTYt/0Pa9v6P06CfgGkO73BeXP6QyuLYDTdb5hQnbg2yLhwG5EkzEIAd6EjZT2V9gzBae/8ifXU2k8jJw==}
     peerDependencies:
       '@tanstack/ai': ^1.7.0
       vue: 3.6.0-rc.15
@@ -10542,7 +10542,7 @@ snapshots:
       tailwindcss: 4.3.5
       vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)
 
-  '@tanstack/ai-client@1.2.0(zod@4.6.7)':
+  '@tanstack/ai-client@1.2.1(zod@4.6.7)':
     dependencies:
       '@tanstack/ai': 1.7.0(zod@4.6.7)
       '@tanstack/ai-event-client': 1.1.0
@@ -10562,10 +10562,10 @@ snapshots:
 
   '@tanstack/ai-utils@1.1.0': {}
 
-  '@tanstack/ai-vue@1.1.0(@tanstack/ai@1.4.0(zod@4.6.7))(vue@3.6.0-rc.15(typescript@6.0.3))(zod@4.6.7)':
+  '@tanstack/ai-vue@1.1.1(@tanstack/ai@1.4.0(zod@4.6.7))(vue@3.6.0-rc.15(typescript@6.0.3))(zod@4.6.7)':
     dependencies:
       '@tanstack/ai': 1.4.0(zod@4.6.7)
-      '@tanstack/ai-client': 1.2.0(zod@4.6.7)
+      '@tanstack/ai-client': 1.2.1(zod@4.6.7)
       '@tanstack/markdown': 1.2.1
       vue: 3.6.0-rc.15(typescript@6.0.3)
     transitivePeerDependencies:
