@@ -89,14 +89,14 @@ async fn upload_delete_nonexistent_id_returns_404() {
 }
 
 #[tokio::test]
-async fn upload_post_without_upload_dir_returns_400() {
-    // minimal_app_state has upload_dir = None, so the handler should return
-    // UploadError → 400.
+async fn upload_post_without_upload_dir_returns_4xx() {
+    // minimal_app_state has upload_dir = None, so uploads are disabled.
     let server = common::empty_test_server();
     let resp = server.post("/api/upload").await;
     let status = resp.status_code().as_u16();
-    // No multipart body without upload dir configured → 400 (UploadError) or
-    // 415 (no content-type) — either is fine as long as it's a 4xx, not 5xx.
+    // No multipart body: the extractor may reject first with 415 (no
+    // content-type) before the handler's 404 — either is a 4xx, not a 5xx.
+    // The multipart case asserting 404 lives in `upload::tests`.
     assert!(
         (400..500).contains(&status),
         "upload without upload_dir must return 4xx, got {status}"
