@@ -369,13 +369,13 @@ pub async fn build_app_state(
         }
     }
 
-    // Resolve upload directory
-    let upload_dir = if let Some(ref dir) = config.server.upload_dir {
-        Some(dir.clone())
-    } else {
-        Some(config.resolve_cache_dir(None).join("uploads"))
-    };
+    // Uploads are opt-in: they are anonymous, so they stay off unless the
+    // operator sets `server.upload_dir`. There is no default directory.
+    let upload_dir = config.server.upload_dir.clone();
 
+    if upload_dir.is_none() {
+        tracing::info!("Uploads disabled (set server.upload_dir to enable)");
+    }
     if let Some(ref dir) = upload_dir {
         if let Err(e) = tokio::fs::create_dir_all(dir).await {
             tracing::warn!("Failed to create upload directory {}: {}", dir.display(), e);
@@ -485,24 +485,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn build_app_state_default_upload_dir_lands_in_cache_dir() {
-        // Hermetic cache dir: a bare default resolves uploads to the shared
-        // global `temp_dir()/tileserver-rs/uploads`, which parallel tests race
-        // to `create_dir_all`. A unique tempdir exercises the same else-branch
-        // without that race.
+    async fn build_app_state_without_upload_dir_disables_uploads() {
+        // Uploads are anonymous, so they must never be on by default: no
+        // `upload_dir` means no upload directory, not `<cache_dir>/uploads`.
         let tempdir = tempfile::tempdir().unwrap();
         let mut cfg = crate::config::Config::default();
         cfg.cache.dir = Some(tempdir.path().to_path_buf());
         let runtime = runtime_for("127.0.0.1", 8080, None);
         let state = build_app_state(&cfg, &runtime).await.unwrap();
 
-        let upload = state.upload_dir.expect("default upload dir set");
-        assert_eq!(
-            upload,
-            tempdir.path().join("uploads"),
-            "default upload dir must be `<cache_dir>/uploads`"
+        assert!(state.upload_dir.is_none(), "uploads must be opt-in");
+        assert!(
+            !tempdir.path().join("uploads").exists(),
+            "no upload directory may be created by default"
         );
-        assert!(upload.exists(), "upload dir must be created");
     }
 
     #[tokio::test]

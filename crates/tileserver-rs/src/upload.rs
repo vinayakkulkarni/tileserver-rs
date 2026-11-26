@@ -150,18 +150,18 @@ fn source_type_label(st: &SourceType) -> &'static str {
 ///
 /// # Errors
 ///
-/// [`TileServerError::UploadError`] for a bad request or a file that is
-/// not a supported source, and [`TileServerError::UploadTooLarge`] above
-/// the size limit.
+/// [`TileServerError::NotFound`] when uploads are disabled (no
+/// `server.upload_dir`), [`TileServerError::UploadError`] for a bad request
+/// or a file that is not a supported source, and
+/// [`TileServerError::UploadTooLarge`] above the size limit.
 pub async fn upload_file(
     State(shared): State<SharedState>,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, TileServerError> {
     let state = shared.load();
-    let upload_dir = state
-        .upload_dir
-        .as_ref()
-        .ok_or_else(|| TileServerError::UploadError("upload directory not configured".into()))?;
+    let upload_dir = state.upload_dir.as_ref().ok_or_else(|| {
+        TileServerError::NotFound("uploads are disabled (server.upload_dir is not set)".into())
+    })?;
 
     // Extract file field from multipart
     let mut field = multipart
@@ -656,6 +656,28 @@ mod tests {
 
     fn router_with_shared(shared: SharedState) -> axum::Router {
         crate::routes::api_router(shared)
+    }
+
+    #[tokio::test]
+    async fn upload_post_without_upload_dir_returns_404_and_writes_nothing() {
+        // Uploads are opt-in. With no `upload_dir` the endpoint must refuse
+        // with 404 and must not register a source.
+        let shared = build_shared(None);
+        let server = TestServer::new(router_with_shared(shared.clone()));
+
+        let form = MultipartForm::new().add_part(
+            "file",
+            Part::bytes(b"hello".to_vec()).file_name("poc.mbtiles"),
+        );
+        let resp = server.post("/api/upload").multipart(form).await;
+
+        assert_eq!(resp.status_code(), axum::http::StatusCode::NOT_FOUND);
+        assert!(
+            resp.text().contains("uploads are disabled"),
+            "{}",
+            resp.text()
+        );
+        assert!(shared.uploads().read().await.is_empty());
     }
 
     #[tokio::test]
