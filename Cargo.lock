@@ -5790,9 +5790,9 @@ dependencies = [
 
 [[package]]
 name = "scalar_api_reference"
-version = "0.2.29"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f42eefd4cab516c0ceec6450c41e174d8672a6daad1dfbca07e4188675b771f"
+checksum = "28e54dd23f0d49b215a4627a4fc3125d1267539a9b610c844349747aa2f25bfe"
 dependencies = [
  "axum",
  "axum-extra",
