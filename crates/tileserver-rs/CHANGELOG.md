@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.41.5](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.4...v2.41.5) (2026-11-26)
+
+
+### Bug Fixes
+
+* **security:** escape inspector popup data and make uploads opt-in ([#1722](https://github.com/vinayakkulkarni/tileserver-rs/issues/1722)) ([d703a76](https://github.com/vinayakkulkarni/tileserver-rs/commit/d703a760f444378b83d304f1a2d70449996e5636))
+
 ## [2.41.4](https://github.com/vinayakkulkarni/tileserver-rs/compare/v2.41.3...v2.41.4) (2026-11-18)
 
 
