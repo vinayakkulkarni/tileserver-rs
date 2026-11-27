@@ -91,7 +91,7 @@ catalogs:
     maplibre-gl: ^6.19.0
     motion-v: ^2.13.0
     nuxt: ^4.6.4
-    oxfmt: ^0.79.0
+    oxfmt: ^0.80.0
     oxlint: ^1.94.0
     radix-vue: ^1.9.17
     reka-ui: ^2.11.0
