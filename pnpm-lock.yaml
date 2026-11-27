@@ -293,8 +293,8 @@ catalogs:
       specifier: ^4.11.0
       version: 4.11.0
     eslint-plugin-oxlint:
-      specifier: ^1.94.0
-      version: 1.94.0
+      specifier: ^1.95.0
+      version: 1.95.0
     husky:
       specifier: ^9.1.7
       version: 9.1.7
@@ -543,7 +543,7 @@ importers:
         version: 4.11.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(oxlint@1.94.0)(tailwindcss@4.3.5)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.94.0(oxlint@1.94.0)
+        version: 1.95.0(oxlint@1.94.0)
       oxfmt:
         specifier: catalog:default
         version: 0.79.0
@@ -658,7 +658,7 @@ importers:
         version: 4.11.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(oxlint@1.94.0)(tailwindcss@4.3.5)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.94.0(oxlint@1.94.0)
+        version: 1.95.0(oxlint@1.94.0)
       oxlint:
         specifier: catalog:default
         version: 1.94.0
@@ -767,7 +767,7 @@ importers:
         version: 4.11.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(oxlint@1.94.0)(tailwindcss@4.3.5)(typescript@6.0.3)
       eslint-plugin-oxlint:
         specifier: catalog:default
-        version: 1.94.0(oxlint@1.94.0)
+        version: 1.95.0(oxlint@1.94.0)
       oxfmt:
         specifier: catalog:default
         version: 0.79.0
@@ -4598,10 +4598,10 @@ packages:
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0
 
-  eslint-plugin-oxlint@1.94.0:
-    resolution: {integrity: sha512-G85ciyw/h05n43cYrjkXVR8bF9mgOt+nMA/aPH3oVN59OWwLIDQB5bEguMGIeDFyQDKBDp+6HWrz5ponHqFXZA==}
+  eslint-plugin-oxlint@1.95.0:
+    resolution: {integrity: sha512-JVl2HXdkxg7MNSTzMapg4yhCep3OsxFxFuX8RmZxF9z4/SXwXodQJIsVK4Ce3Zej1QnodlohQOC47C7OokT4AQ==}
     peerDependencies:
-      oxlint: ~1.94.0
+      oxlint: ~1.95.0
 
   eslint-plugin-regexp@3.3.3:
     resolution: {integrity: sha512-bIpFf1uL9AB6MY5cDUXL2lrfuBA+/WLc1AwC+56OsHWo93zoKQ4EcAQ+wsOxq5ozLC9xfTYAb4Si+0w0Ll1hYA==}
@@ -12127,7 +12127,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-oxlint@1.94.0(oxlint@1.94.0):
+  eslint-plugin-oxlint@1.95.0(oxlint@1.94.0):
     dependencies:
       jsonc-parser: 3.3.1
       oxlint: 1.94.0
