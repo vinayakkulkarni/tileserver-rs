@@ -680,21 +680,44 @@ fn composite_rendered(
     rendered: Vec<(String, bytes::Bytes)>,
 ) -> Result<Option<Vec<u8>>> {
     for (asset_id, data) in rendered {
-        let raster = match crate::raster::decode::from_bytes(&data) {
+        let mut raster = match crate::raster::decode::from_bytes(&data) {
             Ok(r) => r,
             Err(e) => {
                 tracing::warn!(asset_id = %asset_id, error = %e, "mosaic: failed to decode");
                 continue;
             }
         };
+        // Sub-pixel edge repair, per asset, BEFORE compositing.
+        //
+        // A rotated-grid COG (e.g. a UTM supercell) marks the fractional-pixel
+        // coverage at its footprint edge as nodata. Two neighbours meeting at a
+        // zone boundary do so on nearly the same output column with opposite
+        // sub-pixel phase, so their union leaves a 1-2 px transparent slot that
+        // neither fills. Restoring one pixel of each asset's edge from its own
+        // opaque inward neighbour lets both contribute the sliver they really
+        // cover, closing the slot at its source. Measured 2026-11-27: the slot's
+        // ground width shrinks 16x with zoom while its pixel width stays ~3 px,
+        // which is why this is a pixel-domain repair and not a data gap.
+        let repaired = crate::raster::mosaic::dilate_masked_edges(&mut raster);
+        if repaired > 0 {
+            tracing::debug!(asset_id = %asset_id, pixels = repaired, "mosaic: dilated masked edge");
+        }
         method.feed(raster);
         if method.is_done() {
             break;
         }
     }
-    let Some(finalised) = method.finalize() else {
+    let Some(mut finalised) = method.finalize() else {
         return Ok(None);
     };
+    // Post-composite safety net: seal any 1-px hole that survived the per-asset
+    // pass (a slot that straddles slightly more than one column). A 1-px
+    // morphological close cannot bridge anything wider, so real voids, cloud
+    // gaps and coastlines are untouched.
+    let sealed = crate::raster::mosaic::close_holes_1px(&mut finalised);
+    if sealed > 0 {
+        tracing::debug!(pixels = sealed, "mosaic: closed 1px seam holes");
+    }
     let png = crate::raster::encode::to_png(&finalised)
         .map_err(|e| TileServerError::StacError(format!("mosaic png encode failed: {e}")))?;
     Ok(Some(png))

@@ -30,8 +30,10 @@
 //! `stdev`) skip masked contributions so partially-covered tiles do
 //! not pull the result toward zero.
 
+mod edge;
 mod methods;
 
+pub use edge::{close_holes_1px, dilate_masked_edges};
 pub use methods::{
     CountMethod, FirstMethod, HighestMethod, LowestCloudCoverMethod, LowestMethod, MeanMethod,
     MedianMethod, MosaicMethod, StdevMethod, build,
